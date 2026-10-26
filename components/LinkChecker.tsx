@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChatBox } from "@/components/ChatBox";
 import { FlightSearch } from "@/components/FlightSearch";
-import { AFFILIATE_CID, HOTEL_PROMOCODES, groupOrder, hotelNameFromUrl, parseAgodaUrl, routes, withCid } from "@/lib/agoda";
+import { AFFILIATE_CID, HOTEL_PROMOCODES, groupOrder, hotelNameFromUrl, parseAgodaUrl, routes, sampleLinks, withCid } from "@/lib/agoda";
 import { site } from "@/lib/site";
 
 type Result =
@@ -12,7 +12,17 @@ type Result =
   | { kind: "notAgoda" }
   | { kind: "invalid" };
 
-type TabId = "stay" | "ask" | "flight" | "shop";
+export type TabId = "stay" | "ask" | "flight" | "shop";
+
+// 다른 섹션(패밀리 카드 등)에서 검색창 탭을 바꿀 때 쓰는 이벤트
+export const TAB_EVENT = "lowboti:tab";
+
+const hints: Record<TabId, string> = {
+  stay: "🔗 아고다 호텔 페이지 주소(URL)를 붙여넣어 주세요. 호텔 이름 검색은 아직 준비 중이에요.",
+  flight: "✈️ 출발지·도착지·날짜만 고르면 돼요. 검색 결과는 새 탭에서 열려요.",
+  shop: "🛍️ 여행 준비물과 유심 최저가 비교를 준비하고 있어요.",
+  ask: "💬 여행 일정, 예산, 숙소 고르는 법을 편하게 물어보세요.",
+};
 
 const tabs: { id: TabId; label: string; short: string; img: string; live: boolean; ai?: boolean; soon?: string }[] = [
   { id: "stay", label: "숙소", short: "숙소", img: "hotel", live: true },
@@ -25,6 +35,16 @@ export function LinkChecker() {
   const [tab, setTab] = useState<TabId>("stay");
   const [url, setUrl] = useState("");
   const [result, setResult] = useState<Result | null>(null);
+  const [samples, setSamples] = useState<{ label: string; url: string }[]>([]);
+
+  // 샘플 날짜는 오늘 기준이라 화면에서 만든다
+  useEffect(() => setSamples(sampleLinks()), []);
+
+  useEffect(() => {
+    const onTab = (e: Event) => setTab((e as CustomEvent<TabId>).detail);
+    window.addEventListener(TAB_EVENT, onTab);
+    return () => window.removeEventListener(TAB_EVENT, onTab);
+  }, []);
 
   // 분석 중 화면을 잠깐 보여준 뒤 결과로 바꾼다
   useEffect(() => {
@@ -32,6 +52,11 @@ export function LinkChecker() {
     const t = setTimeout(() => setResult({ kind: "ok", url: result.url }), 1000);
     return () => clearTimeout(t);
   }, [result]);
+
+  function trySample(sample: string) {
+    setUrl(sample);
+    setResult({ kind: "loading", url: new URL(sample) });
+  }
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,7 +92,12 @@ export function LinkChecker() {
         ))}
       </div>
 
+      <p key={tab} className="tab-hint">
+        {hints[tab]}
+      </p>
+
       <div className="search-glow">
+        <div key={tab} className="tab-panel">
         {tab === "ask" ? (
           <ChatBox />
         ) : tab === "flight" ? (
@@ -95,10 +125,28 @@ export function LinkChecker() {
               <strong>{current.label} 비교, 곧 열려요</strong>
               <p>{current.soon}</p>
             </div>
-            <span className="badge">준비 중</span>
+            {site.notifyUrl ? (
+              <a className="notify-btn" href={site.notifyUrl} target="_blank" rel="noopener noreferrer">
+                🔔 오픈 알림 받기
+              </a>
+            ) : (
+              <span className="badge">준비 중</span>
+            )}
           </div>
         )}
+        </div>
       </div>
+
+      {tab === "stay" && !result && samples.length > 0 && (
+        <div className="quick-try">
+          <span>링크가 없으신가요?</span>
+          {samples.map((s) => (
+            <button key={s.url} type="button" onClick={() => trySample(s.url)}>
+              🔥 {s.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {tab === "stay" && result && (
         <div className={`search-result${result.kind === "ok" || result.kind === "loading" ? " ok" : ""}`} role="status">
