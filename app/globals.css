@@ -345,12 +345,8 @@ a {
   box-shadow: 0 10px 24px -8px rgba(29, 78, 216, 0.55);
   transition: transform 0.15s ease, filter 0.15s ease;
 }
-.flight-widget {
-  min-height: 160px;
-  padding: 14px;
-  background: var(--white);
-  border-radius: 26px;
-  box-shadow: 0 30px 60px -24px rgba(29, 78, 216, 0.3);
+.flight-card {
+  grid-template-columns: 1.1fr 1.3fr 1fr 1.1fr 0.7fr auto;
 }
 .search-card button:hover {
   filter: brightness(1.06);
