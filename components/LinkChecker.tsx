@@ -14,11 +14,11 @@ type Result =
 
 type TabId = "stay" | "ask" | "flight" | "shop";
 
-const tabs: { id: TabId; label: string; img: string; live: boolean; ai?: boolean; soon?: string }[] = [
-  { id: "stay", label: "숙소", img: "hotel", live: true },
-  { id: "ask", label: "로보티에게 물어보기", img: "mark", live: true, ai: true },
-  { id: "flight", label: "항공권", img: "flight", live: true },
-  { id: "shop", label: "쇼핑·유심", img: "shop", live: false, soon: "쇼핑봇이 여행 준비물과 유심 최저가 비교를 준비하고 있어요." },
+const tabs: { id: TabId; label: string; short: string; img: string; live: boolean; ai?: boolean; soon?: string }[] = [
+  { id: "stay", label: "숙소", short: "숙소", img: "hotel", live: true },
+  { id: "flight", label: "항공권", short: "항공권", img: "flight", live: true },
+  { id: "shop", label: "쇼핑·유심", short: "쇼핑·유심", img: "shop", live: false, soon: "쇼핑봇이 여행 준비물과 유심 최저가 비교를 준비하고 있어요." },
+  { id: "ask", label: "로보티에게 물어보기", short: "물어보기", img: "mark", live: true, ai: true },
 ];
 
 export function LinkChecker() {
@@ -59,7 +59,8 @@ export function LinkChecker() {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={t.img === "mark" ? "/brand/lowboti-mark.svg" : `/brand/family/${t.img}.svg`} alt="" />
-            {t.label}
+            <span className="tab-label">{t.label}</span>
+            <span className="tab-label-short">{t.short}</span>
             {t.ai && <span className="soon ai">AI</span>}
             {!t.live && <span className="soon">곧 오픈</span>}
           </button>
