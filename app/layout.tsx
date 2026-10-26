@@ -24,6 +24,12 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     type: "website",
   },
+  verification: {
+    google: "uHjh6W2iEsSIUKIJCFAlsYq3pryOirOYMdTrd7VHE4Q",
+    other: {
+      "naver-site-verification": "4de7869da453307d1edcb0881142e97f375fd1b7",
+    },
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
