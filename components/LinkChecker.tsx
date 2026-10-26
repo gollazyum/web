@@ -130,6 +130,9 @@ export function LinkChecker() {
 
 function RouteList({ url }: { url: URL }) {
   const name = hotelNameFromUrl(url);
+  // 열어 본 경로는 표시해서 어디까지 비교했는지 알 수 있게 한다
+  const [opened, setOpened] = useState<Set<string>>(new Set());
+  const markOpened = (cid: string) => setOpened((prev) => new Set(prev).add(cid));
   return (
     <>
       <div className="result-head">
@@ -157,9 +160,16 @@ function RouteList({ url }: { url: URL }) {
             <p className="route-group-title">{group}</p>
             <div className="route-grid">
               {items.map((r) => (
-                <a key={r.cid + r.name} href={withCid(url, r.cid)} target="_blank" rel="noopener noreferrer">
+                <a
+                  key={r.cid + r.name}
+                  href={withCid(url, r.cid)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={opened.has(r.cid) ? "opened" : undefined}
+                  onClick={() => markOpened(r.cid)}
+                >
                   <span>{r.name}</span>
-                  <b>가격 보기 ↗</b>
+                  <b>{opened.has(r.cid) ? "확인함 ✓" : "가격 보기 ↗"}</b>
                 </a>
               ))}
             </div>
@@ -169,7 +179,8 @@ function RouteList({ url }: { url: URL }) {
 
       <p className="result-note">
         아고다는 들어온 경로에 따라 같은 방도 가격이 달라질 수 있어요. 링크를 새 탭으로 열어 결제 직전 총액을 비교해 보세요.
-        가격과 예약은 아고다에서 확인·진행되며, 일부 링크는 제휴 링크라 예약 시 로보티가 수수료를 받을 수 있어요.
+        가격과 예약은 아고다에서 확인·진행돼요.
+        {AFFILIATE_CID && " 로보티 추천 링크는 제휴 링크라 예약 시 로보티가 수수료를 받을 수 있어요."}
         {site.instagramUrl && (
           <>
             {" "}

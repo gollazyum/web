@@ -655,6 +655,13 @@ a {
   border-color: #93c5fd;
   box-shadow: 0 10px 20px -12px rgba(29, 78, 216, 0.35);
 }
+.route-grid a.opened {
+  background: var(--soft);
+  border-color: #a7f3d0;
+}
+.route-grid a.opened b {
+  color: var(--green-dark);
+}
 .route-grid b {
   color: var(--blue, #1d4ed8);
   font-size: 13px;
