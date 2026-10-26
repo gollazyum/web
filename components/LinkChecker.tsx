@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChatBox } from "@/components/ChatBox";
 import { FlightSearch } from "@/components/FlightSearch";
+import { SCAN_MS, ScanProgress } from "@/components/ScanProgress";
 import { AFFILIATE_CID, HOTEL_PROMOCODES, groupOrder, hotelNameFromUrl, parseAgodaUrl, routes, sampleLinks, withCid } from "@/lib/agoda";
 import { site } from "@/lib/site";
 
@@ -47,7 +48,7 @@ export function LinkChecker() {
   // 분석 중 화면을 잠깐 보여준 뒤 결과로 바꾼다
   useEffect(() => {
     if (result?.kind !== "loading") return;
-    const t = setTimeout(() => setResult({ kind: "ok", url: result.url }), 1000);
+    const t = setTimeout(() => setResult({ kind: "ok", url: result.url }), SCAN_MS);
     return () => clearTimeout(t);
   }, [result]);
 
@@ -149,22 +150,13 @@ export function LinkChecker() {
       {tab === "stay" && result && (
         <div className={`search-result${result.kind === "ok" || result.kind === "loading" ? " ok" : ""}`} role="status">
           {result.kind === "loading" && (
-            <>
-              <div className="result-head">
-                <strong className="analyzing">
-                  <span className="dot" /> 로보티가 {routes.length}개 경로로 링크를 바꾸고 있어요
-                </strong>
-                <span className="badge live">경로 스캔</span>
-              </div>
-              <ul className="result-sites">
-                {[0, 1, 2, 3].map((i) => (
-                  <li key={i}>
-                    <span className="skeleton" style={{ width: 120 }} />
-                    <span className="skeleton" style={{ width: 80 }} />
-                  </li>
-                ))}
-              </ul>
-            </>
+            <ScanProgress
+              steps={[
+                { text: "호텔 정보와 날짜·인원 조건 읽는 중...", at: 0 },
+                { text: `검색엔진·카드사·항공사 ${routes.length}개 경로 링크 만드는 중...`, at: 400 },
+                { text: "경로별로 정리 완료!", at: 900 },
+              ]}
+            />
           )}
           {result.kind === "ok" && <RouteList url={result.url} />}
           {result.kind === "notAgoda" && <span>지금은 아고다 호텔 링크만 바꿀 수 있어요. agoda.com 호텔 페이지 주소를 넣어 주세요.</span>}
@@ -181,8 +173,9 @@ function RouteList({ url }: { url: URL }) {
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const markOpened = (cid: string) => setOpened((prev) => new Set(prev).add(cid));
   const [copied, setCopied] = useState<string | null>(null);
+  let order = 0; // 경로 카드가 차례로 나타나게
   return (
-    <>
+    <div className="route-reveal">
       <div className="result-head">
         <strong>{name ? `${name} 링크를 ${routes.length}개 경로로 바꿨어요` : `링크를 ${routes.length}개 경로로 바꿨어요`}</strong>
         <span>같은 호텔·날짜·인원 기준</span>
@@ -233,6 +226,7 @@ function RouteList({ url }: { url: URL }) {
               {items.map((r) => (
                 <a
                   key={r.cid + r.name}
+                  style={{ "--i": order++ } as React.CSSProperties}
                   href={withCid(url, r.cid)}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -261,6 +255,6 @@ function RouteList({ url }: { url: URL }) {
           </>
         )}
       </p>
-    </>
+    </div>
   );
 }
