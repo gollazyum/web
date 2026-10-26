@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Noto_Sans_KR } from "next/font/google";
+import localFont from "next/font/local";
 import { site } from "@/lib/site";
 import "./globals.css";
 
-const noto = Noto_Sans_KR({ weight: ["400", "500", "700", "900"], subsets: ["latin"], variable: "--font-body", display: "swap" });
+const pretendard = localFont({
+  src: "../node_modules/pretendard/dist/web/variable/woff2/PretendardVariable.woff2",
+  weight: "45 920",
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -23,7 +28,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" className={noto.variable}>
+    <html lang="ko" className={pretendard.variable}>
       <body>
         {children}
         {/* Travelpayouts Drive: 제휴 링크 자동 변환 */}

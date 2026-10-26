@@ -60,7 +60,6 @@ export default function Home() {
             <br />
             <span className="grad">비싸게</span> 예약하고 있나요?
           </h1>
-          <p className="lead">링크만 붙여넣으면 로보티가 같은 호텔의 최저가를 찾아드려요.</p>
           <LinkChecker />
           <div className="compared">
             <span>비교하는 사이트</span>
@@ -80,21 +79,62 @@ export default function Home() {
             여행 계획은 여유롭게.
           </h2>
           <div className="bento">
+            <div className="bento-card bento-analysis">
+              <div className="badges">
+                <span className="badge ai">AI 분석</span>
+                <span className="badge">예시</span>
+              </div>
+              <h3>한눈에 보는 분석 요약</h3>
+              <p>사이트별 총액을 나란히 놓고, 어디가 얼마나 싼지 정리해 드려요.</p>
+              <div className="summary-mock" aria-hidden="true">
+                <div className="summary-line">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/brand/family/main.svg" alt="" />
+                  <span>
+                    <strong>B 사이트</strong>가 가장 싸요. 최고가보다 <strong className="save">₩38,000</strong> 아낄 수 있어요.
+                  </span>
+                </div>
+                {[
+                  { name: "A 사이트", w: 92, price: "₩286,000" },
+                  { name: "B 사이트", w: 80, price: "₩248,000", best: true },
+                  { name: "C 사이트", w: 88, price: "₩271,000" },
+                ].map((r) => (
+                  <div key={r.name} className={`bar-row${r.best ? " best" : ""}`}>
+                    <span>{r.name}</span>
+                    <div className="bar">
+                      <i style={{ width: `${r.w}%` }} />
+                    </div>
+                    <b>{r.price}</b>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bento-card bento-stat">
+              <strong className="stat grad">{supportedSites.length}곳</strong>
+              <p>한 번에 비교하는 예약 사이트</p>
+            </div>
+            <div className="bento-card bento-stat">
+              <strong className="stat grad">0원</strong>
+              <p>회원가입도, 추가 수수료도 없어요</p>
+            </div>
             <div className="bento-card bento-alert">
-              <span className="badge">준비 중</span>
+              <div className="badges">
+                <span className="badge ai">가격 예측</span>
+                <span className="badge">준비 중</span>
+              </div>
               <h3>가격 변동 알림</h3>
               <p>찜해 둔 호텔이나 노선이 싸지면 바로 알려드려요.</p>
               <div className="alert-mock" aria-hidden="true">
-                <svg viewBox="0 0 320 120" className="chart">
+                <svg viewBox="0 0 320 90" className="chart">
                   <defs>
                     <linearGradient id="area" x1="0" x2="0" y1="0" y2="1">
                       <stop offset="0" stopColor="#1d4ed8" stopOpacity="0.18" />
                       <stop offset="1" stopColor="#1d4ed8" stopOpacity="0" />
                     </linearGradient>
                   </defs>
-                  <path d="M0 40 C40 30 60 55 100 48 S160 20 200 42 S260 95 320 88 L320 120 L0 120 Z" fill="url(#area)" />
-                  <path d="M0 40 C40 30 60 55 100 48 S160 20 200 42 S260 95 320 88" fill="none" stroke="#1d4ed8" strokeWidth="3" />
-                  <circle cx="320" cy="88" r="6" fill="#10b981" stroke="#fff" strokeWidth="3" />
+                  <path d="M0 30 C40 22 60 42 100 36 S160 14 200 32 S260 72 314 66 L314 90 L0 90 Z" fill="url(#area)" />
+                  <path d="M0 30 C40 22 60 42 100 36 S160 14 200 32 S260 72 314 66" fill="none" stroke="#1d4ed8" strokeWidth="3" />
+                  <circle cx="314" cy="66" r="5" fill="#10b981" stroke="#fff" strokeWidth="2.5" />
                 </svg>
                 <div className="toast">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -107,19 +147,19 @@ export default function Home() {
               </div>
             </div>
             <div className="bento-card">
-              <span className="bento-icon">₩</span>
+              <span className="badge live">최저가</span>
               <h3>총액 기준 비교</h3>
-              <p>1박 표시가가 아니라 세금과 수수료를 포함한 결제 금액으로 비교해요.</p>
+              <p>1박 표시가가 아니라 세금·수수료를 포함한 결제 금액으로 비교해요.</p>
             </div>
             <div className="bento-card">
-              <span className="bento-icon">⇅</span>
-              <h3>중립적인 순위</h3>
+              <span className="badge live">중립 비교</span>
+              <h3>광고 없는 순위</h3>
               <p>특정 사이트를 앞세우지 않고, 가격이 낮은 순서대로만 보여드려요.</p>
             </div>
             <div className="bento-card bento-wide">
-              <span className="bento-icon">✓</span>
-              <h3>회원가입 없이, 추가 비용 없이</h3>
-              <p>로보티는 무료예요. 예약 금액에 수수료가 더해지지 않고, 결제는 각 예약 사이트에서 안전하게 진행돼요.</p>
+              <span className="badge live">안전 결제</span>
+              <h3>예약은 각 사이트에서</h3>
+              <p>결제와 취소는 선택한 예약 사이트에서 그대로 안전하게 진행돼요.</p>
             </div>
           </div>
         </section>
