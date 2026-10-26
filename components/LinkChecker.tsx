@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChatBox } from "@/components/ChatBox";
 import { detectSite, site, supportedSites } from "@/lib/site";
 
 type Result =
@@ -10,10 +11,11 @@ type Result =
   | { kind: "invalid" }
   | { kind: "dates" };
 
-type TabId = "stay" | "flight" | "shop";
+type TabId = "stay" | "ask" | "flight" | "shop";
 
-const tabs: { id: TabId; label: string; img: string; live: boolean; soon?: string }[] = [
+const tabs: { id: TabId; label: string; img: string; live: boolean; ai?: boolean; soon?: string }[] = [
   { id: "stay", label: "숙소", img: "hotel", live: true },
+  { id: "ask", label: "로보티에게 물어보기", img: "main", live: true, ai: true },
   { id: "flight", label: "항공권", img: "flight", live: false, soon: "항공봇이 노선별 최저가와 가격 변동 알림을 준비하고 있어요." },
   { id: "shop", label: "쇼핑·유심", img: "shop", live: false, soon: "쇼핑봇이 여행 준비물과 유심 최저가 비교를 준비하고 있어요." },
 ];
@@ -76,13 +78,16 @@ export function LinkChecker() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/brand/family/${t.img}.svg`} alt="" />
             {t.label}
+            {t.ai && <span className="soon ai">AI</span>}
             {!t.live && <span className="soon">곧 오픈</span>}
           </button>
         ))}
       </div>
 
       <div className="search-glow">
-        {current.live ? (
+        {tab === "ask" ? (
+          <ChatBox />
+        ) : current.live ? (
           <form onSubmit={onSubmit} className="search-card">
             <label className="field field-url">
               <span>호텔 링크</span>
@@ -138,7 +143,7 @@ export function LinkChecker() {
         )}
       </div>
 
-      {current.live && result && (
+      {tab === "stay" && result && (
         <div className={`search-result${result.kind === "ok" || result.kind === "loading" ? " ok" : ""}`} role="status">
           {result.kind === "loading" && (
             <>
