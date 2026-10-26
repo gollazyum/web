@@ -59,11 +59,17 @@ export function FlightSearch() {
         />
         <label className="field">
           <span>가는 날</span>
-          <input type="date" min={today()} value={depart} onChange={(e) => setDepart(e.target.value)} required />
+          <span className="date-wrap">
+            <input type="date" className={depart ? undefined : "empty"} min={today()} value={depart} onChange={(e) => setDepart(e.target.value)} required />
+            {!depart && <em className="date-empty">날짜 선택</em>}
+          </span>
         </label>
         <label className="field">
           <span>오는 날 · 편도는 비우기</span>
-          <input type="date" min={depart || today()} value={ret} onChange={(e) => setRet(e.target.value)} />
+          <span className="date-wrap">
+            <input type="date" className={ret ? undefined : "empty"} min={depart || today()} value={ret} onChange={(e) => setRet(e.target.value)} />
+            {!ret && <em className="date-empty">날짜 선택</em>}
+          </span>
         </label>
         <label className="field field-small">
           <span>성인</span>

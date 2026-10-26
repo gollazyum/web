@@ -463,6 +463,37 @@ a {
   grid-template-columns: 1.3fr 1.3fr 1fr 1.1fr 0.7fr auto;
 }
 
+/* 날짜 칸: iOS는 빈 날짜 칸을 아무것도 안 보여 줘서 안내 글자를 겹쳐 둔다 */
+.field .date-wrap {
+  position: relative;
+  display: block;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+.field input[type="date"] {
+  min-height: 24px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.field .date-empty {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-style: normal;
+  font-size: 15px;
+  font-weight: 600;
+  color: #94a3b8;
+  pointer-events: none;
+}
+.field input[type="date"].empty:not(:focus)::-webkit-datetime-edit {
+  color: transparent;
+}
+.field .date-wrap:focus-within .date-empty {
+  display: none;
+}
+
 /* 공항 자동완성 */
 .airport-field {
   position: relative;
@@ -1770,6 +1801,11 @@ a {
   }
   .search-card {
     grid-template-columns: 1fr 1fr;
+  }
+  /* 휴대폰에서는 칸마다 테두리를 둘러 입력 칸이 구분되게 */
+  .search-card .field {
+    border: 1px solid var(--line);
+    background: #f8fafc;
   }
   .field-url {
     grid-column: 1 / -1;
