@@ -19,6 +19,12 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+const tabs = [
+  { id: "stay", label: "숙소", img: "hotel", live: true },
+  { id: "flight", label: "항공권", img: "flight", live: false },
+  { id: "shop", label: "쇼핑·유심", img: "shop", live: false },
+];
+
 export function LinkChecker() {
   const [url, setUrl] = useState("");
   const [checkIn, setCheckIn] = useState("");
@@ -44,13 +50,30 @@ export function LinkChecker() {
 
   return (
     <div className="search">
+      <div className="search-tabs" role="tablist">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={t.live}
+            disabled={!t.live}
+            className={`search-tab${t.live ? " active" : ""}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/brand/family/${t.img}.svg`} alt="" />
+            {t.label}
+            {!t.live && <span className="soon">곧 오픈</span>}
+          </button>
+        ))}
+      </div>
       <form onSubmit={onSubmit} className="search-card">
         <label className="field field-url">
           <span>호텔 링크</span>
           <input
             type="url"
             inputMode="url"
-            placeholder="예약 사이트의 호텔 페이지 주소를 붙여넣으세요"
+            placeholder="보고 있던 호텔 페이지 주소를 붙여넣으세요"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             required
