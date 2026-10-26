@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Noto_Sans_KR } from "next/font/google";
 import { site } from "@/lib/site";
 import "./globals.css";
@@ -23,7 +24,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" className={noto.variable}>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Travelpayouts Drive: 제휴 링크 자동 변환 */}
+        <Script id="travelpayouts-drive" src="https://emrldtp.com/NTkxMzAz.js?t=591303" strategy="afterInteractive" data-cmp-ab="2" />
+      </body>
     </html>
   );
 }
