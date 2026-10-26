@@ -3,9 +3,9 @@ export const site = {
   name: "Lowboti",
   nameKo: "로보티",
   url: "https://www.lowboti.com",
-  tagline: "가격 거품, 바닥까지.",
+  tagline: "호텔 최저가, 한 번에 비교.",
   description:
-    "호텔 링크만 붙여넣으면 로보티가 여러 예약 사이트의 가격을 한 번에 비교해 최저가를 찾아드려요.",
+    "호텔 링크 하나로 여러 예약 사이트의 가격을 세금·수수료 포함 총액으로 비교해 최저가를 찾아드립니다.",
   instagramUrl: "", // 예: "https://www.instagram.com/lowboti"
   contactEmail: "", // 예: "hello@lowboti.com"
 };

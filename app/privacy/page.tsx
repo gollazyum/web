@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Logo } from "@/components/Logo";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = { title: "개인정보처리방침 | Lowboti" };
@@ -7,7 +8,9 @@ export const metadata: Metadata = { title: "개인정보처리방침 | Lowboti" 
 export default function Privacy() {
   return (
     <main className="wrap legal">
-      <Link href="/">← Lowboti 홈</Link>
+      <Link href="/" aria-label="Lowboti 홈">
+        <Logo height={28} />
+      </Link>
       <h1>개인정보처리방침</h1>
       <p>Lowboti(이하 “로보티”)는 현재 회원가입 없이 이용할 수 있으며, 이름·연락처 등 개인정보를 직접 수집하지 않습니다.</p>
       <h2>자동으로 수집될 수 있는 정보</h2>

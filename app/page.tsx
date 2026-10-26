@@ -1,86 +1,194 @@
-import Image from "next/image";
 import Link from "next/link";
 import { LinkChecker } from "@/components/LinkChecker";
-import { LogoMark } from "@/components/Logo";
-import { site } from "@/lib/site";
+import { Logo } from "@/components/Logo";
+import { site, supportedSites } from "@/lib/site";
+
+const family = [
+  { img: "hotel", name: "숙소봇", en: "Stay", body: "호텔 링크 하나로 예약 사이트별 총액을 비교해요.", status: "지금 이용 가능", live: true },
+  { img: "flight", name: "항공봇", en: "Flight", body: "원하는 노선이 싸지면 바로 알려드려요.", status: "준비 중", live: false },
+  { img: "shop", name: "쇼핑봇", en: "Shop", body: "여행 준비물과 유심도 최저가로 찾아드려요.", status: "준비 중", live: false },
+];
 
 const steps = [
-  { title: "호텔 링크 붙여넣기", body: "보고 있던 예약 사이트의 호텔 주소를 그대로 넣어요.", img: "emoji-hello" },
-  { title: "로보티가 비교", body: "여러 예약 사이트의 가격을 한 화면에 모아 보여드려요.", img: "emoji-searching" },
-  { title: "최저가로 예약", body: "가장 싼 곳으로 바로 이동해서 예약하면 끝!", img: "emoji-ding" },
-];
-
-const meaning = [
-  { word: "Low", color: "var(--green)", body: "가장 낮은 가격. 가격 거품을 바닥까지 낮춰요.", img: "emoji-found" },
-  { word: "Bot", color: "var(--blue)", body: "여러 예약 사이트를 한 번에 비교하는 똑똑한 봇.", img: "emoji-compare" },
-  { word: "-i", color: "var(--pink)", body: "Bobby, Toby처럼 다정한 애칭. 로봇의 '로보'에 귀여운 '티'를 더했어요.", img: "emoji-wink" },
-];
-
-const tips = [
-  { title: "세금·수수료 포함 총액", body: "1박 표시가는 낮아도 결제 금액은 다를 수 있어요." },
-  { title: "무료 취소 기한", body: "조금 비싸도 취소 가능한 요금이 더 안전할 때가 많아요." },
-  { title: "사이트마다 가격 비교", body: "같은 방도 예약 사이트별로 가격이 달라요." },
+  { title: "링크 붙여넣기", body: "보고 있던 예약 사이트의 호텔 페이지 주소를 그대로 붙여넣어요." },
+  { title: "로보티가 비교", body: "같은 날짜, 같은 인원 기준으로 사이트별 총액을 나란히 보여드려요." },
+  { title: "최저가로 예약", body: "가장 싼 사이트로 바로 이동해 그곳에서 안전하게 예약해요." },
 ];
 
 const faqs = [
   {
-    q: "로보티는 무료인가요?",
-    a: "네, 무료예요. 로보티를 통해 예약하시면 예약 사이트가 로보티에 소정의 수수료를 지급하며, 고객님이 내는 가격은 달라지지 않아요.",
+    q: "Lowboti는 무료인가요?",
+    a: "네, 무료입니다. Lowboti를 통해 예약하시면 예약 사이트가 Lowboti에 소정의 수수료를 지급하며, 고객님이 내는 금액은 달라지지 않습니다.",
   },
   {
     q: "예약과 결제는 어디서 하나요?",
-    a: "결제와 예약 확정, 취소는 모두 선택하신 예약 사이트(예: 아고다)에서 진행돼요. 로보티는 가장 싼 곳을 찾아 연결해 드려요.",
+    a: "결제와 예약 확정, 취소는 모두 선택하신 예약 사이트에서 진행됩니다. Lowboti는 가장 낮은 가격의 사이트를 찾아 연결해 드립니다.",
   },
   {
     q: "표시된 가격이 실제와 다를 수 있나요?",
-    a: "가격은 확인한 시점 기준이라 바뀔 수 있어요. 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요.",
+    a: "가격은 조회 시점 기준이라 바뀔 수 있습니다. 최종 금액은 예약 사이트의 결제 화면에서 꼭 확인해 주세요.",
   },
 ];
 
 export default function Home() {
   return (
     <>
-      <header className="nav wrap">
-        <Link href="/" className="brand" aria-label="Lowboti 홈">
-          <LogoMark />
-          <span>Lowboti</span>
-        </Link>
-        <nav>
-          <a href="#how">사용법</a>
-          <a href="#story">이름의 뜻</a>
-          <a href="#faq">FAQ</a>
-        </nav>
+      <header className="nav-bar">
+        <div className="nav wrap">
+          <Link href="/" className="brand" aria-label="Lowboti 홈">
+            <Logo height={40} />
+          </Link>
+          <nav>
+            <a href="#features">기능</a>
+            <a href="#family">로보티 패밀리</a>
+            <a href="#faq">FAQ</a>
+          </nav>
+          <a href="#top" className="nav-cta">
+            최저가 찾기
+          </a>
+        </div>
       </header>
 
-      <main>
-        <section className="hero wrap">
-          <div className="hero-copy">
-            <span className="pill">안녕하세요, 로보티예요!</span>
-            <h1>
-              가격 거품,
-              <br />
-              <em>바닥까지</em> <span className="arrow">↓</span>
-            </h1>
-            <p className="lead">
-              같은 호텔, 같은 방인데 사이트마다 가격이 달라요.
-              <br />
-              링크만 주시면 로보티가 최저가를 찾아드릴게요.
-            </p>
-            <LinkChecker />
+      <section className="hero" id="top">
+        <div className="hero-glow" aria-hidden="true" />
+        <div className="hero-inner wrap">
+          <span className="pill">
+            <span className="spark">✦</span> 예약 사이트를 대신 돌아보는 최저가 봇
+          </span>
+          <h1>
+            혹시 나만
+            <br />
+            <span className="grad">비싸게</span> 예약하고 있나요?
+          </h1>
+          <LinkChecker />
+          <div className="compared">
+            <span>비교하는 사이트</span>
+            {supportedSites.map((s) => (
+              <strong key={s.name}>{s.name}</strong>
+            ))}
           </div>
-          <div className="hero-art">
-            <Image src="/images/lowboti-hero.webp" alt="여행 가방을 든 로보티 캐릭터" width={800} height={800} priority />
+        </div>
+      </section>
+
+      <main>
+        <section id="features" className="section wrap">
+          <p className="eyebrow">Features</p>
+          <h2>
+            가격 비교는 로보티에게,
+            <br />
+            여행 계획은 여유롭게.
+          </h2>
+          <div className="bento">
+            <div className="bento-card bento-analysis">
+              <div className="badges">
+                <span className="badge ai">AI 분석</span>
+                <span className="badge">예시</span>
+              </div>
+              <h3>한눈에 보는 분석 요약</h3>
+              <p>사이트별 총액을 나란히 놓고, 어디가 얼마나 싼지 정리해 드려요.</p>
+              <div className="summary-mock" aria-hidden="true">
+                <div className="summary-line">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/brand/family/main.svg" alt="" />
+                  <span>
+                    <strong>B 사이트</strong>가 가장 싸요. 최고가보다 <strong className="save">₩38,000</strong> 아낄 수 있어요.
+                  </span>
+                </div>
+                {[
+                  { name: "A 사이트", w: 92, price: "₩286,000" },
+                  { name: "B 사이트", w: 80, price: "₩248,000", best: true },
+                  { name: "C 사이트", w: 88, price: "₩271,000" },
+                ].map((r) => (
+                  <div key={r.name} className={`bar-row${r.best ? " best" : ""}`}>
+                    <span>{r.name}</span>
+                    <div className="bar">
+                      <i style={{ width: `${r.w}%` }} />
+                    </div>
+                    <b>{r.price}</b>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bento-card bento-stat">
+              <strong className="stat grad">{supportedSites.length}곳</strong>
+              <p>한 번에 비교하는 예약 사이트</p>
+            </div>
+            <div className="bento-card bento-stat">
+              <strong className="stat grad">0원</strong>
+              <p>회원가입도, 추가 수수료도 없어요</p>
+            </div>
+            <div className="bento-card bento-alert">
+              <div className="badges">
+                <span className="badge ai">가격 예측</span>
+                <span className="badge">준비 중</span>
+              </div>
+              <h3>가격 변동 알림</h3>
+              <p>찜해 둔 호텔이나 노선이 싸지면 바로 알려드려요.</p>
+              <div className="alert-mock" aria-hidden="true">
+                <svg viewBox="0 0 320 90" className="chart">
+                  <defs>
+                    <linearGradient id="area" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0" stopColor="#1d4ed8" stopOpacity="0.18" />
+                      <stop offset="1" stopColor="#1d4ed8" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M0 30 C40 22 60 42 100 36 S160 14 200 32 S260 72 314 66 L314 90 L0 90 Z" fill="url(#area)" />
+                  <path d="M0 30 C40 22 60 42 100 36 S160 14 200 32 S260 72 314 66" fill="none" stroke="#1d4ed8" strokeWidth="3" />
+                  <circle cx="314" cy="66" r="5" fill="#10b981" stroke="#fff" strokeWidth="2.5" />
+                </svg>
+                <div className="toast">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/brand/family/main.svg" alt="" />
+                  <div>
+                    <strong>찜한 호텔 가격이 내려갔어요</strong>
+                    <span>어제보다 12% 저렴해요 · 알림 예시</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bento-card">
+              <span className="badge live">최저가</span>
+              <h3>총액 기준 비교</h3>
+              <p>1박 표시가가 아니라 세금·수수료를 포함한 결제 금액으로 비교해요.</p>
+            </div>
+            <div className="bento-card">
+              <span className="badge live">중립 비교</span>
+              <h3>광고 없는 순위</h3>
+              <p>특정 사이트를 앞세우지 않고, 가격이 낮은 순서대로만 보여드려요.</p>
+            </div>
+            <div className="bento-card bento-wide">
+              <span className="badge live">안전 결제</span>
+              <h3>예약은 각 사이트에서</h3>
+              <p>결제와 취소는 선택한 예약 사이트에서 그대로 안전하게 진행돼요.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="family" className="section wrap">
+          <p className="eyebrow">Lowboti family</p>
+          <h2>숙소, 항공권, 쇼핑까지 최저가는 로보티가 찾아요</h2>
+          <div className="family">
+            {family.map((f) => (
+              <div key={f.name} className={`family-card family-${f.img}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/brand/family/${f.img}.svg`} alt="" />
+                <h3>
+                  {f.name} <span>{f.en}</span>
+                </h3>
+                <p>{f.body}</p>
+                <span className={`badge${f.live ? " live" : ""}`}>{f.status}</span>
+              </div>
+            ))}
           </div>
         </section>
 
         <section id="how" className="section wrap">
-          <span className="pill">사용법은 딱 3단계</span>
-          <h2>링크만 붙여넣으면 끝!</h2>
+          <p className="eyebrow">How it works</p>
+          <h2>세 단계면 충분해요</h2>
           <ol className="steps">
             {steps.map((s, i) => (
-              <li key={s.title} className="card">
-                <span className={`num${i === 2 ? " green" : ""}`}>{i + 1}</span>
-                <Image src={`/images/${s.img}.webp`} alt="" width={96} height={96} />
+              <li key={s.title}>
+                <span className="step-num">{String(i + 1).padStart(2, "0")}</span>
                 <h3>{s.title}</h3>
                 <p>{s.body}</p>
               </li>
@@ -88,54 +196,28 @@ export default function Home() {
           </ol>
         </section>
 
-        <section id="story" className="section wrap">
-          <span className="pill">로보티라는 이름의 뜻</span>
-          <h2 className="wordmark">
-            Low<span style={{ color: "var(--blue)" }}>bot</span>
-            <span style={{ color: "var(--green)" }}>i</span>
-          </h2>
-          <div className="meaning">
-            {meaning.map((m) => (
-              <div key={m.word} className="card meaning-card">
-                <Image src={`/images/${m.img}.webp`} alt="" width={104} height={104} />
-                <div>
-                  <h3 style={{ color: m.color }}>{m.word}</h3>
-                  <p>{m.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="section wrap">
-          <span className="pill">로보티의 호텔 예약 꿀팁</span>
-          <h2>결제 전, 이것만 확인하세요</h2>
-          <ul className="card tips">
-            {tips.map((t) => (
-              <li key={t.title}>
-                <svg viewBox="0 0 56 56" aria-hidden="true">
-                  <circle cx="28" cy="28" r="28" fill="var(--green)" />
-                  <path d="M15 29 l9 9 l17 -19" stroke="#fff" strokeWidth="7" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <div>
-                  <h3>{t.title}</h3>
-                  <p>{t.body}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-
         <section id="faq" className="section wrap">
-          <span className="pill">자주 묻는 질문</span>
-          <h2>궁금한 점이 있나요?</h2>
+          <p className="eyebrow">FAQ</p>
+          <h2>자주 묻는 질문</h2>
           <div className="faq">
             {faqs.map((f) => (
-              <details key={f.q} className="card">
+              <details key={f.q}>
                 <summary>{f.q}</summary>
                 <p>{f.a}</p>
               </details>
             ))}
+          </div>
+        </section>
+
+        <section className="wrap">
+          <div className="cta">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/family/main-white.svg" alt="" />
+            <div>
+              <h2>지금 보고 있는 그 호텔, 로보티에게 보여주세요</h2>
+              <p>같은 방을 더 싸게 예약할 수 있는지 바로 알려드려요.</p>
+            </div>
+            <a href="#top">최저가 찾기</a>
           </div>
         </section>
       </main>
@@ -143,11 +225,10 @@ export default function Home() {
       <footer className="footer">
         <div className="wrap">
           <div className="brand">
-            <LogoMark size={28} />
-            <span>Lowboti</span>
+            <Logo tone="white" height={34} />
           </div>
           <p className="disclosure">
-            Lowboti는 제휴 마케팅 사이트입니다. 로보티의 링크를 통해 예약하시면 예약 사이트로부터 수수료를 받을 수 있으며,
+            Lowboti는 제휴 마케팅 사이트입니다. Lowboti의 링크를 통해 예약하시면 예약 사이트로부터 수수료를 받을 수 있으며,
             고객님이 지불하는 금액에는 영향이 없습니다. 표시된 가격은 조회 시점 기준이며 최종 가격은 예약 사이트에서 확인해 주세요.
           </p>
           <p className="footer-links">

@@ -1,10 +1,6 @@
-export function LogoMark({ size = 36 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
-      <rect x="18" y="8" width="20" height="78" rx="10" fill="var(--blue)" />
-      <rect x="18" y="66" width="40" height="20" rx="8" fill="var(--blue)" />
-      <rect x="52" y="44" width="20" height="30" rx="5" fill="var(--green)" />
-      <polygon points="40,72 84,72 62,98" fill="var(--green)" />
-    </svg>
-  );
+// 최종 헤더 로고 (그림자 모찌 + 블루 글씨). 어두운 배경에는 tone="white"를 쓴다.
+export function Logo({ height = 40, tone = "color" }: { height?: number; tone?: "color" | "white" }) {
+  const src = tone === "white" ? "/brand/lowboti-header-logo-white.svg" : "/brand/lowboti-header-logo.svg";
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="Lowboti" height={height} width={Math.round((height * 4396) / 1133)} />;
 }
