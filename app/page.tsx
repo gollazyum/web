@@ -5,7 +5,7 @@ import { site, supportedSites } from "@/lib/site";
 
 const family = [
   { img: "hotel", name: "숙소봇", en: "Stay", body: "호텔 링크 하나로 예약 사이트별 총액을 비교해요.", status: "지금 이용 가능", live: true },
-  { img: "flight", name: "항공봇", en: "Flight", body: "원하는 노선이 싸지면 바로 알려드려요.", status: "준비 중", live: false },
+  { img: "flight", name: "항공봇", en: "Flight", body: "출발지와 날짜만 넣으면 항공권 최저가를 찾아드려요.", status: "지금 이용 가능", live: true },
   { img: "shop", name: "쇼핑봇", en: "Shop", body: "여행 준비물과 유심도 최저가로 찾아드려요.", status: "준비 중", live: false },
 ];
 
