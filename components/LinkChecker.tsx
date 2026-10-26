@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChatBox } from "@/components/ChatBox";
 import { FlightSearch } from "@/components/FlightSearch";
-import { SCAN_MS, ScanProgress } from "@/components/ScanProgress";
+import { SCAN_FIRST_MS, SCAN_REPEAT_MS, ScanProgress } from "@/components/ScanProgress";
 import { AFFILIATE_CID, HOTEL_PROMOCODES, groupOrder, hotelNameFromUrl, parseAgodaUrl, routes, sampleLinks, withCid } from "@/lib/agoda";
 import { site } from "@/lib/site";
 
 type Result =
-  | { kind: "loading"; url: URL }
+  | { kind: "loading"; url: URL; ms: number }
   | { kind: "ok"; url: URL }
   | { kind: "notAgoda" }
   | { kind: "invalid" };
@@ -48,13 +48,17 @@ export function LinkChecker() {
   // 분석 중 화면을 잠깐 보여준 뒤 결과로 바꾼다
   useEffect(() => {
     if (result?.kind !== "loading") return;
-    const t = setTimeout(() => setResult({ kind: "ok", url: result.url }), SCAN_MS);
+    const t = setTimeout(() => setResult({ kind: "ok", url: result.url }), result.ms);
     return () => clearTimeout(t);
   }, [result]);
 
+  // 같은 방문에서 두 번째 검색부터는 스캔을 짧게
+  const scans = useRef(0);
+  const scanMs = () => (scans.current++ === 0 ? SCAN_FIRST_MS : SCAN_REPEAT_MS);
+
   function trySample(sample: string) {
     setUrl(sample);
-    setResult({ kind: "loading", url: new URL(sample) });
+    setResult({ kind: "loading", url: new URL(sample), ms: scanMs() });
   }
 
   function onSubmit(e: React.FormEvent) {
@@ -64,7 +68,7 @@ export function LinkChecker() {
       return;
     }
     const agoda = parseAgodaUrl(url);
-    setResult(agoda ? { kind: "loading", url: agoda } : { kind: "notAgoda" });
+    setResult(agoda ? { kind: "loading", url: agoda, ms: scanMs() } : { kind: "notAgoda" });
   }
 
   const current = tabs.find((t) => t.id === tab)!;
@@ -151,11 +155,12 @@ export function LinkChecker() {
         <div className={`search-result${result.kind === "ok" || result.kind === "loading" ? " ok" : ""}`} role="status">
           {result.kind === "loading" && (
             <ScanProgress
+              ms={result.ms}
               morphTo="hotel"
               steps={[
                 { text: "호텔 정보와 날짜·인원 조건 읽는 중...", at: 0 },
-                { text: `검색엔진·카드사·항공사 ${routes.length}개 경로 링크 만드는 중...`, at: 500 },
-                { text: "경로별로 정리 완료!", at: 1100 },
+                { text: `검색엔진·카드사·항공사 ${routes.length}개 경로 링크 만드는 중...`, at: 0.31 },
+                { text: "경로별로 정리 완료!", at: 0.69 },
               ]}
             />
           )}

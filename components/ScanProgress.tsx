@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// 결과가 나오기 전 1.6초 동안 모찌가 돋보기로 훑으며 단계를 하나씩 끝낸다
-export const SCAN_MS = 1600;
-const MORPH_AT = 800; // 흰 모찌가 카테고리 모찌로 변신하는 순간
+// 결과가 나오기 전 잠깐 모찌가 돋보기로 훑으며 단계를 하나씩 끝낸다.
+// 처음엔 연출을 충분히 보여 주고, 같은 방문에서 다시 찾을 땐 짧게
+export const SCAN_FIRST_MS = 2100;
+export const SCAN_REPEAT_MS = 1600;
+const MORPH_AT = 0.5; // 흰 모찌가 카테고리 모찌로 변신하는 순간 (전체 시간 대비)
 
 // 브랜드 키트와 같은 도형·색
 const SHAPES = {
@@ -37,9 +39,10 @@ function Mochi({ look }: { look: keyof typeof LOOKS }) {
   );
 }
 
-type Props = { steps: { text: string; at: number }[]; morphTo?: "hotel" | "flight" };
+// at: 단계가 시작되는 때 (전체 시간 대비 0~1)
+type Props = { ms: number; steps: { text: string; at: number }[]; morphTo?: "hotel" | "flight" };
 
-export function ScanProgress({ steps, morphTo }: Props) {
+export function ScanProgress({ ms, steps, morphTo }: Props) {
   const [now, setNow] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -57,14 +60,14 @@ export function ScanProgress({ steps, morphTo }: Props) {
     const tick = (t: number) => {
       const elapsed = t - start;
       setNow(elapsed);
-      if (elapsed < SCAN_MS) frame = requestAnimationFrame(tick);
+      if (elapsed < ms) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [ms]);
 
-  const pct = Math.min(100, Math.round((now / SCAN_MS) * 100));
-  const morphed = morphTo && now >= MORPH_AT;
+  const pct = Math.min(100, Math.round((now / ms) * 100));
+  const morphed = morphTo && now >= MORPH_AT * ms;
 
   return (
     <div className="scan" ref={boxRef}>
@@ -77,8 +80,8 @@ export function ScanProgress({ steps, morphTo }: Props) {
       <div className="scan-body">
         <ol className="scan-steps">
           {steps.map((s, i) => {
-            const end = steps[i + 1]?.at ?? SCAN_MS;
-            const state = now >= end ? "done" : now >= s.at ? "doing" : "todo";
+            const end = (steps[i + 1]?.at ?? 1) * ms;
+            const state = now >= end ? "done" : now >= s.at * ms ? "doing" : "todo";
             return (
               <li key={s.text} className={state}>
                 <i>{state === "done" ? "✓" : ""}</i>
