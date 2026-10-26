@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChatBox } from "@/components/ChatBox";
+import { FlightSearch } from "@/components/FlightSearch";
 import { detectSite, site, supportedSites } from "@/lib/site";
 
 type Result =
@@ -16,7 +17,7 @@ type TabId = "stay" | "ask" | "flight" | "shop";
 const tabs: { id: TabId; label: string; img: string; live: boolean; ai?: boolean; soon?: string }[] = [
   { id: "stay", label: "숙소", img: "hotel", live: true },
   { id: "ask", label: "로보티에게 물어보기", img: "mark", live: true, ai: true },
-  { id: "flight", label: "항공권", img: "flight", live: false, soon: "항공봇이 노선별 최저가와 가격 변동 알림을 준비하고 있어요." },
+  { id: "flight", label: "항공권", img: "flight", live: true },
   { id: "shop", label: "쇼핑·유심", img: "shop", live: false, soon: "쇼핑봇이 여행 준비물과 유심 최저가 비교를 준비하고 있어요." },
 ];
 
@@ -87,6 +88,8 @@ export function LinkChecker() {
       <div className="search-glow">
         {tab === "ask" ? (
           <ChatBox />
+        ) : tab === "flight" ? (
+          <FlightSearch />
         ) : current.live ? (
           <form onSubmit={onSubmit} className="search-card">
             <label className="field field-url">
