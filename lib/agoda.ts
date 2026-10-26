@@ -84,12 +84,14 @@ export function hotelNameFromUrl(url: URL): string | null {
 }
 
 // 링크가 없는 첫 방문자용 샘플. 날짜는 한 달 뒤 1박으로 만든다.
-const samples = [{ label: "샘플 호텔로 바로 체험해 보기", propertyId: "88513086" }];
+const samples = [
+  { label: "샘플로 결과 보기: 도쿄 밀레니엄 미쓰이 가든 호텔", path: "/ko-kr/millennium-mitsui-garden-hotel-tokyo/hotel/tokyo-jp.html" },
+];
 
 export function sampleLinks(): { label: string; url: string }[] {
   const d = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
   return samples.map((s) => ({
     label: s.label,
-    url: `https://www.agoda.com/ko-kr/accom/property?propertyId=${s.propertyId}&checkIn=${d}&los=1&rooms=1&adults=2&childs=0&priceCur=KRW`,
+    url: `https://www.agoda.com${s.path}?checkIn=${d}&los=1&rooms=1&adults=2&children=0&currencyCode=KRW`,
   }));
 }
