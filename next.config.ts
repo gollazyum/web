@@ -2,18 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async redirects() {
-    // Lowboti.kr, www 접속은 메인 도메인 lowboti.com으로 보낸다
+    // lowboti.kr 접속은 메인 도메인 www.lowboti.com으로 보낸다
+    // (lowboti.com → www.lowboti.com 리디렉트는 Vercel 도메인 설정에서 처리)
     return [
       {
         source: "/:path*",
         has: [{ type: "host", value: "(www\\.)?lowboti\\.kr" }],
-        destination: "https://lowboti.com/:path*",
-        permanent: true,
-      },
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "www\\.lowboti\\.com" }],
-        destination: "https://lowboti.com/:path*",
+        destination: "https://www.lowboti.com/:path*",
         permanent: true,
       },
     ];
