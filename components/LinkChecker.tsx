@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChatBox } from "@/components/ChatBox";
 import { FlightSearch } from "@/components/FlightSearch";
-import { AFFILIATE_CID, groupOrder, hotelNameFromUrl, parseAgodaUrl, routes, withCid } from "@/lib/agoda";
+import { AFFILIATE_CID, HOTEL_PROMOCODES, groupOrder, hotelNameFromUrl, parseAgodaUrl, routes, withCid } from "@/lib/agoda";
 import { site } from "@/lib/site";
 
 type Result =
@@ -133,6 +133,7 @@ function RouteList({ url }: { url: URL }) {
   // 열어 본 경로는 표시해서 어디까지 비교했는지 알 수 있게 한다
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const markOpened = (cid: string) => setOpened((prev) => new Set(prev).add(cid));
+  const [copied, setCopied] = useState<string | null>(null);
   return (
     <>
       <div className="result-head">
@@ -150,6 +151,29 @@ function RouteList({ url }: { url: URL }) {
           </span>
           <b>가격 보기 ↗</b>
         </a>
+      )}
+
+      {HOTEL_PROMOCODES.length > 0 && (
+        <div className="promo">
+          <span>
+            <strong>로보티 프로모코드</strong>
+            <small>아고다 결제 화면의 프로모션 코드 칸에 넣어 보세요. 적용 여부와 할인은 아고다 조건에 따라 달라요.</small>
+          </span>
+          <div className="promo-codes">
+            {HOTEL_PROMOCODES.map((code) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => {
+                  navigator.clipboard?.writeText(code).catch(() => {});
+                  setCopied(code);
+                }}
+              >
+                {code} <em>{copied === code ? "복사됨 ✓" : "복사"}</em>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {groupOrder.map((group) => {

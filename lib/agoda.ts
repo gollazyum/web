@@ -1,7 +1,10 @@
 // 아고다 링크 변환 설정. 링크 속 cid 값만 경로별로 바꿔 준다.
 
-// 초록님 제휴 CID. 비어 있으면 추천 링크 카드는 숨긴다.
-export const AFFILIATE_CID = "1739459";
+// 초록님 제휴 CID(아고다 파트너스 사이트 ID). 비어 있으면 추천 링크 카드는 숨긴다.
+export const AFFILIATE_CID = "1978886";
+
+// 아고다 파트너스에서 받은 호텔 프로모코드. 결제 화면에서 직접 입력한다.
+export const HOTEL_PROMOCODES = ["lowboti", "lowbotikr"];
 
 export type RouteGroup = "검색·지도" | "카드사" | "항공사";
 
