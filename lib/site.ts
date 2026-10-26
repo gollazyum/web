@@ -8,6 +8,7 @@ export const site = {
     "호텔 링크 하나로 여러 예약 사이트의 가격을 세금·수수료 포함 총액으로 비교해 최저가를 찾아드립니다.",
   instagramUrl: "", // 예: "https://www.instagram.com/lowboti"
   contactEmail: "", // 예: "hello@lowboti.com"
+  notifyUrl: "", // 오픈 알림 신청 링크. 예: 카카오톡 채널, 구글 폼 주소
 };
 
 // URL로 어느 예약 사이트의 호텔 링크인지 판별한다

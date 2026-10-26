@@ -82,3 +82,14 @@ export function hotelNameFromUrl(url: URL): string | null {
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+// 링크가 없는 첫 방문자용 샘플. 날짜는 한 달 뒤 1박으로 만든다.
+const samples = [{ label: "샘플 호텔로 바로 체험해 보기", propertyId: "88513086" }];
+
+export function sampleLinks(): { label: string; url: string }[] {
+  const d = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+  return samples.map((s) => ({
+    label: s.label,
+    url: `https://www.agoda.com/ko-kr/accom/property?propertyId=${s.propertyId}&checkIn=${d}&los=1&rooms=1&adults=2&childs=0&priceCur=KRW`,
+  }));
+}

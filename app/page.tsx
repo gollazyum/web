@@ -1,18 +1,16 @@
 import Link from "next/link";
 import { LinkChecker } from "@/components/LinkChecker";
 import { Logo } from "@/components/Logo";
-import { site, supportedSites } from "@/lib/site";
+import { AnalysisMock } from "@/components/AnalysisMock";
+import { FamilyCards } from "@/components/FamilyCards";
+import { routes } from "@/lib/agoda";
+import { site } from "@/lib/site";
 
-const family = [
-  { img: "hotel", name: "숙소봇", en: "Stay", body: "호텔 링크 하나로 예약 사이트별 총액을 비교해요.", status: "지금 이용 가능", live: true },
-  { img: "flight", name: "항공봇", en: "Flight", body: "출발지와 날짜만 넣으면 항공권 최저가를 찾아드려요.", status: "지금 이용 가능", live: true },
-  { img: "shop", name: "쇼핑봇", en: "Shop", body: "여행 준비물과 유심도 최저가로 찾아드려요.", status: "준비 중", live: false },
-];
 
 const steps = [
-  { title: "링크 붙여넣기", body: "보고 있던 예약 사이트의 호텔 페이지 주소를 그대로 붙여넣어요." },
-  { title: "로보티가 비교", body: "같은 날짜, 같은 인원 기준으로 사이트별 총액을 나란히 보여드려요." },
-  { title: "최저가로 예약", body: "가장 싼 사이트로 바로 이동해 그곳에서 안전하게 예약해요." },
+  { title: "링크 붙여넣기", body: "아고다에서 보던 호텔 페이지 주소를 그대로 붙여넣어요." },
+  { title: "경로별로 비교", body: "로보티가 같은 호텔·날짜를 카드사·항공사·검색 등 여러 접속 경로 링크로 바꿔 드려요." },
+  { title: "가장 싼 곳에서 예약", body: "링크를 열어 결제 직전 총액을 비교하고, 가장 싼 경로에서 아고다로 예약해요." },
 ];
 
 const faqs = [
@@ -39,6 +37,7 @@ export default function Home() {
             <Logo height={40} />
           </Link>
           <nav>
+            <a href="#how">사용법</a>
             <a href="#features">기능</a>
             <a href="#family">로보티 패밀리</a>
             <a href="#faq">FAQ</a>
@@ -62,15 +61,31 @@ export default function Home() {
           </h1>
           <LinkChecker />
           <div className="compared">
-            <span>비교하는 사이트</span>
-            {supportedSites.map((s) => (
-              <strong key={s.name}>{s.name}</strong>
-            ))}
+            <span>로보티가 연결하는 곳</span>
+            <strong className="wordmark">agoda</strong>
+            <em>{routes.length}개 접속 경로</em>
+            <i aria-hidden="true" />
+            <strong className="wordmark">Aviasales</strong>
+            <em>항공권 검색</em>
           </div>
         </div>
       </section>
 
       <main>
+        <section id="how" className="section wrap">
+          <p className="eyebrow">How it works</p>
+          <h2>세 단계면 충분해요</h2>
+          <ol className="steps">
+            {steps.map((s, i) => (
+              <li key={s.title}>
+                <span className="step-num">{String(i + 1).padStart(2, "0")}</span>
+                <h3>{s.title}</h3>
+                <p>{s.body}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
         <section id="features" className="section wrap">
           <p className="eyebrow">Features</p>
           <h2>
@@ -85,33 +100,12 @@ export default function Home() {
                 <span className="badge">예시</span>
               </div>
               <h3>한눈에 보는 분석 요약</h3>
-              <p>사이트별 총액을 나란히 놓고, 어디가 얼마나 싼지 정리해 드려요.</p>
-              <div className="summary-mock" aria-hidden="true">
-                <div className="summary-line">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/brand/family/main.svg" alt="" />
-                  <span>
-                    <strong>B 사이트</strong>가 가장 싸요. 최고가보다 <strong className="save">₩38,000</strong> 아낄 수 있어요.
-                  </span>
-                </div>
-                {[
-                  { name: "A 사이트", w: 92, price: "₩286,000" },
-                  { name: "B 사이트", w: 80, price: "₩248,000", best: true },
-                  { name: "C 사이트", w: 88, price: "₩271,000" },
-                ].map((r) => (
-                  <div key={r.name} className={`bar-row${r.best ? " best" : ""}`}>
-                    <span>{r.name}</span>
-                    <div className="bar">
-                      <i style={{ width: `${r.w}%` }} />
-                    </div>
-                    <b>{r.price}</b>
-                  </div>
-                ))}
-              </div>
+              <p>경로별 총액을 나란히 놓고, 어디가 얼마나 싼지 한눈에 볼 수 있어요.</p>
+              <AnalysisMock />
             </div>
             <div className="bento-card bento-stat">
-              <strong className="stat grad">{supportedSites.length}곳</strong>
-              <p>한 번에 비교하는 예약 사이트</p>
+              <strong className="stat grad">{routes.length}개</strong>
+              <p>한 번에 바꿔 주는 아고다 접속 경로</p>
             </div>
             <div className="bento-card bento-stat">
               <strong className="stat grad">0원</strong>
@@ -120,7 +114,13 @@ export default function Home() {
             <div className="bento-card bento-alert">
               <div className="badges">
                 <span className="badge ai">가격 예측</span>
-                <span className="badge">준비 중</span>
+                {site.notifyUrl ? (
+                  <a className="notify-btn small" href={site.notifyUrl} target="_blank" rel="noopener noreferrer">
+                    🔔 오픈 알림 받기
+                  </a>
+                ) : (
+                  <span className="badge">준비 중</span>
+                )}
               </div>
               <h3>가격 변동 알림</h3>
               <p>찜해 둔 호텔이나 노선이 싸지면 바로 알려드려요.</p>
@@ -152,9 +152,9 @@ export default function Home() {
               <p>1박 표시가가 아니라 세금·수수료를 포함한 결제 금액으로 비교해요.</p>
             </div>
             <div className="bento-card">
-              <span className="badge live">중립 비교</span>
-              <h3>광고 없는 순위</h3>
-              <p>특정 사이트를 앞세우지 않고, 가격이 낮은 순서대로만 보여드려요.</p>
+              <span className="badge live">숨은 경로</span>
+              <h3>경로를 한 화면에</h3>
+              <p>카드사·항공사·검색 경로를 일일이 찾아다닐 필요 없이 한 번에 모아 드려요.</p>
             </div>
             <div className="bento-card bento-wide">
               <span className="badge live">안전 결제</span>
@@ -167,33 +167,7 @@ export default function Home() {
         <section id="family" className="section wrap">
           <p className="eyebrow">Lowboti family</p>
           <h2>숙소, 항공권, 쇼핑까지 최저가는 로보티가 찾아요</h2>
-          <div className="family">
-            {family.map((f) => (
-              <div key={f.name} className={`family-card family-${f.img}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/brand/family/${f.img}.svg`} alt="" />
-                <h3>
-                  {f.name} <span>{f.en}</span>
-                </h3>
-                <p>{f.body}</p>
-                <span className={`badge${f.live ? " live" : ""}`}>{f.status}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section id="how" className="section wrap">
-          <p className="eyebrow">How it works</p>
-          <h2>세 단계면 충분해요</h2>
-          <ol className="steps">
-            {steps.map((s, i) => (
-              <li key={s.title}>
-                <span className="step-num">{String(i + 1).padStart(2, "0")}</span>
-                <h3>{s.title}</h3>
-                <p>{s.body}</p>
-              </li>
-            ))}
-          </ol>
+          <FamilyCards />
         </section>
 
         <section id="faq" className="section wrap">
