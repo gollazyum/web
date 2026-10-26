@@ -3,9 +3,9 @@ export const site = {
   name: "Lowboti",
   nameKo: "로보티",
   url: "https://www.lowboti.com",
-  tagline: "호텔 최저가, 한 번에 비교.",
+  tagline: "아고다 37개 경로 최저가 찾기",
   description:
-    "호텔 링크 하나로 여러 예약 사이트의 가격을 세금·수수료 포함 총액으로 비교해 최저가를 찾아드립니다.",
+    "혹시 나만 비싸게 예약하고 있나요? 아고다 호텔 링크만 붙여넣으면 구글지도·카드사·항공사 등 37개 숨은 접속 경로로 한 번에 바꿔 드려요. 경로마다 세금·봉사료 포함 총액을 비교해 보세요.",
   instagramUrl: "", // 예: "https://www.instagram.com/lowboti"
   contactEmail: "", // 예: "hello@lowboti.com"
   notifyUrl: "", // 오픈 알림 신청 링크. 예: 카카오톡 채널, 구글 폼 주소

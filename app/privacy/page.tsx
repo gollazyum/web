@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Logo } from "@/components/Logo";
 import { site } from "@/lib/site";
 
-export const metadata: Metadata = { title: "개인정보처리방침 | Lowboti" };
+export const metadata: Metadata = { title: "개인정보처리방침" };
 
 export default function Privacy() {
   return (
