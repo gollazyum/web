@@ -151,6 +151,7 @@ export function LinkChecker() {
         <div className={`search-result${result.kind === "ok" || result.kind === "loading" ? " ok" : ""}`} role="status">
           {result.kind === "loading" && (
             <ScanProgress
+              morphTo="hotel"
               steps={[
                 { text: "호텔 정보와 날짜·인원 조건 읽는 중...", at: 0 },
                 { text: `검색엔진·카드사·항공사 ${routes.length}개 경로 링크 만드는 중...`, at: 400 },

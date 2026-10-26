@@ -1146,10 +1146,33 @@ a {
   height: 64px;
   animation: scan-bob 0.65s ease-in-out infinite alternate;
 }
-.scan-bot img {
+.scan-rig,
+.scan-rig svg {
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  overflow: visible;
+}
+.scan-rig {
+  transform-origin: bottom center;
+  filter: drop-shadow(0 6px 10px rgba(29, 78, 216, 0.18));
+}
+.scan-rig.morphed {
+  animation: scan-morph 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes scan-morph {
+  0% {
+    transform: scale(1.25, 0.75) translateY(6px);
+  }
+  50% {
+    transform: scale(0.86, 1.16) translateY(-10px);
+  }
+  80% {
+    transform: scale(1.05, 0.96);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
 }
 .scan-beam {
   position: absolute;
@@ -1838,6 +1861,7 @@ a {
   .analyzing .dot,
   .scan-bot,
   .scan-beam,
+  .scan-rig.morphed,
   .scan-steps .doing i,
   .route-reveal > *,
   .route-grid a,
