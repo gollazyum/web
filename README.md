@@ -12,13 +12,13 @@ npm run build   # 배포용 빌드
 
 ## 구조
 
-- `app/page.tsx`: 랜딩 페이지 (히어로, 사용법, 이름의 뜻, 예약 팁, FAQ, 제휴 고지)
+- `app/page.tsx`: 랜딩 페이지 (검색 히어로, 비교 사이트, 이용 방법, 강점, 예약 팁, FAQ, 제휴 고지)
 - `app/privacy/page.tsx`: 개인정보처리방침
-- `components/LinkChecker.tsx`: 호텔 링크 입력창 (지금은 어느 사이트 링크인지 알아보는 단계, 가격 비교는 다음 단계)
+- `components/LinkChecker.tsx`: 호텔 링크·날짜·인원 입력창 (지금은 어느 사이트 링크인지 알아보는 단계, 가격 비교는 다음 단계)
 - `lib/site.ts`: 사이트 설정 (인스타그램 주소, 문의 메일, 지원 사이트 목록)
-- `public/images/`: 로보티 캐릭터와 이모티콘
+- `public/images/`: 공유용 로고 이미지
 
 ## 배포
 
 Vercel에 이 저장소를 연결하면 main 브랜치가 자동 배포됩니다.
-`lowboti.kr`, `www.lowboti.com` 접속은 `next.config.ts`에서 `lowboti.com`으로 영구 리다이렉트됩니다.
+`lowboti.kr` 접속은 `next.config.ts`에서 `www.lowboti.com`으로 영구 리다이렉트됩니다.

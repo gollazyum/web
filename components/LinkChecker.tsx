@@ -3,10 +3,28 @@
 import { useState } from "react";
 import { detectSite, site, supportedSites } from "@/lib/site";
 
-type Result = { kind: "ok"; siteName: string } | { kind: "unknown" } | { kind: "invalid" };
+type Result =
+  | { kind: "ok"; siteName: string; nights: number | null }
+  | { kind: "unknown" }
+  | { kind: "invalid" }
+  | { kind: "dates" };
+
+function nightsBetween(checkIn: string, checkOut: string): number | null {
+  if (!checkIn || !checkOut) return null;
+  const ms = new Date(checkOut).getTime() - new Date(checkIn).getTime();
+  return Math.round(ms / 86_400_000);
+}
+
+function today(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export function LinkChecker() {
   const [url, setUrl] = useState("");
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
+  const [adults, setAdults] = useState(2);
+  const [rooms, setRooms] = useState(1);
   const [result, setResult] = useState<Result | null>(null);
 
   function onSubmit(e: React.FormEvent) {
@@ -15,48 +33,96 @@ export function LinkChecker() {
       setResult({ kind: "invalid" });
       return;
     }
+    const nights = nightsBetween(checkIn, checkOut);
+    if (nights !== null && nights <= 0) {
+      setResult({ kind: "dates" });
+      return;
+    }
     const siteName = detectSite(url);
-    setResult(siteName ? { kind: "ok", siteName } : { kind: "unknown" });
+    setResult(siteName ? { kind: "ok", siteName, nights } : { kind: "unknown" });
   }
 
   return (
-    <div className="checker">
-      <form onSubmit={onSubmit} className="checker-form">
-        <input
-          type="url"
-          inputMode="url"
-          placeholder="보고 있던 호텔 링크를 붙여넣어 보세요"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          aria-label="호텔 링크"
-        />
-        <button type="submit">최저가 찾기</button>
+    <div className="search">
+      <form onSubmit={onSubmit} className="search-card">
+        <label className="field field-url">
+          <span>호텔 링크</span>
+          <input
+            type="url"
+            inputMode="url"
+            placeholder="예약 사이트의 호텔 페이지 주소를 붙여넣으세요"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            required
+          />
+        </label>
+        <label className="field">
+          <span>체크인</span>
+          <input type="date" min={today()} value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>체크아웃</span>
+          <input type="date" min={checkIn || today()} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
+        </label>
+        <label className="field field-small">
+          <span>성인</span>
+          <select value={adults} onChange={(e) => setAdults(Number(e.target.value))}>
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <option key={n} value={n}>
+                {n}명
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field field-small">
+          <span>객실</span>
+          <select value={rooms} onChange={(e) => setRooms(Number(e.target.value))}>
+            {[1, 2, 3, 4].map((n) => (
+              <option key={n} value={n}>
+                {n}개
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit">최저가 비교</button>
       </form>
-      <p className="checker-sites">
-        비교 예정 사이트: {supportedSites.map((s) => s.name).join(" · ")}
-      </p>
+
       {result && (
-        <div className="checker-result" role="status">
+        <div className={`search-result${result.kind === "ok" ? " ok" : ""}`} role="status">
           {result.kind === "ok" && (
             <>
-              <strong>{result.siteName} 링크를 알아봤어요!</strong>
-              <span>
-                가격 비교 기능은 곧 오픈해요. 오픈하면 이 링크로 바로 최저가를 찾아드릴게요.
+              <div className="result-head">
+                <strong>{result.siteName} 호텔 링크를 확인했습니다.</strong>
+                <span>
+                  {result.nights ? `${result.nights}박 · ` : ""}성인 {adults}명 · 객실 {rooms}개
+                </span>
+              </div>
+              <ul className="result-sites">
+                {supportedSites.map((s) => (
+                  <li key={s.name}>
+                    <span>{s.name}</span>
+                    <span className="muted">가격 연동 준비 중</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="result-note">
+                실시간 가격 비교는 예약 사이트 제휴 연동이 끝나는 대로 열립니다.
                 {site.instagramUrl && (
                   <>
                     {" "}
                     <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer">
-                      인스타그램에서 오픈 소식 받기
+                      오픈 소식 받기
                     </a>
                   </>
                 )}
-              </span>
+              </p>
             </>
           )}
           {result.kind === "unknown" && (
-            <span>아직 이 사이트는 비교 목록에 없어요. 아고다, 부킹닷컴 같은 예약 사이트의 호텔 링크를 넣어 주세요.</span>
+            <span>아직 지원하지 않는 사이트입니다. {supportedSites.map((s) => s.name).join(", ")}의 호텔 링크를 넣어 주세요.</span>
           )}
-          {result.kind === "invalid" && <span>https:// 로 시작하는 링크를 붙여넣어 주세요.</span>}
+          {result.kind === "invalid" && <span>https:// 로 시작하는 호텔 페이지 주소를 넣어 주세요.</span>}
+          {result.kind === "dates" && <span>체크아웃 날짜는 체크인 다음 날 이후로 선택해 주세요.</span>}
         </div>
       )}
     </div>
