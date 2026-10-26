@@ -375,7 +375,7 @@ a {
   gap: 10px;
 }
 .chat-title img {
-  width: 40px;
+  width: 46px;
 }
 .chat-title strong {
   display: block;
@@ -431,7 +431,7 @@ a {
   justify-content: flex-end;
 }
 .avatar {
-  width: 32px;
+  width: 38px;
   flex: none;
 }
 .bubble {

@@ -15,7 +15,7 @@ type TabId = "stay" | "ask" | "flight" | "shop";
 
 const tabs: { id: TabId; label: string; img: string; live: boolean; ai?: boolean; soon?: string }[] = [
   { id: "stay", label: "숙소", img: "hotel", live: true },
-  { id: "ask", label: "로보티에게 물어보기", img: "main", live: true, ai: true },
+  { id: "ask", label: "로보티에게 물어보기", img: "mark", live: true, ai: true },
   { id: "flight", label: "항공권", img: "flight", live: false, soon: "항공봇이 노선별 최저가와 가격 변동 알림을 준비하고 있어요." },
   { id: "shop", label: "쇼핑·유심", img: "shop", live: false, soon: "쇼핑봇이 여행 준비물과 유심 최저가 비교를 준비하고 있어요." },
 ];
@@ -76,7 +76,7 @@ export function LinkChecker() {
             onClick={() => setTab(t.id)}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/brand/family/${t.img}.svg`} alt="" />
+            <img src={t.img === "mark" ? "/brand/lowboti-mark.svg" : `/brand/family/${t.img}.svg`} alt="" />
             {t.label}
             {t.ai && <span className="soon ai">AI</span>}
             {!t.live && <span className="soon">곧 오픈</span>}

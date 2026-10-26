@@ -82,7 +82,7 @@ export function ChatBox() {
       <div className="chat-head">
         <div className="chat-title">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/family/main.svg" alt="" />
+          <img src="/brand/lowboti-mark.svg" alt="" />
           <div>
             <strong>로보티에게 물어보기</strong>
             <span>
@@ -98,7 +98,7 @@ export function ChatBox() {
       <div className="chat-list" ref={listRef} aria-live="polite">
         <div className="bubble-row bot">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/family/main.svg" alt="" className="avatar" />
+          <img src="/brand/lowboti-mark.svg" alt="" className="avatar" />
           <p className="bubble">{greeting}</p>
         </div>
         {messages.map((m, i) =>
@@ -109,7 +109,7 @@ export function ChatBox() {
           ) : (
             <div key={i} className="bubble-row bot">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/family/main.svg" alt="" className="avatar" />
+              <img src="/brand/lowboti-mark.svg" alt="" className="avatar" />
               {m.content ? (
                 <p className="bubble">{m.content}</p>
               ) : (
