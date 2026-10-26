@@ -35,10 +35,8 @@ export function LinkChecker() {
   const [tab, setTab] = useState<TabId>("stay");
   const [url, setUrl] = useState("");
   const [result, setResult] = useState<Result | null>(null);
-  const [samples, setSamples] = useState<{ label: string; url: string }[]>([]);
-
-  // 샘플 날짜는 오늘 기준이라 화면에서 만든다
-  useEffect(() => setSamples(sampleLinks()), []);
+  // 버튼 글자는 첫 HTML에 바로 넣고, 날짜가 들어간 주소는 누를 때 만든다
+  const samples = sampleLinks();
 
   useEffect(() => {
     const onTab = (e: Event) => setTab((e as CustomEvent<TabId>).detail);
@@ -137,11 +135,11 @@ export function LinkChecker() {
         </div>
       </div>
 
-      {tab === "stay" && !result && samples.length > 0 && (
+      {tab === "stay" && !result && (
         <div className="quick-try">
           <span>링크가 없으신가요?</span>
-          {samples.map((s) => (
-            <button key={s.url} type="button" onClick={() => trySample(s.url)}>
+          {samples.map((s, i) => (
+            <button key={s.label} type="button" onClick={() => trySample(sampleLinks()[i].url)}>
               🔥 {s.label}
             </button>
           ))}
