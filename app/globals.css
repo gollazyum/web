@@ -2,8 +2,9 @@
   --ink: #0b1a30;
   --navy: #0e2240;
   --navy-2: #16305a;
-  --green: #1fb874;
-  --green-dark: #149a5f;
+  --blue: #1d4ed8;
+  --green: #10b981;
+  --green-dark: #059669;
   --text: #1c2738;
   --muted: #66728a;
   --line: #e3e7ee;
@@ -47,7 +48,7 @@ a {
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--green-dark);
+  color: var(--blue);
   margin-bottom: 12px;
 }
 
@@ -58,7 +59,7 @@ a {
 /* hero band */
 .hero-band {
   background:
-    radial-gradient(1200px 500px at 85% -10%, rgba(31, 184, 116, 0.14), transparent 60%),
+    radial-gradient(1200px 500px at 85% -10%, rgba(16, 185, 129, 0.14), transparent 60%),
     linear-gradient(180deg, var(--ink) 0%, var(--navy) 100%);
   color: var(--white);
   padding-bottom: 72px;
@@ -75,6 +76,7 @@ a {
 }
 .brand {
   display: inline-flex;
+  line-height: 0;
   align-items: center;
   gap: 8px;
   font-size: 22px;
@@ -281,7 +283,7 @@ a {
   display: block;
   font-size: 14px;
   font-weight: 700;
-  color: var(--green-dark);
+  color: var(--blue);
   margin-bottom: 14px;
   font-variant-numeric: tabular-nums;
 }

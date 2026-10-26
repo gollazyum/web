@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LinkChecker } from "@/components/LinkChecker";
-import { LogoMark } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
 import { site, supportedSites } from "@/lib/site";
 
 const steps = [
@@ -42,8 +42,7 @@ export default function Home() {
       <div className="hero-band">
         <header className="nav wrap">
           <Link href="/" className="brand" aria-label="Lowboti 홈">
-            <LogoMark />
-            <span>Lowboti</span>
+            <Logo tone="white" height={30} />
           </Link>
           <nav>
             <a href="#how">이용 방법</a>
@@ -141,8 +140,7 @@ export default function Home() {
       <footer className="footer">
         <div className="wrap">
           <div className="brand">
-            <LogoMark size={24} />
-            <span>Lowboti</span>
+            <Logo tone="white" height={24} />
           </div>
           <p className="disclosure">
             Lowboti는 제휴 마케팅 사이트입니다. Lowboti의 링크를 통해 예약하시면 예약 사이트로부터 수수료를 받을 수 있으며,
