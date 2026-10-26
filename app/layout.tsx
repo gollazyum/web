@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     description: site.description,
     url: site.url,
     siteName: site.name,
-    images: ["/images/og-logo.png"],
+    images: [{ url: "/images/og-image.png", width: 1200, height: 630 }],
     locale: "ko_KR",
     type: "website",
   },
