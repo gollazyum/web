@@ -2,7 +2,7 @@
 export const site = {
   name: "Lowboti",
   nameKo: "로보티",
-  url: "https://lowboti.com",
+  url: "https://www.lowboti.com",
   tagline: "가격 거품, 바닥까지.",
   description:
     "호텔 링크만 붙여넣으면 로보티가 여러 예약 사이트의 가격을 한 번에 비교해 최저가를 찾아드려요.",
