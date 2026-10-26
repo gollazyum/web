@@ -130,6 +130,19 @@ a {
   display: block;
   margin: 0 auto;
 }
+.hero-mark img {
+  animation: float 4s ease-in-out infinite;
+}
+@keyframes float {
+  50% {
+    transform: translateY(-10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-mark img {
+    animation: none;
+  }
+}
 .hero .search {
   margin-top: 48px;
 }
@@ -286,6 +299,46 @@ a {
   color: var(--text);
 }
 
+.family {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.family-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.family-card img {
+  width: 112px;
+  height: auto;
+  margin-bottom: 16px;
+}
+.family-card h3 .muted {
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 4px;
+}
+.family-card p {
+  margin: 6px 0 16px;
+  flex: 1;
+}
+.badge {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--muted);
+}
+.badge.live {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--green-dark);
+}
+
 .steps {
   list-style: none;
   display: grid;
@@ -435,7 +488,8 @@ a {
     padding: 16px;
   }
   .steps,
-  .values {
+  .values,
+  .family {
     grid-template-columns: 1fr;
   }
   .steps li {

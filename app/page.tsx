@@ -9,6 +9,12 @@ const steps = [
   { title: "최저가로 예약", body: "총액이 가장 낮은 사이트로 이동해 그곳에서 예약합니다." },
 ];
 
+const family = [
+  { img: "hotel", name: "숙소봇", en: "Stay", body: "호텔 링크 하나로 예약 사이트별 가격을 비교해요.", status: "지금 이용 가능", live: true },
+  { img: "flight", name: "항공봇", en: "Flight", body: "원하는 노선이 싸지면 바로 알려드려요.", status: "준비 중", live: false },
+  { img: "shop", name: "쇼핑봇", en: "Shop", body: "여행 준비물과 유심도 최저가로 찾아드려요.", status: "준비 중", live: false },
+];
+
 const values = [
   { title: "총액 기준 비교", body: "1박 표시가가 아니라 세금과 수수료를 포함한 결제 금액으로 비교합니다." },
   { title: "중립적인 순위", body: "특정 사이트를 앞세우지 않고, 가격이 낮은 순서대로만 보여드립니다." },
@@ -42,7 +48,7 @@ export default function Home() {
       <header className="nav-bar">
         <div className="nav wrap">
           <Link href="/" className="brand" aria-label="Lowboti 홈">
-            <Logo height={32} />
+            <Logo height={44} />
           </Link>
           <nav>
             <a href="#how">이용 방법</a>
@@ -65,7 +71,7 @@ export default function Home() {
           </div>
           <div className="hero-mark" aria-hidden="true">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/lowboti-mark.svg" alt="" />
+            <img src="/brand/family/main.svg" alt="" />
           </div>
         </div>
         <div className="wrap">
@@ -84,6 +90,24 @@ export default function Home() {
           <div className="partners">
             {supportedSites.map((s) => (
               <span key={s.name}>{s.name}</span>
+            ))}
+          </div>
+        </section>
+
+        <section id="family" className="section wrap">
+          <p className="eyebrow">Lowboti family</p>
+          <h2>숙소, 항공권, 쇼핑까지 최저가는 로보티가 찾아요</h2>
+          <div className="family">
+            {family.map((f) => (
+              <div key={f.name} className="family-card">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/brand/family/${f.img}.svg`} alt="" />
+                <h3>
+                  {f.name} <span className="muted">{f.en}</span>
+                </h3>
+                <p>{f.body}</p>
+                <span className={`badge${f.live ? " live" : ""}`}>{f.status}</span>
+              </div>
             ))}
           </div>
         </section>
@@ -150,7 +174,7 @@ export default function Home() {
       <footer className="footer">
         <div className="wrap">
           <div className="brand">
-            <Logo tone="white" height={24} />
+            <Logo tone="white" height={34} />
           </div>
           <p className="disclosure">
             Lowboti는 제휴 마케팅 사이트입니다. Lowboti의 링크를 통해 예약하시면 예약 사이트로부터 수수료를 받을 수 있으며,
