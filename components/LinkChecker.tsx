@@ -84,7 +84,7 @@ export function LinkChecker() {
             ))}
           </select>
         </label>
-        <button type="submit">최저가 비교</button>
+        <button type="submit">최저가 찾기</button>
       </form>
 
       {result && (

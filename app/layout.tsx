@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Noto_Sans_KR } from "next/font/google";
 import { site } from "@/lib/site";
-import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
+
+const noto = Noto_Sans_KR({ weight: ["400", "500", "700", "900"], subsets: ["latin"], variable: "--font-body", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -20,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko">
+    <html lang="ko" className={noto.variable}>
       <body>{children}</body>
     </html>
   );

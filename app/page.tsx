@@ -39,34 +39,44 @@ const faqs = [
 export default function Home() {
   return (
     <>
-      <div className="hero-band">
-        <header className="nav wrap">
+      <header className="nav-bar">
+        <div className="nav wrap">
           <Link href="/" className="brand" aria-label="Lowboti 홈">
-            <Logo tone="white" height={30} />
+            <Logo height={32} />
           </Link>
           <nav>
             <a href="#how">이용 방법</a>
-            <a href="#tips">예약 팁</a>
+            <a href="#tips">여행 꿀팁</a>
             <a href="#faq">FAQ</a>
           </nav>
-        </header>
+        </div>
+      </header>
 
-        <section className="hero wrap">
-          <p className="eyebrow">Hotel price comparison</p>
-          <h1>
-            같은 호텔, 같은 객실.
-            <br />
-            <span className="accent">가장 낮은 가격</span>으로.
-          </h1>
-          <p className="lead">호텔 링크 하나로 여러 예약 사이트의 총액을 비교합니다.</p>
+      <section className="hero">
+        <div className="hero-inner wrap">
+          <div className="hero-copy">
+            <span className="pill">여러 예약 사이트 가격 비교</span>
+            <h1>
+              호텔 최저가,
+              <br />
+              <span className="accent">로보티</span>가 찾아드려요
+            </h1>
+            <p className="lead">호텔 링크와 날짜만 입력하면 가장 싼 곳을 바로 보여드려요.</p>
+          </div>
+          <div className="hero-mark" aria-hidden="true">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/lowboti-mark.svg" alt="" />
+          </div>
+        </div>
+        <div className="wrap">
           <LinkChecker />
           <ul className="trust">
-            <li>{supportedSites.length}개 예약 사이트 비교</li>
-            <li>세금·수수료 포함 총액</li>
-            <li>회원가입 없이 무료</li>
+            <li>가격 비교 무료</li>
+            <li>예약은 각 사이트에서 안전하게</li>
+            <li>세금·수수료 포함 총액 기준</li>
           </ul>
-        </section>
-      </div>
+        </div>
+      </section>
 
       <main>
         <section className="section wrap">
