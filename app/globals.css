@@ -1132,6 +1132,151 @@ a {
     background-position: -100% 0;
   }
 }
+/* 결과 전 스캔 연출 */
+.scan {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 6px 4px;
+}
+.scan-bot {
+  position: relative;
+  flex: none;
+  width: 72px;
+  height: 64px;
+  animation: scan-bob 0.65s ease-in-out infinite alternate;
+}
+.scan-rig,
+.scan-rig svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.scan-rig {
+  transform-origin: bottom center;
+  filter: drop-shadow(0 6px 10px rgba(29, 78, 216, 0.18));
+}
+.scan-rig.morphed {
+  animation: scan-morph 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes scan-morph {
+  0% {
+    transform: scale(1.25, 0.75) translateY(6px);
+  }
+  50% {
+    transform: scale(0.86, 1.16) translateY(-10px);
+  }
+  80% {
+    transform: scale(1.05, 0.96);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+.scan-beam {
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  top: 8%;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, var(--sky), transparent);
+  box-shadow: 0 0 12px var(--sky);
+  animation: scan-beam 0.9s ease-in-out infinite alternate;
+}
+.scan-body {
+  flex: 1;
+  min-width: 0;
+}
+.scan-steps {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.scan-steps li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  opacity: 0.45;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+.scan-steps li.doing,
+.scan-steps li.done {
+  opacity: 1;
+  color: var(--text);
+}
+.scan-steps i {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+  color: var(--white);
+}
+.scan-steps .doing i {
+  border-color: var(--sky);
+  border-top-color: transparent;
+  animation: scan-spin 0.7s linear infinite;
+}
+.scan-steps .done i {
+  border-color: transparent;
+  background: var(--green);
+}
+.scan-bar {
+  height: 6px;
+  border-radius: 6px;
+  background: var(--soft);
+  overflow: hidden;
+}
+.scan-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--grad);
+}
+@keyframes scan-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes scan-bob {
+  to {
+    transform: translateY(-4px) rotate(-3deg);
+  }
+}
+@keyframes scan-beam {
+  to {
+    top: 82%;
+  }
+}
+.route-reveal > * {
+  animation: fade-up 0.4s ease both;
+}
+.route-reveal > :nth-child(2) {
+  animation-delay: 0.08s;
+}
+.route-reveal > :nth-child(3) {
+  animation-delay: 0.16s;
+}
+.route-reveal > :nth-child(n + 4) {
+  animation-delay: 0.24s;
+}
+.route-grid a {
+  animation: fade-up 0.35s ease both;
+  animation-delay: calc(0.28s + var(--i, 0) * 0.025s);
+}
+
 .analyzing {
   display: inline-flex;
   align-items: center;
@@ -1714,6 +1859,12 @@ a {
   .search-glow::after,
   .skeleton,
   .analyzing .dot,
+  .scan-bot,
+  .scan-beam,
+  .scan-rig.morphed,
+  .scan-steps .doing i,
+  .route-reveal > *,
+  .route-grid a,
   .typing span,
   .search-tab.active img,
   .tab-hint,
