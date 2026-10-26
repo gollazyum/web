@@ -15,7 +15,8 @@ const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
 export function AnalysisMock() {
   const ref = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState(false);
-  const [save, setSave] = useState(0);
+  // 첫 HTML(검색봇)에는 최종 금액을 넣고, 화면에 들어오면 0부터 올린다
+  const [save, setSave] = useState(SAVE);
 
   useEffect(() => {
     const el = ref.current;
@@ -39,6 +40,7 @@ export function AnalysisMock() {
       setSave(SAVE);
       return;
     }
+    setSave(0);
     const start = performance.now();
     let frame = 0;
     const tick = (now: number) => {
