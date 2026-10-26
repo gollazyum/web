@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { LiveMochi } from "./LiveMochi";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -96,6 +97,7 @@ export function ChatBox() {
       </div>
 
       <div className="chat-list" ref={listRef} aria-live="polite">
+        <LiveMochi thinking={busy} />
         <div className="bubble-row bot">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/lowboti-mark.svg" alt="" className="avatar" />
