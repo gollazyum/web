@@ -85,7 +85,7 @@ export function hotelNameFromUrl(url: URL): string | null {
 
 // 링크가 없는 첫 방문자용 샘플. 날짜는 한 달 뒤 1박으로 만든다.
 const samples = [
-  { label: "샘플로 결과 보기: 도쿄 밀레니엄 미쓰이 가든 호텔", path: "/ko-kr/millennium-mitsui-garden-hotel-tokyo/hotel/tokyo-jp.html" },
+  { label: "샘플 호텔로 바로 체험해 보기", path: "/ko-kr/millennium-mitsui-garden-hotel-tokyo/hotel/tokyo-jp.html" },
 ];
 
 export function sampleLinks(): { label: string; url: string }[] {
