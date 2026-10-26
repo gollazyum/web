@@ -33,8 +33,11 @@ export default function Home() {
     <>
       <header className="nav-bar">
         <div className="nav wrap">
-          <Link href="/" className="brand" aria-label="Lowboti 홈">
+          <Link href="/" className="brand" aria-label="로보티 (Lowboti) 홈">
             <Logo height={40} />
+            <span className="brand-badge" aria-hidden="true">
+              AI
+            </span>
           </Link>
           <nav>
             <a href="#how">사용법</a>

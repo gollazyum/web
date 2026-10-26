@@ -13,16 +13,35 @@ const pretendard = localFont({
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
-  title: `${site.name} | 호텔 최저가 비교`,
+  title: {
+    default: `${site.nameKo} (${site.name}) - ${site.tagline}`,
+    template: `%s | ${site.nameKo} (${site.name})`,
+  },
   description: site.description,
+  keywords: [
+    "로보티",
+    "Lowboti",
+    "아고다 최저가",
+    "아고다 할인 경로",
+    "아고다 카드사 할인",
+    "구글맵 아고다",
+    "호텔 가격 비교",
+    "항공권 최저가",
+  ],
   openGraph: {
-    title: `${site.name} · ${site.tagline}`,
-    description: site.description,
+    title: `${site.nameKo} (${site.name}) - 아고다 37개 숨은 경로 최저가 봇`,
+    description: "아고다 호텔 링크 하나로 카드사·항공사·검색 경로별 링크를 한 번에 받아 진짜 최저가를 찾아보세요.",
     url: site.url,
-    siteName: site.name,
+    siteName: `${site.nameKo} (${site.name})`,
     images: [{ url: "/images/og-image.png", width: 1200, height: 630 }],
     locale: "ko_KR",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${site.nameKo} (${site.name}) - 아고다 37개 경로 최저가 찾기`,
+    description: "번거로운 아고다 경로 타기, 이제 로보티에게 맡기세요. 링크만 넣으면 37개 경로를 한 번에 열어 볼 수 있어요.",
+    images: ["/images/og-image.png"],
   },
   verification: {
     google: "uHjh6W2iEsSIUKIJCFAlsYq3pryOirOYMdTrd7VHE4Q",

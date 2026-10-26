@@ -79,8 +79,23 @@ a {
 }
 .brand {
   display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
   line-height: 0;
   text-decoration: none;
+}
+/* 로고 오른쪽 위 캡슐 배지 (검색 버튼과 같은 블루-그린) */
+.brand-badge {
+  margin-top: 1px;
+  padding: 4px 8px 3px;
+  border-radius: 999px;
+  background: var(--grad);
+  color: var(--white);
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  box-shadow: 0 4px 10px -4px rgba(29, 78, 216, 0.55);
 }
 .nav nav {
   display: flex;
