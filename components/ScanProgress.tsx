@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-// 결과가 나오기 전 1.3초 동안 모찌가 돋보기로 훑으며 단계를 하나씩 끝낸다
-export const SCAN_MS = 1300;
-const MORPH_AT = 650; // 흰 모찌가 카테고리 모찌로 변신하는 순간
+// 결과가 나오기 전 1.6초 동안 모찌가 돋보기로 훑으며 단계를 하나씩 끝낸다
+export const SCAN_MS = 1600;
+const MORPH_AT = 800; // 흰 모찌가 카테고리 모찌로 변신하는 순간
 
 // 브랜드 키트와 같은 도형·색
 const SHAPES = {
@@ -41,6 +41,15 @@ type Props = { steps: { text: string; at: number }[]; morphTo?: "hotel" | "fligh
 
 export function ScanProgress({ steps, morphTo }: Props) {
   const [now, setNow] = useState(0);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // 휴대폰에서는 스캔 칸이 화면 아래에 걸쳐 안 보일 수 있어 화면 안으로 끌어온다
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.bottom > window.innerHeight || r.top < 0) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
 
   useEffect(() => {
     const start = performance.now();
@@ -58,7 +67,7 @@ export function ScanProgress({ steps, morphTo }: Props) {
   const morphed = morphTo && now >= MORPH_AT;
 
   return (
-    <div className="scan">
+    <div className="scan" ref={boxRef}>
       <div className="scan-bot" aria-hidden="true">
         <div className={`scan-rig${morphed ? " morphed" : ""}`}>
           <Mochi look={morphed ? morphTo : "main"} />
