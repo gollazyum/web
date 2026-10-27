@@ -77,7 +77,9 @@ export function FlightSearch() {
       const message =
         res.status === 429
           ? "검색이 너무 잦아서 잠깐 쉬고 있어요. 아래에서 바로 확인해 보세요."
-          : "지금은 사이트 안에서 가격을 불러오지 못했어요. 아래에서 바로 확인해 보세요.";
+          : res.status === 503
+            ? "실시간 가격 기능을 준비하고 있어요. 아래에서 바로 확인해 보세요."
+            : "지금은 사이트 안에서 가격을 불러오지 못했어요. 아래에서 바로 확인해 보세요.";
       setResult({ kind: "fallback", message, link });
     } catch {
       setResult({ kind: "fallback", message: "연결이 불안정해요. 아래에서 바로 확인해 보세요.", link });

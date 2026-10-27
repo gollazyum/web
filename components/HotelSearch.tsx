@@ -27,9 +27,9 @@ function nights(a: string, b: string): number {
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
 function failMessage(status: number): string {
-  return status === 429
-    ? "검색이 너무 잦아서 잠깐 쉬고 있어요. 잠시 뒤에 다시 찾아 주세요."
-    : "지금은 호텔 가격을 불러오지 못했어요. 잠시 뒤에 다시 찾아 주세요.";
+  if (status === 429) return "검색이 너무 잦아서 잠깐 쉬고 있어요. 잠시 뒤에 다시 찾아 주세요.";
+  if (status === 503) return "실시간 호텔 가격 기능을 준비하고 있어요. 아고다 링크 37개 경로로 먼저 비교해 보세요.";
+  return "지금은 호텔 가격을 불러오지 못했어요. 잠시 뒤에 다시 찾아 주세요.";
 }
 
 async function postHotels(body: HotelQuery & { token?: string }): Promise<Response> {
