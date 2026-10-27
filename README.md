@@ -15,8 +15,14 @@ npm run build   # 배포용 빌드
 - `app/page.tsx`: 랜딩 페이지 (검색 히어로, 비교 사이트, 이용 방법, 강점, 예약 팁, FAQ, 제휴 고지)
 - `app/privacy/page.tsx`: 개인정보처리방침
 - `components/LinkChecker.tsx`: 호텔 링크·날짜·인원 입력창 (지금은 어느 사이트 링크인지 알아보는 단계, 가격 비교는 다음 단계)
+- `components/FlightSearch.tsx`, `app/api/flights/route.ts`: 항공권 탭. 서버가 SerpApi(Google Flights)로 실시간 가격을 받아 사이트 안에 보여 주고, 예약은 Aviasales 제휴 링크로 넘깁니다
 - `lib/site.ts`: 사이트 설정 (인스타그램 주소, 문의 메일, 지원 사이트 목록)
 - `public/images/`: 공유용 로고 이미지
+
+## 환경변수 (Vercel → Settings → Environment Variables)
+
+- `ANTHROPIC_API_KEY`: AI 채팅
+- `SERPAPI_API_KEY`: 항공권 실시간 가격. 없으면 항공권 탭은 Aviasales 바로가기 버튼만 보여 줍니다
 
 ## 배포
 

@@ -2094,3 +2094,108 @@ a {
     transition: none !important;
   }
 }
+
+/* 항공권 실시간 가격 목록. UI 개편 전까지 쓰는 단순한 모양 */
+.flight-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.flight-summary strong {
+  font-size: 18px;
+  color: var(--ink);
+}
+.flight-level {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--muted);
+}
+.flight-level.low {
+  background: #d1fae5;
+  color: var(--green-dark);
+}
+.flight-level.high {
+  background: #ffedd5;
+  color: #c2410c;
+}
+.flight-typical {
+  font-size: 13px;
+  color: var(--muted);
+}
+.flight-list {
+  list-style: none;
+}
+.flight-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.flight-logo {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  object-fit: contain;
+}
+.flight-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: var(--muted);
+}
+.flight-main strong {
+  font-size: 16px;
+  color: var(--ink);
+}
+.flight-airline {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flight-buy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: none;
+}
+.flight-buy strong {
+  font-size: 16px;
+  color: var(--ink);
+}
+.flight-buy a,
+.flight-more {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--white);
+  background: var(--blue);
+  border-radius: 999px;
+  padding: 5px 14px;
+  text-decoration: none;
+}
+.flight-more {
+  margin-top: 12px;
+  font-size: 14px;
+  padding: 8px 18px;
+}
+.flight-note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.flight-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
