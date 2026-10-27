@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PlaceInput } from "./PlaceInput";
 import { ScanProgress } from "./ScanProgress";
 import { errorCode } from "@/lib/apiError";
 import { agodaSearchUrl, isAgoda, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults, type HotelSource } from "@/lib/hotels";
@@ -71,10 +72,7 @@ export function HotelSearch() {
   return (
     <>
       <form onSubmit={onSubmit} className="search-card hotel-card">
-        <label className="field field-url">
-          <span>어디로 가세요?</span>
-          <input type="text" placeholder="도시나 호텔 이름 (예: 도쿄 신주쿠)" value={q} onChange={(e) => setQ(e.target.value)} maxLength={100} required />
-        </label>
+        <PlaceInput value={q} onChange={setQ} />
         <label className="field">
           <span>체크인</span>
           <span className="date-wrap">

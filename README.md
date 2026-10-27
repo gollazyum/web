@@ -24,6 +24,7 @@ npm run build   # 배포용 빌드
 ## 환경변수 (Vercel → Settings → Environment Variables)
 
 - `ANTHROPIC_API_KEY`: AI 채팅
+- `GOOGLE_MAPS_API_KEY`: 숙소 검색창 호텔·도시 자동완성(Google Places API New). 없으면 도시 이름만 추천합니다
 - `SERPAPI_API_KEY`: 항공권·호텔 실시간 가격. 없으면 항공권 탭은 Aviasales 바로가기 버튼만, 호텔 검색은 안내 문구만 보여 줍니다
 
 ## 배포

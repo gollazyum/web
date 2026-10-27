@@ -130,3 +130,28 @@ export function codeFromText(input: string): string | null {
   if (/^[A-Za-z]{3}$/.test(text)) return text.toUpperCase();
   return null;
 }
+
+// 숙소 검색창용 도시 추천. 공항 목록의 도시 이름을 모아 쓴다 (호텔 이름은 /api/places에서)
+export type CityHit = { name: string; sub: string };
+
+export function searchCities(d: Data, input: string, limit = 6): CityHit[] {
+  const q = norm(input);
+  if (!q) return [];
+  const best = new Map<string, { hit: CityHit; s: number }>();
+  for (const a of d.airports) {
+    const s = Math.max(scoreText(q, a[4], 90, 45), scoreText(q, a[2], 80, 40));
+    if (!s) continue;
+    const name = cityName(a);
+    const key = `${name}|${a[3]}`;
+    const score = s + a[5] + (a[4] ? 3 : 0);
+    const prev = best.get(key);
+    if (!prev || prev.s < score) {
+      const country = d.countries[a[3]] ?? a[3];
+      best.set(key, { hit: { name, sub: a[4] && a[2] ? `${a[2]}, ${country}` : country }, s: score });
+    }
+  }
+  return [...best.values()]
+    .sort((x, y) => y.s - x.s)
+    .slice(0, limit)
+    .map((x) => x.hit);
+}
