@@ -13,6 +13,7 @@ export function PlaceInput({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [results, setResults] = useState<PlaceHit[]>([]);
+  const [searched, setSearched] = useState(""); // 추천을 찾아 본 글자 (없을 때 안내용)
   const remoteOff = useRef(false); // 키가 없다는 답을 받으면 그 뒤로는 묻지 않는다
   const session = useRef("");
 
@@ -35,6 +36,7 @@ export function PlaceInput({ value, onChange }: Props) {
       if (cancelled) return;
       setResults(cities);
       setActive(0);
+      setSearched(q);
       if (remoteOff.current || q.length < 2) return;
       session.current ||= crypto.randomUUID();
       try {
@@ -75,7 +77,8 @@ export function PlaceInput({ value, onChange }: Props) {
     }
   }
 
-  const showList = open && results.length > 0;
+  const empty = open && results.length === 0 && searched !== "" && searched === value.trim();
+  const showList = open && (results.length > 0 || empty);
 
   return (
     <label className="field field-url airport-field">
@@ -101,6 +104,7 @@ export function PlaceInput({ value, onChange }: Props) {
       />
       {showList && (
         <ul id={listId} role="listbox" className="airport-list">
+          {empty && <li className="airport-empty">추천할 곳이 없어요. 이대로 "호텔 가격 비교"를 눌러도 찾아 드려요.</li>}
           {results.map((p, i) => (
             <li
               key={`${p.kind}-${p.name}-${p.sub}`}
