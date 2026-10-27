@@ -74,7 +74,6 @@ export function HotelSearch() {
           endPlaceholder="1박이면 비우기"
           minGap={1}
           unit={(n) => `${n}박`}
-          quick={{ label: "1박으로", end: (d) => addDays(d, 1) }}
         />
         <label className="field field-small">
           <span>성인</span>
