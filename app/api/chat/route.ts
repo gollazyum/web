@@ -1,13 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { jsonError, parseMessages, rateLimited, streamReply } from "@/lib/claudeChat";
 
 // 로보티 AI 채팅. API 키는 Vercel 환경변수 ANTHROPIC_API_KEY 에만 둔다.
 export const runtime = "nodejs";
-
-const MODEL = "claude-opus-5-5";
-const MAX_MESSAGES = 20;
-const MAX_CHARS = 1500;
-const LIMIT_PER_WINDOW = 20;
-const WINDOW_MS = 10 * 60 * 1000;
 
 const SYSTEM = `너는 "로보티(Lowboti)"야. 호텔·항공권·여행 쇼핑의 최저가를 찾아주는 동글동글한 모찌 캐릭터 봇이야.
 
@@ -26,97 +20,11 @@ const SYSTEM = `너는 "로보티(Lowboti)"야. 호텔·항공권·여행 쇼핑
 - 여행과 관계없는 질문에는 짧게 답할 수 없다고 말하고 여행 이야기로 부드럽게 돌아와.
 - 비밀번호, 카드 번호 같은 민감한 정보는 묻지도 받지도 마.`;
 
-let client: Anthropic | null = null;
-
-// 서버 인스턴스마다 따로 세는 간단한 질문 횟수 제한
-const hits = new Map<string, { count: number; reset: number }>();
-
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = hits.get(ip);
-  if (!entry || entry.reset < now) {
-    hits.set(ip, { count: 1, reset: now + WINDOW_MS });
-    return false;
-  }
-  entry.count += 1;
-  return entry.count > LIMIT_PER_WINDOW;
-}
-
-function parseMessages(body: unknown): Anthropic.Beta.BetaMessageParam[] | null {
-  if (!body || typeof body !== "object" || !Array.isArray((body as { messages?: unknown }).messages)) return null;
-  const raw = (body as { messages: unknown[] }).messages.slice(-MAX_MESSAGES);
-  const messages: Anthropic.Beta.BetaMessageParam[] = [];
-  for (const m of raw) {
-    if (!m || typeof m !== "object") return null;
-    const { role, content } = m as { role?: unknown; content?: unknown };
-    if ((role !== "user" && role !== "assistant") || typeof content !== "string") return null;
-    const text = content.trim().slice(0, MAX_CHARS);
-    if (text) messages.push({ role, content: text });
-  }
-  while (messages.length && messages[0].role !== "user") messages.shift();
-  if (!messages.length || messages[messages.length - 1].role !== "user") return null;
-  return messages;
-}
-
-function json(status: number, error: string) {
-  return Response.json({ error }, { status });
-}
-
 export async function POST(req: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) return json(503, "not_configured");
-
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
-  if (rateLimited(ip)) return json(429, "rate_limited");
+  if (!process.env.ANTHROPIC_API_KEY) return jsonError(503, "not_configured");
+  if (rateLimited(req)) return jsonError(429, "rate_limited");
 
   const messages = parseMessages(await req.json().catch(() => null));
-  if (!messages) return json(400, "bad_request");
-
-  client ??= new Anthropic();
-  const stream = client.beta.messages.stream({
-    model: MODEL,
-    max_tokens: 2048,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
-    output_config: { effort: "low" },
-    system: SYSTEM,
-    messages,
-  });
-
-  const encoder = new TextEncoder();
-  const body = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      let sent = false;
-      try {
-        for await (const event of stream) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-            controller.enqueue(encoder.encode(event.delta.text));
-            sent = true;
-          }
-        }
-        const final = await stream.finalMessage();
-        if (final.stop_reason === "refusal" && !sent) {
-          controller.enqueue(encoder.encode("그 질문에는 답하기 어려워요. 여행이나 숙소 이야기라면 언제든 도와드릴게요!"));
-        }
-      } catch (error) {
-        if (error instanceof Anthropic.RateLimitError) {
-          controller.enqueue(encoder.encode("\n\n지금 질문이 많아서 잠시 후에 다시 물어봐 주세요."));
-        } else if (error instanceof Anthropic.APIError) {
-          console.error(`chat api error ${error.status}:`, error.message);
-          controller.enqueue(encoder.encode("\n\n앗, 잠깐 문제가 생겼어요. 조금 뒤에 다시 시도해 주세요."));
-        } else {
-          console.error("chat error:", error);
-          controller.enqueue(encoder.encode("\n\n앗, 잠깐 문제가 생겼어요. 조금 뒤에 다시 시도해 주세요."));
-        }
-      } finally {
-        controller.close();
-      }
-    },
-    cancel() {
-      stream.abort();
-    },
-  });
-
-  return new Response(body, {
-    headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
-  });
+  if (!messages) return jsonError(400, "bad_request");
+  return streamReply(SYSTEM, messages);
 }

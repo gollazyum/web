@@ -3313,6 +3313,203 @@ a {
   color: #c2410c;
 }
 
+/* 로보티 숙소 도우미: 넓은 화면에서는 오른쪽에 붙어 따라오고, 좁으면 떠 있는 버튼으로 연다 */
+.advisor {
+  display: none;
+  flex-direction: column;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 44px -30px rgba(29, 78, 216, 0.5);
+}
+.advisor-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #f4f8ff, #ffffff);
+}
+.advisor-head strong {
+  display: block;
+  font-size: 15px;
+  color: var(--ink);
+}
+.advisor-head span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.advisor-bot {
+  width: 52px;
+  flex: none;
+}
+.advisor-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.advisor .bubble {
+  max-width: 92%;
+  font-size: 14px;
+}
+.advisor-pick {
+  display: inline;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue);
+  background: var(--white);
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  padding: 1px 10px;
+  margin: 1px 2px;
+  cursor: pointer;
+}
+.advisor-pick::after {
+  content: " →";
+}
+.advisor-pick:hover {
+  background: #eef4ff;
+  border-color: var(--blue);
+}
+.advisor-prefs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.advisor-prefs button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.advisor-prefs button.on {
+  color: var(--white);
+  background: var(--blue);
+  border-color: var(--blue);
+}
+.advisor-prefs .advisor-go {
+  flex-basis: 100%;
+  margin-top: 4px;
+  padding: 10px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--grad);
+  color: var(--white);
+  font-weight: 800;
+}
+.advisor-prefs .advisor-go:disabled {
+  background: var(--soft);
+  color: var(--muted);
+  cursor: default;
+}
+.advisor .chat-input input {
+  font-size: 14px;
+}
+.advisor-fab {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px 8px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--white);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 14px 30px -10px rgba(11, 18, 32, 0.55);
+}
+.advisor-fab img {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--white);
+}
+.hcard.flash {
+  animation: card-flash 1.1s ease 2;
+}
+@keyframes card-flash {
+  50% {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.25);
+  }
+}
+/* 넓은 화면: 필터 | 결과 | 도우미 세 칸 */
+@media (min-width: 1240px) {
+  body:has(.with-advisor) .results-page,
+  body:has(.with-advisor) .results-top .wrap,
+  body:has(.with-advisor) .results-nav,
+  body:has(.with-advisor) .results-foot {
+    max-width: 1400px;
+  }
+  .results-grid.with-advisor {
+    grid-template-columns: 250px minmax(0, 1fr) 320px;
+  }
+  .with-advisor .advisor {
+    display: flex;
+    position: sticky;
+    top: 84px;
+    height: calc(100vh - 100px);
+  }
+  .with-advisor .advisor-close,
+  .with-advisor ~ .advisor-fab,
+  .with-advisor .advisor-fab {
+    display: none;
+  }
+  .with-advisor .hcard {
+    grid-template-columns: 210px minmax(0, 1fr) auto;
+  }
+}
+@media (max-width: 1239px) {
+  .advisor.open {
+    display: flex;
+    position: fixed;
+    z-index: 50;
+    right: 18px;
+    bottom: 18px;
+    width: min(380px, calc(100vw - 36px));
+    height: min(620px, calc(100vh - 100px));
+    box-shadow: 0 30px 60px -10px rgba(11, 18, 32, 0.35);
+  }
+  .advisor-close {
+    display: block;
+    border: 0;
+    background: none;
+    font-size: 18px;
+    color: var(--muted);
+    cursor: pointer;
+    margin-left: auto;
+    padding: 4px 4px 4px 14px;
+  }
+}
+@media (max-width: 640px) {
+  .advisor.open {
+    inset: auto 0 0 0;
+    width: auto;
+    height: 82vh;
+    border-radius: 22px 22px 0 0;
+  }
+}
+
 @media (max-width: 900px) {
   .results-grid {
     grid-template-columns: 1fr;

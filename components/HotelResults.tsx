@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { HotelAdvisor } from "./HotelAdvisor";
 import { HotelSearch } from "./HotelSearch";
 import { MochiDot, MochiStar, MochiStars, RatingMochi, ratingTier } from "./MochiMarks";
 import { PriceRange } from "./PriceRange";
@@ -108,6 +109,8 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
   const [amenities, setAmenities] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<Sort>("recommended");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
+  const [flash, setFlash] = useState("");
 
   // 이 검색 결과에 자주 나오는 편의시설만 필터로 보여 준다
   const amenityList = useMemo(() => {
@@ -134,6 +137,15 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     if (sort === "reviews") list.sort((a, b) => (b.reviews ?? 0) - (a.reviews ?? 0));
     return list;
   }, [data, range[0], range[1], minRating, stars, amenities, sort]);
+
+  // 도우미가 추천한 호텔 카드로 이동해 잠깐 반짝인다. 필터에 가려져 있으면 필터를 푼다
+  function focusHotel(token: string) {
+    if (!shown.some((h) => h.token === token)) reset();
+    setAdvisorOpen(false);
+    setFlash(token);
+    setTimeout(() => document.getElementById(`hotel-${token}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
+    setTimeout(() => setFlash((f) => (f === token ? "" : f)), 2200);
+  }
 
   async function loadMore() {
     if (!data.next || more === "loading") return;
@@ -179,7 +191,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
   };
 
   return (
-    <div className="results-grid">
+    <div className="results-grid with-advisor">
       <aside className={`filters${filtersOpen ? " open" : ""}`} aria-label="필터">
         <div className="filters-head">
           <strong>필터</strong>
@@ -264,7 +276,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
         {shown.length ? (
           <ul className="hcards">
             {shown.map((h) => (
-              <HotelCard key={h.token} hotel={h} query={query} nights={nights} />
+              <HotelCard key={h.token} hotel={h} query={query} nights={nights} flash={flash === h.token} />
             ))}
           </ul>
         ) : (
@@ -287,6 +299,15 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           아고다 링크는 제휴 링크라 예약 시 로보티가 수수료를 받을 수 있어요.
         </p>
       </section>
+
+      <HotelAdvisor hotels={data.options} query={query} open={advisorOpen} onClose={() => setAdvisorOpen(false)} onPick={focusHotel} />
+      {!advisorOpen && (
+        <button type="button" className="advisor-fab" onClick={() => setAdvisorOpen(true)}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/lowboti-mark.svg" alt="" />
+          AI 추천
+        </button>
+      )}
     </div>
   );
 }
@@ -352,7 +373,7 @@ function Gallery({ images }: { images: string[] }) {
   );
 }
 
-function HotelCard({ hotel, query, nights }: { hotel: HotelOption; query: HotelQuery; nights: number }) {
+function HotelCard({ hotel, query, nights, flash }: { hotel: HotelOption; query: HotelQuery; nights: number; flash: boolean }) {
   const [open, setOpen] = useState(false);
   const [prices, setPrices] = useState<{ kind: "loading" } | { kind: "ok"; sources: HotelSource[] } | { kind: "error"; message: string } | null>(null);
 
@@ -374,7 +395,7 @@ function HotelCard({ hotel, query, nights }: { hotel: HotelOption; query: HotelQ
   const sources = prices?.kind === "ok" ? prices.sources : hotel.sources;
   const tier = hotel.rating ? ratingTier(hotel.rating) : null;
   return (
-    <li className={`hcard${open ? " open" : ""}`}>
+    <li id={`hotel-${hotel.token}`} className={`hcard${open ? " open" : ""}${flash ? " flash" : ""}`}>
       <Gallery images={hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : []} />
       <div className="hcard-body">
         <h3 title={hotel.name}>{hotel.name}</h3>
