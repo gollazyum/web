@@ -60,6 +60,7 @@ function cleanSources(list: SerpPrice[]): HotelSource[] {
 
 function toOption(p: SerpProperty): HotelOption | null {
   if (!p.name || !p.property_token) return null;
+  const sources = cleanSources(p.prices ?? []);
   return {
     token: p.property_token,
     name: p.name,
@@ -67,14 +68,20 @@ function toOption(p: SerpProperty): HotelOption | null {
     stars: p.extracted_hotel_class ?? null,
     rating: p.overall_rating ?? null,
     reviews: p.reviews ?? null,
-    perNight: p.rate_per_night?.extracted_lowest ?? null,
+    // 한 곳짜리 응답은 맨 위 요금이 빠질 때가 있어 사이트별 최저가로 채운다
+    perNight: p.rate_per_night?.extracted_lowest ?? sources[0]?.perNight ?? null,
     total: p.total_rate?.extracted_lowest ?? null,
-    sources: cleanSources(p.prices ?? []).slice(0, 3),
+    sources: sources.slice(0, 3),
   };
 }
 
+// 호텔 이름으로 찾으면 Google이 목록 대신 그 호텔 한 곳의 정보를 바로 돌려준다
+// (properties 없이 name·property_token·prices가 맨 위에 온다). 이때는 한 곳짜리 목록으로 만든다
 function shapeList(raw: Record<string, unknown>): HotelResults {
-  const props = (raw.properties as SerpProperty[] | undefined) ?? [];
+  const single = raw.properties === undefined && typeof raw.property_token === "string" && typeof raw.name === "string";
+  const props = single
+    ? [{ ...(raw as SerpProperty), prices: [...((raw.featured_prices as SerpPrice[] | undefined) ?? []), ...((raw.prices as SerpPrice[] | undefined) ?? [])] }]
+    : ((raw.properties as SerpProperty[] | undefined) ?? []);
   return { options: props.map(toOption).filter((o): o is HotelOption => !!o && o.perNight !== null).slice(0, MAX_OPTIONS) };
 }
 
