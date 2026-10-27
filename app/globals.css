@@ -3492,12 +3492,12 @@ a {
   .results-grid.with-advisor {
     grid-template-columns: 250px minmax(0, 1fr) 320px;
   }
-  /* 내용만큼만 길어지고, 대화가 길어지면 안에서 스크롤 */
+  /* 옆 호텔 카드 세 장 높이에 맞추고, 스크롤해도 따라온다. 대화가 길어지면 안에서 스크롤 */
   .with-advisor .advisor {
     display: flex;
     position: sticky;
     top: 84px;
-    max-height: min(640px, calc(100vh - 100px));
+    height: min(658px, calc(100vh - 100px));
   }
   .with-advisor .advisor-close,
   .with-advisor ~ .advisor-fab,

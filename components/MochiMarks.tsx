@@ -48,10 +48,11 @@ export function MochiStars({ count, size = 15 }: { count: number; size?: number 
 
 // 후기 점수 등급과 모찌 색 (Google 5점 만점)
 export function ratingTier(r: number): { word: string; color: string } {
-  if (r >= 4.5) return { word: "매우 좋음", color: "#10B981" };
-  if (r >= 4) return { word: "좋음", color: "#1D4ED8" };
-  if (r >= 3.5) return { word: "보통", color: "#0EA5E9" };
-  return { word: "", color: "#F97316" };
+  // 색은 두 가지만 써서 눈이 흩어지지 않게: 4점 이상 에메랄드, 그 아래 코랄
+  if (r >= 4.5) return { word: "최고예요", color: "#10B981" };
+  if (r >= 4) return { word: "매우 좋아요", color: "#10B981" };
+  if (r >= 3.5) return { word: "좋아요", color: "#F97316" };
+  return { word: "괜찮아요", color: "#F97316" };
 }
 
 // 점수를 품은 색 모찌
