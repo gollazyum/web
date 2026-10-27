@@ -6,7 +6,7 @@ import { PlaceInput } from "./PlaceInput";
 import { ScanProgress } from "./ScanProgress";
 import { errorCode } from "@/lib/apiError";
 import { routes } from "@/lib/agoda";
-import { addDays, daysBetween } from "@/lib/dates";
+import { addDays, daysBetween, shortLabel } from "@/lib/dates";
 import { agodaSearchUrl, isAgoda, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults, type HotelSource } from "@/lib/hotels";
 
 // 도시·호텔 이름과 날짜로 찾으면 호텔마다 예약 사이트별 실시간 가격을 보여 준다.
@@ -123,7 +123,7 @@ function HotelList({ data, query }: { data: HotelResults; query: HotelQuery }) {
       <div className="flight-summary">
         <strong>호텔 {data.options.length}곳</strong>
         <span className="flight-typical">
-          {query.checkIn} 체크인 · {n}박 · 성인 {query.adults}명 · 1박 요금 기준
+          {shortLabel(query.checkIn)} 체크인 · {n}박 · 성인 {query.adults}명 · 1박 요금 기준
         </span>
       </div>
       <ul className="hotel-list">
@@ -163,7 +163,7 @@ function HotelRow({ hotel, query }: { hotel: HotelOption; query: HotelQuery }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         {hotel.image ? <img src={hotel.image} alt="" className="hotel-img" loading="lazy" /> : <span className="hotel-img" />}
         <div className="flight-main">
-          <strong>{hotel.name}</strong>
+          <strong title={hotel.name}>{hotel.name}</strong>
           <span>
             {hotel.stars ? `${hotel.stars}성급` : "숙소"}
             {hotel.rating ? ` · ★ ${hotel.rating.toFixed(1)}` : ""}
