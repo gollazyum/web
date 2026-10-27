@@ -68,7 +68,7 @@ export default function Home() {
             <strong className="wordmark">agoda</strong>
             <em>{routes.length}개 접속 경로</em>
             <i aria-hidden="true" />
-            <strong className="wordmark">Aviasales</strong>
+            <strong className="wordmark">Trip.com</strong>
             <em>항공권 검색</em>
           </div>
         </div>

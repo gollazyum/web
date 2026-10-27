@@ -1,6 +1,4 @@
-// 항공권 검색 결과 모양과 Aviasales 제휴 링크. 서버(app/api/flights)와 화면(FlightSearch)이 같이 쓴다.
-
-export const MARKER = "795762";
+// 항공권 검색 결과 모양과 Trip.com 예약 링크. 서버(app/api/flights)와 화면(FlightSearch)이 같이 쓴다.
 
 export type FlightQuery = {
   from: string; // 공항 코드. 도시는 "ICN,GMP"처럼 공항을 쉼표로 이어서 보낸다
@@ -29,14 +27,19 @@ export type FlightResults = {
   typical: [number, number] | null;
 };
 
-// 2026-11-03 → 0311 (Aviasales 주소의 일월 형식)
-function ddmm(date: string): string {
-  const [, m, d] = date.split("-");
-  return d + m;
-}
-
-// 도시 단위 코드(SEL)를 그대로 받는 Aviasales 검색 결과 주소. 예: SEL0311TYO07111
-export function aviasalesUrl(from: string, to: string, depart: string, ret: string, adults: number): string {
-  const path = `${from}${ddmm(depart)}${to}${ret ? ddmm(ret) : ""}${adults}`;
-  return `https://www.aviasales.com/search/${path}?marker=${MARKER}&locale=ko&currency=krw`;
+// 도시 단위 코드(SEL)를 그대로 받는 Trip.com 한국 사이트 검색 결과 주소.
+// 제휴 승인(월 트래픽 3개월) 전이라 제휴 번호 없이 연결한다
+export function tripUrl(from: string, to: string, depart: string, ret: string, adults: number): string {
+  const q = new URLSearchParams({
+    dcity: from.toLowerCase(),
+    acity: to.toLowerCase(),
+    ddate: depart,
+    triptype: ret ? "rt" : "ow",
+    class: "y",
+    quantity: String(adults),
+    locale: "ko-KR",
+    curr: "KRW",
+  });
+  if (ret) q.set("rdate", ret);
+  return `https://kr.trip.com/flights/showfarefirst?${q}`;
 }
