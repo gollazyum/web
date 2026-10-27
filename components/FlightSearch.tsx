@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AirportInput } from "./AirportInput";
+import { DateRangePicker } from "./DateRangePicker";
 import { ScanProgress } from "./ScanProgress";
 import { codeFromText, loadAirports } from "@/lib/airports";
 import { errorCode } from "@/lib/apiError";
@@ -15,10 +16,6 @@ type Result =
   | { kind: "loading" }
   | { kind: "ok"; data: FlightResults; link: string }
   | { kind: "fallback"; message: string; link: string };
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 // 도시 코드(SEL)는 그 도시 공항들(ICN,GMP)로 바꿔서 서버에 보낸다
 async function airportsFor(code: string): Promise<string> {
@@ -102,20 +99,20 @@ export function FlightSearch() {
           text={destination.text}
           onChange={(text, code) => setDestination({ text, code })}
         />
-        <label className="field">
-          <span>가는 날</span>
-          <span className="date-wrap">
-            <input type="date" className={depart ? undefined : "empty"} min={today()} value={depart} onChange={(e) => setDepart(e.target.value)} required />
-            {!depart && <em className="date-empty">날짜 선택</em>}
-          </span>
-        </label>
-        <label className="field">
-          <span>오는 날 · 편도는 비우기</span>
-          <span className="date-wrap">
-            <input type="date" className={ret ? undefined : "empty"} min={depart || today()} value={ret} onChange={(e) => setRet(e.target.value)} />
-            {!ret && <em className="date-empty">날짜 선택</em>}
-          </span>
-        </label>
+        <DateRangePicker
+          start={depart}
+          end={ret}
+          onChange={(a, b) => {
+            setDepart(a);
+            setRet(b);
+          }}
+          labels={["가는 날", "오는 날"]}
+          prompts={["가는 날을 골라 주세요", "오는 날을 골라 주세요"]}
+          endPlaceholder="편도는 비우기"
+          minGap={0}
+          unit={(n) => (n === 0 ? "당일 왕복" : `${n}박 ${n + 1}일`)}
+          quick={{ label: "편도", end: () => "" }}
+        />
         <label className="field field-small">
           <span>성인</span>
           <select value={adults} onChange={(e) => setAdults(Number(e.target.value))}>
