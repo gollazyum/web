@@ -9,24 +9,33 @@ export const maxDuration = 30;
 
 const MAX_OPTIONS = 20;
 const MAX_SOURCES = 12;
+const MAX_IMAGES = 5;
+const MAX_AMENITIES = 20;
 
 function parseQuery(body: unknown) {
   if (!body || typeof body !== "object") return null;
-  const { q, checkIn, checkOut, adults, token } = body as Record<string, unknown>;
+  const { q, checkIn, checkOut, adults, token, page } = body as Record<string, unknown>;
   if (typeof q !== "string" || !q.trim() || q.length > 100) return null;
   if (typeof checkIn !== "string" || !DATE.test(checkIn) || checkIn < today()) return null;
   if (typeof checkOut !== "string" || !DATE.test(checkOut) || checkOut <= checkIn) return null;
   if (typeof adults !== "number" || !Number.isInteger(adults) || adults < 1 || adults > 9) return null;
   if (token !== undefined && (typeof token !== "string" || !token || token.length > 500)) return null;
-  return { q: q.trim(), checkIn, checkOut, adults, token: token as string | undefined };
+  if (page !== undefined && (typeof page !== "string" || !page || page.length > 500)) return null;
+  return { q: q.trim(), checkIn, checkOut, adults, token: token as string | undefined, page: page as string | undefined };
 }
 
 type Rate = { extracted_lowest?: number };
 type SerpPrice = { source?: string; logo?: string; link?: string; official?: boolean; rate_per_night?: Rate; total_rate?: Rate };
 type SerpProperty = {
   name?: string;
+  type?: string;
   property_token?: string;
   images?: { thumbnail?: string }[];
+  amenities?: string[];
+  deal?: string;
+  deal_description?: string;
+  hotel_class?: string;
+  gps_coordinates?: { latitude?: number; longitude?: number };
   extracted_hotel_class?: number;
   overall_rating?: number;
   reviews?: number;
@@ -61,10 +70,17 @@ function cleanSources(list: SerpPrice[]): HotelSource[] {
 function toOption(p: SerpProperty): HotelOption | null {
   if (!p.name || !p.property_token) return null;
   const sources = cleanSources(p.prices ?? []);
+  const images = (p.images ?? []).map((i) => i.thumbnail ?? "").filter(Boolean).slice(0, MAX_IMAGES);
+  const gps = p.gps_coordinates;
   return {
     token: p.property_token,
     name: p.name,
-    image: p.images?.[0]?.thumbnail ?? "",
+    image: images[0] ?? "",
+    images,
+    kind: p.type === "vacation rental" ? "휴가용 숙소" : p.type && p.type !== "hotel" ? p.type : "호텔",
+    amenities: (p.amenities ?? []).slice(0, MAX_AMENITIES),
+    deal: [p.deal, p.deal_description].filter(Boolean).join(" · "),
+    gps: typeof gps?.latitude === "number" && typeof gps?.longitude === "number" ? [gps.latitude, gps.longitude] : null,
     stars: p.extracted_hotel_class ?? null,
     rating: p.overall_rating ?? null,
     reviews: p.reviews ?? null,
@@ -82,7 +98,8 @@ function shapeList(raw: Record<string, unknown>): HotelResults {
   const props = single
     ? [{ ...(raw as SerpProperty), prices: [...((raw.featured_prices as SerpPrice[] | undefined) ?? []), ...((raw.prices as SerpPrice[] | undefined) ?? [])] }]
     : ((raw.properties as SerpProperty[] | undefined) ?? []);
-  return { options: props.map(toOption).filter((o): o is HotelOption => !!o && o.perNight !== null).slice(0, MAX_OPTIONS) };
+  const next = (raw.serpapi_pagination as { next_page_token?: string } | undefined)?.next_page_token ?? null;
+  return { options: props.map(toOption).filter((o): o is HotelOption => !!o && o.perNight !== null).slice(0, MAX_OPTIONS), next };
 }
 
 function shapePrices(raw: Record<string, unknown>): HotelPrices {
@@ -106,5 +123,7 @@ export async function POST(req: Request) {
     gl: "kr",
   };
   if (q.token) params.property_token = q.token;
+  // "호텔 더 보기": Google은 한 번에 20곳 안팎만 주므로 다음 쪽을 따로 부른다 (검색 1번 요금)
+  if (q.page) params.next_page_token = q.page;
   return q.token ? serpSearch(req, params, shapePrices) : serpSearch(req, params, shapeList);
 }
