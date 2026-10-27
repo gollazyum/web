@@ -54,11 +54,12 @@ export async function serpSearch<T>(
     const error = typeof json.error === "string" ? json.error : "";
     if (!res.ok && !error.includes("hasn't returned any results")) {
       console.error("serpapi", params.engine, res.status, error);
-      return Response.json({ error: "upstream" }, { status: 502 });
+      return Response.json({ error: "upstream", detail: `${res.status} ${error}`.slice(0, 120) }, { status: 502 });
     }
   } catch (e) {
     console.error("serpapi", params.engine, e);
-    return Response.json({ error: "upstream" }, { status: 502 });
+    const detail = e instanceof Error ? e.name : "fetch failed";
+    return Response.json({ error: "upstream", detail }, { status: 502 });
   }
 
   const data = shape(json);

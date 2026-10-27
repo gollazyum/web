@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AirportInput } from "./AirportInput";
 import { ScanProgress } from "./ScanProgress";
 import { codeFromText, loadAirports } from "@/lib/airports";
+import { errorCode } from "@/lib/apiError";
 import { aviasalesUrl, type FlightResults } from "@/lib/flights";
 
 // 로보티 디자인 항공권 검색창. 사이트 안에서 실시간 가격을 보여 주고,
@@ -79,7 +80,7 @@ export function FlightSearch() {
           ? "검색이 너무 잦아서 잠깐 쉬고 있어요. 아래에서 바로 확인해 보세요."
           : res.status === 503
             ? "실시간 가격 기능을 준비하고 있어요. 아래에서 바로 확인해 보세요."
-            : "지금은 사이트 안에서 가격을 불러오지 못했어요. 아래에서 바로 확인해 보세요.";
+            : `지금은 사이트 안에서 가격을 불러오지 못했어요. 아래에서 바로 확인해 보세요. (오류 ${await errorCode(res)})`;
       setResult({ kind: "fallback", message, link });
     } catch {
       setResult({ kind: "fallback", message: "연결이 불안정해요. 아래에서 바로 확인해 보세요.", link });

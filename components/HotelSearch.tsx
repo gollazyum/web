@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ScanProgress } from "./ScanProgress";
+import { errorCode } from "@/lib/apiError";
 import { agodaSearchUrl, isAgoda, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults, type HotelSource } from "@/lib/hotels";
 
 // 도시·호텔 이름과 날짜로 찾으면 호텔마다 예약 사이트별 실시간 가격을 보여 준다.
@@ -26,10 +27,10 @@ function nights(a: string, b: string): number {
 
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
-function failMessage(status: number): string {
-  if (status === 429) return "검색이 너무 잦아서 잠깐 쉬고 있어요. 잠시 뒤에 다시 찾아 주세요.";
-  if (status === 503) return "실시간 호텔 가격 기능을 준비하고 있어요. 아고다 링크 37개 경로로 먼저 비교해 보세요.";
-  return "지금은 호텔 가격을 불러오지 못했어요. 잠시 뒤에 다시 찾아 주세요.";
+async function failMessage(res: Response): Promise<string> {
+  if (res.status === 429) return "검색이 너무 잦아서 잠깐 쉬고 있어요. 잠시 뒤에 다시 찾아 주세요.";
+  if (res.status === 503) return "실시간 호텔 가격 기능을 준비하고 있어요. 아고다 링크 37개 경로로 먼저 비교해 보세요.";
+  return `지금은 호텔 가격을 불러오지 못했어요. 잠시 뒤에 다시 찾아 주세요. (오류 ${await errorCode(res)})`;
 }
 
 async function postHotels(body: HotelQuery & { token?: string }): Promise<Response> {
@@ -61,7 +62,7 @@ export function HotelSearch() {
     try {
       const res = await postHotels(query);
       if (res.ok) return setResult({ kind: "ok", data: (await res.json()) as HotelResults, query });
-      setResult({ kind: "fallback", message: failMessage(res.status) });
+      setResult({ kind: "fallback", message: await failMessage(res) });
     } catch {
       setResult({ kind: "fallback", message: "연결이 불안정해요. 잠시 뒤에 다시 찾아 주세요." });
     }
@@ -161,7 +162,7 @@ function HotelRow({ hotel, query }: { hotel: HotelOption; query: HotelQuery }) {
     setPrices({ kind: "loading" });
     try {
       const res = await postHotels({ ...query, token: hotel.token });
-      if (!res.ok) return setPrices({ kind: "error", message: failMessage(res.status) });
+      if (!res.ok) return setPrices({ kind: "error", message: await failMessage(res) });
       const data = (await res.json()) as HotelPrices;
       setPrices({ kind: "ok", sources: data.sources });
     } catch {

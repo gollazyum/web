@@ -4,6 +4,8 @@ import { DATE, serpSearch, today } from "@/lib/serpapi";
 // 실시간 호텔 가격. SerpApi의 Google Hotels 결과를 받아 화면용으로 줄인다.
 // token 없이 부르면 호텔 목록, token을 주면 그 호텔의 예약 사이트별 가격.
 export const runtime = "nodejs";
+// SerpApi 응답이 10초를 넘길 때가 있어 함수 시간을 넉넉히 준다
+export const maxDuration = 30;
 
 const MAX_OPTIONS = 20;
 const MAX_SOURCES = 12;
