@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { HotelAdvisor } from "./HotelAdvisor";
 import { HotelSearch } from "./HotelSearch";
-import { MochiDot, MochiStar, MochiStars, RatingMochi, ratingTier } from "./MochiMarks";
+import { MochiStar, MochiStars, RatingMochi, ratingTier } from "./MochiMarks";
 import { PriceRange } from "./PriceRange";
 import { ResultsMessage, ResultsShell } from "./ResultsShell";
 import { ScanProgress } from "./ScanProgress";
@@ -214,17 +214,12 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
 
         <section>
           <h4>후기 점수</h4>
-          <div className="rating-chips">
-            {[4.5, 4, 3.5, 3].map((r) => {
-              const t = ratingTier(r);
-              return (
-                <button key={r} type="button" className={`chip${minRating === r ? " on" : ""}`} onClick={() => setMinRating(minRating === r ? 0 : r)}>
-                  <MochiDot color={t.color} />
-                  <span>{r.toFixed(1)} 이상</span>
-                  {t.word && <em style={{ color: t.color }}>{t.word}</em>}
-                </button>
-              );
-            })}
+          <div className="chip-row">
+            {[4.5, 4, 3.5, 3].map((r) => (
+              <button key={r} type="button" className={`chip${minRating === r ? " on" : ""}`} onClick={() => setMinRating(minRating === r ? 0 : r)}>
+                {r.toFixed(1)} 이상
+              </button>
+            ))}
           </div>
         </section>
 

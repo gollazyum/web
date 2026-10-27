@@ -3013,22 +3013,6 @@ a {
   vertical-align: -3px;
   margin-right: 2px;
 }
-.rating-chips {
-  display: grid;
-  gap: 6px;
-}
-.rating-chips .chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-align: left;
-}
-.rating-chips .chip em {
-  margin-left: auto;
-  font-style: normal;
-  font-size: 12px;
-  font-weight: 700;
-}
 .star-chip {
   display: inline-flex;
   align-items: center;

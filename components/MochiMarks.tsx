@@ -67,13 +67,3 @@ export function RatingMochi({ rating, size = 40 }: { rating: number; size?: numb
     </span>
   );
 }
-
-// 필터 칩에 붙이는 작은 색 모찌 (얼굴 포함)
-export function MochiDot({ color, size = 16 }: { color: string; size?: number }) {
-  return (
-    <svg viewBox="8 14 86 80" width={size} height={size} aria-hidden="true">
-      <path d={MOCHI} fill={color} />
-      <Eyes color="#FFFFFF" y={56} />
-    </svg>
-  );
-}
