@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChatBox } from "@/components/ChatBox";
 import { FlightSearch } from "@/components/FlightSearch";
+import { HotelSearch } from "@/components/HotelSearch";
 import { LowbotiBot } from "@/components/LowbotiBot";
 import { SCAN_FIRST_MS, SCAN_REPEAT_MS, ScanProgress } from "@/components/ScanProgress";
 import { AFFILIATE_CID, HOTEL_PROMOCODES, groupOrder, hotelNameFromUrl, parseAgodaUrl, routes, sampleLinks, withCid } from "@/lib/agoda";
@@ -20,8 +21,8 @@ export type TabId = "stay" | "ask" | "flight" | "shop";
 export const TAB_EVENT = "lowboti:tab";
 
 const hints: Record<TabId, string> = {
-  stay: "🔗 아고다 호텔 페이지 주소(URL)를 붙여넣어 주세요. 호텔 이름 검색은 아직 준비 중이에요.",
-  flight: "✈️ 출발지·도착지·날짜만 고르면 돼요. 검색 결과는 새 탭에서 열려요.",
+  stay: "🏨 도시나 호텔 이름으로 예약 사이트별 가격을 비교하거나, 아고다 호텔 링크를 37개 경로로 바꿔 보세요.",
+  flight: "✈️ 출발지·도착지·날짜만 고르면 실시간 항공권 가격을 싼 순서로 보여 드려요.",
   shop: "🛍️ 여행 준비물과 유심 최저가 비교를 준비하고 있어요.",
   ask: "💬 여행 일정, 예산, 숙소 고르는 법을 편하게 물어보세요.",
 };
@@ -35,6 +36,7 @@ const tabs: { id: TabId; label: string; short: string; img: string; live: boolea
 
 export function LinkChecker() {
   const [tab, setTab] = useState<TabId>("stay");
+  const [stayMode, setStayMode] = useState<"search" | "link">("search");
   const [url, setUrl] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   // 버튼 글자는 첫 HTML에 바로 넣고, 날짜가 들어간 주소는 누를 때 만든다
@@ -100,12 +102,25 @@ export function LinkChecker() {
         {hints[tab]}
       </p>
 
+      {tab === "stay" && (
+        <div className="stay-modes" role="group" aria-label="숙소 찾는 방법">
+          <button type="button" className={stayMode === "search" ? "active" : undefined} onClick={() => setStayMode("search")}>
+            도시·호텔로 가격 비교
+          </button>
+          <button type="button" className={stayMode === "link" ? "active" : undefined} onClick={() => setStayMode("link")}>
+            아고다 링크 37개 경로
+          </button>
+        </div>
+      )}
+
       <div className="search-glow">
         <div key={tab} className="tab-panel">
         {tab === "ask" ? (
           <ChatBox />
         ) : tab === "flight" ? (
           <FlightSearch />
+        ) : tab === "stay" && stayMode === "search" ? (
+          <HotelSearch />
         ) : current.live ? (
           <form onSubmit={onSubmit} className="search-card stay-card">
             <label className="field field-url">
@@ -141,7 +156,7 @@ export function LinkChecker() {
         </div>
       </div>
 
-      {tab === "stay" && !result && (
+      {tab === "stay" && stayMode === "link" && !result && (
         <div className="quick-try">
           <span>링크가 없으신가요?</span>
           {samples.map((s, i) => (
@@ -152,7 +167,7 @@ export function LinkChecker() {
         </div>
       )}
 
-      {tab === "stay" && result && (
+      {tab === "stay" && stayMode === "link" && result && (
         <div className={`search-result${result.kind === "ok" || result.kind === "loading" ? " ok" : ""}`} role="status">
           {result.kind === "loading" && (
             <ScanProgress

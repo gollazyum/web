@@ -2094,3 +2094,215 @@ a {
     transition: none !important;
   }
 }
+
+/* 항공권 실시간 가격 목록. UI 개편 전까지 쓰는 단순한 모양 */
+.flight-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.flight-summary strong {
+  font-size: 18px;
+  color: var(--ink);
+}
+.flight-level {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--muted);
+}
+.flight-level.low {
+  background: #d1fae5;
+  color: var(--green-dark);
+}
+.flight-level.high {
+  background: #ffedd5;
+  color: #c2410c;
+}
+.flight-typical {
+  font-size: 13px;
+  color: var(--muted);
+}
+.flight-list {
+  list-style: none;
+}
+.flight-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.flight-logo {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  object-fit: contain;
+}
+.flight-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: var(--muted);
+}
+.flight-main strong {
+  font-size: 16px;
+  color: var(--ink);
+}
+.flight-airline {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flight-buy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: none;
+}
+.flight-buy strong {
+  font-size: 16px;
+  color: var(--ink);
+}
+.flight-buy a,
+.flight-more {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--white);
+  background: var(--blue);
+  border-radius: 999px;
+  padding: 5px 14px;
+  text-decoration: none;
+}
+.flight-more {
+  margin-top: 12px;
+  font-size: 14px;
+  padding: 8px 18px;
+}
+.flight-note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.flight-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* 숙소 탭: 찾는 방법 고르기와 호텔 실시간 가격 목록 */
+.hotel-card {
+  grid-template-columns: 2fr 1fr 1fr 0.7fr auto;
+}
+.stay-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.stay-modes button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--muted);
+  cursor: pointer;
+}
+.stay-modes button.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--white);
+}
+.flight-buy button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue);
+  background: var(--white);
+  border: 1px solid var(--blue);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.hotel-list {
+  list-style: none;
+}
+.hotel-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.hotel-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hotel-img {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--soft);
+}
+.hotel-sources {
+  list-style: none;
+  margin: 10px 0 0 76px;
+  display: grid;
+  gap: 4px;
+}
+.hotel-sources li {
+  display: grid;
+  grid-template-columns: 18px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--soft);
+}
+.hotel-sources img,
+.hotel-sources i {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+.hotel-sources em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+}
+.hotel-sources em.hotel-pick {
+  color: var(--green-dark);
+  font-weight: 700;
+}
+.hotel-sources b {
+  color: var(--ink);
+}
+.hotel-sources a {
+  color: var(--blue);
+  font-weight: 700;
+  text-decoration: none;
+}
+@media (max-width: 900px) {
+  .hotel-card {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .hotel-sources {
+    margin-left: 0;
+  }
+}

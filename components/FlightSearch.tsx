@@ -2,20 +2,49 @@
 
 import { useState } from "react";
 import { AirportInput } from "./AirportInput";
-import { codeFromText } from "@/lib/airports";
+import { ScanProgress } from "./ScanProgress";
+import { codeFromText, loadAirports } from "@/lib/airports";
+import { errorCode } from "@/lib/apiError";
+import { aviasalesUrl, type FlightResults } from "@/lib/flights";
 
-// 로보티 디자인 항공권 검색창. 검색하면 제휴 번호(marker)가 붙은 Aviasales 결과를 새 탭으로 연다
-const MARKER = "795762";
+// 로보티 디자인 항공권 검색창. 사이트 안에서 실시간 가격을 보여 주고,
+// 예약은 제휴 번호(marker)가 붙은 Aviasales 결과로 넘긴다
+const SCAN_MS = 5000;
 
-// 2026-11-03 → 0311 (Aviasales 주소의 일월 형식)
-function ddmm(date: string): string {
-  const [, m, d] = date.split("-");
-  return d + m;
-}
+type Result =
+  | { kind: "loading" }
+  | { kind: "ok"; data: FlightResults; link: string }
+  | { kind: "fallback"; message: string; link: string };
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
+
+// 도시 코드(SEL)는 그 도시 공항들(ICN,GMP)로 바꿔서 서버에 보낸다
+async function airportsFor(code: string): Promise<string> {
+  try {
+    const d = await loadAirports();
+    const metro = d.metros.find((m) => m[0] === code);
+    if (metro) return metro[4].slice(0, 4).join(",");
+  } catch {
+    // 목록을 못 받으면 코드 그대로 보낸다
+  }
+  return code;
+}
+
+const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
+
+function hhmm(t: string): string {
+  return t.slice(11, 16);
+}
+
+function duration(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h ? `${h}시간${m ? ` ${m}분` : ""}` : `${m}분`;
+}
+
+const levelText: Record<string, string> = { low: "평소보다 싼 편", typical: "평소 수준", high: "평소보다 비싼 편" };
 
 export function FlightSearch() {
   const [origin, setOrigin] = useState({ text: "서울 모든 공항 (SEL)", code: "SEL" as string | null });
@@ -24,8 +53,9 @@ export function FlightSearch() {
   const [ret, setRet] = useState("");
   const [adults, setAdults] = useState(1);
   const [error, setError] = useState("");
+  const [result, setResult] = useState<Result | null>(null);
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const from = origin.code ?? codeFromText(origin.text);
     const dest = destination.code ?? codeFromText(destination.text);
@@ -36,10 +66,25 @@ export function FlightSearch() {
     if (ret && ret < depart) return setError("오는 날은 가는 날 이후로 골라 주세요.");
     setError("");
 
-    // 예: SEL0311TYO07111 → 서울 11/3 출발, 도쿄, 11/7 귀국, 성인 1명
-    const path = `${from}${ddmm(depart)}${dest}${ret ? ddmm(ret) : ""}${adults}`;
-    const url = `https://www.aviasales.com/search/${path}?marker=${MARKER}&locale=ko&currency=krw`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    const link = aviasalesUrl(from, dest, depart, ret, adults);
+    setResult({ kind: "loading" });
+    try {
+      const res = await fetch("/api/flights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from: await airportsFor(from), to: await airportsFor(dest), depart, ret, adults }),
+      });
+      if (res.ok) return setResult({ kind: "ok", data: (await res.json()) as FlightResults, link });
+      const message =
+        res.status === 429
+          ? "검색이 너무 잦아서 잠깐 쉬고 있어요. 아래에서 바로 확인해 보세요."
+          : res.status === 503
+            ? "실시간 가격 기능을 준비하고 있어요. 아래에서 바로 확인해 보세요."
+            : `지금은 사이트 안에서 가격을 불러오지 못했어요. 아래에서 바로 확인해 보세요. (오류 ${await errorCode(res)})`;
+      setResult({ kind: "fallback", message, link });
+    } catch {
+      setResult({ kind: "fallback", message: "연결이 불안정해요. 아래에서 바로 확인해 보세요.", link });
+    }
   }
 
   return (
@@ -81,13 +126,99 @@ export function FlightSearch() {
             ))}
           </select>
         </label>
-        <button type="submit">항공권 찾기</button>
+        <button type="submit" disabled={result?.kind === "loading"}>
+          항공권 찾기
+        </button>
       </form>
       {error && (
         <div className="search-result" role="status">
           <span>{error}</span>
         </div>
       )}
+      {!error && result && (
+        <div className="search-result ok" role="status">
+          {result.kind === "loading" && (
+            <ScanProgress
+              ms={SCAN_MS}
+              morphTo="flight"
+              steps={[
+                { text: "출발지·도착지·날짜 조건 읽는 중...", at: 0 },
+                { text: "항공사와 예약 사이트 실시간 가격 모으는 중...", at: 0.2 },
+                { text: "싼 순서로 정리하는 중...", at: 0.8 },
+              ]}
+            />
+          )}
+          {result.kind === "ok" && <FlightList data={result.data} link={result.link} roundTrip={!!ret} />}
+          {result.kind === "fallback" && (
+            <div className="flight-fallback">
+              <span>{result.message}</span>
+              <a className="flight-more" href={result.link} target="_blank" rel="noopener noreferrer sponsored">
+                Aviasales에서 항공권 보기
+              </a>
+            </div>
+          )}
+        </div>
+      )}
     </>
+  );
+}
+
+function FlightList({ data, link, roundTrip }: { data: FlightResults; link: string; roundTrip: boolean }) {
+  if (!data.options.length) {
+    return (
+      <div className="flight-fallback">
+        <span>이 날짜에는 찾은 항공편이 없어요. 날짜를 바꾸거나 아래에서 더 넓게 찾아보세요.</span>
+        <a className="flight-more" href={link} target="_blank" rel="noopener noreferrer sponsored">
+          Aviasales에서 항공권 보기
+        </a>
+      </div>
+    );
+  }
+  return (
+    <div className="flight-results">
+      <div className="flight-summary">
+        {data.lowest !== null && (
+          <strong>
+            최저 {won(data.lowest)}
+            {roundTrip ? " (왕복)" : ""}
+          </strong>
+        )}
+        {data.level && levelText[data.level] && <span className={`flight-level ${data.level}`}>{levelText[data.level]}</span>}
+        {data.typical && (
+          <span className="flight-typical">
+            평소 {won(data.typical[0])} ~ {won(data.typical[1])}
+          </span>
+        )}
+      </div>
+      <ul className="flight-list">
+        {data.options.map((o, i) => (
+          <li key={i} className="flight-row">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {o.logo ? <img src={o.logo} alt="" className="flight-logo" /> : <span className="flight-logo" />}
+            <div className="flight-main">
+              <strong>
+                {hhmm(o.departTime)} → {hhmm(o.arriveTime)}
+              </strong>
+              <span>
+                {o.fromId}–{o.toId} · {duration(o.minutes)} · {o.stops.length ? `${o.stops.length}회 경유 (${o.stops.join(", ")})` : "직항"}
+              </span>
+              <span className="flight-airline">{o.airlines.join(" · ")}</span>
+            </div>
+            <div className="flight-buy">
+              <strong>{won(o.price)}</strong>
+              <a href={link} target="_blank" rel="noopener noreferrer sponsored">
+                예약하기
+              </a>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p className="flight-note">
+        Google 항공편 검색 기준, 검색 시점 가격이에요{roundTrip ? " (왕복 총액)" : ""}. 실제 금액과 좌석은 예약 사이트에서 꼭 확인해 주세요.
+      </p>
+      <a className="flight-more" href={link} target="_blank" rel="noopener noreferrer sponsored">
+        Aviasales에서 전체 결과 보기
+      </a>
+    </div>
   );
 }
