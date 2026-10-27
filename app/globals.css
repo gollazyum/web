@@ -2199,3 +2199,110 @@ a {
   align-items: flex-start;
   gap: 4px;
 }
+
+/* 숙소 탭: 찾는 방법 고르기와 호텔 실시간 가격 목록 */
+.hotel-card {
+  grid-template-columns: 2fr 1fr 1fr 0.7fr auto;
+}
+.stay-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.stay-modes button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--muted);
+  cursor: pointer;
+}
+.stay-modes button.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--white);
+}
+.flight-buy button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue);
+  background: var(--white);
+  border: 1px solid var(--blue);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.hotel-list {
+  list-style: none;
+}
+.hotel-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.hotel-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hotel-img {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--soft);
+}
+.hotel-sources {
+  list-style: none;
+  margin: 10px 0 0 76px;
+  display: grid;
+  gap: 4px;
+}
+.hotel-sources li {
+  display: grid;
+  grid-template-columns: 18px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--soft);
+}
+.hotel-sources img,
+.hotel-sources i {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+.hotel-sources em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+}
+.hotel-sources em.hotel-pick {
+  color: var(--green-dark);
+  font-weight: 700;
+}
+.hotel-sources b {
+  color: var(--ink);
+}
+.hotel-sources a {
+  color: var(--blue);
+  font-weight: 700;
+  text-decoration: none;
+}
+@media (max-width: 900px) {
+  .hotel-card {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .hotel-sources {
+    margin-left: 0;
+  }
+}
