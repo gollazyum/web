@@ -690,15 +690,9 @@ a {
   opacity: 0;
 }
 .mochi {
-  width: 150px;
-  height: 130px;
-  margin: -14px auto 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 156px;
+  margin: -8px auto 0;
   cursor: pointer;
-  transform-origin: bottom center;
-  animation: mochi-breathe 3s ease-in-out infinite;
   -webkit-tap-highlight-color: transparent;
 }
 .mochi:focus-visible {
@@ -706,57 +700,26 @@ a {
   outline-offset: 4px;
   border-radius: 20px;
 }
-.mochi-rig {
-  width: 150px;
-  height: 126px;
-  transform-origin: center 60%;
-  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.mochi-rig svg {
-  display: block;
-  overflow: visible;
+.mochi .lb svg {
   filter: drop-shadow(0 8px 14px rgba(29, 78, 216, 0.14));
 }
-.mochi-eye {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: mochi-blink 3.6s infinite;
-}
-.mochi-pct {
-  transform-box: fill-box;
-  transform-origin: center;
-  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.mochi-pct.no-anim {
-  transition: none;
-}
-.mochi-eyes,
-.mochi-mouth {
-  transition: transform 0.38s cubic-bezier(0.25, 1, 0.5, 1);
-}
-.mochi-stage.fast .mochi-eyes,
-.mochi-stage.fast .mochi-mouth {
+.mochi-stage.fast .lb-eyes {
   transition: transform 0.1s ease-out;
+}
+.mochi-badge.sleeping {
+  background: #eef2ff;
+  color: #6366f1;
 }
 .mochi-shadow {
   width: 84px;
   height: 11px;
-  margin: -14px auto 10px;
+  margin: -16px auto 10px;
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.09);
-  animation: mochi-shadow 3s ease-in-out infinite;
+  animation: mochi-shadow 3.2s ease-in-out infinite;
 }
 .mochi-shadow.jump {
-  animation: mochi-shadow-jump 0.85s ease;
-}
-.mochi-rig.act-spin {
-  animation: mochi-spin 0.85s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.mochi-rig.act-jiggle {
-  animation: mochi-jiggle 0.65s ease;
-}
-.mochi-rig.act-wiggle {
-  animation: mochi-wiggle 0.9s ease-in-out;
+  animation: mochi-shadow-jump 0.9s ease;
 }
 @keyframes mochi-pulse {
   50% {
@@ -767,21 +730,6 @@ a {
 @keyframes mochi-float {
   50% {
     transform: translateY(-5px);
-  }
-}
-@keyframes mochi-breathe {
-  50% {
-    transform: scale(1.05, 0.95) translateY(2px);
-  }
-}
-@keyframes mochi-blink {
-  0%,
-  92%,
-  100% {
-    transform: scaleY(1);
-  }
-  95% {
-    transform: scaleY(0.08);
   }
 }
 @keyframes mochi-shadow {
@@ -806,54 +754,6 @@ a {
     opacity: 0.35;
   }
 }
-@keyframes mochi-spin {
-  0% {
-    transform: scale(1, 1) translateY(0) rotate(0deg);
-  }
-  20% {
-    transform: scale(1.2, 0.8) translateY(8px) rotate(-12deg);
-  }
-  55% {
-    transform: scale(0.92, 1.08) translateY(-34px) rotate(190deg);
-  }
-  85% {
-    transform: scale(1.12, 0.88) translateY(4px) rotate(365deg);
-  }
-  100% {
-    transform: scale(1, 1) translateY(0) rotate(360deg);
-  }
-}
-@keyframes mochi-jiggle {
-  0%,
-  100% {
-    transform: scale(1, 1);
-  }
-  20% {
-    transform: scale(1.18, 0.82);
-  }
-  40% {
-    transform: scale(0.88, 1.12) rotate(-6deg);
-  }
-  60% {
-    transform: scale(1.08, 0.92) rotate(6deg);
-  }
-  80% {
-    transform: scale(0.96, 1.04);
-  }
-}
-@keyframes mochi-wiggle {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  25% {
-    transform: rotate(-8deg) translateY(-4px) scale(1.03, 0.97);
-  }
-  75% {
-    transform: rotate(8deg) translateY(-4px) scale(1.03, 0.97);
-  }
-}
-
 .bubble-row {
   display: flex;
   align-items: flex-end;
@@ -992,11 +892,49 @@ a {
 }
 .result-head {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 4px 16px;
+  align-items: center;
+  gap: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
+}
+.result-head-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 16px;
+}
+.result-bot {
+  flex: none;
+  width: 52px;
+}
+.result-bot.found .lb-act.lb-hop {
+  animation-name: lb-hop-sm;
+}
+.result-sad {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.result-sad .result-bot {
+  width: 46px;
+}
+@keyframes lb-hop-sm {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  18% {
+    transform: translateY(1px) scale(1.12, 0.86);
+  }
+  45% {
+    transform: translateY(-14px) scale(0.92, 1.08);
+  }
+  72% {
+    transform: translateY(0) scale(1.08, 0.92);
+  }
 }
 .result-head span {
   color: var(--muted);
@@ -1173,16 +1111,7 @@ a {
 .scan-bot {
   position: relative;
   flex: none;
-  width: 72px;
-  height: 64px;
-  animation: scan-bob 0.65s ease-in-out infinite alternate;
-}
-.scan-rig,
-.scan-rig svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
+  width: 80px;
 }
 .scan-rig {
   transform-origin: bottom center;
@@ -1279,11 +1208,6 @@ a {
 @keyframes scan-spin {
   to {
     transform: rotate(360deg);
-  }
-}
-@keyframes scan-bob {
-  to {
-    transform: translateY(-4px) rotate(-3deg);
   }
 }
 @keyframes scan-beam {
@@ -1627,7 +1551,7 @@ a {
 .family-shop {
   background: linear-gradient(160deg, #ffeedd, #fff8f1);
 }
-.family-card img {
+.family-bot {
   width: 120px;
   height: auto;
   margin-bottom: 20px;
@@ -1895,7 +1819,6 @@ a {
   .search-glow::after,
   .skeleton,
   .analyzing .dot,
-  .scan-bot,
   .scan-beam,
   .scan-rig.morphed,
   .scan-steps .doing i,
@@ -1905,14 +1828,269 @@ a {
   .search-tab.active img,
   .tab-hint,
   .tab-panel,
-  .mochi,
   .mochi-shadow,
   .mochi-bubble,
-  .mochi-eye,
   .mochi-badge i {
     animation: none;
   }
   .bar i {
     transition: none;
+  }
+}
+
+/* 로보티 움직임 (최종 브랜드 키트 모션 데모) */
+.lb {
+  display: block;
+}
+.lb svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.lb-eyes,
+.lb-lens,
+.lb-eye,
+.lb-pupil,
+.lb-pmove,
+.lb-fx,
+.lb-shine {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.lb-eyes {
+  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.lb-lens {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.lb-fx {
+  opacity: 0;
+}
+.lb-breathe,
+.lb-act {
+  transform-origin: 50% 92%;
+}
+.lb-breathe {
+  animation: lb-breathe 3.2s ease-in-out infinite;
+}
+.lb.lb-blinking .lb-eye,
+.lb.lb-blinking .lb-pupil {
+  animation: lb-blinkfast 0.32s ease;
+}
+.lb.lb-blinking.twice .lb-eye,
+.lb.lb-blinking.twice .lb-pupil {
+  animation-iteration-count: 2;
+}
+/* 한 번만 하는 동작 */
+.lb-act.lb-hop {
+  animation: lb-hop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.lb-act.lb-poke {
+  animation: lb-poke 0.6s ease;
+}
+.lb-act.lb-tilt {
+  animation: lb-tilt 1.6s ease-in-out;
+}
+/* 상태: 쓱쓱 훑기 (가격 스캔) */
+.lb-st-scan .lb-lens {
+  animation: lb-sweep 2.2s ease-in-out infinite;
+}
+.lb-st-scan .lb-eye {
+  animation: lb-sweepeye 2.2s ease-in-out infinite;
+}
+/* 상태: 찾았다 (렌즈 확대 + 반짝) */
+.lb-st-zoom .lb-lens {
+  transform: scale(1.35);
+}
+.lb-st-zoom .lb-spark {
+  opacity: 1;
+  transform: scale(1) rotate(45deg);
+  transition: opacity 0.25s, transform 0.25s;
+}
+/* 상태: 결과 없음 (시무룩) */
+.lb-st-sad .lb-act {
+  animation: lb-droop 3.6s ease-in-out infinite;
+}
+.lb-st-sad .lb-eyes {
+  transform: translate(-1px, 3.5px) scale(0.88) !important;
+}
+/* 상태: 물어보는 중 (갸우뚱 + 물음표) */
+.lb-st-ask .lb-act {
+  animation: lb-tiltloop 3.4s ease-in-out infinite;
+}
+.lb-st-ask .lb-eyes {
+  animation: lb-tilteyes 3.4s ease-in-out infinite;
+}
+.lb-st-ask .lb-q {
+  animation: lb-qpop 3.4s ease-in-out infinite;
+}
+/* 상태: 오래 두면 졸기 */
+.lb-st-sleep .lb-breathe {
+  animation: lb-slowbreathe 4.5s ease-in-out infinite;
+}
+.lb-st-sleep .lb .lb-eye,
+.lb-st-sleep .lb .lb-pupil {
+  transform: scaleY(0.14);
+  animation: none !important;
+}
+.lb-st-sleep .lb-z {
+  animation: lb-zz 3s ease-in infinite;
+}
+.lb-st-sleep .lb-z2 {
+  animation-delay: 1.5s;
+}
+@keyframes lb-breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.04, 0.96);
+  }
+}
+@keyframes lb-slowbreathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.06, 0.94);
+  }
+}
+@keyframes lb-blinkfast {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes lb-hop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  18% {
+    transform: translateY(2px) scale(1.12, 0.86);
+  }
+  45% {
+    transform: translateY(-26px) scale(0.92, 1.08);
+  }
+  72% {
+    transform: translateY(0) scale(1.08, 0.92);
+  }
+}
+@keyframes lb-poke {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  20% {
+    transform: scale(1.2, 0.8);
+  }
+  45% {
+    transform: scale(0.9, 1.1) rotate(-4deg);
+  }
+  70% {
+    transform: scale(1.05, 0.95) rotate(3deg);
+  }
+}
+@keyframes lb-tilt {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25%,
+  70% {
+    transform: rotate(-11deg);
+  }
+}
+@keyframes lb-tiltloop {
+  0%,
+  15%,
+  100% {
+    transform: rotate(0);
+  }
+  30%,
+  70% {
+    transform: rotate(-11deg);
+  }
+}
+@keyframes lb-tilteyes {
+  0%,
+  15%,
+  100% {
+    transform: translate(0, 0);
+  }
+  30%,
+  70% {
+    transform: translate(1px, -2.5px);
+  }
+}
+@keyframes lb-qpop {
+  0%,
+  22%,
+  80%,
+  100% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.6);
+  }
+  34%,
+  70% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes lb-sweep {
+  0%,
+  100% {
+    transform: translate(-7px, 1px) rotate(-8deg);
+  }
+  50% {
+    transform: translate(4px, -1px) rotate(8deg);
+  }
+}
+@keyframes lb-sweepeye {
+  0%,
+  100% {
+    transform: translate(-1.5px, 0);
+  }
+  50% {
+    transform: translate(1.5px, 0);
+  }
+}
+@keyframes lb-droop {
+  0%,
+  12%,
+  100% {
+    transform: scale(1, 1);
+  }
+  30%,
+  80% {
+    transform: scale(1.06, 0.9);
+  }
+}
+@keyframes lb-zz {
+  0% {
+    opacity: 0;
+    transform: translate(0, 4px) scale(0.6);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(8px, -14px) scale(1.15);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lb-breathe,
+  .lb-act,
+  .lb,
+  .lb * {
+    animation: none !important;
+    transition: none !important;
   }
 }
