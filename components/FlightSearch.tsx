@@ -5,10 +5,10 @@ import { AirportInput } from "./AirportInput";
 import { ScanProgress } from "./ScanProgress";
 import { codeFromText, loadAirports } from "@/lib/airports";
 import { errorCode } from "@/lib/apiError";
-import { aviasalesUrl, type FlightResults } from "@/lib/flights";
+import { tripUrl, type FlightResults } from "@/lib/flights";
 
 // 로보티 디자인 항공권 검색창. 사이트 안에서 실시간 가격을 보여 주고,
-// 예약은 제휴 번호(marker)가 붙은 Aviasales 결과로 넘긴다
+// 예약은 Trip.com 한국 사이트 검색 결과로 넘긴다
 const SCAN_MS = 5000;
 
 type Result =
@@ -66,7 +66,7 @@ export function FlightSearch() {
     if (ret && ret < depart) return setError("오는 날은 가는 날 이후로 골라 주세요.");
     setError("");
 
-    const link = aviasalesUrl(from, dest, depart, ret, adults);
+    const link = tripUrl(from, dest, depart, ret, adults);
     setResult({ kind: "loading" });
     try {
       const res = await fetch("/api/flights", {
@@ -152,8 +152,8 @@ export function FlightSearch() {
           {result.kind === "fallback" && (
             <div className="flight-fallback">
               <span>{result.message}</span>
-              <a className="flight-more" href={result.link} target="_blank" rel="noopener noreferrer sponsored">
-                Aviasales에서 항공권 보기
+              <a className="flight-more" href={result.link} target="_blank" rel="noopener noreferrer">
+                트립닷컴에서 항공권 보기
               </a>
             </div>
           )}
@@ -168,8 +168,8 @@ function FlightList({ data, link, roundTrip }: { data: FlightResults; link: stri
     return (
       <div className="flight-fallback">
         <span>이 날짜에는 찾은 항공편이 없어요. 날짜를 바꾸거나 아래에서 더 넓게 찾아보세요.</span>
-        <a className="flight-more" href={link} target="_blank" rel="noopener noreferrer sponsored">
-          Aviasales에서 항공권 보기
+        <a className="flight-more" href={link} target="_blank" rel="noopener noreferrer">
+          트립닷컴에서 항공권 보기
         </a>
       </div>
     );
@@ -206,7 +206,7 @@ function FlightList({ data, link, roundTrip }: { data: FlightResults; link: stri
             </div>
             <div className="flight-buy">
               <strong>{won(o.price)}</strong>
-              <a href={link} target="_blank" rel="noopener noreferrer sponsored">
+              <a href={link} target="_blank" rel="noopener noreferrer">
                 예약하기
               </a>
             </div>
@@ -216,8 +216,8 @@ function FlightList({ data, link, roundTrip }: { data: FlightResults; link: stri
       <p className="flight-note">
         Google 항공편 검색 기준, 검색 시점 가격이에요{roundTrip ? " (왕복 총액)" : ""}. 실제 금액과 좌석은 예약 사이트에서 꼭 확인해 주세요.
       </p>
-      <a className="flight-more" href={link} target="_blank" rel="noopener noreferrer sponsored">
-        Aviasales에서 전체 결과 보기
+      <a className="flight-more" href={link} target="_blank" rel="noopener noreferrer">
+        트립닷컴에서 전체 결과 보기
       </a>
     </div>
   );
