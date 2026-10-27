@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import localFont from "next/font/local";
+import { routes } from "@/lib/agoda";
 import { site } from "@/lib/site";
 import "./globals.css";
 
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
     "항공권 최저가",
   ],
   openGraph: {
-    title: `${site.nameKo} (${site.name}) - 아고다 37개 숨은 경로 최저가 봇`,
+    title: `${site.nameKo} (${site.name}) - 아고다 ${routes.length}개 숨은 경로 최저가 봇`,
     description: "아고다 호텔 링크 하나로 카드사·항공사·검색 경로별 링크를 한 번에 받아 진짜 최저가를 찾아보세요.",
     url: site.url,
     siteName: `${site.nameKo} (${site.name})`,
@@ -39,8 +40,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: `${site.nameKo} (${site.name}) - 아고다 37개 경로 최저가 찾기`,
-    description: "번거로운 아고다 경로 타기, 이제 로보티에게 맡기세요. 링크만 넣으면 37개 경로를 한 번에 열어 볼 수 있어요.",
+    title: `${site.nameKo} (${site.name}) - 아고다 ${routes.length}개 경로 최저가 찾기`,
+    description: `번거로운 아고다 경로 타기, 이제 로보티에게 맡기세요. 링크만 넣으면 ${routes.length}개 경로를 한 번에 열어 볼 수 있어요.`,
     images: ["/images/og-image.png"],
   },
   verification: {

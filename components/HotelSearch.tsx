@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { DateRangePicker } from "./DateRangePicker";
 import { PlaceInput } from "./PlaceInput";
 import { ScanProgress } from "./ScanProgress";
 import { errorCode } from "@/lib/apiError";
+import { routes } from "@/lib/agoda";
+import { addDays, daysBetween } from "@/lib/dates";
 import { agodaSearchUrl, isAgoda, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults, type HotelSource } from "@/lib/hotels";
 
 // 도시·호텔 이름과 날짜로 찾으면 호텔마다 예약 사이트별 실시간 가격을 보여 준다.
@@ -12,25 +15,11 @@ const SCAN_MS = 5000;
 
 type Result = { kind: "loading" } | { kind: "ok"; data: HotelResults; query: HotelQuery } | { kind: "fallback"; message: string };
 
-function dayAfter(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function nights(a: string, b: string): number {
-  return Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
-}
-
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
 async function failMessage(res: Response): Promise<string> {
   if (res.status === 429) return "검색이 너무 잦아서 잠깐 쉬고 있어요. 잠시 뒤에 다시 찾아 주세요.";
-  if (res.status === 503) return "실시간 호텔 가격 기능을 준비하고 있어요. 아고다 링크 37개 경로로 먼저 비교해 보세요.";
+  if (res.status === 503) return `실시간 호텔 가격 기능을 준비하고 있어요. 아고다 링크 ${routes.length}개 경로로 먼저 비교해 보세요.`;
   return `지금은 호텔 가격을 불러오지 못했어요. 잠시 뒤에 다시 찾아 주세요. (오류 ${await errorCode(res)})`;
 }
 
@@ -54,7 +43,7 @@ export function HotelSearch() {
     e.preventDefault();
     if (!q.trim()) return setError("도시나 호텔 이름을 넣어 주세요. 예: 도쿄 신주쿠, 다낭 해변 호텔");
     if (!checkIn) return setError("체크인 날짜를 골라 주세요.");
-    const out = checkOut && checkOut > checkIn ? checkOut : dayAfter(checkIn, 1);
+    const out = checkOut && checkOut > checkIn ? checkOut : addDays(checkIn, 1);
     setCheckOut(out);
     setError("");
 
@@ -73,20 +62,20 @@ export function HotelSearch() {
     <>
       <form onSubmit={onSubmit} className="search-card hotel-card">
         <PlaceInput value={q} onChange={setQ} />
-        <label className="field">
-          <span>체크인</span>
-          <span className="date-wrap">
-            <input type="date" className={checkIn ? undefined : "empty"} min={today()} value={checkIn} onChange={(e) => setCheckIn(e.target.value)} required />
-            {!checkIn && <em className="date-empty">날짜 선택</em>}
-          </span>
-        </label>
-        <label className="field">
-          <span>체크아웃</span>
-          <span className="date-wrap">
-            <input type="date" className={checkOut ? undefined : "empty"} min={checkIn ? dayAfter(checkIn, 1) : today()} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
-            {!checkOut && <em className="date-empty">1박이면 비우기</em>}
-          </span>
-        </label>
+        <DateRangePicker
+          start={checkIn}
+          end={checkOut}
+          onChange={(a, b) => {
+            setCheckIn(a);
+            setCheckOut(b);
+          }}
+          labels={["체크인", "체크아웃"]}
+          prompts={["체크인 날짜를 골라 주세요", "체크아웃 날짜를 골라 주세요"]}
+          endPlaceholder="1박이면 비우기"
+          minGap={1}
+          unit={(n) => `${n}박`}
+          quick={{ label: "1박으로", end: (d) => addDays(d, 1) }}
+        />
         <label className="field field-small">
           <span>성인</span>
           <select value={adults} onChange={(e) => setAdults(Number(e.target.value))}>
@@ -129,7 +118,7 @@ export function HotelSearch() {
 
 function HotelList({ data, query }: { data: HotelResults; query: HotelQuery }) {
   if (!data.options.length) return <span>이 조건으로 찾은 호텔이 없어요. 도시 이름을 바꾸거나 날짜를 바꿔 보세요.</span>;
-  const n = nights(query.checkIn, query.checkOut);
+  const n = daysBetween(query.checkIn, query.checkOut);
   return (
     <div className="hotel-results">
       <div className="flight-summary">

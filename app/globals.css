@@ -445,7 +445,7 @@ a {
   background: var(--soft);
   box-shadow: inset 0 0 0 2px rgba(29, 78, 216, 0.25);
 }
-.search-card button {
+.search-card > button {
   border: 0;
   cursor: pointer;
   background: var(--grad);
@@ -460,38 +460,233 @@ a {
   transition: transform 0.15s ease, filter 0.15s ease;
 }
 .flight-card {
-  grid-template-columns: 1.3fr 1.3fr 1fr 1.1fr 0.7fr auto;
+  grid-template-columns: 1.3fr 1.3fr 2.1fr 0.7fr auto;
 }
 
-/* 날짜 칸: iOS는 빈 날짜 칸을 아무것도 안 보여 줘서 안내 글자를 겹쳐 둔다 */
-.field .date-wrap {
+/* 날짜 범위 선택: 체크인(가는 날) 칸과 체크아웃(오는 날) 칸이 달력 하나를 같이 쓴다 */
+.date-range {
   position: relative;
-  display: block;
-  font-size: inherit;
-  font-weight: inherit;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  min-width: 0;
+}
+.field.date-field {
+  border: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
   color: inherit;
 }
-.field input[type="date"] {
-  min-height: 24px;
-  -webkit-appearance: none;
-  appearance: none;
+.field.date-field.active {
+  background: var(--soft);
+  box-shadow: inset 0 0 0 2px rgba(29, 78, 216, 0.35);
 }
-.field .date-empty {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
+.field.date-field span {
+  white-space: nowrap;
+}
+.field.date-field em {
   font-style: normal;
+  color: var(--blue);
+}
+.field.date-field b {
   font-size: 15px;
   font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 24px;
+}
+.field.date-field b.empty {
   color: #94a3b8;
-  pointer-events: none;
 }
-.field input[type="date"].empty:not(:focus)::-webkit-datetime-edit {
-  color: transparent;
+.dp-pop {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 640px;
+  padding: 18px 20px 14px;
+  background: var(--white);
+  border-radius: 24px;
+  box-shadow: 0 30px 60px -20px rgba(15, 23, 42, 0.35), 0 0 0 1px var(--line);
+  animation: fade-up 0.18s ease both;
+  scroll-margin: 16px;
 }
-.field .date-wrap:focus-within .date-empty {
+.dp-months {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+.dp-title {
+  display: block;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 10px;
+  line-height: 32px;
+}
+.dp-nav {
+  position: absolute;
+  top: 18px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--soft);
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.dp-nav.prev {
+  left: 20px;
+}
+.dp-nav.next {
+  right: 20px;
+}
+.dp-nav:hover:not(:disabled) {
+  background: #e0ecff;
+}
+.dp-nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 2px;
+}
+.dp-wd {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  padding-bottom: 4px;
+}
+.dp-wd.sun,
+.dp-day.sun {
+  color: #e5484d;
+}
+.dp-wd.sat,
+.dp-day.sat {
+  color: var(--blue);
+}
+.dp-day {
+  position: relative;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.dp-day span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin: 0 auto;
+  border-radius: 50%;
+  transition: background 0.12s ease;
+}
+.dp-day:hover:not(:disabled) span {
+  background: var(--soft);
+  box-shadow: inset 0 0 0 1.5px #93c5fd;
+}
+.dp-day:disabled {
+  color: #cbd5e1;
+  cursor: default;
+}
+.dp-day.today span::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.dp-day.in-range::before,
+.dp-day.has-range::before,
+.dp-day.end::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 0;
+  right: 0;
+  background: #e6f0ff;
+}
+.dp-day.has-range::before {
+  left: 50%;
+}
+.dp-day.end::before {
+  right: 50%;
+}
+.dp-day.start:not(.has-range)::before {
   display: none;
+}
+.dp-day.start span,
+.dp-day.end span,
+.dp-day.start:hover span,
+.dp-day.end:hover span {
+  color: var(--white);
+  background: linear-gradient(135deg, #1d4ed8, #0ea5e9 60%, #10b981);
+  box-shadow: 0 6px 14px -6px rgba(29, 78, 216, 0.7);
+}
+.dp-day.start span::after,
+.dp-day.end span::after {
+  background: var(--white);
+}
+.dp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.dp-status {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.dp-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+  margin-left: auto;
+}
+.dp-ghost,
+.dp-done {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--text);
+}
+.dp-ghost:hover {
+  border-color: #93c5fd;
+}
+.dp-done {
+  border: 0;
+  color: var(--white);
+  background: var(--grad);
 }
 
 /* 공항 자동완성 */
@@ -554,7 +749,7 @@ a {
   font-size: 13px;
   color: var(--muted);
 }
-.search-card button:hover {
+.search-card > button:hover {
   filter: brightness(1.06);
   transform: translateY(-1px);
 }
@@ -1731,10 +1926,33 @@ a {
     border: 1px solid var(--line);
     background: #f8fafc;
   }
-  .field-url {
+  .field-url,
+  .date-range,
+  .field-small {
     grid-column: 1 / -1;
   }
-  .search-card button {
+  .dp-pop {
+    width: auto;
+    left: 0;
+    right: 0;
+    padding: 16px 14px 12px;
+  }
+  .dp-months {
+    grid-template-columns: 1fr;
+  }
+  .dp-month + .dp-month {
+    display: none;
+  }
+  .dp-nav.prev {
+    left: 14px;
+  }
+  .dp-nav.next {
+    right: 14px;
+  }
+  .dp-foot {
+    flex-wrap: wrap;
+  }
+  .search-card > button {
     grid-column: 1 / -1;
     padding: 16px;
   }
@@ -2202,7 +2420,7 @@ a {
 
 /* 숙소 탭: 찾는 방법 고르기와 호텔 실시간 가격 목록 */
 .hotel-card {
-  grid-template-columns: 2fr 1fr 1fr 0.7fr auto;
+  grid-template-columns: 1.7fr 2.2fr 0.6fr auto;
 }
 .stay-modes {
   display: flex;

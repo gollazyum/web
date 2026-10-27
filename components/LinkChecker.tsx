@@ -21,7 +21,7 @@ export type TabId = "stay" | "ask" | "flight" | "shop";
 export const TAB_EVENT = "lowboti:tab";
 
 const hints: Record<TabId, string> = {
-  stay: "🏨 도시나 호텔 이름으로 예약 사이트별 가격을 비교하거나, 아고다 호텔 링크를 37개 경로로 바꿔 보세요.",
+  stay: `🏨 도시나 호텔 이름으로 예약 사이트별 가격을 비교하거나, 아고다 호텔 링크를 ${routes.length}개 경로로 바꿔 보세요.`,
   flight: "✈️ 출발지·도착지·날짜만 고르면 실시간 항공권 가격을 싼 순서로 보여 드려요.",
   shop: "🛍️ 여행 준비물과 유심 최저가 비교를 준비하고 있어요.",
   ask: "💬 여행 일정, 예산, 숙소 고르는 법을 편하게 물어보세요.",
@@ -108,7 +108,7 @@ export function LinkChecker() {
             도시·호텔로 가격 비교
           </button>
           <button type="button" className={stayMode === "link" ? "active" : undefined} onClick={() => setStayMode("link")}>
-            아고다 링크 37개 경로
+            아고다 링크 {routes.length}개 경로
           </button>
         </div>
       )}
