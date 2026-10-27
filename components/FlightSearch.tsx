@@ -1,58 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AirportInput } from "./AirportInput";
 import { DateRangePicker } from "./DateRangePicker";
-import { ScanProgress } from "./ScanProgress";
-import { codeFromText, loadAirports } from "@/lib/airports";
-import { errorCode } from "@/lib/apiError";
-import { tripUrl, type FlightResults } from "@/lib/flights";
+import { codeFromText, labelForCode, loadAirports } from "@/lib/airports";
+import { flightsPath, type FlightQuery } from "@/lib/flights";
 
-// 로보티 디자인 항공권 검색창. 사이트 안에서 실시간 가격을 보여 주고,
-// 예약은 Trip.com 한국 사이트 검색 결과로 넘긴다
-const SCAN_MS = 5000;
+// 로보티 디자인 항공권 검색창. 찾기를 누르면 결과 페이지(/flights?…)로 넘어가고,
+// 그 페이지 위쪽에서도 그대로 다시 쓴다
+type Props = { initial?: FlightQuery; compact?: boolean };
 
-type Result =
-  | { kind: "loading" }
-  | { kind: "ok"; data: FlightResults; link: string }
-  | { kind: "fallback"; message: string; link: string };
-
-// 도시 코드(SEL)는 그 도시 공항들(ICN,GMP)로 바꿔서 서버에 보낸다
-async function airportsFor(code: string): Promise<string> {
-  try {
-    const d = await loadAirports();
-    const metro = d.metros.find((m) => m[0] === code);
-    if (metro) return metro[4].slice(0, 4).join(",");
-  } catch {
-    // 목록을 못 받으면 코드 그대로 보낸다
-  }
-  return code;
-}
-
-const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
-
-function hhmm(t: string): string {
-  return t.slice(11, 16);
-}
-
-function duration(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return h ? `${h}시간${m ? ` ${m}분` : ""}` : `${m}분`;
-}
-
-const levelText: Record<string, string> = { low: "평소보다 싼 편", typical: "평소 수준", high: "평소보다 비싼 편" };
-
-export function FlightSearch() {
-  const [origin, setOrigin] = useState({ text: "서울 모든 공항 (SEL)", code: "SEL" as string | null });
-  const [destination, setDestination] = useState({ text: "", code: null as string | null });
-  const [depart, setDepart] = useState("");
-  const [ret, setRet] = useState("");
-  const [adults, setAdults] = useState(1);
+export function FlightSearch({ initial, compact }: Props) {
+  const router = useRouter();
+  const [origin, setOrigin] = useState(
+    initial ? { text: initial.from, code: initial.from as string | null } : { text: "서울 모든 공항 (SEL)", code: "SEL" as string | null },
+  );
+  const [destination, setDestination] = useState({ text: initial?.to ?? "", code: (initial?.to ?? null) as string | null });
+  const [depart, setDepart] = useState(initial?.depart ?? "");
+  const [ret, setRet] = useState(initial?.ret ?? "");
+  const [adults, setAdults] = useState(initial?.adults ?? 1);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<Result | null>(null);
 
-  async function onSubmit(e: React.FormEvent) {
+  // 결과 페이지 주소에는 코드만 있어서, 공항 목록을 받으면 입력칸 글자를 이름으로 바꾼다
+  useEffect(() => {
+    if (!initial) return;
+    loadAirports()
+      .then((d) => {
+        setOrigin((o) => (o.code && o.text === o.code ? { text: labelForCode(d, o.code), code: o.code } : o));
+        setDestination((o) => (o.code && o.text === o.code ? { text: labelForCode(d, o.code), code: o.code } : o));
+      })
+      .catch(() => {});
+    // 처음 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const from = origin.code ?? codeFromText(origin.text);
     const dest = destination.code ?? codeFromText(destination.text);
@@ -62,31 +45,12 @@ export function FlightSearch() {
     if (!depart) return setError("가는 날을 골라 주세요.");
     if (ret && ret < depart) return setError("오는 날은 가는 날 이후로 골라 주세요.");
     setError("");
-
-    const link = tripUrl(from, dest, depart, ret, adults);
-    setResult({ kind: "loading" });
-    try {
-      const res = await fetch("/api/flights", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: await airportsFor(from), to: await airportsFor(dest), depart, ret, adults }),
-      });
-      if (res.ok) return setResult({ kind: "ok", data: (await res.json()) as FlightResults, link });
-      const message =
-        res.status === 429
-          ? "검색이 너무 잦아서 잠깐 쉬고 있어요. 아래에서 바로 확인해 보세요."
-          : res.status === 503
-            ? "실시간 가격 기능을 준비하고 있어요. 아래에서 바로 확인해 보세요."
-            : `지금은 사이트 안에서 가격을 불러오지 못했어요. 아래에서 바로 확인해 보세요. (오류 ${await errorCode(res)})`;
-      setResult({ kind: "fallback", message, link });
-    } catch {
-      setResult({ kind: "fallback", message: "연결이 불안정해요. 아래에서 바로 확인해 보세요.", link });
-    }
+    router.push(flightsPath({ from, to: dest, depart, ret, adults }));
   }
 
   return (
     <>
-      <form onSubmit={onSubmit} className="search-card flight-card">
+      <form onSubmit={onSubmit} className={`search-card flight-card${compact ? " compact" : ""}`}>
         <AirportInput
           label="출발"
           placeholder="어디에서 출발하세요?"
@@ -123,99 +87,13 @@ export function FlightSearch() {
             ))}
           </select>
         </label>
-        <button type="submit" disabled={result?.kind === "loading"}>
-          항공권 찾기
-        </button>
+        <button type="submit">{compact ? "다시 검색" : "항공권 찾기"}</button>
       </form>
       {error && (
         <div className="search-result" role="status">
           <span>{error}</span>
         </div>
       )}
-      {!error && result && (
-        <div className="search-result ok" role="status">
-          {result.kind === "loading" && (
-            <ScanProgress
-              ms={SCAN_MS}
-              morphTo="flight"
-              steps={[
-                { text: "출발지·도착지·날짜 조건 읽는 중...", at: 0 },
-                { text: "항공사와 예약 사이트 실시간 가격 모으는 중...", at: 0.2 },
-                { text: "싼 순서로 정리하는 중...", at: 0.8 },
-              ]}
-            />
-          )}
-          {result.kind === "ok" && <FlightList data={result.data} link={result.link} roundTrip={!!ret} />}
-          {result.kind === "fallback" && (
-            <div className="flight-fallback">
-              <span>{result.message}</span>
-              <a className="flight-more" href={result.link} target="_blank" rel="noopener noreferrer">
-                트립닷컴에서 항공권 보기
-              </a>
-            </div>
-          )}
-        </div>
-      )}
     </>
-  );
-}
-
-function FlightList({ data, link, roundTrip }: { data: FlightResults; link: string; roundTrip: boolean }) {
-  if (!data.options.length) {
-    return (
-      <div className="flight-fallback">
-        <span>이 날짜에는 찾은 항공편이 없어요. 날짜를 바꾸거나 아래에서 더 넓게 찾아보세요.</span>
-        <a className="flight-more" href={link} target="_blank" rel="noopener noreferrer">
-          트립닷컴에서 항공권 보기
-        </a>
-      </div>
-    );
-  }
-  return (
-    <div className="flight-results">
-      <div className="flight-summary">
-        {data.lowest !== null && (
-          <strong>
-            최저 {won(data.lowest)}
-            {roundTrip ? " (왕복)" : ""}
-          </strong>
-        )}
-        {data.level && levelText[data.level] && <span className={`flight-level ${data.level}`}>{levelText[data.level]}</span>}
-        {data.typical && (
-          <span className="flight-typical">
-            평소 {won(data.typical[0])} ~ {won(data.typical[1])}
-          </span>
-        )}
-      </div>
-      <ul className="flight-list">
-        {data.options.map((o, i) => (
-          <li key={i} className="flight-row">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            {o.logo ? <img src={o.logo} alt="" className="flight-logo" /> : <span className="flight-logo" />}
-            <div className="flight-main">
-              <strong>
-                {hhmm(o.departTime)} → {hhmm(o.arriveTime)}
-              </strong>
-              <span>
-                {o.fromId}–{o.toId} · {duration(o.minutes)} · {o.stops.length ? `${o.stops.length}회 경유 (${o.stops.join(", ")})` : "직항"}
-              </span>
-              <span className="flight-airline">{o.airlines.join(" · ")}</span>
-            </div>
-            <div className="flight-buy">
-              <strong>{won(o.price)}</strong>
-              <a href={link} target="_blank" rel="noopener noreferrer">
-                예약하기
-              </a>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <p className="flight-note">
-        Google 항공편 검색 기준, 검색 시점 가격이에요{roundTrip ? " (왕복 총액)" : ""}. 실제 금액과 좌석은 예약 사이트에서 꼭 확인해 주세요.
-      </p>
-      <a className="flight-more" href={link} target="_blank" rel="noopener noreferrer">
-        트립닷컴에서 전체 결과 보기
-      </a>
-    </div>
   );
 }

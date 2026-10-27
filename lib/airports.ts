@@ -122,6 +122,26 @@ export function searchPlaces(d: Data, input: string, limit = 8): Place[] {
   return out;
 }
 
+// 도시 코드(SEL)는 그 도시 공항들(ICN,GMP)로 바꾼다. 실시간 가격 서버는 공항 코드만 받는다
+export async function airportsFor(code: string): Promise<string> {
+  try {
+    const d = await loadAirports();
+    const metro = d.metros.find((m) => m[0] === code);
+    if (metro) return metro[4].slice(0, 4).join(",");
+  } catch {
+    // 목록을 못 받으면 코드 그대로 보낸다
+  }
+  return code;
+}
+
+// 주소에 코드만 있을 때 입력칸에 보여 줄 이름 ("서울 모든 공항 (SEL)", "도쿄 (NRT)")
+export function labelForCode(d: Data, code: string): string {
+  const metro = d.metros.find((m) => m[0] === code);
+  if (metro) return `${metro[2] || metro[1]} 모든 공항 (${code})`;
+  const a = d.airports.find((x) => x[0] === code);
+  return a ? `${cityName(a)} (${code})` : code;
+}
+
 // "도쿄 모든 공항 (TYO)", "nrt" 처럼 이미 코드가 보이면 바로 꺼낸다
 export function codeFromText(input: string): string | null {
   const text = input.trim();

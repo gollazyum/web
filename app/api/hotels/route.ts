@@ -9,6 +9,8 @@ export const maxDuration = 30;
 
 const MAX_OPTIONS = 20;
 const MAX_SOURCES = 12;
+const MAX_IMAGES = 5;
+const MAX_AMENITIES = 20;
 
 function parseQuery(body: unknown) {
   if (!body || typeof body !== "object") return null;
@@ -25,8 +27,14 @@ type Rate = { extracted_lowest?: number };
 type SerpPrice = { source?: string; logo?: string; link?: string; official?: boolean; rate_per_night?: Rate; total_rate?: Rate };
 type SerpProperty = {
   name?: string;
+  type?: string;
   property_token?: string;
   images?: { thumbnail?: string }[];
+  amenities?: string[];
+  deal?: string;
+  deal_description?: string;
+  hotel_class?: string;
+  gps_coordinates?: { latitude?: number; longitude?: number };
   extracted_hotel_class?: number;
   overall_rating?: number;
   reviews?: number;
@@ -61,10 +69,17 @@ function cleanSources(list: SerpPrice[]): HotelSource[] {
 function toOption(p: SerpProperty): HotelOption | null {
   if (!p.name || !p.property_token) return null;
   const sources = cleanSources(p.prices ?? []);
+  const images = (p.images ?? []).map((i) => i.thumbnail ?? "").filter(Boolean).slice(0, MAX_IMAGES);
+  const gps = p.gps_coordinates;
   return {
     token: p.property_token,
     name: p.name,
-    image: p.images?.[0]?.thumbnail ?? "",
+    image: images[0] ?? "",
+    images,
+    kind: p.type === "vacation rental" ? "휴가용 숙소" : p.type && p.type !== "hotel" ? p.type : "호텔",
+    amenities: (p.amenities ?? []).slice(0, MAX_AMENITIES),
+    deal: [p.deal, p.deal_description].filter(Boolean).join(" · "),
+    gps: typeof gps?.latitude === "number" && typeof gps?.longitude === "number" ? [gps.latitude, gps.longitude] : null,
     stars: p.extracted_hotel_class ?? null,
     rating: p.overall_rating ?? null,
     reviews: p.reviews ?? null,

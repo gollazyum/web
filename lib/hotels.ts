@@ -15,6 +15,11 @@ export type HotelOption = {
   token: string; // 예약 사이트별 가격을 더 불러올 때 쓴다
   name: string;
   image: string;
+  images: string[]; // 결과 카드 사진 넘기기용 (첫 장은 image와 같다)
+  kind: string; // "호텔", "휴가용 숙소" 같은 숙소 종류
+  amenities: string[]; // 무료 Wi-Fi, 수영장 …
+  deal: string; // Google이 붙인 특가 문구 ("평소보다 20% 저렴")
+  gps: [number, number] | null;
   stars: number | null;
   rating: number | null;
   reviews: number | null;
@@ -27,6 +32,24 @@ export type HotelResults = { options: HotelOption[] };
 export type HotelPrices = { sources: HotelSource[] };
 
 export type HotelQuery = { q: string; checkIn: string; checkOut: string; adults: number };
+
+// 결과 페이지 주소 (/hotels?q=…). 주소만 보내도 같은 검색이 열린다
+export function hotelsPath(query: HotelQuery): string {
+  const p = new URLSearchParams({ q: query.q, checkin: query.checkIn, checkout: query.checkOut, adults: String(query.adults) });
+  return `/hotels?${p}`;
+}
+
+export function parseHotelsPath(sp: Record<string, string | string[] | undefined>): HotelQuery | null {
+  const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
+  const q = one("q").trim();
+  const checkIn = one("checkin");
+  const checkOut = one("checkout");
+  const adults = Number(one("adults") || 2);
+  const date = /^\d{4}-\d{2}-\d{2}$/;
+  if (!q || q.length > 100 || !date.test(checkIn) || !date.test(checkOut) || checkOut <= checkIn) return null;
+  if (!Number.isInteger(adults) || adults < 1 || adults > 9) return null;
+  return { q, checkIn, checkOut, adults };
+}
 
 // 아고다 가격은 로보티 제휴 번호가 붙은 아고다 검색으로 보낸다 (제휴 수수료)
 export function agodaSearchUrl(name: string, query: HotelQuery): string {

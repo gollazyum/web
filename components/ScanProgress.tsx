@@ -10,10 +10,22 @@ export const SCAN_REPEAT_MS = 1600;
 const MORPH_AT = 0.5; // 흰 로보티가 카테고리 로보티로 변신하는 순간 (전체 시간 대비)
 const FOUND_AT = 0.69; // 다 찾으면 렌즈가 커지며 반짝
 
-// at: 단계가 시작되는 때 (전체 시간 대비 0~1)
-type Props = { ms: number; steps: { text: string; at: number }[]; morphTo?: "hotel" | "flight" };
+const HOLD_AT = 0.93; // 결과를 기다리는 동안 여기서 멈춰 기다린다
+const FINISH_RATE = 2.5; // 결과가 오면 남은 연출을 이만큼 빨리 감는다
 
-export function ScanProgress({ ms, steps, morphTo }: Props) {
+// at: 단계가 시작되는 때 (전체 시간 대비 0~1)
+// onDone을 주면 결과(ready)가 올 때까지 끝 단계 앞에서 기다렸다가, 오면 남은 연출을 빨리 마치고 onDone을 부른다.
+// stage는 결과 페이지에서 쓰는 큰 화면 모양
+type Props = {
+  ms: number;
+  steps: { text: string; at: number }[];
+  morphTo?: "hotel" | "flight";
+  ready?: boolean;
+  onDone?: () => void;
+  stage?: { title: string; sub: string };
+};
+
+export function ScanProgress({ ms, steps, morphTo, ready = false, onDone, stage }: Props) {
   const [now, setNow] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -25,24 +37,36 @@ export function ScanProgress({ ms, steps, morphTo }: Props) {
     if (r.bottom > window.innerHeight || r.top < 0) el.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
+  const readyRef = useRef(ready);
+  readyRef.current = ready;
+  const doneRef = useRef(onDone);
+  doneRef.current = onDone;
+  const waits = !!onDone;
+
   useEffect(() => {
-    const start = performance.now();
+    let last = performance.now();
+    let elapsed = 0;
     let frame = 0;
     const tick = (t: number) => {
-      const elapsed = t - start;
-      setNow(elapsed);
+      const dt = t - last;
+      last = t;
+      if (!waits) elapsed += dt;
+      else if (readyRef.current) elapsed += dt * FINISH_RATE;
+      else elapsed = Math.min(elapsed + dt, HOLD_AT * ms);
+      setNow(Math.min(elapsed, ms));
       if (elapsed < ms) frame = requestAnimationFrame(tick);
+      else doneRef.current?.();
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [ms]);
+  }, [ms, waits]);
 
   const pct = Math.min(100, Math.round((now / ms) * 100));
   const morphed = morphTo && now >= MORPH_AT * ms;
   const found = now >= FOUND_AT * ms;
 
   return (
-    <div className="scan" ref={boxRef}>
+    <div className={`scan${stage ? " scan-stage" : ""}`} ref={boxRef}>
       <div className={`scan-bot ${found ? "lb-st-zoom" : "lb-st-scan"}`} aria-hidden="true">
         <div className="lb-breathe">
           <div className={`scan-rig${morphed ? " morphed" : ""}`}>
@@ -52,6 +76,12 @@ export function ScanProgress({ ms, steps, morphTo }: Props) {
         <span className="scan-beam" />
       </div>
       <div className="scan-body">
+        {stage && (
+          <div className="scan-title">
+            <strong>{stage.title}</strong>
+            <span>{stage.sub}</span>
+          </div>
+        )}
         <ol className="scan-steps">
           {steps.map((s, i) => {
             const end = (steps[i + 1]?.at ?? 1) * ms;

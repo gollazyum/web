@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 // SerpApi 응답이 10초를 넘길 때가 있어 함수 시간을 넉넉히 준다
 export const maxDuration = 30;
 
-const MAX_OPTIONS = 15;
+const MAX_OPTIONS = 30;
 const AIRPORTS = /^[A-Z]{3}(,[A-Z]{3}){0,3}$/;
 
 function parseQuery(body: unknown) {
@@ -22,12 +22,15 @@ function parseQuery(body: unknown) {
 
 type Segment = {
   airline?: string;
-  departure_airport?: { id?: string; time?: string };
-  arrival_airport?: { id?: string; time?: string };
+  flight_number?: string;
+  airplane?: string;
+  duration?: number;
+  departure_airport?: { id?: string; name?: string; time?: string };
+  arrival_airport?: { id?: string; name?: string; time?: string };
 };
 type Trip = {
   flights?: Segment[];
-  layovers?: { id?: string }[];
+  layovers?: { id?: string; duration?: number }[];
   total_duration?: number;
   price?: number;
   airline_logo?: string;
@@ -53,6 +56,19 @@ function toOption(t: Trip): FlightOption | null {
     toId: last.arrival_airport?.id ?? "",
     minutes: t.total_duration ?? 0,
     stops: (t.layovers ?? []).map((l) => l.id ?? "").filter(Boolean),
+    segments: segs.map((s) => ({
+      airline: s.airline ?? "",
+      flightNo: s.flight_number ?? "",
+      plane: s.airplane ?? "",
+      fromId: s.departure_airport?.id ?? "",
+      fromName: s.departure_airport?.name ?? "",
+      toId: s.arrival_airport?.id ?? "",
+      toName: s.arrival_airport?.name ?? "",
+      departTime: s.departure_airport?.time ?? "",
+      arriveTime: s.arrival_airport?.time ?? "",
+      minutes: s.duration ?? 0,
+    })),
+    layovers: (t.layovers ?? []).filter((l) => l.id).map((l) => l.duration ?? 0),
   };
 }
 
