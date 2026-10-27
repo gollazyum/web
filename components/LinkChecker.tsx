@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChatBox } from "@/components/ChatBox";
 import { FlightSearch } from "@/components/FlightSearch";
+import { LowbotiBot } from "@/components/LowbotiBot";
 import { SCAN_FIRST_MS, SCAN_REPEAT_MS, ScanProgress } from "@/components/ScanProgress";
 import { AFFILIATE_CID, HOTEL_PROMOCODES, groupOrder, hotelNameFromUrl, parseAgodaUrl, routes, sampleLinks, withCid } from "@/lib/agoda";
 import { site } from "@/lib/site";
@@ -165,10 +166,44 @@ export function LinkChecker() {
             />
           )}
           {result.kind === "ok" && <RouteList url={result.url} />}
-          {result.kind === "notAgoda" && <span>지금은 아고다 호텔 링크만 바꿀 수 있어요. agoda.com 호텔 페이지 주소를 넣어 주세요.</span>}
-          {result.kind === "invalid" && <span>https:// 로 시작하는 아고다 호텔 페이지 주소를 넣어 주세요.</span>}
+          {result.kind === "notAgoda" && <SadNote>지금은 아고다 호텔 링크만 바꿀 수 있어요. agoda.com 호텔 페이지 주소를 넣어 주세요.</SadNote>}
+          {result.kind === "invalid" && <SadNote>https:// 로 시작하는 아고다 호텔 페이지 주소를 넣어 주세요.</SadNote>}
         </div>
       )}
+    </div>
+  );
+}
+
+// 링크를 못 바꿨을 때: 시무룩한 로보티
+function SadNote({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="result-sad lb-st-sad">
+      <div className="result-bot" aria-hidden="true">
+        <div className="lb-act">
+          <LowbotiBot fx={false} />
+        </div>
+      </div>
+      <span>{children}</span>
+    </div>
+  );
+}
+
+// 결과가 뜨는 순간: 깡충 뛰며 렌즈가 커지고 반짝
+function FoundBot() {
+  const actRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setZoom(false), 1400);
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) actRef.current?.classList.add("lb-hop");
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className={`result-bot found${zoom ? " lb-st-zoom" : ""}`} aria-hidden="true">
+      <div className="lb-breathe">
+        <div ref={actRef} className="lb-act" onAnimationEnd={(e) => e.target === e.currentTarget && e.currentTarget.classList.remove("lb-hop")}>
+          <LowbotiBot kind="hotel" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -183,8 +218,11 @@ function RouteList({ url }: { url: URL }) {
   return (
     <div className="route-reveal">
       <div className="result-head">
-        <strong>{name ? `${name} 링크를 ${routes.length}개 경로로 바꿨어요` : `링크를 ${routes.length}개 경로로 바꿨어요`}</strong>
-        <span>같은 호텔·날짜·인원 기준</span>
+        <FoundBot />
+        <div className="result-head-text">
+          <strong>{name ? `${name} 링크를 ${routes.length}개 경로로 바꿨어요` : `링크를 ${routes.length}개 경로로 바꿨어요`}</strong>
+          <span>같은 호텔·날짜·인원 기준</span>
+        </div>
       </div>
 
       {AFFILIATE_CID && (
