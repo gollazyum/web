@@ -62,8 +62,9 @@ export async function GET(req: Request) {
     });
     json = await res.json();
     if (!res.ok) {
-      console.error("places", res.status, JSON.stringify(json).slice(0, 300));
-      return Response.json({ error: "upstream" }, { status: 502 });
+      const message = (json as { error?: { message?: string } }).error?.message ?? "";
+      console.error("places", res.status, message);
+      return Response.json({ error: "upstream", detail: `${res.status} ${message}`.slice(0, 200) }, { status: 502 });
     }
   } catch (e) {
     console.error("places", e);
