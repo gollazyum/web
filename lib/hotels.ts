@@ -28,7 +28,7 @@ export type HotelOption = {
   sources: HotelSource[]; // 검색 목록에 함께 온 몇 곳
 };
 
-export type HotelResults = { options: HotelOption[] };
+export type HotelResults = { options: HotelOption[]; next: string | null }; // next: 다음 쪽을 부를 때 쓰는 값
 export type HotelPrices = { sources: HotelSource[] };
 
 export type HotelQuery = { q: string; checkIn: string; checkOut: string; adults: number };

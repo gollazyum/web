@@ -14,13 +14,14 @@ const MAX_AMENITIES = 20;
 
 function parseQuery(body: unknown) {
   if (!body || typeof body !== "object") return null;
-  const { q, checkIn, checkOut, adults, token } = body as Record<string, unknown>;
+  const { q, checkIn, checkOut, adults, token, page } = body as Record<string, unknown>;
   if (typeof q !== "string" || !q.trim() || q.length > 100) return null;
   if (typeof checkIn !== "string" || !DATE.test(checkIn) || checkIn < today()) return null;
   if (typeof checkOut !== "string" || !DATE.test(checkOut) || checkOut <= checkIn) return null;
   if (typeof adults !== "number" || !Number.isInteger(adults) || adults < 1 || adults > 9) return null;
   if (token !== undefined && (typeof token !== "string" || !token || token.length > 500)) return null;
-  return { q: q.trim(), checkIn, checkOut, adults, token: token as string | undefined };
+  if (page !== undefined && (typeof page !== "string" || !page || page.length > 500)) return null;
+  return { q: q.trim(), checkIn, checkOut, adults, token: token as string | undefined, page: page as string | undefined };
 }
 
 type Rate = { extracted_lowest?: number };
@@ -97,7 +98,8 @@ function shapeList(raw: Record<string, unknown>): HotelResults {
   const props = single
     ? [{ ...(raw as SerpProperty), prices: [...((raw.featured_prices as SerpPrice[] | undefined) ?? []), ...((raw.prices as SerpPrice[] | undefined) ?? [])] }]
     : ((raw.properties as SerpProperty[] | undefined) ?? []);
-  return { options: props.map(toOption).filter((o): o is HotelOption => !!o && o.perNight !== null).slice(0, MAX_OPTIONS) };
+  const next = (raw.serpapi_pagination as { next_page_token?: string } | undefined)?.next_page_token ?? null;
+  return { options: props.map(toOption).filter((o): o is HotelOption => !!o && o.perNight !== null).slice(0, MAX_OPTIONS), next };
 }
 
 function shapePrices(raw: Record<string, unknown>): HotelPrices {
@@ -121,5 +123,7 @@ export async function POST(req: Request) {
     gl: "kr",
   };
   if (q.token) params.property_token = q.token;
+  // "호텔 더 보기": Google은 한 번에 20곳 안팎만 주므로 다음 쪽을 따로 부른다 (검색 1번 요금)
+  if (q.page) params.next_page_token = q.page;
   return q.token ? serpSearch(req, params, shapePrices) : serpSearch(req, params, shapeList);
 }

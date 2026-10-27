@@ -5,6 +5,7 @@ import { FlightSearch } from "./FlightSearch";
 import { PriceRange } from "./PriceRange";
 import { ResultsMessage, ResultsShell } from "./ResultsShell";
 import { ScanProgress } from "./ScanProgress";
+import { SortMenu } from "./SortMenu";
 import { airportsFor } from "@/lib/airports";
 import { errorCode } from "@/lib/apiError";
 import { shortLabel, today } from "@/lib/dates";
@@ -280,14 +281,15 @@ function FlightBoard({ data, query, link }: { data: FlightResults; query: Flight
             <button type="button" className="filters-toggle" onClick={() => setFiltersOpen(true)}>
               필터{active > 0 ? ` ${active}` : ""}
             </button>
-            <label className="sort">
-              <span>정렬</span>
-              <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-                <option value="price">낮은 가격순</option>
-                <option value="duration">짧은 비행순</option>
-                <option value="early">빠른 출발순</option>
-              </select>
-            </label>
+            <SortMenu
+              value={sort}
+              onChange={setSort}
+              options={[
+                { id: "price", label: "낮은 가격순" },
+                { id: "duration", label: "짧은 비행순" },
+                { id: "early", label: "빠른 출발순" },
+              ]}
+            />
           </div>
         </div>
 
