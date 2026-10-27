@@ -14,14 +14,17 @@ const talks = [
 ];
 const SLEEP_AFTER_MS = 30000;
 
-type Props = { thinking?: boolean };
+// talks·greeting을 주면 그 화면에 맞는 혼잣말을 한다. compact는 작은 칸(결과 화면 도우미)용
+type Props = { thinking?: boolean; talks?: string[]; greeting?: string; compact?: boolean };
 
-export function LiveMochi({ thinking = false }: Props) {
+export function LiveMochi({ thinking = false, talks: customTalks, greeting, compact = false }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const mochiRef = useRef<HTMLDivElement>(null);
   const actRef = useRef<HTMLDivElement>(null);
   const shadowRef = useRef<HTMLDivElement>(null);
-  const [bubble, setBubble] = useState("🍡 안녕하세요! 여행에 관한 건 뭐든 물어보세요.");
+  const [bubble, setBubble] = useState(greeting ?? "🍡 안녕하세요! 여행에 관한 건 뭐든 물어보세요.");
+  const talksRef = useRef(customTalks ?? talks);
+  talksRef.current = customTalks ?? talks;
   const [swap, setSwap] = useState(false);
   const [tracking, setTracking] = useState(false);
   const [sleeping, setSleeping] = useState(false);
@@ -109,29 +112,30 @@ export function LiveMochi({ thinking = false }: Props) {
     armSleep();
     api.current = { say, look, hop, wake: () => wake(true) };
 
+    const line = (i: number) => talksRef.current[i % talksRef.current.length];
     // 혼자 노는 중: 2.5~5.5초마다 하나씩
     const IDLE = [
       () => {
         look(-4.5, -1);
-        say(talks[0]);
+        say(line(0));
       },
       () => {
         look(4.5, -1);
-        say(talks[1]);
+        say(line(1));
       },
       () => {
         look(1, -3);
         play("lb-tilt");
-        say(talks[2]);
+        say(line(2));
       },
       () => {
         look(0, 0);
-        say(talks[3]);
+        say(line(3));
       },
       () => {
         look(0, 0);
         play("lb-hop");
-        say(talks[4]);
+        say(line(4));
       },
     ];
     function scheduleIdle() {
@@ -235,7 +239,7 @@ export function LiveMochi({ thinking = false }: Props) {
     .join(" ");
 
   return (
-    <div ref={stageRef} className={`mochi-stage ${states}`}>
+    <div ref={stageRef} className={`mochi-stage${compact ? " compact" : ""} ${states}`}>
       <span className={`mochi-badge${tracking ? " tracking" : ""}${thinking ? " thinking" : ""}${sleeping && !thinking ? " sleeping" : ""}`}>
         <i /> {thinking ? "생각하는 중" : sleeping ? "조는 중" : tracking ? "보고 있어요!" : "혼자 노는 중"}
       </span>

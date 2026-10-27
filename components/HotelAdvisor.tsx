@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LowbotiBot } from "./LowbotiBot";
+import { LiveMochi } from "./LiveMochi";
 import type { HotelOption, HotelQuery } from "@/lib/hotels";
 
 // 호텔 결과 화면 오른쪽에 붙어 다니는 로보티 숙소 도우미.
@@ -91,6 +91,17 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick }: Props) {
     }
   }
 
+  // 혼잣말은 지금 목록을 보고 만든다
+  const good = hotels.filter((h) => (h.rating ?? 0) >= 4.5).length;
+  const breakfast = hotels.filter((h) => h.amenities.some((a) => /조식|breakfast/i.test(a))).length;
+  const talks = [
+    `👀 ${query.q} 숙소 ${hotels.length}곳을 훑어봤어요!`,
+    good ? `⭐ 후기 4.5점 넘는 곳이 ${good}곳 있어요` : "💡 중요한 걸 골라 주면 딱 맞게 골라 드려요",
+    breakfast ? `🍳 조식 되는 곳도 ${breakfast}곳 찾았어요` : "🔍 가성비 좋은 곳도 찾아 드릴 수 있어요",
+    "💡 아래에서 중요한 걸 골라 보세요",
+    "🙌 저를 세 번 콕콕콕 눌러 보세요!",
+  ];
+
   function askWithPrefs() {
     if (!prefs.size) return;
     send(`제가 중요하게 생각하는 건 ${[...prefs].join(", ")}이에요. 이 중에서 골라 주세요.`);
@@ -114,15 +125,10 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick }: Props) {
   return (
     <aside className={`advisor${open ? " open" : ""}`} aria-label="로보티 숙소 도우미">
       <div className="advisor-head">
-        <div className={`advisor-bot ${busy ? "lb-st-scan" : ""}`} aria-hidden="true">
-          <div className="lb-breathe">
-            <LowbotiBot kind="main" fx={false} />
-          </div>
-        </div>
         <div>
-          <strong>로보티 숙소 도우미</strong>
+          <strong>로보티에게 물어보세요</strong>
           <span>
-            <i className="online" /> AI가 이 목록에서 골라 드려요
+            <i className="online" /> 여행 예약 도우미 AI
           </span>
         </div>
         <button type="button" className="filters-close advisor-close" onClick={onClose} aria-label="도우미 닫기">
@@ -131,13 +137,10 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick }: Props) {
       </div>
 
       <div className="advisor-list" ref={listRef} aria-live="polite">
-        <div className="bubble-row bot">
-          <p className="bubble">
-            {query.q} 숙소 {hotels.length}곳을 찾았어요! 호텔 고를 때 뭐가 제일 중요하세요? 골라 주시면 딱 맞는 곳을 추천해 드릴게요.
-          </p>
-        </div>
+        <LiveMochi compact thinking={busy} talks={talks} greeting={`🍡 ${query.q} 숙소, 같이 골라 볼까요?`} />
         {!messages.length && (
           <div className="advisor-prefs">
+            <p>호텔 고를 때 뭐가 제일 중요하세요?</p>
             {PREFS.map((p) => (
               <button
                 key={p}
