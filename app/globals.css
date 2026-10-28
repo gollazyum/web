@@ -4740,3 +4740,97 @@ body:has(.compare-bar) .hcards {
 .auth-google {
   background: var(--white);
 }
+
+/* ---------- 조건에 맞는 곳이 없을 때 ✔/✘ 대안 ---------- */
+.nomatch {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--white);
+}
+.nomatch-lead {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.nomatch-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nomatch-card {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--soft);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nomatch-card img,
+.nomatch-noimg {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--line);
+}
+.nomatch-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.nomatch-body strong {
+  font-size: 14px;
+}
+.nomatch-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.nomatch-badges em {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+.nomatch-badges .ok {
+  background: #d1fae5;
+  color: var(--green-dark);
+}
+.nomatch-badges .no {
+  background: #ffe4e6;
+  color: var(--caution);
+}
+.nomatch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.nomatch-actions > button:not(.link-btn),
+.nomatch-actions a {
+  min-height: 40px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: var(--blue);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}

@@ -10,7 +10,7 @@ import { ResultsMessage, ResultsShell } from "./ResultsShell";
 import { ScanProgress } from "./ScanProgress";
 import { SortMenu } from "./SortMenu";
 import { errorCode } from "@/lib/apiError";
-import { daysBetween, shortLabel, today } from "@/lib/dates";
+import { addDays, daysBetween, shortLabel, today } from "@/lib/dates";
 import { agodaSearchUrl, bookingLink, firstSites, isAgoda, hotelsPath, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
 import { MAX_COMPARE, compareItem, saveTopics, toSearchParams, updateStore, useLowbotiStore } from "@/lib/lowbotiStore";
@@ -439,12 +439,20 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
             ))}
           </ul>
         ) : (
-          <div className="results-none">
-            조건에 맞는 호텔이 없어요.{" "}
-            <button type="button" className="link-btn" onClick={reset}>
-              필터 초기화
-            </button>
-          </div>
+          <NoMatch
+            hotels={data.options}
+            cost={cost}
+            unit={unit}
+            range={userRange}
+            minRating={minRating}
+            stars={stars}
+            amenities={amenities}
+            query={query}
+            onPick={focusHotel}
+            onWiden={() => userRange && setRange([userRange[0], userRange[1] + 20000])}
+            onAnyStars={() => setStars(new Set())}
+            onReset={reset}
+          />
         )}
 
         {data.next && (
@@ -516,6 +524,97 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           {toast}
         </p>
       )}
+    </div>
+  );
+}
+
+// 필터를 다 맞추는 곳이 0곳일 때: 조건을 가장 많이 맞춘 2~3곳을 ✔/✘ 배지와 함께 보여 주고, 한 번에 푸는 버튼을 둔다
+type NoMatchProps = {
+  hotels: HotelOption[];
+  cost: (o: HotelOption) => number;
+  unit: "total" | "night";
+  range: [number, number] | null;
+  minRating: number;
+  stars: Set<number>;
+  amenities: Set<string>;
+  query: HotelQuery;
+  onPick: (token: string) => void;
+  onWiden: () => void;
+  onAnyStars: () => void;
+  onReset: () => void;
+};
+function NoMatch({ hotels, cost, unit, range, minRating, stars, amenities, query, onPick, onWiden, onAnyStars, onReset }: NoMatchProps) {
+  const man = (n: number) => `${(Math.round(n / 1000) / 10).toLocaleString("ko-KR")}만 원`;
+  const checks = (h: HotelOption) => {
+    const out: { text: string; ok: boolean }[] = [];
+    if (range) {
+      const p = cost(h);
+      const ok = p >= range[0] && p <= range[1];
+      out.push({ ok, text: ok ? `💰 ${unit === "night" ? "1박" : "총액"} ${man(p)} ✔` : p > range[1] ? `💰 예산 ${man(p - range[1])} 초과 ✘` : `💰 예산보다 ${man(range[0] - p)} 저렴 ✘` });
+    }
+    if (minRating) {
+      const ok = (h.rating ?? 0) >= minRating;
+      out.push({ ok, text: `✨ 평점 ${h.rating?.toFixed(1) ?? "-"} ${ok ? "✔" : "✘"}` });
+    }
+    if (stars.size) {
+      const ok = stars.has(h.stars ?? 0);
+      out.push({ ok, text: `👑 ${h.stars ? `${h.stars}성급` : "등급 정보 없음"} ${ok ? "✔" : "✘"}` });
+    }
+    for (const a of amenities) {
+      const ok = h.amenities.includes(a);
+      out.push({ ok, text: `${a} ${ok ? "✔" : "✘"}` });
+    }
+    return out;
+  };
+  const closest = hotels
+    .map((h) => ({ h, c: checks(h) }))
+    .sort((a, b) => b.c.filter((x) => x.ok).length - a.c.filter((x) => x.ok).length || cost(a.h) - cost(b.h))
+    .slice(0, 3);
+  const shift = (d: number) => hotelsPath({ ...query, checkIn: addDays(query.checkIn, d), checkOut: addDays(query.checkOut, d) });
+  return (
+    <div className="nomatch">
+      <p className="nomatch-lead">이번에 찾은 {hotels.length}곳 중에는 조건에 딱 맞는 곳이 없었어요. 대신 가장 가까운 곳을 골라 봤어요!</p>
+      <ul className="nomatch-list">
+        {closest.map(({ h, c }) => (
+          <li key={h.token}>
+            <button type="button" className="nomatch-card" onClick={() => onPick(h.token)}>
+              {h.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={h.image} alt="" />
+              ) : (
+                <span className="nomatch-noimg" />
+              )}
+              <span className="nomatch-body">
+                <strong>{hotelNameKo(h.name)}</strong>
+                <span className="nomatch-badges">
+                  {c.map((x) => (
+                    <em key={x.text} className={x.ok ? "ok" : "no"}>
+                      {x.text}
+                    </em>
+                  ))}
+                </span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="nomatch-actions">
+        {range && (
+          <button type="button" onClick={onWiden}>
+            예산 +2만 원 넓히기
+          </button>
+        )}
+        {stars.size > 0 && (
+          <button type="button" onClick={onAnyStars}>
+            성급 제한 풀기
+          </button>
+        )}
+        {addDays(query.checkIn, -1) >= today() && <a href={shift(-1)}>📅 하루 앞 날짜로</a>}
+        <a href={shift(1)}>📅 하루 뒤 날짜로</a>
+        <button type="button" className="link-btn" onClick={onReset}>
+          필터 초기화
+        </button>
+      </div>
     </div>
   );
 }
