@@ -94,13 +94,35 @@ function toOption(p: SerpProperty): HotelOption | null {
 
 // 호텔 이름으로 찾으면 Google이 목록 대신 그 호텔 한 곳의 정보를 바로 돌려준다
 // (properties 없이 name·property_token·prices가 맨 위에 온다). 이때는 한 곳짜리 목록으로 만든다
-function shapeList(raw: Record<string, unknown>): HotelResults {
+function propsOf(raw: Record<string, unknown>): { props: SerpProperty[]; single: boolean } {
   const single = raw.properties === undefined && typeof raw.property_token === "string" && typeof raw.name === "string";
   const props = single
     ? [{ ...(raw as SerpProperty), prices: [...((raw.featured_prices as SerpPrice[] | undefined) ?? []), ...((raw.prices as SerpPrice[] | undefined) ?? [])] }]
     : ((raw.properties as SerpProperty[] | undefined) ?? []);
+  return { props, single };
+}
+
+const optionsOf = (props: SerpProperty[]) => props.map(toOption).filter((o): o is HotelOption => !!o && o.perNight !== null);
+
+// Google 기본 순서는 저렴한 1~3성이 위로 많이 온다. 4·5성만 따로 받은 목록(upper)을 섞어
+// 20곳 중 4성 12곳, 5성 4곳(모자라면 4성으로)을 채우고 나머지는 기본 결과에서 채운다.
+// 순서는 각 목록 안의 순위를 따라 번갈아 놓아 첫 화면에 여러 등급이 섞이게 한다
+const MIX = { four: 12, five: 4 };
+function mixClasses(base: HotelOption[], upper: HotelOption[]): HotelOption[] {
+  const five = upper.filter((o) => o.stars === 5).slice(0, MIX.five);
+  const four = upper.filter((o) => o.stars === 4).slice(0, MIX.four + MIX.five - five.length);
+  const picked = new Set([...five, ...four].map((o) => o.token));
+  const rest = base.filter((o) => !picked.has(o.token)).slice(0, MAX_OPTIONS - picked.size);
+  const ranked = [...four.map((o, i) => ({ o, r: i / Math.max(four.length, 1) })), ...five.map((o, i) => ({ o, r: (i + 0.5) / Math.max(five.length, 1) })), ...rest.map((o, i) => ({ o, r: (i + 0.25) / Math.max(rest.length, 1) }))];
+  return ranked.sort((a, b) => a.r - b.r).map((x) => x.o);
+}
+
+function shapeList(raw: Record<string, unknown>, upperRaw: Record<string, unknown> | null): HotelResults {
+  const { props, single } = propsOf(raw);
   const next = (raw.serpapi_pagination as { next_page_token?: string } | undefined)?.next_page_token ?? null;
-  return { options: props.map(toOption).filter((o): o is HotelOption => !!o && o.perNight !== null).slice(0, MAX_OPTIONS), next };
+  const base = optionsOf(props);
+  if (single || !upperRaw) return { options: base.slice(0, MAX_OPTIONS), next };
+  return { options: mixClasses(base, optionsOf(propsOf(upperRaw).props)), next };
 }
 
 function shapePrices(raw: Record<string, unknown>): HotelPrices {
@@ -123,8 +145,15 @@ export async function POST(req: Request) {
     hl: "ko",
     gl: "kr",
   };
-  if (q.token) params.property_token = q.token;
-  // "호텔 더 보기": Google은 한 번에 20곳 안팎만 주므로 다음 쪽을 따로 부른다 (검색 1번 요금)
-  if (q.page) params.next_page_token = q.page;
-  return q.token ? serpSearch(req, params, shapePrices) : serpSearch(req, params, shapeList);
+  if (q.token) {
+    params.property_token = q.token;
+    return serpSearch(req, params, shapePrices);
+  }
+  // "호텔 더 보기": Google은 한 번에 20곳 안팎만 주므로 다음 쪽을 따로 부른다 (검색 1번 요금). 다음 쪽은 기본 순서 그대로
+  if (q.page) {
+    params.next_page_token = q.page;
+    return serpSearch(req, params, shapeList);
+  }
+  // 첫 쪽은 4·5성만 한 번 더 불러 섞는다 (검색 2번 요금)
+  return serpSearch(req, params, shapeList, { ...params, hotel_class: "4,5" });
 }
