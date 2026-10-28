@@ -1177,3 +1177,49 @@ html.sheet-lock body {
     animation: none;
   }
 }
+
+/* ---------- P2-2 홈 길이 줄이기: 세 단계·잘하는 것·패밀리는 옆으로 넘기는 카드 ---------- */
+@media (max-width: 640px) {
+  .section {
+    padding-top: 56px;
+  }
+  .steps,
+  .bento,
+  .family {
+    display: flex;
+    gap: 12px;
+    margin: 0 -16px;
+    padding: 4px 16px 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 16px;
+    scrollbar-width: none;
+  }
+  .steps::-webkit-scrollbar,
+  .bento::-webkit-scrollbar,
+  .family::-webkit-scrollbar {
+    display: none;
+  }
+  .steps > li,
+  .bento > .bento-card,
+  .family > .family-card {
+    flex: 0 0 80%;
+    scroll-snap-align: start;
+  }
+  .bento-card {
+    padding: 22px;
+  }
+  .bento > .bento-analysis {
+    flex-basis: 92%;
+  }
+  .family-card {
+    padding: 22px 20px 20px;
+  }
+  .family-go {
+    min-height: 44px;
+  }
+  .steps li:hover,
+  .family-card:hover {
+    transform: none;
+  }
+}
