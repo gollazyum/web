@@ -2795,6 +2795,39 @@ a {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+/* 예산 기준 고르기: 총액 | 1박 */
+.budget-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.budget-head h4 {
+  margin: 0;
+}
+.unit-toggle {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--soft);
+}
+.unit-toggle button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.unit-toggle button[aria-pressed="true"] {
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(11, 18, 32, 0.12);
+}
 .chip-row {
   display: flex;
   flex-wrap: wrap;

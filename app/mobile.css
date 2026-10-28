@@ -235,7 +235,7 @@ html.sheet-lock body {
     display: block;
     position: fixed;
     inset: 0;
-    z-index: 55;
+    z-index: 49; /* 필터·로보티 시트(50) 바로 아래 */
     background: rgba(11, 18, 32, 0.45);
     touch-action: none;
     animation: dim-in 0.2s ease both;
@@ -437,5 +437,735 @@ html.sheet-lock body {
     flex: 1;
     min-height: 48px;
     font-size: 15px;
+  }
+}
+
+/* ---------- 결과 화면 공통 부품 (PC에는 나타나지 않는 새 요소라 미디어 쿼리 밖) ---------- */
+.hcard-price i {
+  font-style: normal;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  z-index: 70;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 14px 30px -10px rgba(11, 18, 32, 0.55);
+  animation: dim-in 0.2s ease both;
+}
+.advisor-compare {
+  width: 100%;
+  margin: 4px 0 10px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.advisor-compare caption {
+  text-align: left;
+  font-weight: 800;
+  color: var(--ink);
+  padding-bottom: 6px;
+}
+.advisor-compare th,
+.advisor-compare td {
+  padding: 6px 4px;
+  border-top: 1px solid var(--line);
+  text-align: right;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.advisor-compare thead th {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  border-top: 0;
+}
+.advisor-compare th[scope="row"],
+.advisor-compare thead th:first-child {
+  text-align: left;
+}
+.advisor-compare th[scope="row"] .advisor-pick {
+  display: block;
+  max-width: 150px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+.advisor-compare small {
+  display: block;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  /* ---------- P1-2 결과 화면 상단 고정: 요약 + 정렬·필터 ---------- */
+  html {
+    --hdr: 56px;
+  }
+  html[data-hdr="hidden"] {
+    --hdr: 0px;
+  }
+  .nav-bar {
+    transition: transform 0.25s ease;
+  }
+  html[data-hdr="hidden"] .nav-bar {
+    transform: translateY(-100%);
+  }
+  .results-top {
+    padding: 4px 0;
+  }
+  .results-top:not(.editing) {
+    position: sticky;
+    top: var(--hdr);
+    z-index: 15;
+    transition: top 0.25s ease;
+  }
+  .results-summary {
+    min-height: 44px;
+    padding: 4px 14px;
+    border-radius: 14px;
+  }
+  .results-summary strong {
+    font-size: 14px;
+    line-height: 18px;
+  }
+  .results-summary small {
+    line-height: 16px;
+  }
+  .results-page {
+    padding-top: 0;
+  }
+  .results-bar {
+    position: sticky;
+    top: calc(var(--hdr) + 53px);
+    z-index: 14;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin: 0 -16px 0;
+    padding: 0 16px;
+    min-height: 46px;
+    background: var(--white);
+    border-bottom: 1px solid var(--line);
+    transition: top 0.25s ease;
+  }
+  .results-bar p {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+  .results-bar strong {
+    font-size: 15px;
+  }
+  .results-bar-sub {
+    display: none;
+  }
+  .results-tools {
+    flex: none;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .filters-toggle,
+  .sort-btn {
+    min-height: 44px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .results-hint {
+    display: block;
+    margin: 10px 0;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .results-hint b {
+    color: var(--ink);
+  }
+  .insight {
+    margin-top: 10px;
+  }
+
+  /* ---------- P1-5 필터 시트 ---------- */
+  .filters.open {
+    max-height: 90dvh;
+    overscroll-behavior: contain;
+    animation: sheet-up 0.25s ease both;
+  }
+  .filters-head {
+    position: sticky;
+    top: -18px;
+    z-index: 1;
+    margin: -18px -18px 0;
+    padding: 8px 8px 8px 18px;
+    background: var(--white);
+    align-items: center;
+  }
+  .unit-toggle button {
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .advisor.open {
+    max-height: 85dvh;
+    overscroll-behavior: contain;
+    animation: sheet-up 0.25s ease both;
+  }
+  .advisor-fab.comparing {
+    background: var(--blue);
+  }
+
+  /* ---------- P0-5 숙소 결과: 가로형 컴팩트 카드 ---------- */
+  .hcards {
+    gap: 10px;
+  }
+  .hcard,
+  .with-advisor .hcard {
+    position: relative;
+    grid-template-columns: 96px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: 12px;
+    min-height: 144px;
+    padding: 12px;
+    border-radius: var(--radius);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hcard:active {
+    background: var(--soft);
+  }
+  /* ① 썸네일 96×120 (4:5), 첫 사진 한 장 */
+  .hcard-photo {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 96px;
+    aspect-ratio: 4 / 5;
+    min-height: 0;
+    align-self: start;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .hcard-photo .photo-nav,
+  .hcard-photo .photo-dots {
+    display: none;
+  }
+  /* ② 배지: 최대 1개, 썸네일 왼쪽 위 */
+  .hcard-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .hcard-badge.is-robo {
+    background: var(--sky);
+    color: var(--white);
+  }
+  /* 최저가·특가는 주황 전용 규칙: 연한 주황 바탕 + 진한 주황 글씨 (흰 글씨 X) */
+  .hcard-badge.is-lowest,
+  .hcard-badge.is-deal {
+    background: var(--color-deal-bg);
+    color: var(--color-deal);
+  }
+  .hcard-deal,
+  .hcard-amen {
+    display: none;
+  }
+  /* ③ 호텔명 · ④ 메타 · ⑤ 평점 */
+  .hcard-body {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 0;
+    gap: 4px;
+  }
+  .hcard-body h3 {
+    font-size: 15px;
+    line-height: 20px;
+    letter-spacing: -0.01em;
+  }
+  .hcard-meta {
+    font-size: 12px;
+    line-height: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hcard-meta .mochi-stars,
+  .hcard-map {
+    display: none;
+  }
+  .hcard-rating {
+    margin-top: 0;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .hcard-rating .rating-mochi {
+    width: auto !important; /* 컴포넌트 인라인 40px 덮어쓰기 */
+    height: 22px !important;
+    padding: 0 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    background: var(--green);
+  }
+  .hcard-rating .rating-mochi[data-tier="ok"] {
+    background: var(--muted);
+  }
+  .hcard-rating .rating-mochi svg {
+    display: none;
+  }
+  .hcard-rating .rating-mochi b {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .hcard-rating p {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .hcard-rating p span {
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .hcard-norating {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  /* ⑥ 가격: 라벨 → 총액 → 1박 평균, 오른쪽 정렬 */
+  .hcard-price {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 0;
+    padding: 6px 0 0;
+    text-align: right;
+  }
+  .hcard-price em {
+    order: 1;
+    font-size: 11px;
+    line-height: 14px;
+  }
+  .hcard-price strong {
+    order: 2;
+    font-size: 17px;
+    line-height: 22px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .hcard-price span {
+    order: 3;
+    font-size: 11px;
+    line-height: 14px;
+  }
+  /* ⑧ '선택' 버튼 → 카드 전체를 덮는 투명 버튼 (가격 시트 열기) */
+  .hcard-price button {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    margin: 0;
+    padding: 0;
+    border-radius: inherit;
+    background: transparent;
+    color: transparent;
+    font-size: 0;
+  }
+  .hcard-price button:hover {
+    background: transparent;
+  }
+  .hcard-price button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+  }
+  .hcard-sources {
+    display: none;
+  }
+  /* ⑦ 비교 담기: 보이는 크기 20px, 터치 영역 44×44 */
+  .hcard-compare {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+    justify-self: start;
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0 0 -10px -4px;
+    padding: 0 8px 0 4px;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .hcard-compare::before {
+    content: "";
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    border-radius: 6px;
+    border: 1.5px solid #c3cad8;
+    background: var(--white);
+  }
+  .hcard-compare[aria-pressed="true"] {
+    color: var(--blue);
+  }
+  .hcard-compare[aria-pressed="true"]::before {
+    border-color: var(--blue);
+    background: var(--blue)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5 10.5l3 3 7-7' fill='none' stroke='white' stroke-width='2.2'/%3E%3C/svg%3E")
+      center / 14px no-repeat;
+  }
+  .hcard-compare[aria-disabled="true"] {
+    opacity: 0.4;
+  }
+  /* 상태: 비교 담김 (테두리 2px, 패딩 1px 줄여 크기 유지) */
+  .hcard.is-compared {
+    border: 2px solid var(--blue);
+    padding: 11px;
+    background: #f5f8ff;
+  }
+  /* 터치 기기에서 hover 그림자가 남지 않게 */
+  .hcard:hover,
+  .hcard.open {
+    box-shadow: none;
+    border-color: var(--line);
+  }
+  .hcard.is-compared:hover {
+    border-color: var(--blue);
+  }
+
+  /* 상태: 불러오는 중 — 스캔 연출 대신 안내 줄 + 카드 모양 자리 6장 */
+  .results-loading {
+    display: none;
+  }
+  .hcard-skeletons {
+    display: block;
+    padding-top: 12px;
+  }
+  .hcard-skeletons .hcards {
+    padding-bottom: 0;
+  }
+  .skeleton-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: #f5f8ff;
+    border: 1px solid rgba(29, 78, 216, 0.12);
+  }
+  .skeleton-banner img {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    animation: tab-bob 1.6s ease-in-out infinite;
+  }
+  .skeleton-banner p {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .skeleton-banner strong {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--ink);
+  }
+  .skeleton-banner span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .hcard.is-skeleton .hcard-body {
+    gap: 8px;
+    padding-top: 2px;
+  }
+  .hcard.is-skeleton .sk {
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--soft) 25%, #e9edf5 50%, var(--soft) 75%) 0 0 / 200% 100%;
+    animation: hcard-sk 1.2s linear infinite;
+  }
+  .hcard.is-skeleton .hcard-photo.sk {
+    border-radius: 14px;
+  }
+
+  /* ---------- P1-6 가격 바텀시트 ---------- */
+  .sheet-dim.price-dim {
+    z-index: 59;
+  }
+  .price-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    max-height: 88dvh;
+    background: var(--white);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -20px 60px rgba(11, 18, 32, 0.3);
+    overscroll-behavior: contain;
+    animation: sheet-up 0.25s ease both;
+  }
+  .ps-head {
+    position: relative;
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px 6px 0;
+  }
+  .ps-grab {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 40px;
+    height: 4px;
+    margin-left: -20px;
+    border-radius: 4px;
+    background: var(--line);
+  }
+  .ps-head .filters-close {
+    display: block;
+  }
+  .ps-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0 16px 16px;
+  }
+  .ps-photos {
+    display: flex;
+    gap: 8px;
+    margin: 0 -16px 12px;
+    padding: 0 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .ps-photos::-webkit-scrollbar {
+    display: none;
+  }
+  .ps-photos img {
+    flex: 0 0 78%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: 14px;
+    background: var(--soft);
+    scroll-snap-align: center;
+  }
+  .ps-photos img:only-child {
+    flex-basis: 100%;
+  }
+  .price-sheet h2 {
+    font-size: 18px;
+    line-height: 1.35;
+    color: var(--ink);
+  }
+  .ps-meta {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .ps-rating {
+    display: inline-block;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--green);
+    color: var(--white);
+    font-size: 12px;
+    line-height: 20px;
+  }
+  .ps-rating.ok {
+    background: var(--muted);
+  }
+  .ps-map {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue);
+    text-decoration: none;
+  }
+  /* 로보티 한 줄 요약 */
+  .ps-robo {
+    margin: 4px 0 14px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #f5f8ff;
+    border: 1px solid rgba(29, 78, 216, 0.12);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .ps-robo b {
+    color: var(--blue);
+    margin-right: 2px;
+  }
+  .price-sheet h3 {
+    font-size: 15px;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .price-sheet h3 small {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .price-sheet h3 .dots {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .ps-sources {
+    list-style: none;
+    margin-bottom: 10px;
+  }
+  .ps-sources li {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 56px;
+    border-bottom: 1px solid var(--line);
+  }
+  .ps-sources img,
+  .ps-sources i {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+  .ps-site {
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .ps-site em {
+    font-style: normal;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .ps-site em.best-badge {
+    color: var(--color-deal);
+  }
+  .ps-cost {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.25;
+  }
+  .ps-cost b {
+    font-size: 15px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .ps-cost small {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .ps-sources a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 64px;
+    min-height: 44px;
+    border-radius: 12px;
+    background: #f5f8ff;
+    color: var(--blue);
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: none;
+  }
+  .ps-sources li.best a {
+    background: var(--blue);
+    color: var(--white);
+  }
+  .ps-amen {
+    display: flex;
+    margin: 14px 0 6px;
+  }
+  .price-sheet .flight-note {
+    margin-top: 10px;
+  }
+  .ps-foot {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--white);
+  }
+  .ps-foot span {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+  .ps-foot small {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .ps-foot b {
+    font-size: 18px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .ps-foot a {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0 12px;
+    border-radius: 14px;
+    background: var(--grad);
+    color: var(--white);
+    font-size: 15px;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+@keyframes hcard-sk {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hcard.is-skeleton .sk,
+  .skeleton-banner img,
+  .price-sheet,
+  .filters.open,
+  .advisor.open,
+  .dp-pop.dp-sheet,
+  .sheet-dim {
+    animation: none;
   }
 }
