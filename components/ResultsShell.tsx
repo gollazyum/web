@@ -42,8 +42,9 @@ export function ResultsShell({ search, summary, children }: Props) {
       </div>
       <main className="results-page wrap">{children}</main>
       <footer className="results-foot wrap">
-        Lowboti는 제휴 마케팅 사이트입니다. 링크를 통해 예약하시면 예약 사이트로부터 수수료를 받을 수 있으며, 고객님이 지불하는 금액에는
-        영향이 없습니다. 표시된 가격은 조회 시점 기준이며 최종 가격은 예약 사이트에서 확인해 주세요.
+        Lowboti는 여행 가격 비교 플랫폼입니다. 링크를 통해 예약하시면 제휴사로부터 소정의 수수료를 받을 수 있으며, 고객님이 지불하는
+        금액에는 영향을 주지 않습니다. 표시된 가격은 조회 시점 기준이며 실제 결제 금액과 다를 수 있습니다.{" "}
+        <Link href="/terms">이용약관</Link> · <Link href="/privacy">개인정보처리방침</Link>
       </footer>
     </>
   );

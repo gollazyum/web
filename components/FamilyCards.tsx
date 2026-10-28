@@ -3,6 +3,7 @@
 import { openSearchTab, type TabId } from "@/components/LinkChecker";
 import { LowbotiBot, type BotKind } from "@/components/LowbotiBot";
 import { site } from "@/lib/site";
+import { SoonBadge } from "@/components/SoonBadge";
 
 const family: { img: BotKind; tab: TabId; name: string; en: string; body: string; live: boolean }[] = [
   { img: "hotel", tab: "stay", name: "숙소봇", en: "Stay", body: "도시나 호텔 이름만 넣으면 예약 사이트별 가격을 한 번에 비교해요.", live: true },
@@ -31,7 +32,7 @@ export function FamilyCards() {
               🔔 오픈 알림 받기
             </a>
           ) : (
-            <span className="badge">준비 중</span>
+            <SoonBadge />
           )}
         </div>
       ))}

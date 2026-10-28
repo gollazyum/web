@@ -4,7 +4,8 @@ import { LinkChecker } from "@/components/LinkChecker";
 import { Logo } from "@/components/Logo";
 import { AnalysisMock } from "@/components/AnalysisMock";
 import { FamilyCards } from "@/components/FamilyCards";
-import { SiteNav } from "@/components/SiteNav";
+import { MobileMenu, SiteNav } from "@/components/SiteNav";
+import { SoonBadge } from "@/components/SoonBadge";
 import { routes } from "@/lib/agoda";
 import { site } from "@/lib/site";
 
@@ -76,7 +77,7 @@ export default function Home() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <header className="nav-bar">
-        <div className="nav wrap">
+        <div className="nav wrap home-nav">
           <Link href="/" className="brand" aria-label="로보티 (Lowboti) 홈">
             <Logo height={40} />
             <span className="brand-badge" aria-hidden="true">
@@ -87,6 +88,7 @@ export default function Home() {
           <a href="#top" className="nav-cta">
             최저가 찾기
           </a>
+          <MobileMenu />
         </div>
       </header>
 
@@ -94,13 +96,19 @@ export default function Home() {
         <div className="hero-glow" aria-hidden="true" />
         <div className="hero-inner wrap">
           <span className="pill">
-            <span className="spark">✦</span> 가성비를 같이 골라 주는 AI 여행 도우미
+            <span className="spark">✦</span> 나만의 AI 가성비 여행 파트너
           </span>
           <h1>
-            혹시 나만
+            <span className="nobr">수십 개 사이트</span> <span className="nobr">뒤질 필요 없이,</span>
             <br />
-            <span className="grad">비싸게</span> 예약하고 있나요?
+            <span className="nobr">
+              <span className="grad-blue">로보티와 함께</span>
+            </span>{" "}
+            <span className="nobr">찾는 최저가</span>
           </h1>
+          <p className="hero-guide">
+            🤖 원하시는 도시나 호텔만 알려주세요. 숨은 예약 경로 {site.hiddenRouteCount}곳까지 로보티가 한 번에 모아 드릴게요.
+          </p>
           <LinkChecker />
           <div className="compared">
             <span>로보티가 비교하는 곳</span>
@@ -155,7 +163,7 @@ export default function Home() {
             </div>
             <div className="bento-card bento-alert">
               <div className="badges">
-                <span className="badge soon-badge">준비 중</span>
+                <SoonBadge />
                 {site.notifyUrl && (
                   <a className="notify-btn small" href={site.notifyUrl} target="_blank" rel="noopener noreferrer">
                     🔔 오픈 알림 받기
@@ -221,17 +229,28 @@ export default function Home() {
             <Logo tone="white" height={34} />
           </div>
           <p className="disclosure">
-            Lowboti는 제휴 마케팅 사이트입니다. Lowboti의 링크를 통해 예약하시면 예약 사이트로부터 수수료를 받을 수 있으며,
-            고객님이 지불하는 금액에는 영향이 없습니다. 표시된 가격은 조회 시점 기준이며 최종 가격은 예약 사이트에서 확인해 주세요.
+            Lowboti는 여행 가격 비교 플랫폼입니다. Lowboti의 링크를 통해 예약하시면 제휴사로부터 소정의 수수료를 받을 수 있으며,
+            고객님이 지불하는 금액에는 영향을 주지 않습니다. 표시된 정보와 가격은 조회 시점 기준이며 실제 결제 금액과 다를 수 있습니다.
+            예약·결제·취소·환불은 각 예약 사이트의 약관과 정책을 따릅니다.
           </p>
           <p className="footer-links">
+            <Link href="/terms">이용약관</Link>
             <Link href="/privacy">개인정보처리방침</Link>
-            {site.instagramUrl && (
+            {site.instagramUrl ? (
               <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer">
                 Instagram
               </a>
+            ) : (
+              <span>Instagram</span>
             )}
-            {site.contactEmail && <a href={`mailto:${site.contactEmail}`}>문의</a>}
+            <span>
+              문의 및 제휴: <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
+            </span>
+          </p>
+          <p className="footer-biz">
+            <span>상호 {site.business.name}</span>
+            <span>대표자 {site.business.ceo}</span>
+            <span>사업자등록번호 {site.business.registrationNo}</span>
           </p>
           <p className="copy">© {new Date().getFullYear()} Lowboti. All rights reserved.</p>
         </div>
