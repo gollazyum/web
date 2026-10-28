@@ -41,7 +41,7 @@ export function HotelSearch({ initial, compact }: Props) {
           }}
           labels={["체크인", "체크아웃"]}
           prompts={["체크인 날짜를 골라 주세요", "체크아웃 날짜를 골라 주세요"]}
-          endPlaceholder="1박이면 비우기"
+          endPlaceholder="비우면 1박"
           minGap={1}
           unit={(n) => `${n}박`}
         />

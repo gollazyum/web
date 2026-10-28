@@ -5,6 +5,9 @@
   --green: #10b981;
   --green-dark: #059669;
   --orange: #f97316;
+  /* 최저가 전용: 배지 바탕과 최저 금액 글자. 흰 글씨를 오렌지 위에 올리지 않는다 */
+  --orange-dark: #c2410c;
+  --orange-soft: #ffedd5;
   --text: #1c2738;
   --muted: #66728a;
   --line: #e6e9f0;
@@ -25,7 +28,7 @@ html {
 }
 
 body {
-  font-family: var(--font-body), -apple-system, system-ui, sans-serif;
+  font-family: "Pretendard Variable", -apple-system, system-ui, sans-serif;
   color: var(--text);
   background: var(--white);
   line-height: 1.6;
@@ -48,8 +51,7 @@ a {
 .eyebrow {
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   background: var(--grad);
   -webkit-background-clip: text;
   background-clip: text;
@@ -1536,8 +1538,12 @@ a {
   color: var(--green-dark);
 }
 .badge.soon-badge {
-  background: rgba(249, 115, 22, 0.14);
-  color: #c2410c;
+  background: rgba(29, 78, 216, 0.08);
+  color: var(--blue);
+}
+.badge.lowest {
+  background: var(--orange-soft);
+  color: var(--orange-dark);
 }
 
 /* bento */
@@ -1623,7 +1629,7 @@ a {
   flex: none;
 }
 .summary-line .save {
-  color: var(--green-dark);
+  color: var(--orange-dark);
 }
 .bar-row {
   display: grid;
@@ -1665,15 +1671,15 @@ a {
   font-style: normal;
   font-size: 11px;
   font-weight: 800;
-  color: var(--white);
-  background: var(--green);
+  color: var(--orange-dark);
+  background: var(--orange-soft);
   border-radius: 999px;
   padding: 2px 7px;
   margin-left: 6px;
 }
 .bar-row.best .bar {
   height: 14px;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.14);
 }
 .bar-row.best {
   color: var(--ink);
@@ -1683,47 +1689,8 @@ a {
   background: var(--grad);
 }
 .bar-row.best b {
-  color: var(--green-dark);
+  color: var(--orange-dark);
 }
-.alert-mock {
-  margin-top: auto;
-  padding-top: 20px;
-}
-.chart {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-.toast {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: -18px;
-  margin-left: 12px;
-  margin-right: 12px;
-  position: relative;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 12px 16px;
-  box-shadow: 0 16px 32px -12px rgba(11, 18, 32, 0.2);
-}
-.toast img {
-  width: 40px;
-  height: auto;
-  flex: none;
-}
-.toast strong {
-  display: block;
-  font-size: 14px;
-  color: var(--ink);
-}
-.toast span {
-  font-size: 12px;
-  color: var(--muted);
-}
-
 /* family */
 .family {
   display: grid;
@@ -1977,7 +1944,24 @@ a {
 }
 
 @media (max-width: 640px) {
+  /* 폰에서는 메뉴를 로고 아래 한 줄로 내리고, 넘치면 옆으로 민다 */
+  .nav {
+    flex-wrap: wrap;
+    height: auto;
+    padding-top: 12px;
+    row-gap: 4px;
+  }
   .nav nav {
+    order: 3;
+    width: 100%;
+    gap: 20px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    font-size: 14px;
+    padding: 6px 0 10px;
+    white-space: nowrap;
+  }
+  .nav nav::-webkit-scrollbar {
     display: none;
   }
   .hero {
@@ -2331,8 +2315,8 @@ a {
   color: var(--green-dark);
 }
 .flight-level.high {
-  background: #ffedd5;
-  color: #c2410c;
+  background: #ffe4e6;
+  color: #be123c;
 }
 .flight-typical {
   font-size: 13px;
@@ -2400,6 +2384,10 @@ a {
 .hotel-sources em.hotel-pick {
   color: var(--green-dark);
   font-weight: 700;
+}
+.hotel-sources em.best-badge {
+  color: var(--orange-dark);
+  font-weight: 800;
 }
 .hotel-sources b {
   color: var(--ink);
@@ -3162,7 +3150,7 @@ a {
 }
 .insight strong {
   font-size: 16px;
-  color: var(--ink);
+  color: var(--orange-dark);
 }
 .fcard {
   background: var(--white);

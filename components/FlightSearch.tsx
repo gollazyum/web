@@ -72,7 +72,7 @@ export function FlightSearch({ initial, compact }: Props) {
           }}
           labels={["가는 날", "오는 날"]}
           prompts={["가는 날을 골라 주세요", "오는 날을 골라 주세요"]}
-          endPlaceholder="편도는 비우기"
+          endPlaceholder="비우면 편도"
           minGap={0}
           unit={(n) => (n === 0 ? "당일 왕복" : `${n}박 ${n + 1}일`)}
           quick={{ label: "편도", end: () => "" }}
