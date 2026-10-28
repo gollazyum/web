@@ -757,7 +757,7 @@ function HotelSkeletons() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/lowboti-mark.svg" alt="" />
         <p>
-          <strong>🔍 로보티가 실시간 최저가와 숨은 경로를 비교하고 있어요...</strong>
+          <strong>🔍 로보티가 실시간 최저가와 숨은 할인 경로를 비교하고 있어요...</strong>
           <span>예약 사이트별 숨은 총액까지 계산하는 중 · 약 5~10초</span>
         </p>
       </div>
