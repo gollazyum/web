@@ -231,7 +231,7 @@ export default function Home() {
                 Instagram
               </a>
             )}
-            {site.contactEmail && <a href={`mailto:${site.contactEmail}`}>문의</a>}
+            {site.contactEmail && <a href={`mailto:${site.contactEmail}`}>문의 {site.contactEmail}</a>}
           </p>
           <p className="copy">© {new Date().getFullYear()} Lowboti. All rights reserved.</p>
         </div>

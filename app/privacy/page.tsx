@@ -23,7 +23,15 @@ export default function Privacy() {
         이동하면, 해당 사이트가 제휴 수수료 정산을 위해 쿠키를 사용할 수 있으며 이는 각 사이트의 개인정보처리방침을 따릅니다.
       </p>
       <h2>문의</h2>
-      <p>{site.contactEmail ? `개인정보 관련 문의: ${site.contactEmail}` : "문의처는 서비스 오픈 시 안내됩니다."}</p>
+      <p>
+        {site.contactEmail ? (
+          <>
+            개인정보 관련 문의: <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
+          </>
+        ) : (
+          "문의처는 서비스 오픈 시 안내됩니다."
+        )}
+      </p>
       <p className="muted">시행일: 2026년 10월 25일</p>
     </main>
   );
