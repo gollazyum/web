@@ -1107,6 +1107,53 @@ a {
   line-height: 1.6;
   white-space: pre-wrap;
 }
+/* 도우미 답 아래 버튼 줄 (조건 완화·더 찾기·필터 적용) */
+.bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 88%;
+}
+.bubble-wrap .bubble {
+  max-width: 100%;
+}
+.advisor-actions,
+.advisor-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.advisor-actions button,
+.advisor-actions a {
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--blue);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.advisor-actions button.is-filter {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--white);
+}
+.advisor-actions button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+@media (max-width: 640px) {
+  .advisor-actions button,
+  .advisor-actions a {
+    min-height: 44px;
+  }
+}
 .bot .bubble {
   background: var(--soft);
   color: var(--text);

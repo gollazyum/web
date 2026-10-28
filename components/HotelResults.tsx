@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { HotelAdvisor } from "./HotelAdvisor";
+import { HotelAdvisor, type AdvisorFilter } from "./HotelAdvisor";
 import { HotelPriceSheet, lowestCost, roboSummary, totalOf, type PriceState } from "./HotelPriceSheet";
 import { HotelSearch } from "./HotelSearch";
 import { MochiStar, MochiStars, RatingMochi, ratingTier } from "./MochiMarks";
@@ -250,19 +250,38 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     });
   }
 
-  async function loadMore() {
-    if (!data.next || more === "loading") return;
+  async function loadMore(): Promise<boolean> {
+    if (!data.next || more === "loading") return false;
     setMore("loading");
     try {
       const res = await postHotels({ ...query, page: data.next });
-      if (!res.ok) return setMore("error");
+      if (!res.ok) {
+        setMore("error");
+        return false;
+      }
       const page = (await res.json()) as HotelResults;
       const seen = new Set(data.options.map((o) => o.token));
       setData({ options: [...data.options, ...page.options.filter((o) => !seen.has(o.token))], next: page.next });
       setMore("idle");
+      return true;
     } catch {
       setMore("error");
+      return false;
     }
+  }
+
+  // 로보티가 답 끝에 적은 조건을 왼쪽 필터에 그대로 넣는다 (1박 예산 기준)
+  function applyFilter(f: AdvisorFilter) {
+    const nightly = data.options.map((o) => o.perNight ?? 0);
+    const low = Math.floor(Math.min(...nightly) / 10000) * 10000;
+    setUnit("night");
+    setRange(f.maxPrice ? [low, Math.max(low, Math.ceil(f.maxPrice / 10000) * 10000)] : null);
+    // 후기 점수 칩(4.5·4·3.5·3) 중 말한 점수 이하에서 가장 높은 것
+    setMinRating(f.minRating ? ([4.5, 4, 3.5, 3].find((r) => r <= f.minRating!) ?? 0) : 0);
+    setStars(new Set((f.stars ?? []).filter((s) => starList.includes(s))));
+    setAmenities(new Set((f.amenities ?? []).filter((a) => amenityList.some(([name]) => name === a))));
+    setAdvisorOpen(false);
+    setToast("로보티가 말한 조건을 필터에 넣었어요");
   }
 
   if (!data.options.length) {
@@ -458,6 +477,9 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
       {advisorOpen && phoneSheet && <div className="sheet-dim" aria-hidden="true" onClick={() => setAdvisorOpen(false)} />}
       <HotelAdvisor
         hotels={data.options}
+        hasMore={!!data.next}
+        onMore={loadMore}
+        onFilter={applyFilter}
         query={query}
         open={advisorOpen}
         onClose={() => setAdvisorOpen(false)}

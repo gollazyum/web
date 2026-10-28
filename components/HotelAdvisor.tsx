@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LiveMochi } from "./LiveMochi";
-import type { HotelOption, HotelQuery } from "@/lib/hotels";
+import { addDays, today } from "@/lib/dates";
+import { hotelsPath, type HotelOption, type HotelQuery } from "@/lib/hotels";
 import { hotelNameKo } from "@/lib/hotelText";
 
 // 호텔 결과 화면 오른쪽에 붙어 다니는 로보티 숙소 도우미.
@@ -23,8 +24,45 @@ function quickBudget(hotels: HotelOption[]): number | null {
   return Math.ceil(at / 10000);
 }
 
+// 답 끝의 {{필터:…}} 표시를 화면 필터 값으로 바꾼 것
+export type AdvisorFilter = { maxPrice?: number; minRating?: number; stars?: number[]; amenities?: string[] };
+
+function parseFilter(spec: string): AdvisorFilter | null {
+  const f: AdvisorFilter = {};
+  for (const pair of spec.split(",")) {
+    const [k, v = ""] = pair.split("=").map((x) => x.trim());
+    const nums = v.split("|").map(Number).filter((n) => Number.isFinite(n) && n > 0);
+    if (k === "예산" && nums[0]) f.maxPrice = nums[0];
+    if (k === "점수" && nums[0] && nums[0] <= 5) f.minRating = nums[0];
+    if (k === "등급" && nums.length) f.stars = nums.filter((n) => n <= 5);
+    if (k === "편의" && v) f.amenities = v.split("|").map((a) => a.trim()).filter(Boolean);
+  }
+  return Object.keys(f).length ? f : null;
+}
+
+// 답 속 {{…}} 표시: 다시 묻기 버튼, 더 찾기 버튼, 필터 적용 버튼
+type Action = { kind: "again"; text: string } | { kind: "more" } | { kind: "filter"; filter: AdvisorFilter };
+const MARK = /\{\{([^{}]*)\}\}/g;
+function actionsOf(text: string): Action[] {
+  const out: Action[] = [];
+  for (const [, body] of text.matchAll(MARK)) {
+    const [kind, ...rest] = body.split(":");
+    const arg = rest.join(":").trim();
+    if (kind.trim() === "다시" && arg) out.push({ kind: "again", text: arg.slice(0, 80) });
+    else if (kind.trim() === "더찾기" && !out.some((a) => a.kind === "more")) out.push({ kind: "more" });
+    else if (kind.trim() === "필터") {
+      const filter = parseFilter(arg);
+      if (filter && !out.some((a) => a.kind === "filter")) out.push({ kind: "filter", filter });
+    }
+  }
+  return out.slice(0, 6);
+}
+
 type Props = {
   hotels: HotelOption[];
+  hasMore?: boolean; // 다음 쪽 결과가 있는지
+  onMore?: () => Promise<boolean>; // 다음 쪽을 불러온다 (검색 1번 요금)
+  onFilter?: (f: AdvisorFilter) => void;
   query: HotelQuery;
   open: boolean;
   onClose: () => void;
@@ -35,7 +73,11 @@ type Props = {
   onRecommend?: (tokens: string[]) => void; // 답에 나온 호텔 ([[번호]])
 };
 
-export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compare = [], nights = 1, onRecommend }: Props) {
+export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, onClose, onPick, ask, compare = [], nights = 1, onRecommend }: Props) {
+  // 더 불러온 뒤 같은 질문을 다시 보낼 때 새 목록을 쓰도록
+  const hotelsRef = useRef(hotels);
+  hotelsRef.current = hotels;
+  const [loadingMore, setLoadingMore] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [prefs, setPrefs] = useState<Set<string>>(new Set([PREFS[0]]));
   const [input, setInput] = useState("");
@@ -90,7 +132,7 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compar
           checkIn: query.checkIn,
           checkOut: query.checkOut,
           adults: query.adults,
-          hotels: hotels.map((h) => ({
+          hotels: hotelsRef.current.map((h) => ({
             name: hotelNameKo(h.name),
             stars: h.stars,
             rating: h.rating,
@@ -142,7 +184,7 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compar
 
   function askWithPrefs() {
     if (!prefs.size) return;
-    send(`제가 중요하게 생각하는 건 ${[...prefs].map(plain).join(", ")}이에요. 이 중에서 골라 주세요.`);
+    send(`제가 중요하게 보는 건 ${[...prefs].map(plain).join(", ")} 쪽이에요. 이 중에서 골라 주세요.`);
   }
 
   const budget = quickBudget(hotels);
@@ -150,7 +192,9 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compar
 
   // 답 속 [[번호]]를 호텔 이름 버튼으로 바꾼다. 번호는 보낸 목록 순서(1부터)
   function render(text: string) {
-    return text.split(/(\[\[\d+\]\])/g).map((part, i) => {
+    // 답을 받는 중에 반쯤 온 {{… 표시는 숨긴다
+    const clean = text.replace(MARK, "").replace(/\{\{[^}]*$/, "").trimEnd();
+    return clean.split(/(\[\[\d+\]\])/g).map((part, i) => {
       const m = part.match(/^\[\[(\d+)\]\]$/);
       const hotel = m ? hotels[Number(m[1]) - 1] : null;
       if (!m) return part;
@@ -161,6 +205,45 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compar
         </button>
       );
     });
+  }
+
+  // 다음 쪽을 불러온 뒤 마지막 질문을 새 목록으로 다시 묻는다
+  async function findMore() {
+    if (!onMore || loadingMore || busy) return;
+    const last = [...messages].reverse().find((m) => m.role === "user")?.content;
+    setLoadingMore(true);
+    const ok = await onMore();
+    setLoadingMore(false);
+    if (ok && last) setTimeout(() => send(`결과를 더 불러왔어요. 다시 골라 주세요: ${last}`), 80);
+  }
+
+  function actionRow(actions: Action[]) {
+    const shift = (d: number) => hotelsPath({ ...query, checkIn: addDays(query.checkIn, d), checkOut: addDays(query.checkOut, d) });
+    return (
+      <div className="advisor-actions">
+        {actions.map((a, i) =>
+          a.kind === "again" ? (
+            <button key={i} type="button" onClick={() => send(a.text)} disabled={busy}>
+              {a.text}
+            </button>
+          ) : a.kind === "filter" ? (
+            <button key={i} type="button" className="is-filter" onClick={() => onFilter?.(a.filter)}>
+              🔎 이 조건으로 목록 거르기
+            </button>
+          ) : (
+            <span key={i} className="advisor-more">
+              {hasMore && onMore && (
+                <button type="button" onClick={findMore} disabled={busy || loadingMore}>
+                  {loadingMore ? "더 찾는 중..." : "🔍 더 찾아볼게요 (다음 결과)"}
+                </button>
+              )}
+              {addDays(query.checkIn, -1) >= today() && <a href={shift(-1)}>📅 하루 앞 날짜로 찾기</a>}
+              <a href={shift(1)}>📅 하루 뒤 날짜로 찾기</a>
+            </span>
+          ),
+        )}
+      </div>
+    );
   }
 
   return (
@@ -239,7 +322,10 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compar
           ) : (
             <div key={i} className="bubble-row bot">
               {m.content ? (
-                <p className="bubble">{render(m.content)}</p>
+                <div className="bubble-wrap">
+                  <p className="bubble">{render(m.content)}</p>
+                  {!(busy && i === messages.length - 1) && actionsOf(m.content).length > 0 && actionRow(actionsOf(m.content))}
+                </div>
               ) : (
                 <p className="bubble typing" aria-label="로보티가 고르고 있어요">
                   <span />
