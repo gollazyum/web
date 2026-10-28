@@ -16,8 +16,12 @@ html.sheet-lock body {
 .hcard-skeletons,
 .sheet-dim,
 .results-hint,
-.layer-back {
+.layer-back,
+.flight-fab {
   display: none;
+}
+.fcard.flash {
+  animation: card-flash 1.1s ease 2;
 }
 
 @media (max-width: 640px) {
@@ -621,6 +625,10 @@ html.sheet-lock body {
   }
   .advisor-fab.comparing {
     background: var(--blue);
+  }
+  /* P1-7 항공 결과에도 로보티 버튼 (휴대폰만) */
+  .flight-fab {
+    display: flex;
   }
 
   /* ---------- P0-5 숙소 결과: 가로형 컴팩트 카드 ---------- */

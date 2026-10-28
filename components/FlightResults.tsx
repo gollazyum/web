@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { FlightAdvisor } from "./FlightAdvisor";
 import { FlightSearch } from "./FlightSearch";
 import { PriceRange } from "./PriceRange";
 import { ResultsMessage, ResultsShell } from "./ResultsShell";
@@ -10,6 +11,7 @@ import { airportsFor } from "@/lib/airports";
 import { errorCode } from "@/lib/apiError";
 import { shortLabel, today } from "@/lib/dates";
 import { tripUrl, type FlightOption, type FlightQuery, type FlightResults } from "@/lib/flights";
+import { isPhone, useSheet } from "@/lib/useSheet";
 
 // 항공권 결과 페이지 (/flights?from=…). 로보티가 훑는 연출 뒤에 필터·정렬이 있는 항공편 목록을 보여 준다.
 // 예약은 Trip.com 한국 사이트 검색 결과로 넘긴다
@@ -155,6 +157,12 @@ function FlightBoard({ data, query, link }: { data: FlightResults; query: Flight
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<Sort>("price");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // 휴대폰 전용 로보티 항공권 도우미 (P1-7). 시트는 뒤로가기로 닫히고 뒤 페이지 스크롤을 잠근다
+  const [advisorOpen, setAdvisorOpen] = useState(false);
+  const [phoneSheet, setPhoneSheet] = useState(false);
+  const [flash, setFlash] = useState(-1);
+  useSheet(filtersOpen && phoneSheet, () => setFiltersOpen(false));
+  useSheet(advisorOpen && phoneSheet, () => setAdvisorOpen(false));
 
   const shown = useMemo(() => {
     const list = data.options.filter((o) => {
@@ -200,6 +208,16 @@ function FlightBoard({ data, query, link }: { data: FlightResults; query: Flight
     else next.add(v);
     return next;
   };
+  // 도우미가 고른 항공편 카드로 이동해 잠깐 반짝인다. 필터에 가려져 있으면 필터를 푼다
+  function focusFlight(index: number) {
+    const target = data.options[index];
+    if (!target) return;
+    if (!shown.includes(target)) reset();
+    setAdvisorOpen(false);
+    setFlash(index);
+    setTimeout(() => document.getElementById(`flight-${index}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
+    setTimeout(() => setFlash((f) => (f === index ? -1 : f)), 2200);
+  }
   const cheapestByStops = (n: number) => {
     const p = data.options.filter((o) => Math.min(o.stops.length, 2) === n).map((o) => o.price);
     return p.length ? Math.min(...p) : null;
@@ -207,6 +225,7 @@ function FlightBoard({ data, query, link }: { data: FlightResults; query: Flight
 
   return (
     <div className="results-grid">
+      {filtersOpen && phoneSheet && <div className="sheet-dim" aria-hidden="true" onClick={() => setFiltersOpen(false)} />}
       <aside className={`filters${filtersOpen ? " open" : ""}`} aria-label="필터">
         <div className="filters-head">
           <strong>필터</strong>
@@ -287,7 +306,14 @@ function FlightBoard({ data, query, link }: { data: FlightResults; query: Flight
             </span>
           </p>
           <div className="results-tools">
-            <button type="button" className="filters-toggle" onClick={() => setFiltersOpen(true)}>
+            <button
+              type="button"
+              className="filters-toggle"
+              onClick={() => {
+                setPhoneSheet(isPhone());
+                setFiltersOpen(true);
+              }}
+            >
               필터{active > 0 ? ` ${active}` : ""}
             </button>
             <SortMenu
@@ -321,9 +347,19 @@ function FlightBoard({ data, query, link }: { data: FlightResults; query: Flight
 
         {shown.length ? (
           <ul className="fcards">
-            {shown.map((o, i) => (
-              <FlightCard key={`${o.departTime}-${o.airlines.join()}-${o.price}-${i}`} option={o} link={link} roundTrip={!!query.ret} />
-            ))}
+            {shown.map((o, i) => {
+              const index = data.options.indexOf(o);
+              return (
+                <FlightCard
+                  key={`${o.departTime}-${o.airlines.join()}-${o.price}-${i}`}
+                  id={`flight-${index}`}
+                  flash={flash === index}
+                  option={o}
+                  link={link}
+                  roundTrip={!!query.ret}
+                />
+              );
+            })}
           </ul>
         ) : (
           <div className="results-none">
@@ -342,16 +378,35 @@ function FlightBoard({ data, query, link }: { data: FlightResults; query: Flight
           트립닷컴에서 전체 결과 보기 ↗
         </a>
       </section>
+
+      {advisorOpen && phoneSheet && <div className="sheet-dim" aria-hidden="true" onClick={() => setAdvisorOpen(false)} />}
+      <FlightAdvisor flights={data.options} query={query} open={advisorOpen} onClose={() => setAdvisorOpen(false)} onPick={focusFlight} />
+      {!advisorOpen && !filtersOpen && (
+        <button
+          type="button"
+          className="advisor-fab flight-fab"
+          onClick={() => {
+            setPhoneSheet(isPhone());
+            setAdvisorOpen(true);
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/lowboti-mark.svg" alt="" />
+          AI 추천
+        </button>
+      )}
     </div>
   );
 }
 
-function FlightCard({ option: o, link, roundTrip }: { option: FlightOption; link: string; roundTrip: boolean }) {
+type FlightCardProps = { id: string; flash: boolean; option: FlightOption; link: string; roundTrip: boolean };
+
+function FlightCard({ id, flash, option: o, link, roundTrip }: FlightCardProps) {
   const [open, setOpen] = useState(false);
   const shift = dayShift(o.departTime, o.arriveTime);
   const flightNos = o.segments.map((s) => s.flightNo).filter(Boolean);
   return (
-    <li className={`fcard${open ? " open" : ""}`}>
+    <li id={id} className={`fcard${open ? " open" : ""}${flash ? " flash" : ""}`}>
       <div className="fcard-top">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         {o.logo ? <img src={o.logo} alt={o.airlines.join(", ")} className="fcard-logo" /> : <span className="fcard-logo" />}
