@@ -10,15 +10,17 @@ import { ResultsMessage, ResultsShell } from "./ResultsShell";
 import { ScanProgress } from "./ScanProgress";
 import { SortMenu } from "./SortMenu";
 import { errorCode } from "@/lib/apiError";
-import { daysBetween, shortLabel, today } from "@/lib/dates";
+import { addDays, daysBetween, shortLabel, today } from "@/lib/dates";
 import { agodaSearchUrl, bookingLink, firstSites, isAgoda, hotelsPath, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
+import { MAX_COMPARE, compareItem, saveTopics, toSearchParams, updateStore, useLowbotiStore } from "@/lib/lowbotiStore";
 import { isPhone, useSheet } from "@/lib/useSheet";
+import { CompareBar } from "./CompareBar";
+import { CompareModal } from "./CompareModal";
 
 // 호텔 결과 페이지 (/hotels?q=…). 로보티가 훑는 연출 뒤에 필터·정렬이 있는 호텔 카드 목록을 보여 준다.
 // 필터와 정렬은 받아 온 목록 안에서만 하므로 SerpApi를 더 부르지 않는다
 const SCAN_MS = 4500;
-const MAX_COMPARE = 3;
 
 type State = { kind: "loading" } | { kind: "ok"; data: HotelResults } | { kind: "error"; message: string };
 type Sort = "recommended" | "price" | "rating" | "reviews";
@@ -130,6 +132,9 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
   const [flash, setFlash] = useState("");
+  const [compareOpen, setCompareOpen] = useState(false);
+  // 홈 배너의 '오늘 가격으로 이어서 보기'(&compare=1)로 들어오면 비교를 바로 연다. 새로고침에 다시 열리지 않게 주소에서 뺀다
+  const [autoCompare] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("compare") === "1");
 
   // 휴대폰: 카드를 누르면 아래에서 올라오는 예약 사이트별 가격 시트
   const [sheetToken, setSheetToken] = useState("");
@@ -139,17 +144,22 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
   useSheet(filtersOpen && phoneSheet, () => setFiltersOpen(false));
   useSheet(advisorOpen && phoneSheet, () => setAdvisorOpen(false));
 
-  // 비교 담기 (최대 3곳). 같은 검색 안에서는 새로고침해도 남는다
-  const storeKey = `lowboti:compare:${hotelsPath(query)}`;
-  const [compared, setCompared] = useState<string[]>([]);
+  // 비교함 (최대 3곳). 브라우저의 lowboti:v1에 남아 새 탭·재방문에도 그대로고, 다른 탭에서 바꾸면 바로 따라 바뀐다
+  const store = useLowbotiStore();
+  const compared = store.compare.map((c) => c.token);
   useEffect(() => {
-    try {
-      const saved = JSON.parse(sessionStorage.getItem(storeKey) ?? "[]");
-      if (Array.isArray(saved)) setCompared(saved.filter((t): t is string => typeof t === "string").slice(0, MAX_COMPARE));
-    } catch {
-      // 저장소를 못 쓰는 브라우저면 이번 화면에서만 기억한다
-    }
-  }, [storeKey]);
+    if (!autoCompare || store.compare.length < 2) return;
+    setCompareOpen(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("compare");
+    window.history.replaceState(window.history.state, "", url);
+    // 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoCompare, store.compare.length >= 2]);
+  // 마지막 검색은 홈의 '이어서 보기' 배너가 쓴다. 가격은 저장하지 않고 조건만
+  useEffect(() => {
+    updateStore((s) => ({ ...s, lastSearch: { ...toSearchParams(query), cachedAt: Date.now() } }));
+  }, [query]);
   const [toast, setToast] = useState("");
   useEffect(() => {
     if (!toast) return;
@@ -204,15 +214,18 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     setTimeout(() => setFlash((f) => (f === token ? "" : f)), 2200);
   }
 
-  async function loadPrices(hotel: HotelOption) {
-    if (priceMap[hotel.token]) return;
+  // 예약 사이트별 가격 (+ 후기 주제 숫자). 비교함에 다른 검색에서 담은 호텔도 지금 날짜로 받는다
+  async function loadPrices(hotel: { token: string; sources?: HotelOption["sources"]; q?: string }) {
+    if (priceMap[hotel.token] && priceMap[hotel.token].kind !== "error") return;
     const put = (v: PriceState) => setPriceMap((m) => ({ ...m, [hotel.token]: v }));
     put({ kind: "loading" });
     try {
-      const res = await postHotels({ ...query, token: hotel.token });
+      const res = await postHotels({ ...query, q: hotel.q ?? query.q, token: hotel.token });
       if (!res.ok) return put({ kind: "error", message: await failMessage(res) });
       const prices = (await res.json()) as HotelPrices;
-      put({ kind: "ok", sources: prices.sources.length ? prices.sources : hotel.sources });
+      const topics = prices.topics ?? null;
+      saveTopics(hotel.token, topics);
+      put({ kind: "ok", sources: prices.sources.length ? prices.sources : (hotel.sources ?? []), topics });
     } catch {
       put({ kind: "error", message: "연결이 불안정해요. 잠시 뒤에 다시 눌러 주세요." });
     }
@@ -226,28 +239,19 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
   function toggleCompare(hotel: HotelOption) {
     const on = compared.includes(hotel.token);
     if (!on && compared.length >= MAX_COMPARE) return setToast(`최대 ${MAX_COMPARE}곳까지 비교할 수 있어요`);
-    const next = on ? compared.filter((t) => t !== hotel.token) : [...compared, hotel.token];
-    setCompared(next);
-    try {
-      sessionStorage.setItem(storeKey, JSON.stringify(next));
-    } catch {
-      // 저장 못 해도 화면 상태는 그대로
-    }
+    updateStore((s) => ({
+      ...s,
+      compare: on ? s.compare.filter((c) => c.token !== hotel.token) : [...s.compare, compareItem(hotel, query)],
+    }));
+  }
+
+  function removeCompare(token: string) {
+    updateStore((s) => ({ ...s, compare: s.compare.filter((c) => c.token !== token) }));
   }
 
   function openAdvisor() {
     setPhoneSheet(isPhone());
     setAdvisorOpen(true);
-    const list = compared.map((t) => data.options.find((o) => o.token === t)).filter((o): o is HotelOption => !!o);
-    if (!list.length) return;
-    const names = list.map((h) => hotelNameKo(h.name)).join(", ");
-    setAsk({
-      id: Date.now(),
-      text:
-        list.length === 1
-          ? `${names}을(를) 비슷한 가격대의 다른 곳과 비교해서 괜찮은지 알려 주세요.`
-          : `${names} ${list.length}곳을 비교해서 어디가 나은지 이유와 함께 추천해 주세요.`,
-    });
   }
 
   async function loadMore(): Promise<boolean> {
@@ -312,9 +316,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     return next;
   };
   const sheetHotel = data.options.find((o) => o.token === sheetToken) ?? null;
-  const comparedHotels = compared.map((t) => data.options.find((o) => o.token === t)).filter((o): o is HotelOption => !!o);
-  // 'n곳 비교하기'는 담은 호텔이 이번 목록에 있을 때만
-  const compareCount = comparedHotels.length;
+  const here = toSearchParams(query);
 
   return (
     <div className="results-grid with-advisor">
@@ -411,12 +413,6 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
             >
               필터{active > 0 ? ` ${active}` : ""}
             </button>
-            {/* 넓은 PC는 로보티가 옆에 붙어 있어 떠 있는 버튼이 없다. 비교함에 담으면 여기서 비교를 묻는다 */}
-            {compareCount > 0 && (
-              <button type="button" className="compare-go" onClick={openAdvisor}>
-                {compareCount}곳 비교하기
-              </button>
-            )}
             <SortMenu
               value={sort}
               onChange={setSort}
@@ -454,12 +450,20 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
             ))}
           </ul>
         ) : (
-          <div className="results-none">
-            조건에 맞는 호텔이 없어요.{" "}
-            <button type="button" className="link-btn" onClick={reset}>
-              필터 초기화
-            </button>
-          </div>
+          <NoMatch
+            hotels={data.options}
+            cost={cost}
+            unit={unit}
+            range={userRange}
+            minRating={minRating}
+            stars={stars}
+            amenities={amenities}
+            query={query}
+            onPick={focusHotel}
+            onWiden={() => userRange && setRange([userRange[0], userRange[1] + 20000])}
+            onAnyStars={() => setStars(new Set())}
+            onReset={reset}
+          />
         )}
 
         {data.next && (
@@ -485,16 +489,22 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
         onClose={() => setAdvisorOpen(false)}
         onPick={focusHotel}
         ask={ask}
-        compare={advisorOpen ? comparedHotels : []}
         nights={nights}
         onRecommend={(tokens) => setPicks((prev) => (tokens.every((t) => prev.has(t)) ? prev : new Set([...prev, ...tokens])))}
       />
       {!advisorOpen && !sheetHotel && !filtersOpen && (
-        <button type="button" className={`advisor-fab${compareCount ? " comparing" : ""}`} onClick={openAdvisor}>
+        <button type="button" className={`advisor-fab${store.compare.length ? " lifted" : ""}`} onClick={openAdvisor}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/lowboti-mark.svg" alt="" />
-          <span className="fab-label">{compareCount ? `${compareCount}곳 비교하기` : "AI 추천"}</span>
+          <span className="fab-label">AI 추천</span>
         </button>
+      )}
+      {!sheetHotel && !filtersOpen && !compareOpen && !(advisorOpen && phoneSheet) && (
+        <CompareBar
+          items={store.compare.map((c) => ({ ...c, otherDates: c.searchParams.checkin !== here.checkin || c.searchParams.checkout !== here.checkout }))}
+          onRemove={removeCompare}
+          onCompare={() => setCompareOpen(true)}
+        />
       )}
 
       {sheetHotel && (
@@ -507,11 +517,115 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           onClose={() => setSheetToken("")}
         />
       )}
+      {compareOpen && store.compare.length >= 2 && (
+        <CompareModal
+          items={store.compare}
+          query={query}
+          nights={nights}
+          prices={priceMap}
+          topicCache={store.topics}
+          ensurePrices={(it) => loadPrices({ token: it.token, q: it.searchParams.q })}
+          prefs={store.prefs}
+          onPrefs={(prefs) => updateStore((s) => ({ ...s, prefs }))}
+          onClose={() => setCompareOpen(false)}
+        />
+      )}
       {toast && (
         <p className="toast" role="status">
           {toast}
         </p>
       )}
+    </div>
+  );
+}
+
+// 필터를 다 맞추는 곳이 0곳일 때: 조건을 가장 많이 맞춘 2~3곳을 ✔/✘ 배지와 함께 보여 주고, 한 번에 푸는 버튼을 둔다
+type NoMatchProps = {
+  hotels: HotelOption[];
+  cost: (o: HotelOption) => number;
+  unit: "total" | "night";
+  range: [number, number] | null;
+  minRating: number;
+  stars: Set<number>;
+  amenities: Set<string>;
+  query: HotelQuery;
+  onPick: (token: string) => void;
+  onWiden: () => void;
+  onAnyStars: () => void;
+  onReset: () => void;
+};
+function NoMatch({ hotels, cost, unit, range, minRating, stars, amenities, query, onPick, onWiden, onAnyStars, onReset }: NoMatchProps) {
+  const man = (n: number) => `${(Math.round(n / 1000) / 10).toLocaleString("ko-KR")}만 원`;
+  const checks = (h: HotelOption) => {
+    const out: { text: string; ok: boolean }[] = [];
+    if (range) {
+      const p = cost(h);
+      const ok = p >= range[0] && p <= range[1];
+      out.push({ ok, text: ok ? `💰 ${unit === "night" ? "1박" : "총액"} ${man(p)} ✔` : p > range[1] ? `💰 예산 ${man(p - range[1])} 초과 ✘` : `💰 예산보다 ${man(range[0] - p)} 저렴 ✘` });
+    }
+    if (minRating) {
+      const ok = (h.rating ?? 0) >= minRating;
+      out.push({ ok, text: `✨ 평점 ${h.rating?.toFixed(1) ?? "-"} ${ok ? "✔" : "✘"}` });
+    }
+    if (stars.size) {
+      const ok = stars.has(h.stars ?? 0);
+      out.push({ ok, text: `👑 ${h.stars ? `${h.stars}성급` : "등급 정보 없음"} ${ok ? "✔" : "✘"}` });
+    }
+    for (const a of amenities) {
+      const ok = h.amenities.includes(a);
+      out.push({ ok, text: `${a} ${ok ? "✔" : "✘"}` });
+    }
+    return out;
+  };
+  const closest = hotels
+    .map((h) => ({ h, c: checks(h) }))
+    .sort((a, b) => b.c.filter((x) => x.ok).length - a.c.filter((x) => x.ok).length || cost(a.h) - cost(b.h))
+    .slice(0, 3);
+  const shift = (d: number) => hotelsPath({ ...query, checkIn: addDays(query.checkIn, d), checkOut: addDays(query.checkOut, d) });
+  return (
+    <div className="nomatch">
+      <p className="nomatch-lead">이번에 찾은 {hotels.length}곳 중에는 조건에 딱 맞는 곳이 없었어요. 대신 가장 가까운 곳을 골라 봤어요!</p>
+      <ul className="nomatch-list">
+        {closest.map(({ h, c }) => (
+          <li key={h.token}>
+            <button type="button" className="nomatch-card" onClick={() => onPick(h.token)}>
+              {h.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={h.image} alt="" />
+              ) : (
+                <span className="nomatch-noimg" />
+              )}
+              <span className="nomatch-body">
+                <strong>{hotelNameKo(h.name)}</strong>
+                <span className="nomatch-badges">
+                  {c.map((x) => (
+                    <em key={x.text} className={x.ok ? "ok" : "no"}>
+                      {x.text}
+                    </em>
+                  ))}
+                </span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="nomatch-actions">
+        {range && (
+          <button type="button" onClick={onWiden}>
+            예산 +2만 원 넓히기
+          </button>
+        )}
+        {stars.size > 0 && (
+          <button type="button" onClick={onAnyStars}>
+            성급 제한 풀기
+          </button>
+        )}
+        {addDays(query.checkIn, -1) >= today() && <a href={shift(-1)}>📅 하루 앞 날짜로</a>}
+        <a href={shift(1)}>📅 하루 뒤 날짜로</a>
+        <button type="button" className="link-btn" onClick={onReset}>
+          필터 초기화
+        </button>
+      </div>
     </div>
   );
 }

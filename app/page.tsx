@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LinkChecker } from "@/components/LinkChecker";
+import { ResumeBanner } from "@/components/ResumeBanner";
 import { AnalysisMock } from "@/components/AnalysisMock";
 import { FamilyCards } from "@/components/FamilyCards";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -88,6 +89,7 @@ export default function Home() {
             <span className="nobr hero-line grad-blue">AI 로보티에게 맡기세요.</span>
           </h1>
           <LinkChecker />
+          <ResumeBanner />
           <div className="compared">
             <span className="compared-label">로보티가 비교하는 곳</span>
             <span className="compared-item">

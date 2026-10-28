@@ -1,4 +1,4 @@
-import type { HotelOption, HotelPrices, HotelResults, HotelSource } from "@/lib/hotels";
+import type { HotelOption, HotelPrices, HotelResults, HotelSource, ReviewTopic } from "@/lib/hotels";
 import { DATE, serpSearch, today } from "@/lib/serpapi";
 import { amenityKo, dealKo, kindKo } from "@/lib/hotelText";
 
@@ -149,10 +149,27 @@ function shapeList(raw: Record<string, unknown>, upperRaw: Record<string, unknow
   return { options: mixClasses(base, optionsOf(propsOf(upperRaw).props)), next };
 }
 
+// 호텔 상세 응답의 reviews_breakdown (주제별 언급 수·긍정·부정). 숫자만 받아 온다
+function shapeTopics(raw: unknown): ReviewTopic[] | null {
+  if (!Array.isArray(raw)) return null;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  const list = raw
+    .map((t) => (t && typeof t === "object" ? (t as Record<string, unknown>) : {}))
+    .map((t) => ({
+      name: typeof t.name === "string" ? t.name.slice(0, 40) : "",
+      total: n(t.total_mentioned),
+      positive: n(t.positive),
+      negative: n(t.negative),
+    }))
+    .filter((t) => t.name && t.total > 0)
+    .slice(0, 12);
+  return list.length ? list : null;
+}
+
 function shapePrices(raw: Record<string, unknown>): HotelPrices {
   const featured = (raw.featured_prices as SerpPrice[] | undefined) ?? [];
   const prices = (raw.prices as SerpPrice[] | undefined) ?? [];
-  return { sources: cleanSources([...featured, ...prices]) };
+  return { sources: cleanSources([...featured, ...prices]), topics: shapeTopics(raw.reviews_breakdown) };
 }
 
 export async function POST(req: Request) {

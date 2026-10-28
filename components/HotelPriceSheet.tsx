@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { MochiStars, ratingTier } from "./MochiMarks";
-import { agodaSearchUrl, bookingLink, firstSites, isAgoda, roboPick, roboReason, type HotelOption, type HotelQuery, type HotelSource } from "@/lib/hotels";
+import { agodaSearchUrl, bookingLink, firstSites, isAgoda, roboPick, roboReason, type HotelOption, type HotelQuery, type HotelSource, type ReviewTopic } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
 import { useSheet } from "@/lib/useSheet";
 
 // 휴대폰 호텔 결과: 카드를 누르면 아래에서 올라오는 '예약 사이트별 가격' 시트.
 // 사진(옆으로 넘기기), 로보티 한 줄 요약, 사이트별 총액, 맨 아래 고정된 최저 총액 예약 버튼
 
-export type PriceState = { kind: "loading" } | { kind: "ok"; sources: HotelSource[] } | { kind: "error"; message: string };
+export type PriceState = { kind: "loading" } | { kind: "ok"; sources: HotelSource[]; topics?: ReviewTopic[] | null } | { kind: "error"; message: string };
 
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 

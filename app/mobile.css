@@ -664,10 +664,7 @@ html.sheet-lock body {
     overscroll-behavior: contain;
     animation: sheet-up 0.25s ease both;
   }
-  .advisor-fab.comparing {
-    background: var(--blue);
-  }
-  /* P1-6 아래로 스크롤하면 얼굴만 남는 48px 원, 위로 올리면 라벨 복귀. 'n곳 비교하기'는 숫자가 정보라 그대로 둔다 */
+  /* P1-6 아래로 스크롤하면 얼굴만 남는 48px 원, 위로 올리면 라벨 복귀 */
   .advisor-fab {
     transition: padding 0.2s ease, gap 0.2s ease;
   }
@@ -678,11 +675,11 @@ html.sheet-lock body {
     white-space: nowrap;
     transition: max-width 0.2s ease, opacity 0.2s ease;
   }
-  html[data-hdr="hidden"] .advisor-fab:not(.comparing) {
+  html[data-hdr="hidden"] .advisor-fab {
     gap: 0;
     padding: 7px;
   }
-  html[data-hdr="hidden"] .advisor-fab:not(.comparing) .fab-label {
+  html[data-hdr="hidden"] .advisor-fab .fab-label {
     max-width: 0;
     opacity: 0;
   }
