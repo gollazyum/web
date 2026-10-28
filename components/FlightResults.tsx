@@ -392,7 +392,7 @@ function FlightBoard({ data, query, link }: { data: FlightResults; query: Flight
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/lowboti-mark.svg" alt="" />
-          AI 추천
+          <span className="fab-label">AI 추천</span>
         </button>
       )}
     </div>

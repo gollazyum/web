@@ -664,6 +664,25 @@ html.sheet-lock body {
   .advisor-fab.comparing {
     background: var(--blue);
   }
+  /* P1-6 아래로 스크롤하면 얼굴만 남는 48px 원, 위로 올리면 라벨 복귀. 'n곳 비교하기'는 숫자가 정보라 그대로 둔다 */
+  .advisor-fab {
+    transition: padding 0.2s ease, gap 0.2s ease;
+  }
+  .advisor-fab .fab-label {
+    display: inline-block;
+    max-width: 160px;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.2s ease, opacity 0.2s ease;
+  }
+  html[data-hdr="hidden"] .advisor-fab:not(.comparing) {
+    gap: 0;
+    padding: 7px;
+  }
+  html[data-hdr="hidden"] .advisor-fab:not(.comparing) .fab-label {
+    max-width: 0;
+    opacity: 0;
+  }
   /* P1-7 항공 결과에도 로보티 버튼 (휴대폰만) */
   .flight-fab {
     display: flex;

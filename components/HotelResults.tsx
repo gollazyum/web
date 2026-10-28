@@ -463,7 +463,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
         <button type="button" className={`advisor-fab${compareCount ? " comparing" : ""}`} onClick={openAdvisor}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/lowboti-mark.svg" alt="" />
-          {compareCount ? `${compareCount}곳 비교하기` : "AI 추천"}
+          <span className="fab-label">{compareCount ? `${compareCount}곳 비교하기` : "AI 추천"}</span>
         </button>
       )}
 
