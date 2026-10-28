@@ -4438,8 +4438,10 @@ body:has(.compare-bar) .hcards {
   text-align: center;
   vertical-align: middle;
 }
-.cmp-table tbody th {
+.cmp-table .cmp-label {
   width: 120px;
+}
+.cmp-table tbody th {
   text-align: left;
   font-size: 13px;
   font-weight: 700;
@@ -4651,8 +4653,10 @@ body:has(.compare-bar) .hcards {
   .cmp-table td {
     padding: 8px 4px;
   }
-  .cmp-table tbody th {
+  .cmp-table .cmp-label {
     width: 68px;
+  }
+  .cmp-table tbody th {
     font-size: 11px;
     word-break: keep-all;
   }
@@ -4913,6 +4917,16 @@ body:has(.compare-bar) .hcards {
     flex-direction: column;
     align-items: stretch;
     margin: 12px 0 0;
+  }
+  .resume-list {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .resume-list li {
+    grid-template-columns: 40px 1fr;
+  }
+  .resume-list span {
+    max-width: none;
   }
   .resume-go {
     justify-content: center;

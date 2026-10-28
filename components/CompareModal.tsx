@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { MochiStars } from "./MochiMarks";
 import type { PriceState } from "./HotelPriceSheet";
 import { RememberPrefsModal, AUTH_ENABLED } from "./RememberPrefsModal";
@@ -133,9 +134,10 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
   const winner = verdict ? rows[verdict.winner] : null;
   const lead = prefs.chips.length ? prefs.chips.join("·") : "가격과 후기";
 
-  return (
+  // 결과 화면의 쌓임 순서(도우미 패널 등)와 상관없이 맨 위에 뜨도록 body에 바로 붙인다
+  return createPortal(
     <>
-      <div className="sheet-dim cmp-dim" aria-hidden="true" onClick={onClose} />
+      <div className="cmp-dim" aria-hidden="true" onClick={onClose} />
       <div className="cmp" role="dialog" aria-modal="true" aria-label="로보티 비교 결과">
         <header className="cmp-head">
           <strong>{stage === "prefs" ? "로보티에게 비교 맡기기" : `${items.length}곳 비교 결과`}</strong>
@@ -254,7 +256,8 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
                       ))}
                     </tr>
                   ))}
-                  {chipTopics.map((c) => (
+                  {/* 후기 주제 줄은 한 곳이라도 숫자가 있을 때만 */}
+                  {chipTopics.filter((c) => rows.some((r) => topicFor(c, r.topics))).map((c) => (
                     <tr key={c.id}>
                       <th scope="row">
                         {c.emoji} {c.id} 후기
@@ -341,7 +344,8 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
         )}
       </div>
       {remember && <RememberPrefsModal onClose={() => setRemember(false)} />}
-    </>
+    </>,
+    document.body,
   );
 }
 
