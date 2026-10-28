@@ -11,11 +11,8 @@ html.sheet-lock body {
 
 /* 휴대폰에서만 보이는 부품 */
 .m-only,
-.hcard-compare,
-.hcard-badge,
 .hcard-skeletons,
 .sheet-dim,
-.results-hint,
 .layer-back,
 .flight-fab {
   display: none;
@@ -125,11 +122,11 @@ html.sheet-lock body {
     box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
   }
   .search-tab .soon {
-    top: -7px;
+    top: -8px;
     right: -2px;
-    padding: 0 5px;
-    font-size: 10px;
-    line-height: 15px;
+    padding: 0 6px;
+    font-size: 11px;
+    line-height: 16px;
     background: var(--white);
     box-shadow: 0 0 0 1px rgba(29, 78, 216, 0.15);
   }
@@ -872,6 +869,8 @@ html.sheet-lock body {
     justify-self: start;
     position: relative;
     z-index: 1;
+    top: auto;
+    right: auto;
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -913,6 +912,7 @@ html.sheet-lock body {
     border: 2px solid var(--blue);
     padding: 11px;
     background: #f5f8ff;
+    box-shadow: none;
   }
   /* 터치 기기에서 hover 그림자가 남지 않게 */
   .hcard:hover,
