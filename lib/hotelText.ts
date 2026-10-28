@@ -67,7 +67,7 @@ const EN_KO: Record<string, string> = {
   elevator: "엘리베이터",
   "24-hour front desk": "24시간 프런트",
   "front desk": "프런트",
-  "luggage storage": "짐 보관",
+  "luggage storage": "수하물 보관",
   "airport transfer": "공항 이동 서비스",
   "electric car charging station": "전기차 충전소",
   "ev charger": "전기차 충전소",
@@ -140,4 +140,53 @@ export function dealKo(text: string): string {
 export function kindKo(type: string | undefined): string {
   if (!type) return "호텔";
   return lookup(type) ?? type;
+}
+
+// 자주 나오는 호텔 체인 영문 이름 → 한글. 앞쪽이 더 긴 이름이라 먼저 맞춰 본다
+const CHAINS: [RegExp, string][] = [
+  [/\bsotetsu fresa inn\b/i, "소테츠 프레사 인"],
+  [/\bdaiwa roynet hotel\b/i, "다이와 로이넷 호텔"],
+  [/\bmitsui garden hotel\b/i, "미쓰이 가든 호텔"],
+  [/\bhotel gracery\b/i, "호텔 그레이서리"],
+  [/\bhotel mystays\b/i, "호텔 마이스테이즈"],
+  [/\bhotel monterey\b/i, "호텔 몬터레이"],
+  [/\bhotel keihan\b/i, "호텔 게이한"],
+  [/\bhotel nikko\b/i, "호텔 닛코"],
+  [/\bsarasa hotel\b/i, "사라사 호텔"],
+  [/\bapa hotel\b/i, "아파 호텔"],
+  [/\btoyoko inn\b/i, "토요코 인"],
+  [/\bdormy inn\b/i, "도미 인"],
+  [/\bvessel inn\b/i, "베셀 인"],
+  [/\bvia inn\b/i, "비아 인"],
+  [/\bsuper hotel\b/i, "슈퍼 호텔"],
+  [/\brichmond hotel\b/i, "리치몬드 호텔"],
+  [/\bcomfort hotel\b/i, "컴포트 호텔"],
+  [/\bremm\b/i, "렘"],
+];
+
+// 체인 이름을 바꾼 경우에만 뒤에 붙은 지명도 같이 바꾼다 ("아파 호텔 Shinjuku" 같은 반쪽 번역을 줄인다)
+const PLACES: Record<string, string> = {
+  tokyo: "도쿄", osaka: "오사카", kyoto: "교토", fukuoka: "후쿠오카", sapporo: "삿포로", nagoya: "나고야", okinawa: "오키나와", naha: "나하",
+  yokohama: "요코하마", kobe: "고베", hiroshima: "히로시마", shinjuku: "신주쿠", shibuya: "시부야", ginza: "긴자", asakusa: "아사쿠사",
+  ueno: "우에노", ikebukuro: "이케부쿠로", akihabara: "아키하바라", shinagawa: "시나가와", namba: "난바", umeda: "우메다",
+  shinsaibashi: "신사이바시", dotonbori: "도톤보리", hakata: "하카타", tenjin: "덴진", susukino: "스스키노", station: "역", ekimae: "역앞",
+};
+
+// 화면에 보여 줄 호텔 이름. 예약 링크·검색에는 원래 이름을 그대로 쓴다
+export function hotelNameKo(name: string): string {
+  let out = name;
+  for (const [re, ko] of CHAINS) out = out.replace(re, ko);
+  if (out === name) return name;
+  return out.replace(/\b[A-Za-z]+\b/g, (w) => PLACES[w.toLowerCase()] ?? w);
+}
+
+// 카드에 먼저 보여 줄 편의시설: 한국 여행자가 많이 찾는 것부터. 유료 주차는 빼고 무료 주차만 남긴다
+const FIRST = [/무료 와이파이/, /대욕장|온천|노천탕/, /수하물 보관/, /24시간 프런트/, /금연/, /역 근처/];
+export function cardAmenities(list: string[]): string[] {
+  const kept = list.filter((a) => !/주차/.test(a) || /^무료 주차/.test(a));
+  const rank = (a: string) => {
+    const i = FIRST.findIndex((re) => re.test(a));
+    return i < 0 ? FIRST.length : i;
+  };
+  return kept.map((a, i) => ({ a, i })).sort((x, y) => rank(x.a) - rank(y.a) || x.i - y.i).map((x) => x.a);
 }

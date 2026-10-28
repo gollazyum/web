@@ -298,9 +298,9 @@ a {
   letter-spacing: -0.045em;
   color: var(--ink);
 }
-/* 히어로 강조: 파랑에서 하늘색으로만 (초록 없이) */
+/* 히어로 강조 '로보티와 함께': 파랑에서 초록으로 */
 .grad-blue {
-  background: linear-gradient(100deg, var(--blue) 0%, var(--sky) 100%);
+  background: linear-gradient(100deg, var(--blue) 0%, var(--green) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -308,14 +308,6 @@ a {
 /* 제목이 좁은 화면에서 구절 단위로만 줄바꿈되게 */
 .nobr {
   display: inline-block;
-}
-.hero-guide {
-  margin: 22px auto 0;
-  max-width: 720px;
-  text-wrap: balance;
-  font-size: clamp(15px, 1.8vw, 18px);
-  font-weight: 500;
-  color: var(--muted);
 }
 .grad {
   background: var(--grad);
@@ -404,14 +396,6 @@ a {
   background: rgba(29, 78, 216, 0.08);
   padding: 2px 8px;
   border-radius: 999px;
-}
-.tab-hint {
-  text-align: center;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--muted);
-  margin-bottom: 12px;
-  animation: fade-up 0.35s ease both;
 }
 .tab-panel {
   animation: fade-up 0.35s ease both;
@@ -1106,6 +1090,53 @@ a {
   font-size: 15px;
   line-height: 1.6;
   white-space: pre-wrap;
+}
+/* 도우미 답 아래 버튼 줄 (조건 완화·더 찾기·필터 적용) */
+.bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 88%;
+}
+.bubble-wrap .bubble {
+  max-width: 100%;
+}
+.advisor-actions,
+.advisor-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.advisor-actions button,
+.advisor-actions a {
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--blue);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.advisor-actions button.is-filter {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--white);
+}
+.advisor-actions button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+@media (max-width: 640px) {
+  .advisor-actions button,
+  .advisor-actions a {
+    min-height: 44px;
+  }
 }
 .bot .bubble {
   background: var(--soft);
@@ -2224,7 +2255,6 @@ a {
   .route-grid a,
   .typing span,
   .search-tab.active img,
-  .tab-hint,
   .tab-panel,
   .mochi-shadow,
   .mochi-bubble,
@@ -2580,6 +2610,33 @@ a {
 .hotel-sources em.best-badge {
   color: var(--orange-dark);
   font-weight: 800;
+}
+/* 아고다 '로보티 추천' 옆 추천 이유 한 줄 */
+.pick-why {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--green-dark);
+}
+/* 예약 사이트가 5곳을 넘으면 나머지를 접어 두는 버튼 */
+.more-sites {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--blue);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
 }
 .hotel-sources b {
   color: var(--ink);
@@ -3298,9 +3355,11 @@ a {
   color: var(--muted);
 }
 .hcard-price strong {
-  font-size: 22px;
+  font-size: 20px;
+  font-weight: 800;
   color: var(--ink);
   letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 .hcard-price em {
   font-style: normal;
@@ -3358,6 +3417,9 @@ a {
 .hcard-sources .hotel-sources small {
   font-weight: 500;
   color: var(--muted);
+}
+.hcard-sources .hotel-sources small.pick-why {
+  color: var(--green-dark);
 }
 
 /* 항공권 카드 */
@@ -3716,6 +3778,28 @@ a {
 }
 .advisor .chat-input input {
   font-size: 14px;
+}
+/* 입력창 위 원클릭 질문 (지금 목록으로 늘 답이 나오는 예산) */
+.advisor-quick {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 0 12px 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: var(--blue);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.advisor-quick:hover {
+  background: #dbeafe;
 }
 .advisor-fab {
   position: fixed;

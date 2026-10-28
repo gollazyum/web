@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { HotelAdvisor } from "./HotelAdvisor";
+import { HotelAdvisor, type AdvisorFilter } from "./HotelAdvisor";
 import { HotelPriceSheet, lowestCost, roboSummary, totalOf, type PriceState } from "./HotelPriceSheet";
 import { HotelSearch } from "./HotelSearch";
 import { MochiStar, MochiStars, RatingMochi, ratingTier } from "./MochiMarks";
@@ -11,7 +11,8 @@ import { ScanProgress } from "./ScanProgress";
 import { SortMenu } from "./SortMenu";
 import { errorCode } from "@/lib/apiError";
 import { daysBetween, shortLabel, today } from "@/lib/dates";
-import { agodaSearchUrl, bookingLink, hotelsPath, roboPick, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
+import { agodaSearchUrl, bookingLink, firstSites, isAgoda, hotelsPath, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
+import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
 import { isPhone, useSheet } from "@/lib/useSheet";
 
 // 호텔 결과 페이지 (/hotels?q=…). 로보티가 훑는 연출 뒤에 필터·정렬이 있는 호텔 카드 목록을 보여 준다.
@@ -239,7 +240,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     setAdvisorOpen(true);
     const list = compared.map((t) => data.options.find((o) => o.token === t)).filter((o): o is HotelOption => !!o);
     if (!list.length) return;
-    const names = list.map((h) => h.name).join(", ");
+    const names = list.map((h) => hotelNameKo(h.name)).join(", ");
     setAsk({
       id: Date.now(),
       text:
@@ -249,19 +250,38 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     });
   }
 
-  async function loadMore() {
-    if (!data.next || more === "loading") return;
+  async function loadMore(): Promise<boolean> {
+    if (!data.next || more === "loading") return false;
     setMore("loading");
     try {
       const res = await postHotels({ ...query, page: data.next });
-      if (!res.ok) return setMore("error");
+      if (!res.ok) {
+        setMore("error");
+        return false;
+      }
       const page = (await res.json()) as HotelResults;
       const seen = new Set(data.options.map((o) => o.token));
       setData({ options: [...data.options, ...page.options.filter((o) => !seen.has(o.token))], next: page.next });
       setMore("idle");
+      return true;
     } catch {
       setMore("error");
+      return false;
     }
+  }
+
+  // 로보티가 답 끝에 적은 조건을 왼쪽 필터에 그대로 넣는다 (1박 예산 기준)
+  function applyFilter(f: AdvisorFilter) {
+    const nightly = data.options.map((o) => o.perNight ?? 0);
+    const low = Math.floor(Math.min(...nightly) / 10000) * 10000;
+    setUnit("night");
+    setRange(f.maxPrice ? [low, Math.max(low, Math.ceil(f.maxPrice / 10000) * 10000)] : null);
+    // 후기 점수 칩(4.5·4·3.5·3) 중 말한 점수 이하에서 가장 높은 것
+    setMinRating(f.minRating ? ([4.5, 4, 3.5, 3].find((r) => r <= f.minRating!) ?? 0) : 0);
+    setStars(new Set((f.stars ?? []).filter((s) => starList.includes(s))));
+    setAmenities(new Set((f.amenities ?? []).filter((a) => amenityList.some(([name]) => name === a))));
+    setAdvisorOpen(false);
+    setToast("로보티가 말한 조건을 필터에 넣었어요");
   }
 
   if (!data.options.length) {
@@ -457,6 +477,9 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
       {advisorOpen && phoneSheet && <div className="sheet-dim" aria-hidden="true" onClick={() => setAdvisorOpen(false)} />}
       <HotelAdvisor
         hotels={data.options}
+        hasMore={!!data.next}
+        onMore={loadMore}
+        onFilter={applyFilter}
         query={query}
         open={advisorOpen}
         onClose={() => setAdvisorOpen(false)}
@@ -607,8 +630,13 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
   const sources = prices?.kind === "ok" ? prices.sources : hotel.sources;
   const lowest = lowestCost(sources);
   const pick = roboPick(sources, hotel.token);
+  const why = pick ? roboReason(sources, pick, hotel.deal, hotel.token) : "";
+  const [allSites, setAllSites] = useState(false);
+  const first = firstSites(sources, pick);
+  const hidden = sources.length - first.size;
   const tier = hotel.rating ? ratingTier(hotel.rating) : null;
   const blocked = !compared && compareFull;
+  const amenities = cardAmenities(hotel.amenities);
   return (
     <li id={`hotel-${hotel.token}`} className={`hcard${open ? " open" : ""}${flash ? " flash" : ""}${compared ? " is-compared" : ""}`}>
       <Gallery
@@ -617,7 +645,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
         badge={badge && <span className={`hcard-badge is-${badge.kind}`}>{badge.text}</span>}
       />
       <div className="hcard-body">
-        <h3 title={hotel.name}>{hotel.name}</h3>
+        <h3 title={hotel.name}>{hotelNameKo(hotel.name)}</h3>
         <p className="hcard-meta">
           {hotel.stars ? (
             <>
@@ -635,9 +663,9 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
             </span>
           )}
         </p>
-        {hotel.amenities.length > 0 && (
+        {amenities.length > 0 && (
           <ul className="hcard-amen">
-            {hotel.amenities.slice(0, 4).map((a) => (
+            {amenities.slice(0, 4).map((a) => (
               <li key={a}>{a}</li>
             ))}
           </ul>
@@ -701,7 +729,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
           </p>
           {sources.length > 0 && (
             <ul className="hotel-sources">
-              {sources.map((s) => {
+              {sources.filter((s) => allSites || first.has(s.name)).map((s) => {
                 const link = bookingLink(s, hotel.name, query);
                 return (
                   <li key={s.name} className={s.name === pick ? "pick" : undefined}>
@@ -712,6 +740,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
                       {s.official && <em> 공식</em>}
                       {s.name === pick && <em className="hotel-pick"> 로보티 추천</em>}
                       {lowest && lowest.value !== null && lowest.cost(s) === lowest.value && <em className="best-badge">최저가</em>}
+                      {s.name === pick && <small className="pick-why">{why}</small>}
                     </span>
                     <b>
                       {s.perNight !== null ? won(s.perNight) : "-"}
@@ -729,6 +758,17 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
               })}
             </ul>
           )}
+          {hidden > 0 && !allSites && (
+            <button type="button" className="more-sites" onClick={() => setAllSites(true)}>
+              외 {hidden}개 사이트 가격 더 보기 ∨
+            </button>
+          )}
+          {/* 가격이 한 곳만 나오면 아고다에서 이 도시 숙소를 더 볼 수 있게 */}
+          {sources.length === 1 && !isAgoda(sources[0].name) && (
+            <a className="more-sites" href={agodaSearchUrl(query.q, query)} target="_blank" rel="noopener noreferrer sponsored">
+              아고다에서 더 많은 숙소 보러가기 ↗
+            </a>
+          )}
           {prices?.kind === "ok" && !sources.length && <p className="flight-note">이 호텔은 지금 예약 사이트 가격을 찾지 못했어요.</p>}
           {prices?.kind === "error" && <p className="flight-note">{prices.message}</p>}
         </div>
@@ -745,7 +785,7 @@ function HotelSkeletons() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/lowboti-mark.svg" alt="" />
         <p>
-          <strong>🔍 로보티가 실시간 최저가와 숨은 경로를 비교하고 있어요...</strong>
+          <strong>🔍 로보티가 실시간 최저가와 숨은 할인 경로를 비교하고 있어요...</strong>
           <span>예약 사이트별 숨은 총액까지 계산하는 중 · 약 5~10초</span>
         </p>
       </div>

@@ -104,16 +104,40 @@ function propsOf(raw: Record<string, unknown>): { props: SerpProperty[]; single:
 
 const optionsOf = (props: SerpProperty[]) => props.map(toOption).filter((o): o is HotelOption => !!o && o.perNight !== null);
 
-// Google 기본 순서는 저렴한 1~3성이 위로 많이 온다. 4·5성만 따로 받은 목록(upper)을 섞어
-// 20곳 중 4성 12곳, 5성 4곳(모자라면 4성으로)을 채우고 나머지는 기본 결과에서 채운다.
-// 순서는 각 목록 안의 순위를 따라 번갈아 놓아 첫 화면에 여러 등급이 섞이게 한다
-const MIX = { four: 12, five: 4 };
+// 추천순 첫 20곳 비율. 비싼 고성급만 깔리지 않게 세 묶음으로 나눠 채운다
+// - 가성비 우량: 3~4성, 후기 4.0 이상, 1박가가 전체 중간값 이하 (8~10곳)
+// - 프리미엄 특가: 4~5성, '평소보다 n%' 특가가 있거나 후기 4.2 이상 (6~8곳)
+// - 인기 비즈니스: 남은 2~3성 중 후기 많은 곳 (4곳)
+// 묶음이 모자라면 Google 기본 순서에서 채운다. 순서는 묶음 안 순위를 따라 번갈아 놓는다
+const MIX = { value: 10, premiumMin: 6, premiumMax: 8, business: 4 };
 function mixClasses(base: HotelOption[], upper: HotelOption[]): HotelOption[] {
-  const five = upper.filter((o) => o.stars === 5).slice(0, MIX.five);
-  const four = upper.filter((o) => o.stars === 4).slice(0, MIX.four + MIX.five - five.length);
-  const picked = new Set([...five, ...four].map((o) => o.token));
-  const rest = base.filter((o) => !picked.has(o.token)).slice(0, MAX_OPTIONS - picked.size);
-  const ranked = [...four.map((o, i) => ({ o, r: i / Math.max(four.length, 1) })), ...five.map((o, i) => ({ o, r: (i + 0.5) / Math.max(five.length, 1) })), ...rest.map((o, i) => ({ o, r: (i + 0.25) / Math.max(rest.length, 1) }))];
+  const seen = new Set<string>();
+  const pool = [...base, ...upper].filter((o) => !seen.has(o.token) && seen.add(o.token));
+  const prices = pool.map((o) => o.perNight ?? 0).sort((a, b) => a - b);
+  const median = prices[Math.floor((prices.length - 1) / 2)] ?? 0;
+  const used = new Set<string>();
+  const take = (list: HotelOption[], n: number) => {
+    const out = list.filter((o) => !used.has(o.token)).slice(0, Math.max(n, 0));
+    out.forEach((o) => used.add(o.token));
+    return out;
+  };
+  const stars = (o: HotelOption, ...s: number[]) => s.includes(o.stars ?? 0);
+  const rating = (o: HotelOption) => o.rating ?? 0;
+  const value = take(
+    pool.filter((o) => stars(o, 3, 4) && rating(o) >= 4 && (o.perNight ?? Infinity) <= median).sort((a, b) => rating(b) - rating(a) || (a.perNight ?? 0) - (b.perNight ?? 0)),
+    MIX.value,
+  );
+  const business = take(
+    pool.filter((o) => stars(o, 2, 3)).sort((a, b) => (b.reviews ?? 0) - (a.reviews ?? 0)),
+    MIX.business,
+  );
+  const deal = (o: HotelOption) => (/\d+\s*%/.test(o.deal) ? 1 : 0);
+  const premium = take(
+    pool.filter((o) => stars(o, 4, 5) && (deal(o) || rating(o) >= 4.2)).sort((a, b) => deal(b) - deal(a) || rating(b) - rating(a)),
+    Math.min(MIX.premiumMax, Math.max(MIX.premiumMin, MAX_OPTIONS - value.length - business.length)),
+  );
+  const rest = take(pool, MAX_OPTIONS - used.size);
+  const ranked = [value, premium, business, rest].flatMap((list, g) => list.map((o, i) => ({ o, r: (i + g * 0.25) / Math.max(list.length, 1) })));
   return ranked.sort((a, b) => a.r - b.r).map((x) => x.o);
 }
 
@@ -154,6 +178,6 @@ export async function POST(req: Request) {
     params.next_page_token = q.page;
     return serpSearch(req, params, shapeList);
   }
-  // 첫 쪽은 4·5성만 한 번 더 불러 섞는다 (검색 2번 요금)
+  // 첫 쪽은 4·5성만 한 번 더 불러 같이 놓고 추천순 비율로 고른다 (검색 2번 요금)
   return serpSearch(req, params, shapeList, { ...params, hotel_class: "4,5" });
 }

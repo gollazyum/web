@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { MochiStars, ratingTier } from "./MochiMarks";
-import { bookingLink, roboPick, type HotelOption, type HotelQuery, type HotelSource } from "@/lib/hotels";
+import { agodaSearchUrl, bookingLink, firstSites, isAgoda, roboPick, roboReason, type HotelOption, type HotelQuery, type HotelSource } from "@/lib/hotels";
+import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
 import { useSheet } from "@/lib/useSheet";
 
 // 휴대폰 호텔 결과: 카드를 누르면 아래에서 올라오는 '예약 사이트별 가격' 시트.
@@ -48,6 +50,19 @@ export function roboSummary(h: HotelOption, all: HotelOption[], nights: number, 
   return `${lead}${b ? `${and(a)}, ${b}` : a}.`;
 }
 
+// 시트 위 '로보티 요약': 이 호텔의 후기·등급과 지금 불러온 사이트별 최저가로 만든다.
+// 사이트 가격이 없으면 목록 기준 요약(fallback)을 쓴다
+function sheetSummary(h: HotelOption, sources: HotelSource[], fallback: string): string {
+  const best = lowestCost(sources);
+  const site = best ? sources.find((s) => best.cost(s) === best.value) : null;
+  const price = site?.perNight ?? null;
+  if (!site || price === null) return fallback;
+  const kind = h.stars ? `${h.stars}성급 숙소` : "숙소";
+  const head =
+    h.rating !== null && h.reviews ? `후기 ${h.reviews.toLocaleString("ko-KR")}개(${h.rating.toFixed(1)}점)로 검증된 ${kind}예요! ` : h.stars ? `${kind}예요! ` : "";
+  return `${head}현재 ${site.name}에서 1박 평균 ${won(price)}으로 가장 저렴해요.`;
+}
+
 // "저렴해요" → "저렴하고"처럼 두 문장을 한 줄로 잇는다
 function and(s: string): string {
   return s.replace(/이에요$/, "이고").replace(/해요$/, "하고").replace(/아요$/, "고").replace(/어요$/, "고");
@@ -71,6 +86,10 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
   const top = rows.find((s) => s.total !== null) ?? rows[0];
   const linkOf = (s: HotelSource) => bookingLink(s, hotel.name, query);
   const pick = roboPick(sources, hotel.token);
+  const why = pick ? roboReason(sources, pick, hotel.deal, hotel.token) : "";
+  const [allSites, setAllSites] = useState(false);
+  const first = firstSites(rows, pick);
+  const hidden = rows.length - first.size;
   const images = hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : [];
   const tier = hotel.rating !== null ? ratingTier(hotel.rating) : null;
 
@@ -93,7 +112,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
               ))}
             </div>
           )}
-          <h2>{hotel.name}</h2>
+          <h2>{hotelNameKo(hotel.name)}</h2>
           <p className="ps-meta">
             {hotel.stars ? (
               <>
@@ -105,7 +124,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
             {hotel.rating !== null && (
               <>
                 {" · "}
-                <b className={`ps-rating${hotel.rating >= 3.5 ? "" : " ok"}`}>{hotel.rating.toFixed(1)}</b> {tier?.word}
+                <b className={`ps-rating${hotel.rating >= 3.8 ? "" : " ok"}`}>{hotel.rating.toFixed(1)}</b> {tier?.word}
                 {hotel.reviews ? ` · 후기 ${hotel.reviews.toLocaleString("ko-KR")}개` : ""}
               </>
             )}
@@ -117,7 +136,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
           )}
 
           <p className="ps-robo">
-            <span aria-hidden="true">🤖</span> <b>로보티 요약</b> {summary}
+            <span aria-hidden="true">🤖</span> <b>로보티 요약:</b> {sheetSummary(hotel, sources, summary)}
           </p>
 
           <h3>
@@ -126,7 +145,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
           </h3>
           {rows.length > 0 && (
             <ul className="ps-sources">
-              {rows.map((s) => {
+              {rows.filter((s) => allSites || first.has(s.name)).map((s) => {
                 const link = linkOf(s);
                 const isBest = best !== null && best.cost(s) === best.value;
                 return (
@@ -138,6 +157,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
                       {s.official && <em> 공식</em>}
                       {s.name === pick && <em className="hotel-pick"> 로보티 추천</em>}
                       {isBest && <em className="best-badge">최저가</em>}
+                      {s.name === pick && <small className="pick-why">{why}</small>}
                     </span>
                     <span className="ps-cost">
                       <b>{s.total !== null ? won(s.total) : s.perNight !== null ? won(s.perNight) : "-"}</b>
@@ -155,11 +175,22 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
               })}
             </ul>
           )}
+          {hidden > 0 && !allSites && (
+            <button type="button" className="more-sites" onClick={() => setAllSites(true)}>
+              외 {hidden}개 사이트 가격 더 보기 ∨
+            </button>
+          )}
+          {/* 가격이 한 곳만 나오면 아고다에서 이 도시 숙소를 더 볼 수 있게 */}
+          {sources.length === 1 && !isAgoda(sources[0].name) && (
+            <a className="more-sites" href={agodaSearchUrl(query.q, query)} target="_blank" rel="noopener noreferrer sponsored">
+              아고다에서 더 많은 숙소 보러가기 ↗
+            </a>
+          )}
           {prices?.kind === "ok" && !sources.length && <p className="flight-note">이 호텔은 지금 예약 사이트 가격을 찾지 못했어요.</p>}
           {prices?.kind === "error" && <p className="flight-note">{prices.message}</p>}
-          {hotel.amenities.length > 0 && (
+          {cardAmenities(hotel.amenities).length > 0 && (
             <ul className="hcard-amen ps-amen">
-              {hotel.amenities.slice(0, 10).map((a) => (
+              {cardAmenities(hotel.amenities).slice(0, 10).map((a) => (
                 <li key={a}>{a}</li>
               ))}
             </ul>

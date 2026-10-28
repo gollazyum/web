@@ -82,9 +82,9 @@ html.sheet-lock body {
     gap: 6px;
     margin-bottom: 10px;
   }
-  .hero-guide,
-  .tab-hint {
-    display: none;
+  /* 제목은 '여행 가격 비교,' / 'AI 로보티에게 맡기세요.' 두 줄 */
+  .hero .hero-line {
+    display: block;
   }
   .hero h1 {
     font-size: clamp(24px, 7vw, 30px);
@@ -266,6 +266,11 @@ html.sheet-lock body {
 
 /* ---------- 바텀시트 공통 (가격·필터·달력·로보티) ---------- */
 @media (max-width: 640px) {
+  /* 달력·검색 레이어 등 어떤 시트든 열려 있으면 떠 있는 로보티 버튼을 숨긴다 */
+  html.sheet-lock .advisor-fab,
+  html.layer-open .advisor-fab {
+    display: none;
+  }
   /* 딤: 뒤 페이지가 터치로 스크롤되지 않게 (iOS Safari) */
   .sheet-dim {
     display: block;
@@ -274,6 +279,7 @@ html.sheet-lock body {
     z-index: 49; /* 필터·로보티 시트(50) 바로 아래 */
     background: rgba(11, 18, 32, 0.45);
     touch-action: none;
+    overscroll-behavior: contain;
     animation: dim-in 0.2s ease both;
   }
   /* 검색창 안의 달력 시트·검색 레이어가 머리글보다 위에 오게 */
