@@ -9,7 +9,19 @@ import { hotelNameKo } from "@/lib/hotelText";
 // 무엇이 중요한지 고르면 지금 불러온 호텔 목록 안에서 골라 주고, 답 속 [[번호]]는 그 호텔 카드로 가는 버튼이 된다
 type Msg = { role: "user" | "assistant"; content: string };
 
-const PREFS = ["가성비", "후기 좋은 곳", "4~5성급 고급", "조식", "수영장", "피트니스", "커플 여행", "가족 여행", "혼자 여행"];
+const PREFS = ["💰 가성비", "✨ 후기 좋은 곳", "👑 4~5성급 고급", "🥐 조식", "🏊 수영장", "💪 피트니스", "💑 커플 여행", "👨‍👩‍👧‍👦 가족 여행", "🎒 혼자 여행"];
+// 칩 앞 이모지를 뗀 말 (질문 문장에 넣을 때)
+const plain = (p: string) => p.replace(/^\S+\s/, "");
+
+// 원클릭 질문의 예산: 지금 목록의 1박 평균가 하위 35% 지점을 만 원 단위로 올린다.
+// 그 값 아래 후기 4.0 이상인 곳이 없으면 그런 곳이 생길 때까지 올려서, 누르면 늘 답이 나오게 한다
+function quickBudget(hotels: HotelOption[]): number | null {
+  const prices = hotels.map((h) => h.perNight).filter((p): p is number => p !== null).sort((a, b) => a - b);
+  if (prices.length < 3) return null;
+  const good = hotels.filter((h) => (h.rating ?? 0) >= 4 && h.perNight !== null).map((h) => h.perNight as number);
+  const at = Math.max(prices[Math.floor((prices.length - 1) * 0.35)], good.length ? Math.min(...good) : 0);
+  return Math.ceil(at / 10000);
+}
 
 type Props = {
   hotels: HotelOption[];
@@ -25,7 +37,7 @@ type Props = {
 
 export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compare = [], nights = 1, onRecommend }: Props) {
   const [messages, setMessages] = useState<Msg[]>([]);
-  const [prefs, setPrefs] = useState<Set<string>>(new Set());
+  const [prefs, setPrefs] = useState<Set<string>>(new Set([PREFS[0]]));
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -130,8 +142,11 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compar
 
   function askWithPrefs() {
     if (!prefs.size) return;
-    send(`제가 중요하게 생각하는 건 ${[...prefs].join(", ")}이에요. 이 중에서 골라 주세요.`);
+    send(`제가 중요하게 생각하는 건 ${[...prefs].map(plain).join(", ")}이에요. 이 중에서 골라 주세요.`);
   }
+
+  const budget = quickBudget(hotels);
+  const quick = budget ? `${query.q}에서 1박 ${budget}만 원 이하 후기 좋은 곳 골라줘` : "";
 
   // 답 속 [[번호]]를 호텔 이름 버튼으로 바꾼다. 번호는 보낸 목록 순서(1부터)
   function render(text: string) {
@@ -212,7 +227,7 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compar
               </button>
             ))}
             <button type="button" className="advisor-go" disabled={!prefs.size} onClick={askWithPrefs}>
-              {prefs.size ? `${prefs.size}개 조건으로 추천받기` : "중요한 걸 골라 주세요"}
+              {prefs.size === 1 ? `${plain([...prefs][0])} 기준으로 추천받기 ✨` : prefs.size ? `고른 ${prefs.size}가지 조건으로 추천받기 ✨` : "중요한 걸 골라 주세요"}
             </button>
           </div>
         )}
@@ -237,6 +252,11 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compar
         )}
       </div>
 
+      {quick && !busy && !messages.some((m) => m.content === quick) && (
+        <button type="button" className="advisor-quick" onClick={() => send(quick)}>
+          💬 &quot;{quick}&quot;
+        </button>
+      )}
       <form
         className="chat-input"
         onSubmit={(e) => {

@@ -3744,6 +3744,28 @@ a {
 .advisor .chat-input input {
   font-size: 14px;
 }
+/* 입력창 위 원클릭 질문 (지금 목록으로 늘 답이 나오는 예산) */
+.advisor-quick {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 0 12px 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: var(--blue);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.advisor-quick:hover {
+  background: #dbeafe;
+}
 .advisor-fab {
   position: fixed;
   right: 18px;

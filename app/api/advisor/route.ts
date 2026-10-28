@@ -24,6 +24,9 @@ const SYSTEM = `너는 "로보티(Lowboti)"야. 호텔과 항공권 가격을 �
 - 목록에 있는 가격, 점수, 편의시설만 사실로 말해. 위치, 역과의 거리, 방 크기, 후기 내용처럼 목록에 없는 건 지어내지 말고, 모르면 카드의 지도 보기나 예약 사이트에서 확인하라고 해.
 - 가격은 검색 시점 기준이라 바뀔 수 있다고 필요할 때만 짧게 말해.
 - 예약이나 결제를 대신 해준다고 말하지 마. 마음에 드는 호텔은 카드의 "선택"을 눌러 예약 사이트별 가격을 보라고 안내해.
+- 조건에 맞는 곳이 목록에 없을 때(예: 너무 낮은 예산)는 "없어요"로 끝내지 마. 아래 [참고]의 최저가 1위와 가성비 1위를 대신 추천해.
+  예: "이번 검색 결과에는 1박 5만 원 이하 숙소가 없어요 😢 대신 예산을 조금만 보태면 갈 수 있는 현재 최저가 1위 [[4]](1박 68,000원)와 후기 4.3점 가성비 1위 [[7]]를 추천해 드릴게요!"
+  목록에 없다는 이유로 "마감됐다", "매진됐다"고 단정하지 마. 이번 검색 결과에 없을 뿐이야.
 - 여행과 관계없는 질문에는 짧게 답할 수 없다고 말하고 숙소 이야기로 돌아와.
 - 비밀번호, 카드 번호 같은 민감한 정보는 묻지도 받지도 마.`;
 
@@ -72,7 +75,15 @@ function contextBlock(c: NonNullable<ReturnType<typeof parseContext>>): string {
       `[[${h.n}]] ${h.name} | ${h.stars ? `${h.stars}성급` : "등급 정보 없음"} | 후기 ${h.rating ?? "-"}점(${h.reviews ?? 0}개) | 1박 ${won(h.perNight)} · 총 ${won(h.total)}` +
       `${h.amenities.length ? ` | ${h.amenities.join(", ")}` : ""}${h.deal ? ` | 특가: ${h.deal}` : ""}`,
   );
-  return `\n\n[검색 조건]\n${c.place} · ${c.checkIn} ~ ${c.checkOut} · 성인 ${c.adults ?? "-"}명\n\n[호텔 목록] (후기 점수는 Google 5점 만점)\n${lines.join("\n")}`;
+  // 조건에 맞는 곳이 없을 때 대신 권할 두 곳을 미리 계산해 둔다 (모델이 숫자를 잘못 고르지 않게)
+  const priced = c.list.filter((h) => h.perNight !== null).sort((a, b) => (a.perNight ?? 0) - (b.perNight ?? 0));
+  const cheapest = priced[0];
+  const value = priced.find((h) => (h.rating ?? 0) >= 4) ?? [...priced].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0];
+  const hint = cheapest
+    ? `\n\n[참고]\n최저가 1위: [[${cheapest.n}]] 1박 ${won(cheapest.perNight)}` +
+      (value ? `\n가성비 1위(후기 4.0 이상 중 1박가가 가장 낮은 곳): [[${value.n}]] 후기 ${value.rating ?? "-"}점 · 1박 ${won(value.perNight)}` : "")
+    : "";
+  return `\n\n[검색 조건]\n${c.place} · ${c.checkIn} ~ ${c.checkOut} · 성인 ${c.adults ?? "-"}명\n\n[호텔 목록] (후기 점수는 Google 5점 만점)\n${lines.join("\n")}${hint}`;
 }
 
 export async function POST(req: Request) {
