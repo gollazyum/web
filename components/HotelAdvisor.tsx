@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LiveMochi } from "./LiveMochi";
 import type { HotelOption, HotelQuery } from "@/lib/hotels";
+import { hotelNameKo } from "@/lib/hotelText";
 
 // 호텔 결과 화면 오른쪽에 붙어 다니는 로보티 숙소 도우미.
 // 무엇이 중요한지 고르면 지금 불러온 호텔 목록 안에서 골라 주고, 답 속 [[번호]]는 그 호텔 카드로 가는 버튼이 된다
@@ -78,7 +79,7 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compar
           checkOut: query.checkOut,
           adults: query.adults,
           hotels: hotels.map((h) => ({
-            name: h.name,
+            name: hotelNameKo(h.name),
             stars: h.stars,
             rating: h.rating,
             reviews: h.reviews,
@@ -141,7 +142,7 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compar
       if (!hotel) return "";
       return (
         <button key={i} type="button" className="advisor-pick" onClick={() => onPick(hotel.token)}>
-          {hotel.name}
+          {hotelNameKo(hotel.name)}
         </button>
       );
     });
@@ -180,7 +181,7 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compar
                   <tr key={h.token}>
                     <th scope="row">
                       <button type="button" className="advisor-pick" onClick={() => onPick(h.token)}>
-                        {h.name}
+                        {hotelNameKo(h.name)}
                       </button>
                       {h.stars ? <small>{h.stars}성급</small> : null}
                     </th>

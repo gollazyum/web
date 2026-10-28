@@ -12,6 +12,7 @@ import { SortMenu } from "./SortMenu";
 import { errorCode } from "@/lib/apiError";
 import { daysBetween, shortLabel, today } from "@/lib/dates";
 import { agodaSearchUrl, bookingLink, hotelsPath, roboPick, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
+import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
 import { isPhone, useSheet } from "@/lib/useSheet";
 
 // 호텔 결과 페이지 (/hotels?q=…). 로보티가 훑는 연출 뒤에 필터·정렬이 있는 호텔 카드 목록을 보여 준다.
@@ -239,7 +240,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     setAdvisorOpen(true);
     const list = compared.map((t) => data.options.find((o) => o.token === t)).filter((o): o is HotelOption => !!o);
     if (!list.length) return;
-    const names = list.map((h) => h.name).join(", ");
+    const names = list.map((h) => hotelNameKo(h.name)).join(", ");
     setAsk({
       id: Date.now(),
       text:
@@ -609,6 +610,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
   const pick = roboPick(sources, hotel.token);
   const tier = hotel.rating ? ratingTier(hotel.rating) : null;
   const blocked = !compared && compareFull;
+  const amenities = cardAmenities(hotel.amenities);
   return (
     <li id={`hotel-${hotel.token}`} className={`hcard${open ? " open" : ""}${flash ? " flash" : ""}${compared ? " is-compared" : ""}`}>
       <Gallery
@@ -617,7 +619,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
         badge={badge && <span className={`hcard-badge is-${badge.kind}`}>{badge.text}</span>}
       />
       <div className="hcard-body">
-        <h3 title={hotel.name}>{hotel.name}</h3>
+        <h3 title={hotel.name}>{hotelNameKo(hotel.name)}</h3>
         <p className="hcard-meta">
           {hotel.stars ? (
             <>
@@ -635,9 +637,9 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
             </span>
           )}
         </p>
-        {hotel.amenities.length > 0 && (
+        {amenities.length > 0 && (
           <ul className="hcard-amen">
-            {hotel.amenities.slice(0, 4).map((a) => (
+            {amenities.slice(0, 4).map((a) => (
               <li key={a}>{a}</li>
             ))}
           </ul>

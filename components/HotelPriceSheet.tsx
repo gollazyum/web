@@ -2,6 +2,7 @@
 
 import { MochiStars, ratingTier } from "./MochiMarks";
 import { bookingLink, roboPick, type HotelOption, type HotelQuery, type HotelSource } from "@/lib/hotels";
+import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
 import { useSheet } from "@/lib/useSheet";
 
 // 휴대폰 호텔 결과: 카드를 누르면 아래에서 올라오는 '예약 사이트별 가격' 시트.
@@ -93,7 +94,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
               ))}
             </div>
           )}
-          <h2>{hotel.name}</h2>
+          <h2>{hotelNameKo(hotel.name)}</h2>
           <p className="ps-meta">
             {hotel.stars ? (
               <>
@@ -157,9 +158,9 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
           )}
           {prices?.kind === "ok" && !sources.length && <p className="flight-note">이 호텔은 지금 예약 사이트 가격을 찾지 못했어요.</p>}
           {prices?.kind === "error" && <p className="flight-note">{prices.message}</p>}
-          {hotel.amenities.length > 0 && (
+          {cardAmenities(hotel.amenities).length > 0 && (
             <ul className="hcard-amen ps-amen">
-              {hotel.amenities.slice(0, 10).map((a) => (
+              {cardAmenities(hotel.amenities).slice(0, 10).map((a) => (
                 <li key={a}>{a}</li>
               ))}
             </ul>
