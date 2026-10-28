@@ -4,10 +4,13 @@
   --sky: #0ea5e9;
   --green: #10b981;
   --green-dark: #059669;
-  --orange: #f97316;
-  /* 최저가 전용: 배지 바탕과 최저 금액 글자. 흰 글씨를 오렌지 위에 올리지 않는다 */
-  --orange-dark: #c2410c;
-  --orange-soft: #ffedd5;
+  /* 주황은 '최저가·특가' 전용. 값은 여기서만 바꾼다. 흰 글씨를 주황 위에 올리지 않는다 */
+  --color-deal: #c2410c;
+  --color-deal-bg: #ffedd5;
+  --orange-dark: var(--color-deal);
+  --orange-soft: var(--color-deal-bg);
+  /* 경유·다음날 도착처럼 주의를 끄는 표시 (주황 대신) */
+  --caution: #be123c;
   --text: #1c2738;
   --muted: #66728a;
   --line: #e6e9f0;
@@ -2624,10 +2627,8 @@ a {
   padding-top: 24px;
   padding-bottom: 48px;
 }
-.results-foot {
-  padding-bottom: 40px;
-  font-size: 12px;
-  color: var(--muted);
+.results-page + .footer {
+  margin-top: 24px;
 }
 
 /* 결과 전 로보티 스캔 (큰 화면) */
@@ -3173,8 +3174,8 @@ a {
   align-self: flex-start;
   font-size: 12px;
   font-weight: 700;
-  color: var(--green-dark);
-  background: #d1fae5;
+  color: var(--color-deal);
+  background: var(--color-deal-bg);
   padding: 3px 10px;
   border-radius: 999px;
 }
@@ -3382,7 +3383,7 @@ a {
 }
 .fcard-end sup {
   font-size: 11px;
-  color: var(--orange);
+  color: var(--caution);
   margin-left: 2px;
 }
 .fcard-end span {
@@ -3423,14 +3424,14 @@ a {
   margin-top: -3px;
   border-radius: 50%;
   background: var(--white);
-  border: 2px solid var(--orange);
+  border: 2px solid var(--caution);
 }
 .fcard-line .direct {
   color: var(--green-dark);
   font-weight: 700;
 }
 .fcard-line .stops {
-  color: #c2410c;
+  color: var(--caution);
   font-weight: 600;
 }
 .fcard-buy {
@@ -3504,7 +3505,7 @@ a {
   font-style: normal;
   font-size: 12px;
   font-weight: 700;
-  color: #c2410c;
+  color: var(--caution);
 }
 
 /* 로보티 숙소 도우미: 넓은 화면에서는 오른쪽에 붙어 따라오고, 좁으면 떠 있는 버튼으로 연다 */
@@ -3679,8 +3680,7 @@ a {
 @media (min-width: 1240px) {
   body:has(.with-advisor) .results-page,
   body:has(.with-advisor) .results-top .wrap,
-  body:has(.with-advisor) .results-nav,
-  body:has(.with-advisor) .results-foot {
+  body:has(.with-advisor) .results-nav {
     max-width: 1400px;
   }
   .results-grid.with-advisor {
