@@ -117,6 +117,8 @@ export function bookingLink(s: HotelSource, hotelName: string, query: HotelQuery
     p.set("cid", AFFILIATE_CID);
     p.set("currencyCode", "KRW");
   } else if (on("trip.com")) {
+    // 트립닷컴은 주소의 locale보다 사이트 주소(www·us…)를 따른다. 한국 사이트로 보낸다
+    url.hostname = "kr.trip.com";
     p.set("locale", "ko-KR");
     p.set("curr", "KRW");
   } else if (on("booking.com")) {
