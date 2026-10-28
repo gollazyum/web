@@ -391,6 +391,12 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
             >
               필터{active > 0 ? ` ${active}` : ""}
             </button>
+            {/* 넓은 PC는 로보티가 옆에 붙어 있어 떠 있는 버튼이 없다. 비교함에 담으면 여기서 비교를 묻는다 */}
+            {compareCount > 0 && (
+              <button type="button" className="compare-go" onClick={openAdvisor}>
+                {compareCount}곳 비교하기
+              </button>
+            )}
             <SortMenu
               value={sort}
               onChange={setSort}
@@ -404,7 +410,8 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           </div>
         </div>
         <p className="results-hint">
-          큰 숫자는 <b>{nights}박 총액</b>이에요 · 카드를 누르면 사이트별 가격
+          큰 숫자는 <b>{nights}박 총액</b>이에요 · <span className="m-only">카드를 누르면</span>
+          <span className="pc-only">&apos;선택&apos;을 누르면</span> 사이트별 가격
         </p>
 
         {shown.length ? (
@@ -634,7 +641,8 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
             ))}
           </ul>
         )}
-        {hotel.deal && <p className="hcard-deal">{hotel.deal}</p>}
+        {/* 특가가 사진 배지로 나가면 같은 말을 두 번 하지 않는다 */}
+        {hotel.deal && badge?.kind !== "deal" && <p className="hcard-deal">{hotel.deal}</p>}
         {hotel.rating !== null ? (
           <div className="hcard-rating">
             <RatingMochi rating={hotel.rating} />
