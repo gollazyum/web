@@ -83,9 +83,16 @@ function hash(seed: string): number {
   return Math.abs(h);
 }
 
-// '로보티 추천'은 제휴 예약 사이트인 아고다 줄에만 붙인다. 공식 사이트 등 제휴가 아닌 곳에는 붙이지 않는다
-export function roboPick(sources: HotelSource[]): string | null {
-  return sources.find((s) => isAgoda(s.name) && s.perNight !== null)?.name ?? null;
+// '로보티 추천'은 제휴 예약 사이트인 아고다 줄에만 붙인다. 공식 사이트 등 제휴가 아닌 곳에는 붙이지 않는다.
+// 모든 호텔에 붙지 않게 아고다의 1박 가격 순위에 따라 확률로 정한다 (1위 100% … 5위 50%, 6위부터 없음).
+// 같은 호텔은 몇 번을 열어도 같은 결과가 나오게 호텔 토큰으로 정한다
+const PICK_ODDS = [100, 90, 80, 60, 50];
+export function roboPick(sources: HotelSource[], seed: string): string | null {
+  const agoda = sources.find((s) => isAgoda(s.name) && s.perNight !== null);
+  if (!agoda) return null;
+  const rank = sources.filter((s) => s.perNight !== null && (s.perNight as number) < (agoda.perNight as number)).length;
+  const odds = PICK_ODDS[rank] ?? 0;
+  return hash(`pick:${seed}`) % 100 < odds ? agoda.name : null;
 }
 
 // 아고다를 추천하는 이유 한 줄. 조건이 맞는 이유가 먼저, 없으면 호텔마다 골고루 돌린다

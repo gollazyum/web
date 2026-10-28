@@ -85,7 +85,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
   const rows = [...sources].sort((a, b) => (a.total ?? a.perNight ?? Infinity) - (b.total ?? b.perNight ?? Infinity));
   const top = rows.find((s) => s.total !== null) ?? rows[0];
   const linkOf = (s: HotelSource) => bookingLink(s, hotel.name, query);
-  const pick = roboPick(sources);
+  const pick = roboPick(sources, hotel.token);
   const why = pick ? roboReason(sources, hotel.deal, hotel.token) : "";
   const [allSites, setAllSites] = useState(false);
   const first = firstSites(rows, pick);

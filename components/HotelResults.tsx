@@ -607,7 +607,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
   const total = totalOf(hotel, nights);
   const sources = prices?.kind === "ok" ? prices.sources : hotel.sources;
   const lowest = lowestCost(sources);
-  const pick = roboPick(sources);
+  const pick = roboPick(sources, hotel.token);
   const why = pick ? roboReason(sources, hotel.deal, hotel.token) : "";
   const [allSites, setAllSites] = useState(false);
   const first = firstSites(sources, pick);
