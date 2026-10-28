@@ -89,7 +89,7 @@ export default function Home() {
             <span className="nobr">
               <span className="grad-blue">로보티와 함께</span>
             </span>{" "}
-            <span className="nobr">찾는 최저가</span>
+            <span className="nobr">스마트 최저가</span>
           </h1>
           <p className="hero-guide">
             🤖 원하시는 도시나 호텔만 알려주세요. 숨은 예약 경로 {site.hiddenRouteCount}곳까지 로보티가 한 번에 모아 드릴게요.

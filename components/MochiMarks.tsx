@@ -59,7 +59,7 @@ export function ratingTier(r: number): { word: string; color: string } {
 export function RatingMochi({ rating, size = 40 }: { rating: number; size?: number }) {
   const { color } = ratingTier(rating);
   return (
-    <span className="rating-mochi" style={{ width: size, height: size }}>
+    <span className="rating-mochi" data-tier={rating >= 3.5 ? "good" : "ok"} style={{ width: size, height: size }}>
       <svg viewBox="8 14 86 80" width={size} height={size} aria-hidden="true">
         <path d={MOCHI} fill={color} />
       </svg>

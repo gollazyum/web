@@ -16,9 +16,13 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onPick: (token: string) => void;
+  ask?: { text: string; id: number } | null; // 'n곳 비교하기'처럼 밖에서 바로 물어볼 때
+  compare?: HotelOption[]; // 비교함에 담은 호텔 (위에 작은 비교표)
+  nights?: number;
+  onRecommend?: (tokens: string[]) => void; // 답에 나온 호텔 ([[번호]])
 };
 
-export function HotelAdvisor({ hotels, query, open, onClose, onPick }: Props) {
+export function HotelAdvisor({ hotels, query, open, onClose, onPick, ask, compare = [], nights = 1, onRecommend }: Props) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [prefs, setPrefs] = useState<Set<string>>(new Set());
   const [input, setInput] = useState("");
@@ -30,6 +34,27 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick }: Props) {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  const asked = useRef(0);
+  useEffect(() => {
+    if (!ask || ask.id === asked.current || busy) return;
+    asked.current = ask.id;
+    send(ask.text);
+    // ask가 바뀔 때만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ask]);
+
+  // 다 받은 답에서 고른 호텔을 알려 준다 (카드에 '로보티 추천' 배지)
+  useEffect(() => {
+    if (busy || !onRecommend) return;
+    const tokens = messages
+      .filter((m) => m.role === "assistant")
+      .flatMap((m) => [...m.content.matchAll(/\[\[(\d+)\]\]/g)].map((x) => hotels[Number(x[1]) - 1]?.token))
+      .filter((t): t is string => !!t);
+    if (tokens.length) onRecommend(tokens);
+    // 답이 끝났을 때만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy, messages.length]);
 
   async function send(text: string) {
     const question = text.trim();
@@ -138,6 +163,35 @@ export function HotelAdvisor({ hotels, query, open, onClose, onPick }: Props) {
 
       <div className="advisor-list" ref={listRef} aria-live="polite">
         <LiveMochi compact thinking={busy} talks={talks} greeting={`🍡 ${query.q} 숙소, 같이 골라 볼까요?`} />
+        {compare.length > 0 && (
+          <table className="advisor-compare">
+            <caption>비교함 {compare.length}곳</caption>
+            <thead>
+              <tr>
+                <th scope="col">호텔</th>
+                <th scope="col">{nights}박 총액</th>
+                <th scope="col">후기</th>
+              </tr>
+            </thead>
+            <tbody>
+              {compare.map((h) => {
+                const total = h.total ?? (h.perNight !== null ? h.perNight * nights : null);
+                return (
+                  <tr key={h.token}>
+                    <th scope="row">
+                      <button type="button" className="advisor-pick" onClick={() => onPick(h.token)}>
+                        {h.name}
+                      </button>
+                      {h.stars ? <small>{h.stars}성급</small> : null}
+                    </th>
+                    <td>{total !== null ? `${total.toLocaleString("ko-KR")}원` : "-"}</td>
+                    <td>{h.rating !== null ? h.rating.toFixed(1) : "-"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
         {!messages.length && (
           <div className="advisor-prefs">
             <p>호텔 고를 때 뭐가 제일 중요하세요?</p>

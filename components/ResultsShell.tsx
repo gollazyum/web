@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LowbotiBot } from "./LowbotiBot";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
@@ -11,6 +11,23 @@ type Props = { search: React.ReactNode; summary: { title: string; sub: string } 
 
 export function ResultsShell({ search, summary, children }: Props) {
   const [editing, setEditing] = useState(!summary);
+
+  // 휴대폰: 아래로 스크롤하면 로고 머리글만 숨기고 위로 올리면 다시 보인다 (요약·정렬 줄은 계속 붙어 있다)
+  useEffect(() => {
+    const root = document.documentElement;
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - last) < 8) return;
+      root.dataset.hdr = y > last && y > 120 ? "hidden" : "shown";
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      delete root.dataset.hdr;
+    };
+  }, []);
   return (
     <>
       <SiteHeader compact />

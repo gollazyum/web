@@ -8,16 +8,19 @@ export const maxDuration = 30;
 
 const MAX_OPTIONS = 30;
 const AIRPORTS = /^[A-Z]{3}(,[A-Z]{3}){0,3}$/;
+const TOKEN = /^[A-Za-z0-9_\-=+/]{1,2000}$/;
 
 function parseQuery(body: unknown) {
   if (!body || typeof body !== "object") return null;
-  const { from, to, depart, ret, adults } = body as Record<string, unknown>;
+  const { from, to, depart, ret, adults, token } = body as Record<string, unknown>;
   if (typeof from !== "string" || !AIRPORTS.test(from)) return null;
   if (typeof to !== "string" || !AIRPORTS.test(to)) return null;
   if (typeof depart !== "string" || !DATE.test(depart) || depart < today()) return null;
   if (typeof ret !== "string" || (ret && (!DATE.test(ret) || ret < depart))) return null;
   if (typeof adults !== "number" || !Number.isInteger(adults) || adults < 1 || adults > 9) return null;
-  return { from, to, depart, ret, adults };
+  // 오는 편 조회: 가는 편 결과의 departure_token (왕복일 때만)
+  if (token !== undefined && (typeof token !== "string" || !ret || !TOKEN.test(token))) return null;
+  return { from, to, depart, ret, adults, token: (token as string | undefined) ?? "" };
 }
 
 type Segment = {
@@ -34,6 +37,7 @@ type Trip = {
   total_duration?: number;
   price?: number;
   airline_logo?: string;
+  departure_token?: string;
 };
 type SerpFlights = {
   best_flights?: Trip[];
@@ -69,6 +73,7 @@ function toOption(t: Trip): FlightOption | null {
       minutes: s.duration ?? 0,
     })),
     layovers: (t.layovers ?? []).filter((l) => l.id).map((l) => l.duration ?? 0),
+    ...(t.departure_token ? { token: t.departure_token } : {}),
   };
 }
 
@@ -104,5 +109,7 @@ export async function POST(req: Request) {
     gl: "kr",
   };
   if (q.ret) params.return_date = q.ret;
+  // 왕복 첫 검색에는 가는 편만 온다. 카드의 '상세 보기'를 누르면 그 가는 편의 토큰으로 오는 편을 한 번 더 찾는다
+  if (q.token) params.departure_token = q.token;
   return serpSearch(req, params, shape);
 }
