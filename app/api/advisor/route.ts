@@ -81,7 +81,7 @@ function contextBlock(c: NonNullable<ReturnType<typeof parseContext>>): string {
   const value = priced.find((h) => (h.rating ?? 0) >= 4) ?? [...priced].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0];
   const hint = cheapest
     ? `\n\n[참고]\n최저가 1위: [[${cheapest.n}]] 1박 ${won(cheapest.perNight)}` +
-      (value ? `\n가성비 1위(후기 4.0 이상 중 1박가가 가장 낮은 곳): [[${value.n}]] 후기 ${value.rating ?? "-"}점 · 1박 ${won(value.perNight)}` : "")
+      (value ? `\n가성비 1위: [[${value.n}]] 후기 ${value.rating ?? "-"}점 · 1박 ${won(value.perNight)}` : "")
     : "";
   return `\n\n[검색 조건]\n${c.place} · ${c.checkIn} ~ ${c.checkOut} · 성인 ${c.adults ?? "-"}명\n\n[호텔 목록] (후기 점수는 Google 5점 만점)\n${lines.join("\n")}${hint}`;
 }
