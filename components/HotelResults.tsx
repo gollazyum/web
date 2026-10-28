@@ -133,6 +133,8 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
   const [advisorOpen, setAdvisorOpen] = useState(false);
   const [flash, setFlash] = useState("");
   const [compareOpen, setCompareOpen] = useState(false);
+  // 홈 배너의 '오늘 가격으로 이어서 보기'(&compare=1)로 들어오면 비교를 바로 연다. 새로고침에 다시 열리지 않게 주소에서 뺀다
+  const [autoCompare] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("compare") === "1");
 
   // 휴대폰: 카드를 누르면 아래에서 올라오는 예약 사이트별 가격 시트
   const [sheetToken, setSheetToken] = useState("");
@@ -145,6 +147,15 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
   // 비교함 (최대 3곳). 브라우저의 lowboti:v1에 남아 새 탭·재방문에도 그대로고, 다른 탭에서 바꾸면 바로 따라 바뀐다
   const store = useLowbotiStore();
   const compared = store.compare.map((c) => c.token);
+  useEffect(() => {
+    if (!autoCompare || store.compare.length < 2) return;
+    setCompareOpen(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("compare");
+    window.history.replaceState(window.history.state, "", url);
+    // 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoCompare, store.compare.length >= 2]);
   // 마지막 검색은 홈의 '이어서 보기' 배너가 쓴다. 가격은 저장하지 않고 조건만
   useEffect(() => {
     updateStore((s) => ({ ...s, lastSearch: { ...toSearchParams(query), cachedAt: Date.now() } }));

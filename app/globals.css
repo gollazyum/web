@@ -4834,3 +4834,87 @@ body:has(.compare-bar) .hcards {
   text-decoration: none;
   cursor: pointer;
 }
+
+/* ---------- 홈 재방문 '이어서 보기' 배너 ---------- */
+.resume {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 880px;
+  margin: 16px auto 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  text-align: left;
+}
+.resume-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+.resume-text small {
+  color: var(--muted);
+}
+.resume-list {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+}
+.resume-list li {
+  display: grid;
+  grid-template-columns: 40px auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  align-items: center;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+.resume-list img {
+  grid-row: span 2;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.resume-list span {
+  max-width: 150px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.resume-list em {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--muted);
+}
+.resume-go {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+@media (max-width: 640px) {
+  .resume {
+    flex-direction: column;
+    align-items: stretch;
+    margin: 12px 0 0;
+  }
+  .resume-go {
+    justify-content: center;
+  }
+}
