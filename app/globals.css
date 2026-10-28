@@ -125,6 +125,96 @@ a {
   background: var(--blue);
 }
 
+/* 폰 전용 햄버거 메뉴 (640px 이하에서만 보인다) */
+.mnav {
+  display: none;
+}
+.mnav-toggle {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  cursor: pointer;
+}
+.mnav-toggle span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ink);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.mnav-toggle.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.mnav-toggle.open span:nth-child(2) {
+  opacity: 0;
+}
+.mnav-toggle.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+.mnav-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 20px 20px;
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 18px 30px -18px rgba(11, 18, 32, 0.35);
+  animation: mnav-in 0.18s ease-out;
+}
+.mnav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.mnav-item .badge {
+  font-size: 11px;
+}
+.mnav-cta {
+  margin-top: 12px;
+  padding: 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--white);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mnav-cta:hover {
+  background: var(--blue);
+}
+@keyframes mnav-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
 /* hero */
 .hero {
   position: relative;
@@ -180,6 +270,25 @@ a {
   line-height: 1.14;
   letter-spacing: -0.045em;
   color: var(--ink);
+}
+/* 히어로 강조: 파랑에서 하늘색으로만 (초록 없이) */
+.grad-blue {
+  background: linear-gradient(100deg, var(--blue) 0%, var(--sky) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* 제목이 좁은 화면에서 구절 단위로만 줄바꿈되게 */
+.nobr {
+  display: inline-block;
+}
+.hero-guide {
+  margin: 22px auto 0;
+  max-width: 720px;
+  text-wrap: balance;
+  font-size: clamp(15px, 1.8vw, 18px);
+  font-weight: 500;
+  color: var(--muted);
 }
 .grad {
   background: var(--grad);
@@ -1541,6 +1650,13 @@ a {
   background: rgba(29, 78, 216, 0.08);
   color: var(--blue);
 }
+/* 누르면 잠깐 '곧 만나요!'로 바뀌는 준비 중 배지 */
+.soon-btn {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
 .badge.lowest {
   background: var(--orange-soft);
   color: var(--orange-dark);
@@ -1850,12 +1966,43 @@ a {
 .disclosure {
   max-width: 720px;
 }
+/* 한 줄에 | 로 나란히, 좁으면 항목 단위로 줄바꿈 */
 .footer-links {
   display: flex;
-  gap: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 6px;
   margin: 16px 0 8px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.85);
+}
+.footer-links > * {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.footer-links > * + *::before {
+  content: "|";
+  margin: 0 12px;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 400;
+}
+.footer-links a {
+  text-decoration: none;
+}
+.footer-links a:hover {
+  color: var(--white);
+  text-decoration: underline;
+}
+.footer-links span a {
+  margin-left: 4px;
+}
+.footer-biz {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 /* legal */
@@ -1878,6 +2025,15 @@ a {
 }
 .legal .muted {
   margin-top: 32px;
+}
+.legal ol {
+  padding-left: 22px;
+}
+.legal li + li {
+  margin-top: 4px;
+}
+.legal p + ol {
+  margin-top: 6px;
 }
 
 @media (max-width: 900px) {
@@ -1944,25 +2100,23 @@ a {
 }
 
 @media (max-width: 640px) {
-  /* 폰에서는 메뉴를 로고 아래 한 줄로 내리고, 넘치면 옆으로 민다 */
-  .nav {
-    flex-wrap: wrap;
-    height: auto;
-    padding-top: 12px;
-    row-gap: 4px;
+  /* 폰에서는 가로 메뉴와 버튼을 숨기고 햄버거 메뉴를 쓴다 */
+  .home-nav {
+    height: 60px;
   }
-  .nav nav {
-    order: 3;
-    width: 100%;
-    gap: 20px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    font-size: 14px;
-    padding: 6px 0 10px;
-    white-space: nowrap;
+  /* 폰에서는 구분선 대신 간격으로: 줄 맨 앞에 | 가 남지 않게 */
+  .footer-links {
+    column-gap: 16px;
   }
-  .nav nav::-webkit-scrollbar {
+  .footer-links > * + *::before {
+    content: none;
+  }
+  .home-nav > nav,
+  .home-nav .nav-cta {
     display: none;
+  }
+  .mnav {
+    display: block;
   }
   .hero {
     padding-top: 48px;

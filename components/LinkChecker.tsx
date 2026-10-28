@@ -8,6 +8,7 @@ import { LowbotiBot } from "@/components/LowbotiBot";
 import { SCAN_FIRST_MS, SCAN_REPEAT_MS, ScanProgress } from "@/components/ScanProgress";
 import { AFFILIATE_CID, HOTEL_PROMOCODES, groupOrder, hotelNameFromUrl, parseAgodaUrl, routes, sampleLinks, withCid } from "@/lib/agoda";
 import { site } from "@/lib/site";
+import { SoonBadge } from "@/components/SoonBadge";
 
 type Result =
   | { kind: "loading"; url: URL; ms: number }
@@ -155,7 +156,7 @@ export function LinkChecker() {
                 🔔 오픈 알림 받기
               </a>
             ) : (
-              <span className="badge">준비 중</span>
+              <SoonBadge />
             )}
           </div>
         )}
