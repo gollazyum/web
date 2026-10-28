@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { site } from "@/lib/site";
 // 한글 전체가 든 2MB 폰트 대신, 화면에 쓰인 글자 묶음만 받아 오는 분할 폰트
 import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
+// 휴대폰(640px 이하) 전용 보정. 기존 스타일 뒤에 불러와 덮어쓴다
+import "./mobile.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -44,6 +46,9 @@ export const metadata: Metadata = {
     },
   },
 };
+
+// viewport-fit=cover: 아이폰 홈 인디케이터 여백(safe-area)을 쓸 수 있게
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

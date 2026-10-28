@@ -1,0 +1,229 @@
+/* 휴대폰(640px 이하) 전용 보정.
+   globals.css 뒤에 불러와 같은 선택자를 덮어쓴다. PC(641px 이상)는 이 파일의 영향을 받지 않는다.
+   바텀시트 잠금(html.sheet-lock)과 시트 부품의 기본값(숨김)만 미디어 쿼리 밖에 둔다 */
+
+/* 시트가 열려 있는 동안 뒤 페이지 스크롤 잠금 (lib/useSheet) */
+html.sheet-lock,
+html.sheet-lock body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* 휴대폰에서만 보이는 부품 */
+.m-only,
+.hcard-compare,
+.hcard-badge,
+.hcard-skeletons,
+.sheet-dim,
+.results-hint,
+.layer-back {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  /* ---------- P0-1 iOS 입력 확대 방지: 입력 글자 16px 이상 ---------- */
+  input,
+  select,
+  textarea,
+  .field input,
+  .field select,
+  .advisor .chat-input input {
+    font-size: 16px;
+  }
+  /* 성인 select가 칸 전체를 덮어 어디를 눌러도 열리게 */
+  .field-small {
+    position: relative;
+  }
+  .field-small select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 26px 16px 8px;
+    border-radius: inherit;
+    cursor: pointer;
+  }
+
+  .m-only {
+    display: revert;
+  }
+  .pc-only {
+    display: none;
+  }
+
+  /* ---------- P0-2 헤더 한 줄 56px ---------- */
+  .home-nav,
+  .results-nav {
+    height: 55px; /* + 아래 테두리 1px = 56px */
+  }
+  .nav-bar .brand {
+    padding: 8px 0;
+  }
+  .nav-bar .brand img {
+    height: 28px;
+    width: auto;
+  }
+  .nav-bar .brand-badge {
+    padding: 3px 6px 2px;
+    font-size: 9.5px;
+  }
+
+  /* ---------- P0-3 홈 첫 화면 안에 검색 버튼 ---------- */
+  .hero {
+    padding: 14px 0 28px;
+  }
+  .hero .pill,
+  .hero-guide,
+  .tab-hint {
+    display: none;
+  }
+  .hero h1 {
+    font-size: clamp(24px, 7vw, 30px);
+    line-height: 1.25;
+    letter-spacing: -0.04em;
+  }
+  .search {
+    margin-top: 14px;
+  }
+  /* 카테고리 타일 → 44px 칩 한 줄 */
+  .search-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .search-tab {
+    flex-direction: row;
+    gap: 4px;
+    min-height: 44px;
+    padding: 0 4px;
+    border-radius: 14px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .search-tab:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .search-tab img,
+  .search-tab.active img {
+    width: 22px;
+    height: 22px;
+    transform: none;
+    animation: none;
+  }
+  .search-tab.active {
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+  }
+  .search-tab .soon {
+    top: -7px;
+    right: -2px;
+    padding: 0 5px;
+    font-size: 10px;
+    line-height: 15px;
+    background: var(--white);
+    box-shadow: 0 0 0 1px rgba(29, 78, 216, 0.15);
+  }
+  .search-tab .soon.ai {
+    background: var(--grad);
+    box-shadow: none;
+  }
+  /* 숙소 찾는 방법 두 버튼: 44px 반반 */
+  .stay-modes {
+    flex-wrap: nowrap;
+    margin-bottom: 10px;
+  }
+  .stay-modes button {
+    flex: 1;
+    min-height: 44px;
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+  .search-card {
+    gap: 6px;
+    padding: 6px;
+    border-radius: 22px;
+  }
+  .search-card .field {
+    min-height: 52px;
+    padding: 8px 14px;
+    border-radius: 14px;
+  }
+  .search-card .field.date-field b {
+    line-height: 22px;
+  }
+  .search-card > button {
+    min-height: 50px;
+    padding: 12px;
+    border-radius: 14px;
+  }
+  /* P2-5 비교사 띠: 양 끝 여백, 좁으면 줄바꿈 */
+  .compared {
+    margin-top: 24px;
+    padding: 0 8px;
+  }
+  .compared-item {
+    flex-wrap: wrap;
+    justify-content: center;
+    white-space: normal;
+    gap: 2px 8px;
+  }
+
+  /* ---------- P1-3 safe-area (아이폰 홈 인디케이터) ---------- */
+  .advisor-fab {
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+  .filters-apply {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom)) !important;
+  }
+  .hcards,
+  .fcards {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  .advisor.open .chat-note {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+
+  /* ---------- P1-4 터치 타깃 44px ---------- */
+  .filters-toggle,
+  .sort-btn,
+  .results-summary,
+  .more-btn,
+  .results-out,
+  .notify-btn,
+  .quick-try button,
+  .chips button,
+  .chip,
+  .advisor-prefs button,
+  .dp-ghost,
+  .dp-done,
+  .fcard-buy a {
+    min-height: 44px;
+  }
+  .link-btn {
+    min-height: 44px;
+    padding: 0 6px;
+  }
+  .filters-close,
+  .advisor-close {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+  }
+  .check-list label {
+    min-height: 44px;
+  }
+  .cta a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .footer-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .faq summary {
+    min-height: 44px;
+  }
+}
