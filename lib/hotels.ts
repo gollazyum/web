@@ -145,6 +145,9 @@ export function bookingLink(s: HotelSource, hotelName: string, query: HotelQuery
   const host = url.hostname.toLowerCase();
   const on = (domain: string) => host === domain || host.endsWith(`.${domain}`);
   const p = url.searchParams;
+  // Google이 준 링크에 영국 사이트로 여는 값(userCountry=GB)이 섞여 오면 한국으로 바꾼다
+  const country = p.has("userCountry");
+  if (country) p.set("userCountry", "KR");
   // 주소 맨 앞의 언어 칸(/en-us/, /en/ …)을 바꾼다
   const relocale = (to: string) => {
     const parts = url.pathname.split("/");
@@ -171,7 +174,7 @@ export function bookingLink(s: HotelSource, hotelName: string, query: HotelQuery
     relocale("ko");
     p.set("currency", "KRW");
   } else {
-    return s.link;
+    return country ? url.toString() : s.link;
   }
   return url.toString();
 }
