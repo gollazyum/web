@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Logo } from "./Logo";
 import { LowbotiBot } from "./LowbotiBot";
+import { SiteFooter } from "./SiteFooter";
+import { SiteHeader } from "./SiteHeader";
 
-// 호텔·항공권 결과 페이지 공통 틀: 위쪽 머리글, 다시 찾는 검색창, 아래 안내
+// 호텔·항공권 결과 페이지 공통 틀: 홈과 같은 머리글, 다시 찾는 검색창, 홈과 같은 바닥글
 // summary는 휴대폰에서 검색창을 접어 둘 때 보여 주는 한 줄 요약
 type Props = { search: React.ReactNode; summary: { title: string; sub: string } | null; children: React.ReactNode };
 
@@ -13,19 +13,7 @@ export function ResultsShell({ search, summary, children }: Props) {
   const [editing, setEditing] = useState(!summary);
   return (
     <>
-      <header className="nav-bar">
-        <div className="nav wrap results-nav">
-          <Link href="/" className="brand" aria-label="로보티 (Lowboti) 홈">
-            <Logo height={34} />
-            <span className="brand-badge" aria-hidden="true">
-              AI
-            </span>
-          </Link>
-          <Link href="/" className="nav-cta">
-            처음으로
-          </Link>
-        </div>
-      </header>
+      <SiteHeader compact />
       <div className={`results-top${editing ? " editing" : ""}`}>
         <div className="wrap">
           {summary && (
@@ -41,11 +29,7 @@ export function ResultsShell({ search, summary, children }: Props) {
         </div>
       </div>
       <main className="results-page wrap">{children}</main>
-      <footer className="results-foot wrap">
-        Lowboti는 여행 가격 비교 플랫폼입니다. 링크를 통해 예약하시면 제휴사로부터 소정의 수수료를 받을 수 있으며, 고객님이 지불하는
-        금액에는 영향을 주지 않습니다. 표시된 가격은 조회 시점 기준이며 실제 결제 금액과 다를 수 있습니다.{" "}
-        <Link href="/terms">이용약관</Link> · <Link href="/privacy">개인정보처리방침</Link>
-      </footer>
+      <SiteFooter />
     </>
   );
 }
