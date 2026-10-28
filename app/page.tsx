@@ -84,16 +84,9 @@ export default function Home() {
             <span className="spark">✦</span> 나만의 AI 가성비 여행 파트너
           </span>
           <h1>
-            <span className="nobr">수십 개 사이트</span> <span className="nobr">뒤질 필요 없이,</span>
-            <br />
-            <span className="nobr">
-              <span className="grad-blue">로보티와 함께</span>
-            </span>{" "}
-            <span className="nobr">스마트 최저가</span>
+            <span className="nobr hero-line">여행 가격 비교,</span>{" "}
+            <span className="nobr hero-line grad-blue">AI 로보티에게 맡기세요.</span>
           </h1>
-          <p className="hero-guide">
-            🤖 원하시는 도시나 호텔만 알려주세요. 숨은 {site.hiddenRouteCount}개 할인 경로까지 로보티가 한 번에 비교해 드릴게요.
-          </p>
           <LinkChecker />
           <div className="compared">
             <span className="compared-label">로보티가 비교하는 곳</span>

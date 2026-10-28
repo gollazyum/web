@@ -309,14 +309,6 @@ a {
 .nobr {
   display: inline-block;
 }
-.hero-guide {
-  margin: 22px auto 0;
-  max-width: 720px;
-  text-wrap: balance;
-  font-size: clamp(15px, 1.8vw, 18px);
-  font-weight: 500;
-  color: var(--muted);
-}
 .grad {
   background: var(--grad);
   -webkit-background-clip: text;
@@ -404,14 +396,6 @@ a {
   background: rgba(29, 78, 216, 0.08);
   padding: 2px 8px;
   border-radius: 999px;
-}
-.tab-hint {
-  text-align: center;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--muted);
-  margin-bottom: 12px;
-  animation: fade-up 0.35s ease both;
 }
 .tab-panel {
   animation: fade-up 0.35s ease both;
@@ -2271,7 +2255,6 @@ a {
   .route-grid a,
   .typing span,
   .search-tab.active img,
-  .tab-hint,
   .tab-panel,
   .mochi-shadow,
   .mochi-bubble,
