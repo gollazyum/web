@@ -17,7 +17,9 @@ import { isPhone, useSheet } from "@/lib/useSheet";
 // 예약은 Trip.com 한국 사이트 검색 결과로 넘긴다
 const SCAN_MS = 4500;
 
-type State = { kind: "loading" } | { kind: "ok"; data: FlightResults } | { kind: "error"; message: string };
+type State = { kind: "loading" } | { kind: "ok"; data: FlightResults; request: FlightQuery } | { kind: "error"; message: string };
+// 오는 편 (왕복 카드의 '상세 보기'를 누를 때 불러온다)
+type ReturnState = { kind: "loading" } | { kind: "ok"; options: FlightOption[] } | { kind: "error" };
 type Sort = "price" | "duration" | "early";
 
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
@@ -59,13 +61,14 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
     let cancelled = false;
     (async () => {
       try {
+        const request = { ...query, from: await airportsFor(query.from), to: await airportsFor(query.to) };
         const res = await fetch("/api/flights", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...query, from: await airportsFor(query.from), to: await airportsFor(query.to) }),
+          body: JSON.stringify(request),
         });
         const next: State = res.ok
-          ? { kind: "ok", data: (await res.json()) as FlightResults }
+          ? { kind: "ok", data: (await res.json()) as FlightResults, request }
           : {
               kind: "error",
               message:
@@ -126,7 +129,7 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
           />
         </div>
       ) : state.kind === "ok" ? (
-        <FlightBoard data={state.data} query={query} link={link} />
+        <FlightBoard data={state.data} query={query} request={state.request} link={link} />
       ) : (
         <ResultsMessage
           action={
@@ -142,7 +145,7 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
   );
 }
 
-function FlightBoard({ data, query, link }: { data: FlightResults; query: FlightQuery; link: string }) {
+function FlightBoard({ data, query, request, link }: { data: FlightResults; query: FlightQuery; request: FlightQuery; link: string }) {
   const priceMin = Math.floor(Math.min(...data.options.map((o) => o.price)) / 10000) * 10000;
   const priceMax = Math.ceil(Math.max(...data.options.map((o) => o.price), 0) / 10000) * 10000;
   const airlines = useMemo(() => {
@@ -357,6 +360,7 @@ function FlightBoard({ data, query, link }: { data: FlightResults; query: Flight
                   option={o}
                   link={link}
                   roundTrip={!!query.ret}
+                  request={request}
                 />
               );
             })}
@@ -399,10 +403,20 @@ function FlightBoard({ data, query, link }: { data: FlightResults; query: Flight
   );
 }
 
-type FlightCardProps = { id: string; flash: boolean; option: FlightOption; link: string; roundTrip: boolean };
+type FlightCardProps = { id: string; flash: boolean; option: FlightOption; link: string; roundTrip: boolean; request: FlightQuery };
 
-function FlightCard({ id, flash, option: o, link, roundTrip }: FlightCardProps) {
+function FlightCard({ id, flash, option: o, link, roundTrip, request }: FlightCardProps) {
   const [open, setOpen] = useState(false);
+  const [back, setBack] = useState<ReturnState | null>(null);
+
+  // 처음 펼칠 때 한 번만 부른다 (SerpApi 호출 1번). 서버가 같은 조건을 30분 저장해 두므로 다시 펼쳐도 새로 쓰지 않는다
+  useEffect(() => {
+    if (!open || !roundTrip || !o.token || back) return;
+    setBack({ kind: "loading" });
+    fetch("/api/flights", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...request, token: o.token }) })
+      .then(async (res) => (res.ok ? setBack({ kind: "ok", options: ((await res.json()) as FlightResults).options }) : setBack({ kind: "error" })))
+      .catch(() => setBack({ kind: "error" }));
+  }, [open, roundTrip, o.token, request, back]);
   const shift = dayShift(o.departTime, o.arriveTime);
   const flightNos = o.segments.map((s) => s.flightNo).filter(Boolean);
   return (
@@ -451,6 +465,7 @@ function FlightCard({ id, flash, option: o, link, roundTrip }: FlightCardProps) 
           </button>
         )}
       </div>
+      {open && roundTrip && <h4 className="fcard-legs-title">가는 편</h4>}
       {open && (
         <ol className="fcard-legs">
           {o.segments.map((s, i) => (
@@ -476,6 +491,49 @@ function FlightCard({ id, flash, option: o, link, roundTrip }: FlightCardProps) 
           ))}
         </ol>
       )}
+      {open && roundTrip && <ReturnLegs state={back} price={o.price} />}
     </li>
+  );
+}
+
+// 오는 편 선택지. 고르는 오는 편에 따라 왕복 총액이 달라서 각 줄에 총액을 같이 적는다
+function ReturnLegs({ state, price }: { state: ReturnState | null; price: number }) {
+  if (!state) return <p className="flight-note">오는 편 정보는 예약 사이트에서 확인해 주세요.</p>;
+  return (
+    <>
+      <h4 className="fcard-legs-title">
+        오는 편{state.kind === "loading" && <span className="dots"> 불러오는 중</span>}
+      </h4>
+      {state.kind === "error" && <p className="flight-note">오는 편을 불러오지 못했어요. 예약하기에서 확인해 주세요.</p>}
+      {state.kind === "ok" && !state.options.length && <p className="flight-note">이 가는 편에 맞는 오는 편을 찾지 못했어요.</p>}
+      {state.kind === "ok" && state.options.length > 0 && (
+        <ul className="fcard-returns">
+          {state.options.slice(0, 3).map((r, i) => {
+            const shift = dayShift(r.departTime, r.arriveTime);
+            const nos = r.segments.map((s) => s.flightNo).filter(Boolean);
+            return (
+              <li key={i}>
+                <div>
+                  <strong>
+                    {hhmm(r.departTime)} {r.fromId} → {hhmm(r.arriveTime)}
+                    {shift > 0 && <sup>+{shift}</sup>} {r.toId}
+                  </strong>
+                  <span>
+                    {duration(r.minutes)} · {r.stops.length ? `${r.stops.length}회 경유 ${r.stops.join(", ")}` : "직항"}
+                  </span>
+                </div>
+                <p>
+                  <span>
+                    {r.airlines.join(" · ")}
+                    {nos.length > 0 && ` · ${nos.join(", ")}`}
+                  </span>
+                  <b>{r.price === price ? "이 가격 그대로" : `왕복 ${won(r.price)}`}</b>
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </>
   );
 }

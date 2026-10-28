@@ -20,6 +20,7 @@ export type FlightOption = {
   stops: string[]; // 경유 공항 코드
   segments: FlightSegment[];
   layovers: number[]; // 경유지에서 기다리는 시간(분), stops와 같은 순서
+  token?: string; // 왕복 검색의 가는 편: 이 값으로 다시 검색하면 오는 편 선택지가 온다
 };
 
 export type FlightSegment = {
