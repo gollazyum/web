@@ -2581,6 +2581,30 @@ a {
   color: var(--orange-dark);
   font-weight: 800;
 }
+/* 아고다 '로보티 추천' 옆 추천 이유 한 줄 */
+.pick-why {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--green-dark);
+}
+/* 예약 사이트가 5곳을 넘으면 나머지를 접어 두는 버튼 */
+.more-sites {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--blue);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
 .hotel-sources b {
   color: var(--ink);
 }
@@ -3358,6 +3382,9 @@ a {
 .hcard-sources .hotel-sources small {
   font-weight: 500;
   color: var(--muted);
+}
+.hcard-sources .hotel-sources small.pick-why {
+  color: var(--green-dark);
 }
 
 /* 항공권 카드 */

@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { MochiStars, ratingTier } from "./MochiMarks";
-import { bookingLink, roboPick, type HotelOption, type HotelQuery, type HotelSource } from "@/lib/hotels";
+import { bookingLink, firstSites, roboPick, roboReason, type HotelOption, type HotelQuery, type HotelSource } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
 import { useSheet } from "@/lib/useSheet";
 
@@ -71,7 +72,11 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
   const rows = [...sources].sort((a, b) => (a.total ?? a.perNight ?? Infinity) - (b.total ?? b.perNight ?? Infinity));
   const top = rows.find((s) => s.total !== null) ?? rows[0];
   const linkOf = (s: HotelSource) => bookingLink(s, hotel.name, query);
-  const pick = roboPick(sources, hotel.token);
+  const pick = roboPick(sources);
+  const why = pick ? roboReason(sources, hotel.deal, hotel.token) : "";
+  const [allSites, setAllSites] = useState(false);
+  const first = firstSites(rows, pick);
+  const hidden = rows.length - first.size;
   const images = hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : [];
   const tier = hotel.rating !== null ? ratingTier(hotel.rating) : null;
 
@@ -127,7 +132,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
           </h3>
           {rows.length > 0 && (
             <ul className="ps-sources">
-              {rows.map((s) => {
+              {rows.filter((s) => allSites || first.has(s.name)).map((s) => {
                 const link = linkOf(s);
                 const isBest = best !== null && best.cost(s) === best.value;
                 return (
@@ -139,6 +144,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
                       {s.official && <em> 공식</em>}
                       {s.name === pick && <em className="hotel-pick"> 로보티 추천</em>}
                       {isBest && <em className="best-badge">최저가</em>}
+                      {s.name === pick && <small className="pick-why">{why}</small>}
                     </span>
                     <span className="ps-cost">
                       <b>{s.total !== null ? won(s.total) : s.perNight !== null ? won(s.perNight) : "-"}</b>
@@ -155,6 +161,11 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
                 );
               })}
             </ul>
+          )}
+          {hidden > 0 && !allSites && (
+            <button type="button" className="more-sites" onClick={() => setAllSites(true)}>
+              외 {hidden}개 사이트 가격 더 보기 ∨
+            </button>
           )}
           {prices?.kind === "ok" && !sources.length && <p className="flight-note">이 호텔은 지금 예약 사이트 가격을 찾지 못했어요.</p>}
           {prices?.kind === "error" && <p className="flight-note">{prices.message}</p>}

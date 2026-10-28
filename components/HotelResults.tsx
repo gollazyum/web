@@ -11,7 +11,7 @@ import { ScanProgress } from "./ScanProgress";
 import { SortMenu } from "./SortMenu";
 import { errorCode } from "@/lib/apiError";
 import { daysBetween, shortLabel, today } from "@/lib/dates";
-import { agodaSearchUrl, bookingLink, hotelsPath, roboPick, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
+import { agodaSearchUrl, bookingLink, firstSites, hotelsPath, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
 import { isPhone, useSheet } from "@/lib/useSheet";
 
@@ -607,7 +607,11 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
   const total = totalOf(hotel, nights);
   const sources = prices?.kind === "ok" ? prices.sources : hotel.sources;
   const lowest = lowestCost(sources);
-  const pick = roboPick(sources, hotel.token);
+  const pick = roboPick(sources);
+  const why = pick ? roboReason(sources, hotel.deal, hotel.token) : "";
+  const [allSites, setAllSites] = useState(false);
+  const first = firstSites(sources, pick);
+  const hidden = sources.length - first.size;
   const tier = hotel.rating ? ratingTier(hotel.rating) : null;
   const blocked = !compared && compareFull;
   const amenities = cardAmenities(hotel.amenities);
@@ -703,7 +707,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
           </p>
           {sources.length > 0 && (
             <ul className="hotel-sources">
-              {sources.map((s) => {
+              {sources.filter((s) => allSites || first.has(s.name)).map((s) => {
                 const link = bookingLink(s, hotel.name, query);
                 return (
                   <li key={s.name} className={s.name === pick ? "pick" : undefined}>
@@ -714,6 +718,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
                       {s.official && <em> 공식</em>}
                       {s.name === pick && <em className="hotel-pick"> 로보티 추천</em>}
                       {lowest && lowest.value !== null && lowest.cost(s) === lowest.value && <em className="best-badge">최저가</em>}
+                      {s.name === pick && <small className="pick-why">{why}</small>}
                     </span>
                     <b>
                       {s.perNight !== null ? won(s.perNight) : "-"}
@@ -730,6 +735,11 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
                 );
               })}
             </ul>
+          )}
+          {hidden > 0 && !allSites && (
+            <button type="button" className="more-sites" onClick={() => setAllSites(true)}>
+              외 {hidden}개 사이트 가격 더 보기 ∨
+            </button>
           )}
           {prices?.kind === "ok" && !sources.length && <p className="flight-note">이 호텔은 지금 예약 사이트 가격을 찾지 못했어요.</p>}
           {prices?.kind === "error" && <p className="flight-note">{prices.message}</p>}

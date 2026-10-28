@@ -1,4 +1,7 @@
 import { AFFILIATE_CID } from "./agoda";
+import { site } from "./site";
+
+const HIDDEN_ROUTES = site.hiddenRouteCount;
 
 // 호텔 검색 결과 모양과 링크. 서버(app/api/hotels)와 화면(HotelSearch)이 같이 쓴다.
 
@@ -73,23 +76,38 @@ export function isAgoda(source: string): boolean {
 // 한국어로 예약할 수 있는 큰 예약 사이트. 아고다가 하위권일 때 대신 추천할 '안전한 곳'
 const KOREAN_OK = /agoda|아고다|trip\.com|트립닷컴|booking|부킹|expedia|익스피디아|hotels\.com|호텔스닷컴|klook|클룩|야놀자|여기어때|인터파크|myrealtrip|마이리얼트립/i;
 
-// 같은 호텔은 몇 번을 열어도 같은 결과가 나오게, 호텔 토큰으로 반반을 정한다
-function coin(seed: string): boolean {
+// 같은 호텔은 몇 번을 열어도 같은 문구가 나오게, 호텔 토큰으로 고르는 수
+function hash(seed: string): number {
   let h = 0;
   for (const c of seed) h = (h * 31 + c.charCodeAt(0)) | 0;
-  return (h & 1) === 0;
+  return Math.abs(h);
 }
 
-// 예약 사이트 목록에서 '로보티 추천'을 붙일 곳 이름.
-// 아고다가 1박 가격 3위 안이면 아고다. 4위 아래면 호텔마다 반반으로, 아고다 대신 상위 3곳 중
-// 공식 사이트 → 한국어 되는 큰 예약 사이트 → 가장 싼 곳 순서로 고른다. 아고다가 없으면 늘 상위 3곳에서 고른다
-export function roboPick(sources: HotelSource[], seed: string): string | null {
-  const ranked = [...sources].filter((s) => s.perNight !== null).sort((a, b) => (a.perNight ?? 0) - (b.perNight ?? 0));
-  if (!ranked.length) return null;
-  const agoda = ranked.findIndex((s) => isAgoda(s.name));
-  if (agoda >= 0 && (agoda < 3 || coin(seed))) return ranked[agoda].name;
-  const top = ranked.slice(0, 3);
-  return (top.find((s) => s.official) ?? top.find((s) => KOREAN_OK.test(s.name)) ?? top[0]).name;
+// '로보티 추천'은 제휴 예약 사이트인 아고다 줄에만 붙인다. 공식 사이트 등 제휴가 아닌 곳에는 붙이지 않는다
+export function roboPick(sources: HotelSource[]): string | null {
+  return sources.find((s) => isAgoda(s.name) && s.perNight !== null)?.name ?? null;
+}
+
+// 아고다를 추천하는 이유 한 줄. 조건이 맞는 이유가 먼저, 없으면 호텔마다 골고루 돌린다
+const ROLLING = [
+  `🔍 로보티의 ${HIDDEN_ROUTES}개 숨은 할인 경로로 한 번 더 낮춰볼 수 있는 추천픽이에요`,
+  "🇰🇷 한국어 화면과 원화 결제로 처음 쓰는 분도 헷갈리지 않는 경로예요",
+  "⚡ 복잡한 해외 사이트 가입 없이 카카오·네이버페이로 1분 만에 결제돼요",
+  "💳 트래블월렛·트래블로그 및 국내 제휴 카드 할인을 적용하기 가장 좋아요",
+  "✨ 예약 즉시 확정 여부와 무료 취소 옵션을 한글로 가장 명확히 볼 수 있어요",
+  "🤖 가격, 결제 편의성, 예약 안정성을 종합해 로보티가 가장 추천하는 경로예요",
+];
+export function roboReason(sources: HotelSource[], deal: string, seed: string): string {
+  const ranked = sources.filter((s) => s.perNight !== null).sort((a, b) => (a.perNight ?? 0) - (b.perNight ?? 0));
+  const agoda = ranked.find((s) => isAgoda(s.name));
+  const top = ranked[0];
+  if (agoda && top) {
+    if (agoda === top || agoda.perNight === top.perNight) return "🏆 현재 모든 예약 사이트를 통틀어 조건 없이 가장 저렴해요!";
+    if ((agoda.perNight ?? 0) <= (top.perNight ?? 0) * 1.1) return "💡 카드사·간편결제 추가 할인을 받으면 체감가는 여기가 더 싸요";
+    if (!KOREAN_OK.test(top.name) && !top.official) return "🛡️ 한국어 고객센터와 국내 결제가 완벽 지원되는 가장 안전한 경로예요";
+  }
+  if (/\d+\s*%/.test(deal)) return "🔥 평소 시세보다 가격이 크게 떨어진 아고다 오늘의 특가 상품이에요";
+  return ROLLING[hash(seed) % ROLLING.length];
 }
 
 // 예약 사이트로 가는 주소. 사이트를 알아볼 수 있으면 한국어·원화로 열리게 바꾸고,
@@ -134,4 +152,16 @@ export function bookingLink(s: HotelSource, hotelName: string, query: HotelQuery
     return s.link;
   }
   return url.toString();
+}
+
+// 예약 사이트가 많으면 처음엔 5곳만: 최저가 1위, 로보티 추천, 큰 예약 사이트 순서로 채우고 남은 자리는 싼 순서.
+// rows는 화면에 그리는 순서(싼 순) 그대로 받고, 처음에 보여 줄 사이트 이름을 돌려준다
+export const FIRST_SITES = 5;
+export function firstSites(rows: HotelSource[], pick: string | null): Set<string> {
+  if (rows.length <= FIRST_SITES) return new Set(rows.map((s) => s.name));
+  const keep = new Set<string>([rows[0].name]);
+  if (pick) keep.add(pick);
+  for (const s of rows) if (keep.size < FIRST_SITES && KOREAN_OK.test(s.name)) keep.add(s.name);
+  for (const s of rows) if (keep.size < FIRST_SITES) keep.add(s.name);
+  return keep;
 }
