@@ -3778,6 +3778,10 @@ a {
   }
 }
 @media (max-width: 1239px) {
+  /* 떠 있는 'AI 추천' 버튼(높이 50px + 아래 18px)이 마지막 카드 가격을 가리지 않게 목록 아래를 비워 둔다 */
+  .with-advisor .hcards {
+    padding-bottom: 80px;
+  }
   .advisor.open {
     display: flex;
     position: fixed;
