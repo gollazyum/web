@@ -124,7 +124,8 @@ export function amenityKo(name: string): string {
   const paid = /\s*\(\$\)$/.test(name);
   const base = name.replace(/\s*\(\$\)$/, "").trim();
   const ko = lookup(base);
-  if (!ko) return name;
+  // 한국어로 온 것도 'Wi-Fi' 표기가 섞여 온다('무료 Wi-Fi'). 필터에 두 줄로 나오지 않게 '와이파이'로 맞춘다
+  if (!ko) return name.replace(/wi-?fi/gi, "와이파이");
   return paid && !ko.includes("유료") ? `${ko}(유료)` : ko;
 }
 
