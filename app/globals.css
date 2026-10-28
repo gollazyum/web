@@ -298,9 +298,9 @@ a {
   letter-spacing: -0.045em;
   color: var(--ink);
 }
-/* 히어로 강조: 파랑에서 하늘색으로만 (초록 없이) */
+/* 히어로 강조 '로보티와 함께': 파랑에서 초록으로 */
 .grad-blue {
-  background: linear-gradient(100deg, var(--blue) 0%, var(--sky) 100%);
+  background: linear-gradient(100deg, var(--blue) 0%, var(--green) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

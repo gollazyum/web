@@ -124,7 +124,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
             {hotel.rating !== null && (
               <>
                 {" · "}
-                <b className={`ps-rating${hotel.rating >= 3.5 ? "" : " ok"}`}>{hotel.rating.toFixed(1)}</b> {tier?.word}
+                <b className={`ps-rating${hotel.rating >= 3.8 ? "" : " ok"}`}>{hotel.rating.toFixed(1)}</b> {tier?.word}
                 {hotel.reviews ? ` · 후기 ${hotel.reviews.toLocaleString("ko-KR")}개` : ""}
               </>
             )}
