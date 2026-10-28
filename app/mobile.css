@@ -125,11 +125,11 @@ html.sheet-lock body {
     box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
   }
   .search-tab .soon {
-    top: -7px;
+    top: -8px;
     right: -2px;
-    padding: 0 5px;
-    font-size: 10px;
-    line-height: 15px;
+    padding: 0 6px;
+    font-size: 11px;
+    line-height: 16px;
     background: var(--white);
     box-shadow: 0 0 0 1px rgba(29, 78, 216, 0.15);
   }
