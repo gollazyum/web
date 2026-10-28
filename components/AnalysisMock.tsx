@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 const rows = [
-  { name: "구글지도 경로", w: 92, price: 286000 },
-  { name: "카드사 경로", w: 80, price: 248000, best: true },
-  { name: "항공사 경로", w: 88, price: 271000 },
+  { name: "호텔 공식 사이트", w: 92, price: 286000 },
+  { name: "아고다", w: 80, price: 248000, best: true },
+  { name: "트립닷컴", w: 88, price: 271000 },
 ];
 const SAVE = 38000;
 
@@ -56,9 +56,9 @@ export function AnalysisMock() {
     <div ref={ref} className={`summary-mock${shown ? " shown" : ""}`} aria-hidden="true">
       <div className="summary-line">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/family/main.svg" alt="" />
+        <img src="/brand/family/main.svg" alt="로보티" />
         <span>
-          <strong>카드사 경로</strong>가 가장 싸요. 최고가보다 <strong className="save">{won(save)}</strong> 아낄 수 있어요.
+          <strong>아고다</strong>가 가장 싸요. 최고가보다 <strong className="save">{won(save)}</strong> 아낄 수 있어요.
         </span>
       </div>
       <span className="total-tag">세금·봉사료 포함 총액</span>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { LinkChecker } from "@/components/LinkChecker";
 import { Logo } from "@/components/Logo";
 import { AnalysisMock } from "@/components/AnalysisMock";
@@ -8,9 +9,9 @@ import { site } from "@/lib/site";
 
 
 const steps = [
-  { title: "링크 붙여넣기", body: "아고다에서 보던 호텔 페이지 주소를 그대로 붙여넣어요." },
-  { title: "경로별로 비교", body: "로보티가 같은 호텔·날짜를 카드사·항공사·검색 등 여러 접속 경로 링크로 바꿔 드려요." },
-  { title: "가장 싼 곳에서 예약", body: "링크를 열어 결제 직전 총액을 비교하고, 가장 싼 경로에서 아고다로 예약해요." },
+  { title: "어디로, 언제", body: "도시나 호텔 이름, 또는 출발지·도착지와 날짜만 골라요." },
+  { title: "한눈에 비교", body: "로보티가 여러 예약 사이트의 실시간 가격을 훑어 총액 기준으로 나란히 보여 드려요." },
+  { title: "골라서 예약", body: "고민되면 로보티에게 물어보고, 마음에 드는 곳을 눌러 그 예약 사이트에서 결제해요." },
 ];
 
 const faqs = [
@@ -23,14 +24,56 @@ const faqs = [
     a: "결제와 예약 확정, 취소는 모두 선택하신 예약 사이트에서 진행됩니다. Lowboti는 가장 낮은 가격의 사이트를 찾아 연결해 드립니다.",
   },
   {
+    q: "어떤 가격을 비교하나요?",
+    a: "호텔은 Google 호텔 검색에 나오는 예약 사이트별 가격을, 항공권은 Google 항공편 검색의 실시간 운임을 모아 보여 드립니다. 아고다 호텔 링크가 있다면 카드사·항공사 같은 아고다 할인 경로로 바꿔 보는 기능도 쓸 수 있어요.",
+  },
+  {
+    q: "가격 변동 알림은 지금 쓸 수 있나요?",
+    a: "아직 준비 중이에요. 지금은 원하실 때 직접 검색해 실시간 가격을 확인하실 수 있고, 알림 기능이 열리면 이 페이지에서 안내해 드릴게요.",
+  },
+  {
     q: "표시된 가격이 실제와 다를 수 있나요?",
     a: "가격은 조회 시점 기준이라 바뀔 수 있습니다. 최종 금액은 예약 사이트의 결제 화면에서 꼭 확인해 주세요.",
   },
 ];
 
+export const metadata: Metadata = { alternates: { canonical: "/" } };
+
+// 검색엔진용 구조화 데이터: 사이트, 운영 주체, 자주 묻는 질문
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${site.url}/#website`,
+      url: site.url,
+      name: `${site.nameKo} (${site.name})`,
+      alternateName: [site.name, site.nameKo],
+      description: site.description,
+      inLanguage: "ko-KR",
+      publisher: { "@id": `${site.url}/#organization` },
+    },
+    {
+      "@type": "Organization",
+      "@id": `${site.url}/#organization`,
+      name: site.name,
+      alternateName: site.nameKo,
+      url: site.url,
+      logo: `${site.url}/brand/lowboti-mark.svg`,
+      ...(site.contactEmail ? { email: site.contactEmail } : {}),
+      ...(site.instagramUrl ? { sameAs: [site.instagramUrl] } : {}),
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+    },
+  ],
+};
+
 export default function Home() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <header className="nav-bar">
         <div className="nav wrap">
           <Link href="/" className="brand" aria-label="로보티 (Lowboti) 홈">
@@ -55,7 +98,7 @@ export default function Home() {
         <div className="hero-glow" aria-hidden="true" />
         <div className="hero-inner wrap">
           <span className="pill">
-            <span className="spark">✦</span> 예약 사이트를 대신 돌아보는 최저가 봇
+            <span className="spark">✦</span> 가성비를 같이 골라 주는 AI 여행 도우미
           </span>
           <h1>
             혹시 나만
@@ -64,12 +107,12 @@ export default function Home() {
           </h1>
           <LinkChecker />
           <div className="compared">
-            <span>로보티가 연결하는 곳</span>
-            <strong className="wordmark">agoda</strong>
-            <em>{routes.length}개 접속 경로</em>
+            <span>로보티가 비교하는 곳</span>
+            <strong className="wordmark">Google Hotels</strong>
+            <em>예약 사이트별 호텔가</em>
             <i aria-hidden="true" />
-            <strong className="wordmark">Trip.com</strong>
-            <em>항공권 검색</em>
+            <strong className="wordmark">Google Flights</strong>
+            <em>실시간 항공 운임</em>
           </div>
         </div>
       </section>
@@ -103,12 +146,12 @@ export default function Home() {
                 <span className="badge">예시</span>
               </div>
               <h3>한눈에 보는 분석 요약</h3>
-              <p>경로별 총액을 나란히 놓고, 어디가 얼마나 싼지 한눈에 볼 수 있어요.</p>
+              <p>예약 사이트별 총액을 나란히 놓고, 어디가 얼마나 싼지 한눈에 볼 수 있어요.</p>
               <AnalysisMock />
             </div>
             <div className="bento-card bento-stat">
-              <strong className="stat grad">{routes.length}개</strong>
-              <p>한 번에 바꿔 주는 아고다 접속 경로</p>
+              <strong className="stat grad">실시간</strong>
+              <p>호텔·항공권 가격을 검색할 때마다 새로 받아 와요</p>
             </div>
             <div className="bento-card bento-stat">
               <strong className="stat grad">0원</strong>
@@ -116,17 +159,15 @@ export default function Home() {
             </div>
             <div className="bento-card bento-alert">
               <div className="badges">
-                <span className="badge ai">가격 예측</span>
-                {site.notifyUrl ? (
+                <span className="badge soon-badge">준비 중</span>
+                {site.notifyUrl && (
                   <a className="notify-btn small" href={site.notifyUrl} target="_blank" rel="noopener noreferrer">
                     🔔 오픈 알림 받기
                   </a>
-                ) : (
-                  <span className="badge">준비 중</span>
                 )}
               </div>
               <h3>가격 변동 알림</h3>
-              <p>찜해 둔 호텔이나 노선이 싸지면 바로 알려드려요.</p>
+              <p>찜해 둔 호텔이나 노선이 싸지면 알려 드리는 기능을 만들고 있어요. 아직은 신청이나 알림을 받을 수 없어요.</p>
               <div className="alert-mock" aria-hidden="true">
                 <svg viewBox="0 0 320 90" className="chart">
                   <defs>
@@ -141,10 +182,10 @@ export default function Home() {
                 </svg>
                 <div className="toast">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/brand/family/main.svg" alt="" />
+                  <img src="/brand/family/main.svg" alt="로보티" />
                   <div>
                     <strong>찜한 호텔 가격이 내려갔어요</strong>
-                    <span>어제보다 12% 저렴해요 · 알림 예시</span>
+                    <span>어제보다 12% 저렴해요 · 준비 중인 기능의 예시 화면</span>
                   </div>
                 </div>
               </div>
@@ -155,14 +196,14 @@ export default function Home() {
               <p>1박 표시가가 아니라 세금·수수료를 포함한 결제 금액으로 비교해요.</p>
             </div>
             <div className="bento-card">
-              <span className="badge live">숨은 경로</span>
-              <h3>경로를 한 화면에</h3>
-              <p>카드사·항공사·검색 경로를 일일이 찾아다닐 필요 없이 한 번에 모아 드려요.</p>
+              <span className="badge ai">AI 도우미</span>
+              <h3>로보티에게 물어보기</h3>
+              <p>예산, 후기 점수, 조식처럼 중요한 걸 말하면 검색 결과 안에서 가성비 좋은 곳을 골라 드려요.</p>
             </div>
             <div className="bento-card bento-wide">
               <span className="badge live">안전 결제</span>
               <h3>예약은 각 사이트에서</h3>
-              <p>결제와 취소는 선택한 예약 사이트에서 그대로 안전하게 진행돼요.</p>
+              <p>결제와 취소는 선택한 예약 사이트에서 그대로 안전하게 진행돼요. 아고다 링크가 있다면 {routes.length}개 할인 경로로 바꿔 비교해 볼 수도 있어요.</p>
             </div>
           </div>
         </section>
@@ -189,10 +230,10 @@ export default function Home() {
         <section className="wrap">
           <div className="cta">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/family/main-white.svg" alt="" />
+            <img src="/brand/family/main-white.svg" alt="로보티" />
             <div>
-              <h2>지금 보고 있는 그 호텔, 로보티에게 보여주세요</h2>
-              <p>같은 방을 더 싸게 예약할 수 있는지 바로 알려드려요.</p>
+              <h2>다음 여행, 로보티와 같이 골라 볼까요?</h2>
+              <p>호텔과 항공권 가격을 한 번에 비교하고, 가성비 좋은 선택을 함께 찾아 드려요.</p>
             </div>
             <a href="#top">최저가 찾기</a>
           </div>

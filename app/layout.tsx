@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import localFont from "next/font/local";
-import { routes } from "@/lib/agoda";
 import { site } from "@/lib/site";
 import "./globals.css";
 
@@ -22,16 +21,16 @@ export const metadata: Metadata = {
   keywords: [
     "로보티",
     "Lowboti",
-    "아고다 최저가",
-    "아고다 할인 경로",
-    "아고다 카드사 할인",
-    "구글맵 아고다",
     "호텔 가격 비교",
+    "항공권 가격 비교",
     "항공권 최저가",
+    "호텔 최저가",
+    "숙소 비교",
+    "AI 여행 도우미",
   ],
   openGraph: {
-    title: `${site.nameKo} (${site.name}) - 아고다 ${routes.length}개 숨은 경로 최저가 봇`,
-    description: "아고다 호텔 링크 하나로 카드사·항공사·검색 경로별 링크를 한 번에 받아 진짜 최저가를 찾아보세요.",
+    title: `${site.nameKo} (${site.name}) - ${site.tagline}`,
+    description: "호텔·항공권 가격을 예약 사이트별로 실시간 비교하고, AI 도우미 로보티와 가성비 좋은 선택을 함께 골라요.",
     url: site.url,
     siteName: `${site.nameKo} (${site.name})`,
     images: [{ url: "/images/og-image.png", width: 1200, height: 630 }],
@@ -40,8 +39,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: `${site.nameKo} (${site.name}) - 아고다 ${routes.length}개 경로 최저가 찾기`,
-    description: `번거로운 아고다 경로 타기, 이제 로보티에게 맡기세요. 링크만 넣으면 ${routes.length}개 경로를 한 번에 열어 볼 수 있어요.`,
+    title: `${site.nameKo} (${site.name}) - ${site.tagline}`,
+    description: "호텔·항공권 가격을 한 화면에서 비교하고, 로보티에게 가성비 좋은 곳을 물어보세요.",
     images: ["/images/og-image.png"],
   },
   verification: {
