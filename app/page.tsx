@@ -4,6 +4,7 @@ import { LinkChecker } from "@/components/LinkChecker";
 import { Logo } from "@/components/Logo";
 import { AnalysisMock } from "@/components/AnalysisMock";
 import { FamilyCards } from "@/components/FamilyCards";
+import { SiteNav } from "@/components/SiteNav";
 import { routes } from "@/lib/agoda";
 import { site } from "@/lib/site";
 
@@ -82,12 +83,7 @@ export default function Home() {
               AI
             </span>
           </Link>
-          <nav>
-            <a href="#how">사용법</a>
-            <a href="#features">기능</a>
-            <a href="#family">로보티 패밀리</a>
-            <a href="#faq">FAQ</a>
-          </nav>
+          <SiteNav />
           <a href="#top" className="nav-cta">
             최저가 찾기
           </a>
@@ -119,7 +115,7 @@ export default function Home() {
 
       <main>
         <section id="how" className="section wrap">
-          <p className="eyebrow">How it works</p>
+          <p className="eyebrow">이렇게 찾아요</p>
           <h2>세 단계면 충분해요</h2>
           <ol className="steps">
             {steps.map((s, i) => (
@@ -133,7 +129,7 @@ export default function Home() {
         </section>
 
         <section id="features" className="section wrap">
-          <p className="eyebrow">Features</p>
+          <p className="eyebrow">로보티가 잘하는 것</p>
           <h2>
             가격 비교는 로보티에게,
             <br />
@@ -143,7 +139,7 @@ export default function Home() {
             <div className="bento-card bento-analysis">
               <div className="badges">
                 <span className="badge ai">AI 분석</span>
-                <span className="badge">예시</span>
+                <span className="badge">예시 화면</span>
               </div>
               <h3>한눈에 보는 분석 요약</h3>
               <p>예약 사이트별 총액을 나란히 놓고, 어디가 얼마나 싼지 한눈에 볼 수 있어요.</p>
@@ -168,30 +164,9 @@ export default function Home() {
               </div>
               <h3>가격 변동 알림</h3>
               <p>찜해 둔 호텔이나 노선이 싸지면 알려 드리는 기능을 만들고 있어요. 아직은 신청이나 알림을 받을 수 없어요.</p>
-              <div className="alert-mock" aria-hidden="true">
-                <svg viewBox="0 0 320 90" className="chart">
-                  <defs>
-                    <linearGradient id="area" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0" stopColor="#1d4ed8" stopOpacity="0.18" />
-                      <stop offset="1" stopColor="#1d4ed8" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M0 30 C40 22 60 42 100 36 S160 14 200 32 S260 72 314 66 L314 90 L0 90 Z" fill="url(#area)" />
-                  <path d="M0 30 C40 22 60 42 100 36 S160 14 200 32 S260 72 314 66" fill="none" stroke="#1d4ed8" strokeWidth="3" />
-                  <circle cx="314" cy="66" r="5" fill="#10b981" stroke="#fff" strokeWidth="2.5" />
-                </svg>
-                <div className="toast">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/brand/family/main.svg" alt="로보티" />
-                  <div>
-                    <strong>찜한 호텔 가격이 내려갔어요</strong>
-                    <span>어제보다 12% 저렴해요 · 준비 중인 기능의 예시 화면</span>
-                  </div>
-                </div>
-              </div>
             </div>
             <div className="bento-card">
-              <span className="badge live">최저가</span>
+              <span className="badge lowest">최저가</span>
               <h3>총액 기준 비교</h3>
               <p>1박 표시가가 아니라 세금·수수료를 포함한 결제 금액으로 비교해요.</p>
             </div>
@@ -209,13 +184,13 @@ export default function Home() {
         </section>
 
         <section id="family" className="section wrap">
-          <p className="eyebrow">Lowboti family</p>
+          <p className="eyebrow">로보티 패밀리</p>
           <h2>숙소, 항공권, 쇼핑까지 최저가는 로보티가 찾아요</h2>
           <FamilyCards />
         </section>
 
         <section id="faq" className="section wrap">
-          <p className="eyebrow">FAQ</p>
+          <p className="eyebrow">궁금한 점</p>
           <h2>자주 묻는 질문</h2>
           <div className="faq">
             {faqs.map((f) => (

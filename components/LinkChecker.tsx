@@ -20,6 +20,12 @@ export type TabId = "stay" | "ask" | "flight" | "shop";
 // 다른 섹션(패밀리 카드 등)에서 검색창 탭을 바꿀 때 쓰는 이벤트
 export const TAB_EVENT = "lowboti:tab";
 
+// 검색창의 해당 탭으로 바꾸고 첫 화면으로 올라간다
+export function openSearchTab(tab: TabId) {
+  window.dispatchEvent(new CustomEvent(TAB_EVENT, { detail: tab }));
+  document.getElementById("top")?.scrollIntoView({ behavior: "smooth" });
+}
+
 const hints: Record<TabId, string> = {
   stay: `🏨 도시나 호텔 이름으로 예약 사이트별 가격을 비교하거나, 아고다 호텔 링크를 ${routes.length}개 경로로 바꿔 보세요.`,
   flight: "✈️ 출발지·도착지·날짜만 고르면 실시간 항공권 가격을 싼 순서로 보여 드려요.",
@@ -93,7 +99,7 @@ export function LinkChecker() {
             <span className="tab-label">{t.label}</span>
             <span className="tab-label-short">{t.short}</span>
             {t.ai && <span className="soon ai">AI</span>}
-            {!t.live && <span className="soon">곧 오픈</span>}
+            {!t.live && <span className="soon">준비 중</span>}
           </button>
         ))}
       </div>

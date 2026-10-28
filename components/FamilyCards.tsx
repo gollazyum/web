@@ -1,6 +1,6 @@
 "use client";
 
-import { TAB_EVENT, type TabId } from "@/components/LinkChecker";
+import { openSearchTab, type TabId } from "@/components/LinkChecker";
 import { LowbotiBot, type BotKind } from "@/components/LowbotiBot";
 import { site } from "@/lib/site";
 
@@ -9,12 +9,6 @@ const family: { img: BotKind; tab: TabId; name: string; en: string; body: string
   { img: "flight", tab: "flight", name: "항공봇", en: "Flight", body: "출발지와 날짜만 넣으면 항공권 최저가를 찾아드려요.", live: true },
   { img: "shop", tab: "shop", name: "쇼핑봇", en: "Shop", body: "여행 준비물과 유심도 최저가로 찾아드려요.", live: false },
 ];
-
-// 카드를 누르면 첫 화면 검색창의 해당 탭으로 올라간다
-function openTab(tab: TabId) {
-  window.dispatchEvent(new CustomEvent(TAB_EVENT, { detail: tab }));
-  document.getElementById("top")?.scrollIntoView({ behavior: "smooth" });
-}
 
 export function FamilyCards() {
   return (
@@ -29,7 +23,7 @@ export function FamilyCards() {
           </h3>
           <p>{f.body}</p>
           {f.live ? (
-            <button type="button" className="family-go" onClick={() => openTab(f.tab)}>
+            <button type="button" className="family-go" onClick={() => openSearchTab(f.tab)}>
               지금 써 보기 →
             </button>
           ) : site.notifyUrl ? (

@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import localFont from "next/font/local";
 import { site } from "@/lib/site";
+// 한글 전체가 든 2MB 폰트 대신, 화면에 쓰인 글자 묶음만 받아 오는 분할 폰트
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
-
-const pretendard = localFont({
-  src: "../node_modules/pretendard/dist/web/variable/woff2/PretendardVariable.woff2",
-  weight: "45 920",
-  variable: "--font-body",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -53,7 +47,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" className={pretendard.variable}>
+    <html lang="ko">
       <body>
         {children}
         {/* Travelpayouts Drive: 제휴 링크 자동 변환 */}

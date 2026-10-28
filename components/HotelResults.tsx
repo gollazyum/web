@@ -396,6 +396,11 @@ function HotelCard({ hotel, query, nights, flash }: { hotel: HotelOption; query:
 
   const total = hotel.total ?? (hotel.perNight !== null ? hotel.perNight * nights : null);
   const sources = prices?.kind === "ok" ? prices.sources : hotel.sources;
+  // 두 곳 이상 비교될 때만 가장 싼 곳에 최저가 배지를 단다. 총액이 둘 이상 있으면 총액끼리, 아니면 1박가끼리 비교
+  const totals = sources.filter((s) => s.total !== null).length > 1;
+  const cost = (s: HotelSource) => (totals ? s.total : s.perNight);
+  const costs = sources.map(cost).filter((v): v is number => v !== null);
+  const lowest = costs.length > 1 ? Math.min(...costs) : null;
   const tier = hotel.rating ? ratingTier(hotel.rating) : null;
   return (
     <li id={`hotel-${hotel.token}`} className={`hcard${open ? " open" : ""}${flash ? " flash" : ""}`}>
@@ -463,6 +468,7 @@ function HotelCard({ hotel, query, nights, flash }: { hotel: HotelOption; query:
                       {s.name}
                       {s.official && <em> 공식</em>}
                       {isAgoda(s.name) && <em className="hotel-pick"> 로보티 추천</em>}
+                      {lowest !== null && cost(s) === lowest && <em className="best-badge">최저가</em>}
                     </span>
                     <b>
                       {s.perNight !== null ? won(s.perNight) : "-"}
