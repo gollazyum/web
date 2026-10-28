@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import type { HotelOption, HotelQuery } from "./hotels";
+import type { HotelOption, HotelQuery, ReviewTopic } from "./hotels";
 
 // 가입 없이 쓰는 로보티 저장소. 브라우저 localStorage의 키 하나(lowboti:v1)에 비교함·선호·마지막 검색을 담는다.
 // 브라우저를 닫았다 열어도, 새 탭에서도 남고, 다른 탭에서 바꾸면 storage 이벤트로 바로 따라 바뀐다.
@@ -28,9 +28,13 @@ export type CompareItem = {
 
 export type Prefs = { chips: string[]; maxBudgetPerNight: number | null };
 export type LastSearch = SearchParams & { cachedAt: number };
-export type LowbotiStore = { compare: CompareItem[]; prefs: Prefs; lastSearch: LastSearch | null };
+// 호텔별 후기 주제 숫자 캐시 (7일). 같은 호텔을 다시 비교할 때 주제를 바로 보여 준다
+export type TopicCache = Record<string, { at: number; list: ReviewTopic[] | null }>;
+export type LowbotiStore = { compare: CompareItem[]; prefs: Prefs; lastSearch: LastSearch | null; topics: TopicCache };
+export const TOPIC_TTL = 7 * 24 * 60 * 60 * 1000;
+const MAX_TOPICS = 30;
 
-const EMPTY: LowbotiStore = { compare: [], prefs: { chips: [], maxBudgetPerNight: null }, lastSearch: null };
+const EMPTY: LowbotiStore = { compare: [], prefs: { chips: [], maxBudgetPerNight: null }, lastSearch: null, topics: {} };
 
 export function toSearchParams(q: HotelQuery): SearchParams {
   return { q: q.q, checkin: q.checkIn, checkout: q.checkOut, adults: q.adults };
@@ -71,7 +75,13 @@ function clean(raw: unknown): LowbotiStore {
     maxBudgetPerNight: typeof r.prefs?.maxBudgetPerNight === "number" ? r.prefs.maxBudgetPerNight : null,
   };
   const lastSearch = isParams(r.lastSearch) ? r.lastSearch : null;
-  return { compare, prefs, lastSearch };
+  const topics: TopicCache = {};
+  if (r.topics && typeof r.topics === "object") {
+    for (const [token, v] of Object.entries(r.topics)) {
+      if (v && typeof v.at === "number" && Date.now() - v.at < TOPIC_TTL && (v.list === null || Array.isArray(v.list))) topics[token] = v;
+    }
+  }
+  return { compare, prefs, lastSearch, topics };
 }
 
 let cache: { text: string | null; value: LowbotiStore } = { text: null, value: EMPTY };
@@ -99,6 +109,7 @@ const listeners = new Set<() => void>();
 export function updateStore(fn: (s: LowbotiStore) => LowbotiStore) {
   const next = fn(read());
   next.compare = [...next.compare].sort((a, b) => a.addedAt - b.addedAt).slice(-MAX_COMPARE);
+  next.topics = Object.fromEntries(Object.entries(next.topics).sort((a, b) => b[1].at - a[1].at).slice(0, MAX_TOPICS));
   const text = JSON.stringify(next);
   try {
     localStorage.setItem(KEY, text);
@@ -120,6 +131,10 @@ function subscribe(cb: () => void) {
     listeners.delete(cb);
     window.removeEventListener("storage", onStorage);
   };
+}
+
+export function saveTopics(token: string, list: ReviewTopic[] | null) {
+  updateStore((s) => ({ ...s, topics: { ...s.topics, [token]: { at: Date.now(), list } } }));
 }
 
 export function useLowbotiStore(): LowbotiStore {
