@@ -257,6 +257,14 @@ html.sheet-lock body {
   .faq summary {
     min-height: 44px;
   }
+  /* '준비 중' 배지: 보이는 알약은 그대로 두고 위아래 투명 테두리로 누르는 영역만 44px */
+  .badge.soon-badge.soon-btn {
+    border: 11px solid transparent;
+    border-left: 0;
+    border-right: 0;
+    margin: -11px 0;
+    background-clip: padding-box;
+  }
 }
 
 /* ---------- 바텀시트 공통 (가격·필터·달력·로보티) ---------- */
