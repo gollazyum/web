@@ -72,11 +72,19 @@ html.sheet-lock body {
     font-size: 9.5px;
   }
 
-  /* ---------- P0-3 홈 첫 화면 안에 검색 버튼 ---------- */
+  /* ---------- H-1 홈 히어로 압축: 첫 화면에 검색 카드 전체 ---------- */
   .hero {
-    padding: 14px 0 28px;
+    padding: 12px 0 24px;
   }
-  .hero .pill,
+  .hero-inner.wrap {
+    padding: 0 16px;
+  }
+  .hero .pill {
+    font-size: 12px;
+    padding: 4px 12px;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
   .hero-guide,
   .tab-hint {
     display: none;
@@ -84,24 +92,22 @@ html.sheet-lock body {
   .hero h1 {
     font-size: clamp(24px, 7vw, 30px);
     line-height: 1.25;
-    letter-spacing: -0.04em;
+    letter-spacing: -0.05em;
   }
-  .search {
+  .hero .search {
     margin-top: 14px;
   }
-  /* 카테고리 타일 → 44px 칩 한 줄 */
+  /* 탭 4개: 아이콘 28px 위, 이름 아래 (높이 59px) */
   .search-tabs {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
   .search-tab {
-    flex-direction: row;
-    gap: 4px;
     min-height: 44px;
-    padding: 0 4px;
+    padding: 4px 2px;
+    gap: 2px;
     border-radius: 14px;
-    font-size: 13px;
+    font-size: 12px;
     white-space: nowrap;
   }
   .search-tab:hover {
@@ -110,8 +116,8 @@ html.sheet-lock body {
   }
   .search-tab img,
   .search-tab.active img {
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
     transform: none;
     animation: none;
   }
@@ -134,12 +140,12 @@ html.sheet-lock body {
   /* 숙소 찾는 방법 두 버튼: 44px 반반 */
   .stay-modes {
     flex-wrap: nowrap;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
   .stay-modes button {
     flex: 1;
     min-height: 44px;
-    padding: 0 8px;
+    padding: 0 14px;
     white-space: nowrap;
   }
   .search-card {
@@ -147,17 +153,38 @@ html.sheet-lock body {
     padding: 6px;
     border-radius: 22px;
   }
-  .search-card .field {
-    min-height: 52px;
-    padding: 8px 14px;
-    border-radius: 14px;
+  .search-glow {
+    border-radius: 24px;
   }
+  .search-card .field {
+    min-height: 56px;
+    padding: 6px 14px;
+    gap: 0;
+    border-radius: 14px;
+    justify-content: center;
+  }
+  .search-card .field span {
+    font-size: 11px;
+    line-height: 14px;
+  }
+  .search-card .field input,
+  .search-card .field select,
   .search-card .field.date-field b {
+    font-size: 16px;
     line-height: 22px;
+    min-height: 22px;
+  }
+  /* 인원 칸: select가 칸 전체를 덮으므로 글자 위치를 다른 칸(라벨 10px, 값 24~46px)과 맞춘다 */
+  .search-card .field-small {
+    justify-content: flex-start;
+    padding-top: 10px;
+  }
+  .search-card .field-small select {
+    padding: 24px 14px 10px 10px;
   }
   .search-card > button {
-    min-height: 50px;
-    padding: 12px;
+    min-height: 48px;
+    padding: 0 16px;
     border-radius: 14px;
   }
   /* P2-5 비교사 띠: 양 끝 여백, 좁으면 줄바꿈 */
@@ -1221,5 +1248,12 @@ html.sheet-lock body {
   .steps li:hover,
   .family-card:hover {
     transform: none;
+  }
+}
+
+/* H-1 아주 좁은 화면(340px 이하)에서 제목 한 줄이 넘치지 않게 */
+@media (max-width: 340px) {
+  .hero h1 {
+    font-size: 22px;
   }
 }
