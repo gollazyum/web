@@ -1,7 +1,7 @@
 "use client";
 
 import { MochiStars, ratingTier } from "./MochiMarks";
-import { agodaSearchUrl, isAgoda, type HotelOption, type HotelQuery, type HotelSource } from "@/lib/hotels";
+import { bookingLink, roboPick, type HotelOption, type HotelQuery, type HotelSource } from "@/lib/hotels";
 import { useSheet } from "@/lib/useSheet";
 
 // 휴대폰 호텔 결과: 카드를 누르면 아래에서 올라오는 '예약 사이트별 가격' 시트.
@@ -69,7 +69,8 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
   // 줄 세우기: 총액(없으면 1박가) 낮은 순
   const rows = [...sources].sort((a, b) => (a.total ?? a.perNight ?? Infinity) - (b.total ?? b.perNight ?? Infinity));
   const top = rows.find((s) => s.total !== null) ?? rows[0];
-  const linkOf = (s: HotelSource) => (isAgoda(s.name) ? agodaSearchUrl(hotel.name, query) : s.link);
+  const linkOf = (s: HotelSource) => bookingLink(s, hotel.name, query);
+  const pick = roboPick(sources, hotel.token);
   const images = hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : [];
   const tier = hotel.rating !== null ? ratingTier(hotel.rating) : null;
 
@@ -135,6 +136,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
                     <span className="ps-site">
                       {s.name}
                       {s.official && <em> 공식</em>}
+                      {s.name === pick && <em className="hotel-pick"> 로보티 추천</em>}
                       {isBest && <em className="best-badge">최저가</em>}
                     </span>
                     <span className="ps-cost">
@@ -155,11 +157,6 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
           )}
           {prices?.kind === "ok" && !sources.length && <p className="flight-note">이 호텔은 지금 예약 사이트 가격을 찾지 못했어요.</p>}
           {prices?.kind === "error" && <p className="flight-note">{prices.message}</p>}
-          {!sources.some((s) => isAgoda(s.name)) && (
-            <a className="results-out small" href={agodaSearchUrl(hotel.name, query)} target="_blank" rel="noopener noreferrer sponsored">
-              아고다에서 이 호텔 찾기 ↗
-            </a>
-          )}
           {hotel.amenities.length > 0 && (
             <ul className="hcard-amen ps-amen">
               {hotel.amenities.slice(0, 10).map((a) => (

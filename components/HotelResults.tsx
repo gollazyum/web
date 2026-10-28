@@ -11,7 +11,7 @@ import { ScanProgress } from "./ScanProgress";
 import { SortMenu } from "./SortMenu";
 import { errorCode } from "@/lib/apiError";
 import { daysBetween, shortLabel, today } from "@/lib/dates";
-import { agodaSearchUrl, hotelsPath, isAgoda, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
+import { agodaSearchUrl, bookingLink, hotelsPath, roboPick, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
 import { isPhone, useSheet } from "@/lib/useSheet";
 
 // 호텔 결과 페이지 (/hotels?q=…). 로보티가 훑는 연출 뒤에 필터·정렬이 있는 호텔 카드 목록을 보여 준다.
@@ -606,6 +606,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
   const total = totalOf(hotel, nights);
   const sources = prices?.kind === "ok" ? prices.sources : hotel.sources;
   const lowest = lowestCost(sources);
+  const pick = roboPick(sources, hotel.token);
   const tier = hotel.rating ? ratingTier(hotel.rating) : null;
   const blocked = !compared && compareFull;
   return (
@@ -701,15 +702,15 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
           {sources.length > 0 && (
             <ul className="hotel-sources">
               {sources.map((s) => {
-                const link = isAgoda(s.name) ? agodaSearchUrl(hotel.name, query) : s.link;
+                const link = bookingLink(s, hotel.name, query);
                 return (
-                  <li key={s.name} className={isAgoda(s.name) ? "pick" : undefined}>
+                  <li key={s.name} className={s.name === pick ? "pick" : undefined}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {s.logo ? <img src={s.logo} alt={s.name} /> : <i />}
                     <span>
                       {s.name}
                       {s.official && <em> 공식</em>}
-                      {isAgoda(s.name) && <em className="hotel-pick"> 로보티 추천</em>}
+                      {s.name === pick && <em className="hotel-pick"> 로보티 추천</em>}
                       {lowest && lowest.value !== null && lowest.cost(s) === lowest.value && <em className="best-badge">최저가</em>}
                     </span>
                     <b>
@@ -730,11 +731,6 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
           )}
           {prices?.kind === "ok" && !sources.length && <p className="flight-note">이 호텔은 지금 예약 사이트 가격을 찾지 못했어요.</p>}
           {prices?.kind === "error" && <p className="flight-note">{prices.message}</p>}
-          {!sources.some((s) => isAgoda(s.name)) && (
-            <a className="results-out small" href={agodaSearchUrl(hotel.name, query)} target="_blank" rel="noopener noreferrer sponsored">
-              아고다에서 이 호텔 찾기 ↗
-            </a>
-          )}
         </div>
       )}
     </li>
