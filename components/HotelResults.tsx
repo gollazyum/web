@@ -13,9 +13,10 @@ import { errorCode } from "@/lib/apiError";
 import { daysBetween, shortLabel, today } from "@/lib/dates";
 import { agodaSearchUrl, bookingLink, firstSites, isAgoda, hotelsPath, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
-import { MAX_COMPARE, compareItem, toSearchParams, updateStore, useLowbotiStore } from "@/lib/lowbotiStore";
+import { MAX_COMPARE, compareItem, saveTopics, toSearchParams, updateStore, useLowbotiStore } from "@/lib/lowbotiStore";
 import { isPhone, useSheet } from "@/lib/useSheet";
 import { CompareBar } from "./CompareBar";
+import { CompareModal } from "./CompareModal";
 
 // 호텔 결과 페이지 (/hotels?q=…). 로보티가 훑는 연출 뒤에 필터·정렬이 있는 호텔 카드 목록을 보여 준다.
 // 필터와 정렬은 받아 온 목록 안에서만 하므로 SerpApi를 더 부르지 않는다
@@ -202,15 +203,18 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     setTimeout(() => setFlash((f) => (f === token ? "" : f)), 2200);
   }
 
-  async function loadPrices(hotel: HotelOption) {
-    if (priceMap[hotel.token]) return;
+  // 예약 사이트별 가격 (+ 후기 주제 숫자). 비교함에 다른 검색에서 담은 호텔도 지금 날짜로 받는다
+  async function loadPrices(hotel: { token: string; sources?: HotelOption["sources"]; q?: string }) {
+    if (priceMap[hotel.token] && priceMap[hotel.token].kind !== "error") return;
     const put = (v: PriceState) => setPriceMap((m) => ({ ...m, [hotel.token]: v }));
     put({ kind: "loading" });
     try {
-      const res = await postHotels({ ...query, token: hotel.token });
+      const res = await postHotels({ ...query, q: hotel.q ?? query.q, token: hotel.token });
       if (!res.ok) return put({ kind: "error", message: await failMessage(res) });
       const prices = (await res.json()) as HotelPrices;
-      put({ kind: "ok", sources: prices.sources.length ? prices.sources : hotel.sources });
+      const topics = prices.topics ?? null;
+      saveTopics(hotel.token, topics);
+      put({ kind: "ok", sources: prices.sources.length ? prices.sources : (hotel.sources ?? []), topics });
     } catch {
       put({ kind: "error", message: "연결이 불안정해요. 잠시 뒤에 다시 눌러 주세요." });
     }
@@ -476,7 +480,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           <span className="fab-label">AI 추천</span>
         </button>
       )}
-      {!sheetHotel && !filtersOpen && !(advisorOpen && phoneSheet) && (
+      {!sheetHotel && !filtersOpen && !compareOpen && !(advisorOpen && phoneSheet) && (
         <CompareBar
           items={store.compare.map((c) => ({ ...c, otherDates: c.searchParams.checkin !== here.checkin || c.searchParams.checkout !== here.checkout }))}
           onRemove={removeCompare}
@@ -492,6 +496,19 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           prices={priceMap[sheetHotel.token] ?? null}
           summary={roboSummary(sheetHotel, data.options, nights, picks.has(sheetHotel.token))}
           onClose={() => setSheetToken("")}
+        />
+      )}
+      {compareOpen && store.compare.length >= 2 && (
+        <CompareModal
+          items={store.compare}
+          query={query}
+          nights={nights}
+          prices={priceMap}
+          topicCache={store.topics}
+          ensurePrices={(it) => loadPrices({ token: it.token, q: it.searchParams.q })}
+          prefs={store.prefs}
+          onPrefs={(prefs) => updateStore((s) => ({ ...s, prefs }))}
+          onClose={() => setCompareOpen(false)}
         />
       )}
       {toast && (

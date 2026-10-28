@@ -4307,3 +4307,436 @@ body:has(.compare-bar) .hcards {
     padding-bottom: 150px;
   }
 }
+
+/* ---------- 비교 결과 모달 (PC 가운데) / 바텀시트 (휴대폰) ---------- */
+.cmp-dim {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 69;
+  background: rgba(11, 18, 32, 0.5);
+}
+.cmp {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 70;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  width: min(960px, calc(100vw - 48px));
+  max-height: calc(100dvh - 64px);
+  border-radius: 22px;
+  background: var(--white);
+  box-shadow: 0 40px 80px -20px rgba(11, 18, 32, 0.45);
+  overflow: hidden;
+}
+.cmp-head {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  font-size: 17px;
+}
+.cmp-close {
+  margin-left: auto;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: none;
+  font-size: 18px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.cmp-body {
+  padding: 20px 22px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.cmp-q {
+  margin: 0;
+  font-size: 20px;
+}
+.cmp-sub {
+  margin: 6px 0 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.cmp-chips .chip {
+  padding: 9px 13px;
+  font-size: 14px;
+}
+.cmp-chips .chip[aria-disabled="true"] {
+  opacity: 0.45;
+}
+.cmp-budget {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 18px 0 20px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.cmp-budget-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cmp-budget input {
+  width: 110px;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 15px;
+}
+.cmp-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 50px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--grad);
+  color: var(--white);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+.cmp-criteria {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.cmp-criteria .link-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.cmp-table-wrap {
+  overflow-x: auto;
+}
+.cmp-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
+}
+.cmp-table th,
+.cmp-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  vertical-align: middle;
+}
+.cmp-table tbody th {
+  width: 120px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.cmp-table thead th {
+  vertical-align: top;
+  border-bottom: 0;
+}
+.cmp-table thead img,
+.cmp-noimg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 120px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--soft);
+}
+.cmp-name {
+  display: -webkit-box;
+  margin-top: 8px;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.cmp-win {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--sky);
+  color: var(--white);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+.cmp-table td.best {
+  color: var(--color-deal);
+  font-weight: 800;
+}
+.cmp-table td small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.cmp-table td .cmp-over {
+  color: var(--caution);
+}
+.cmp-wait {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 13px;
+}
+.cmp-book {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.cmp-book-row td,
+.cmp-book-row th {
+  border-bottom: 0;
+}
+.cmp-tabs {
+  display: none;
+}
+.cmp-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.cmp-detail {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--soft);
+  font-size: 13px;
+}
+.cmp-detail h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+.cmp-topics {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+.cmp-topics li {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.cmp-topics li > span:first-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cmp-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+.cmp-bar i {
+  display: block;
+  height: 100%;
+  background: var(--green);
+}
+.cmp-topics em {
+  font-style: normal;
+  font-weight: 700;
+}
+.cmp-topics small {
+  color: var(--muted);
+  font-weight: 500;
+}
+.cmp-pro,
+.cmp-con,
+.cmp-none,
+.cmp-facts {
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+.cmp-none,
+.cmp-facts {
+  color: var(--muted);
+}
+.cmp-verdict {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: #eef4ff;
+}
+.cmp-verdict-head {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.cmp-verdict ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.cmp-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.cmp-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.cmp-actions .cmp-cta {
+  flex: 1;
+}
+.cmp-other {
+  flex-shrink: 0;
+  min-height: 50px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--white);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+@media (max-width: 640px) {
+  .cmp {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: none;
+    width: auto;
+    height: 92dvh;
+    max-height: none;
+    border-radius: 20px 20px 0 0;
+    animation: sheet-up 0.25s ease both;
+  }
+  .cmp-head {
+    padding: 12px 14px 12px 18px;
+  }
+  .cmp-body {
+    padding: 16px 14px calc(20px + env(safe-area-inset-bottom));
+  }
+  .cmp-table {
+    font-size: 13px;
+  }
+  .cmp-table th,
+  .cmp-table td {
+    padding: 8px 4px;
+  }
+  .cmp-table tbody th {
+    width: 68px;
+    font-size: 11px;
+    word-break: keep-all;
+  }
+  .cmp-name {
+    font-size: 12px;
+  }
+  .cmp-tabs {
+    display: flex;
+    gap: 6px;
+    margin-top: 16px;
+    overflow-x: auto;
+  }
+  .cmp-tabs button {
+    flex: 1;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 10px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--white);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .cmp-tabs button[aria-selected="true"] {
+    border-color: var(--blue);
+    background: #eef4ff;
+    color: var(--blue);
+  }
+  .cmp-details {
+    display: block;
+    margin-top: 10px;
+  }
+  .cmp-detail {
+    display: none;
+  }
+  .cmp-detail.on {
+    display: block;
+  }
+  .cmp-actions {
+    flex-direction: column;
+  }
+}
+
+/* ---------- Phase 2 로그인 모달 틀 (NEXT_PUBLIC_ENABLE_AUTH=true일 때만) ---------- */
+.auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgba(11, 18, 32, 0.4);
+}
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+  padding: 22px;
+  border-radius: 18px;
+  background: var(--white);
+  text-align: center;
+}
+.auth-card p {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.auth-kakao,
+.auth-google {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 800;
+}
+.auth-kakao {
+  border-color: #fee500;
+  background: #fee500;
+  color: #191919;
+}
+.auth-google {
+  background: var(--white);
+}
