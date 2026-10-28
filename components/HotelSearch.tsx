@@ -17,6 +17,7 @@ export function HotelSearch({ initial, compact }: Props) {
   const [checkOut, setCheckOut] = useState(initial?.checkOut ?? "");
   const [adults, setAdults] = useState(initial?.adults ?? 2);
   const [error, setError] = useState("");
+  const [dateKick, setDateKick] = useState(0); // 휴대폰에서 목적지를 고르면 바로 날짜 고르기로
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,7 +32,7 @@ export function HotelSearch({ initial, compact }: Props) {
   return (
     <>
       <form onSubmit={onSubmit} className={`search-card hotel-card${compact ? " compact" : ""}`}>
-        <PlaceInput value={q} onChange={setQ} />
+        <PlaceInput value={q} onChange={setQ} onPicked={() => setDateKick((k) => k + 1)} />
         <DateRangePicker
           start={checkIn}
           end={checkOut}
@@ -44,6 +45,7 @@ export function HotelSearch({ initial, compact }: Props) {
           endPlaceholder="비우면 1박"
           minGap={1}
           unit={(n) => `${n}박`}
+          openSignal={dateKick}
         />
         <label className="field field-small">
           <span>성인</span>

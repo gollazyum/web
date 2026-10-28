@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { daysBetween, isoDate, parseIso, shortLabel, today, weekdays } from "@/lib/dates";
+import { isPhone, useSheet } from "@/lib/useSheet";
 
 type Props = {
   start: string;
@@ -12,10 +13,14 @@ type Props = {
   endPlaceholder: string;
   minGap: number; // 숙소는 1박 이상(1), 항공권은 당일 왕복 가능(0)
   unit: (days: number) => string; // "2박", "3일"
-  quick?: { label: string; end: (start: string) => string }; // "1박으로", "편도로 검색"
+  quick?: { label: string; end: (start: string) => string }; // "편도"
+  openSignal?: number; // 바뀌면 달력을 연다 (휴대폰에서 목적지를 고른 직후)
 };
 
 const MONTHS_AHEAD = 11;
+
+// "2026-11-20" → "11.20"
+const dot = (s: string) => `${Number(s.slice(5, 7))}.${Number(s.slice(8, 10))}`;
 
 function monthStart(s: string): Date {
   const d = parseIso(s);
@@ -27,9 +32,11 @@ function addMonths(d: Date, n: number): Date {
 }
 
 // 가는 날(체크인)을 고르면 그대로 오는 날(체크아웃) 고르기로 넘어가는 달력 한 장.
-// 데스크톱은 두 달, 휴대폰은 한 달씩 보여 준다
-export function DateRangePicker({ start, end, onChange, labels, prompts, endPlaceholder, minGap, unit, quick }: Props) {
+// 데스크톱은 두 달을 보여 주고, 휴대폰(640px 이하)은 아래에서 올라오는 시트에 여러 달을 세로로 보여 준다
+export function DateRangePicker({ start, end, onChange, labels, prompts, endPlaceholder, minGap, unit, quick, openSignal }: Props) {
   const [open, setOpen] = useState(false);
+  const [sheet, setSheet] = useState(false);
+  const monthsRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<"start" | "end">("start");
   const [hover, setHover] = useState("");
   const [view, setView] = useState(() => monthStart(today()));
@@ -51,14 +58,36 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
     document.addEventListener("mousedown", onDown);
     document.addEventListener("touchstart", onDown);
     document.addEventListener("keydown", onKey);
-    // 휴대폰에서 달력이 화면 아래로 잘리지 않게
-    pop.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    // 태블릿에서 달력이 화면 아래로 잘리지 않게 (휴대폰 시트는 화면에 고정이라 필요 없다)
+    if (!sheet) pop.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("touchstart", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, sheet]);
+
+  useSheet(open && sheet, () => setOpen(false));
+
+  // 시트가 열리면 고른 날(없으면 이번 달)이 있는 달로 스크롤하고, 검색창이 머리글 위로 올라오게 한다
+  useEffect(() => {
+    if (!open || !sheet) return;
+    const focus = (phase === "end" ? end || start : start) || today();
+    monthsRef.current?.querySelector<HTMLElement>(`[data-month="${focus.slice(0, 7)}"]`)?.scrollIntoView({ block: "start" });
+    document.documentElement.classList.add("layer-open");
+    return () => document.documentElement.classList.remove("layer-open");
+    // 열릴 때 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, sheet]);
+
+  const signal = useRef(openSignal);
+  useEffect(() => {
+    if (openSignal === signal.current) return;
+    signal.current = openSignal;
+    openAt("start");
+    // openSignal이 바뀔 때만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSignal]);
 
   function openAt(p: "start" | "end") {
     const next = p === "end" && !start ? "start" : p;
@@ -66,6 +95,7 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
     setHover("");
     const focus = next === "end" ? end || start : start;
     setView(focus ? monthStart(focus) : first);
+    setSheet(isPhone());
     setOpen(true);
   }
 
@@ -76,7 +106,8 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
       return;
     }
     onChange(start, day);
-    setOpen(false);
+    // 휴대폰 시트는 아래 '선택 완료'를 눌러 닫는다
+    if (!sheet) setOpen(false);
   }
 
   const min = today();
@@ -95,8 +126,12 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
     const mo = m.getMonth();
     const blanks = m.getDay();
     const days = new Date(y, mo + 1, 0).getDate();
+    const key = `${y}-${String(mo + 1).padStart(2, "0")}`;
+    // 휴대폰 시트는 이번 달의 지난 주를 통째로 건너뛴다
+    const skip = sheet && min.slice(0, 7) === key ? Math.floor((blanks + Number(min.slice(8, 10)) - 1) / 7) * 7 : 0;
+    const from = Math.max(0, skip - blanks);
     return (
-      <div className="dp-month" key={`${y}-${mo}`}>
+      <div className="dp-month" key={`${y}-${mo}`} data-month={key}>
         <strong className="dp-title">
           {y}년 {mo + 1}월
         </strong>
@@ -106,10 +141,11 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
               {w}
             </span>
           ))}
-          {Array.from({ length: blanks }, (_, i) => (
+          {Array.from({ length: Math.max(0, blanks - skip) }, (_, i) => (
             <span key={`b${i}`} />
           ))}
-          {Array.from({ length: days }, (_, i) => {
+          {Array.from({ length: days - from }, (_, k) => {
+            const i = k + from;
             const day = isoDate(new Date(y, mo, i + 1));
             const wd = (blanks + i) % 7;
             const isStart = day === start;
@@ -161,18 +197,42 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
         <b className={end ? undefined : "empty"}>{end ? shortLabel(end) : endPlaceholder}</b>
       </button>
 
+      {open && sheet && <div className="sheet-dim dp-dim" aria-hidden="true" onClick={() => setOpen(false)} />}
       {open && (
-        <div ref={pop} className="dp-pop" role="dialog" aria-label="날짜 선택" onMouseLeave={() => setHover("")}>
-          <button type="button" className="dp-nav prev" aria-label="이전 달" disabled={!canPrev} onClick={() => setView(addMonths(view, -1))}>
-            ‹
-          </button>
-          <button type="button" className="dp-nav next" aria-label="다음 달" disabled={!canNext} onClick={() => setView(addMonths(view, 1))}>
-            ›
-          </button>
-          <div className="dp-months">
-            {month(view)}
-            {month(addMonths(view, 1))}
-          </div>
+        <div ref={pop} className={`dp-pop${sheet ? " dp-sheet" : ""}`} role="dialog" aria-label="날짜 선택" onMouseLeave={() => setHover("")}>
+          {sheet ? (
+            <>
+              <div className="dp-sheet-head">
+                <strong>{phase === "start" || !start ? labels[0] : labels[1]} 선택</strong>
+                <button type="button" className="filters-close" aria-label="달력 닫기" onClick={() => setOpen(false)}>
+                  ✕
+                </button>
+              </div>
+              <div className="dp-weekbar" aria-hidden="true">
+                {weekdays.map((w, i) => (
+                  <span key={w} className={i === 0 ? "sun" : i === 6 ? "sat" : undefined}>
+                    {w}
+                  </span>
+                ))}
+              </div>
+              <div className="dp-months" ref={monthsRef}>
+                {Array.from({ length: MONTHS_AHEAD + 1 }, (_, i) => month(addMonths(first, i)))}
+              </div>
+            </>
+          ) : (
+            <>
+              <button type="button" className="dp-nav prev" aria-label="이전 달" disabled={!canPrev} onClick={() => setView(addMonths(view, -1))}>
+                ‹
+              </button>
+              <button type="button" className="dp-nav next" aria-label="다음 달" disabled={!canNext} onClick={() => setView(addMonths(view, 1))}>
+                ›
+              </button>
+              <div className="dp-months">
+                {month(view)}
+                {month(addMonths(view, 1))}
+              </div>
+            </>
+          )}
           <div className="dp-foot">
             <span className="dp-status">{status}</span>
             <div className="dp-actions">
@@ -193,7 +253,7 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
                 </button>
               )}
               <button type="button" className="dp-done" onClick={() => setOpen(false)}>
-                완료
+                {sheet && start && end ? `${dot(start)} – ${dot(end)} · ${unit(span)} 선택 완료` : "완료"}
               </button>
             </div>
           </div>

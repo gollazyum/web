@@ -227,3 +227,215 @@ html.sheet-lock body {
     min-height: 44px;
   }
 }
+
+/* ---------- 바텀시트 공통 (가격·필터·달력·로보티) ---------- */
+@media (max-width: 640px) {
+  /* 딤: 뒤 페이지가 터치로 스크롤되지 않게 (iOS Safari) */
+  .sheet-dim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(11, 18, 32, 0.45);
+    touch-action: none;
+    animation: dim-in 0.2s ease both;
+  }
+  /* 검색창 안의 달력 시트·검색 레이어가 머리글보다 위에 오게 */
+  html.layer-open .search-glow,
+  html.layer-open .results-top {
+    z-index: 100;
+  }
+  /* 끝난 등장 애니메이션이 transform을 남기면 안쪽 fixed 레이어가 화면 대신 패널에 붙는다 */
+  .tab-panel {
+    animation-fill-mode: backwards;
+  }
+}
+@keyframes dim-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* ---------- P0-4 전체 화면 검색 레이어 ---------- */
+@media (max-width: 640px) {
+  .search-card .field.search-layer,
+  .field.search-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 100dvh;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    align-content: start;
+    column-gap: 6px;
+    margin: 0;
+    padding: 8px 12px 0 6px;
+    border: 0;
+    border-radius: 0;
+    background: var(--white);
+    box-shadow: none;
+  }
+  .field.search-layer:hover,
+  .field.search-layer:focus-within {
+    background: var(--white);
+    box-shadow: none;
+  }
+  .layer-back {
+    grid-row: 1 / span 2;
+    align-self: center;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    font-size: 22px;
+    cursor: pointer;
+  }
+  .field.search-layer > span {
+    grid-column: 2;
+  }
+  .field.search-layer > input {
+    grid-column: 2;
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 12px;
+    background: var(--soft);
+    box-shadow: inset 0 0 0 2px rgba(29, 78, 216, 0.25);
+  }
+  .field.search-layer .airport-list,
+  .field.search-layer .layer-tip {
+    grid-column: 1 / -1;
+  }
+  .field.search-layer .airport-list {
+    position: static;
+    width: auto;
+    max-height: none;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 10px -12px 0 -6px;
+    padding: 4px 8px calc(12px + env(safe-area-inset-bottom));
+    border-radius: 0;
+    border-top: 1px solid var(--line);
+    box-shadow: none;
+  }
+  .field.search-layer .airport-option {
+    min-height: 52px;
+  }
+  .layer-tip {
+    margin-top: 14px;
+    padding: 0 8px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+}
+
+/* ---------- P2-1 달력 바텀시트 ---------- */
+@media (max-width: 640px) {
+  .dp-pop.dp-sheet {
+    position: fixed;
+    inset: auto 0 0 0;
+    top: auto;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    width: auto;
+    height: 86dvh;
+    padding: 0;
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -20px 60px rgba(11, 18, 32, 0.3);
+    overscroll-behavior: contain;
+    animation: sheet-up 0.25s ease both;
+  }
+  .dp-sheet-head {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px 0 20px;
+  }
+  .dp-sheet-head strong {
+    font-size: 17px;
+    color: var(--ink);
+  }
+  .dp-sheet-head .filters-close {
+    display: block;
+    margin-left: auto;
+  }
+  .dp-weekbar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 4px 14px 8px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+  }
+  .dp-weekbar .sun {
+    color: #e5484d;
+  }
+  .dp-weekbar .sat {
+    color: var(--blue);
+  }
+  .dp-sheet .dp-months {
+    flex: 1;
+    display: block;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0 14px;
+  }
+  .dp-sheet .dp-month,
+  .dp-sheet .dp-month + .dp-month {
+    display: block;
+    padding-top: 14px;
+    scroll-margin-top: 0;
+  }
+  .dp-sheet .dp-title {
+    text-align: left;
+    padding-left: 6px;
+    line-height: 24px;
+  }
+  .dp-sheet .dp-wd {
+    display: none;
+  }
+  /* 지난 날짜는 숨긴다 (자리는 남겨 요일 칸을 맞춘다) */
+  .dp-sheet .dp-day:disabled {
+    visibility: hidden;
+  }
+  .dp-sheet .dp-day {
+    height: 44px;
+  }
+  .dp-sheet .dp-day span {
+    width: 42px;
+    height: 42px;
+  }
+  .dp-sheet .dp-foot {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+    background: var(--white);
+    box-shadow: 0 -8px 20px -16px rgba(11, 18, 32, 0.4);
+  }
+  .dp-sheet .dp-actions {
+    margin: 0;
+  }
+  .dp-sheet .dp-done {
+    flex: 1;
+    min-height: 48px;
+    font-size: 15px;
+  }
+}

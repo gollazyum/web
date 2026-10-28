@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AirportInput } from "./AirportInput";
 import { DateRangePicker } from "./DateRangePicker";
@@ -21,6 +21,9 @@ export function FlightSearch({ initial, compact }: Props) {
   const [ret, setRet] = useState(initial?.ret ?? "");
   const [adults, setAdults] = useState(initial?.adults ?? 1);
   const [error, setError] = useState("");
+  // 휴대폰 검색 레이어에서 고르면 다음 칸(도착 → 날짜)으로 바로 넘어간다
+  const destRef = useRef<HTMLInputElement>(null);
+  const [dateKick, setDateKick] = useState(0);
 
   // 결과 페이지 주소에는 코드만 있어서, 공항 목록을 받으면 입력칸 글자를 이름으로 바꾼다
   useEffect(() => {
@@ -56,12 +59,15 @@ export function FlightSearch({ initial, compact }: Props) {
           placeholder="어디에서 출발하세요?"
           text={origin.text}
           onChange={(text, code) => setOrigin({ text, code })}
+          onPicked={() => (destination.code ? setDateKick((k) => k + 1) : destRef.current?.focus())}
         />
         <AirportInput
           label="도착"
           placeholder="도시나 공항 이름"
           text={destination.text}
           onChange={(text, code) => setDestination({ text, code })}
+          onPicked={() => setDateKick((k) => k + 1)}
+          inputRef={destRef}
         />
         <DateRangePicker
           start={depart}
@@ -76,6 +82,7 @@ export function FlightSearch({ initial, compact }: Props) {
           minGap={0}
           unit={(n) => (n === 0 ? "당일 왕복" : `${n}박 ${n + 1}일`)}
           quick={{ label: "편도", end: () => "" }}
+          openSignal={dateKick}
         />
         <label className="field field-small">
           <span>성인</span>
