@@ -1,10 +1,9 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { LinkChecker } from "@/components/LinkChecker";
-import { Logo } from "@/components/Logo";
 import { AnalysisMock } from "@/components/AnalysisMock";
 import { FamilyCards } from "@/components/FamilyCards";
-import { MobileMenu, SiteNav } from "@/components/SiteNav";
+import { SiteFooter } from "@/components/SiteFooter";
+import { SiteHeader } from "@/components/SiteHeader";
 import { SoonBadge } from "@/components/SoonBadge";
 import { routes } from "@/lib/agoda";
 import { site } from "@/lib/site";
@@ -76,21 +75,7 @@ export default function Home() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <header className="nav-bar">
-        <div className="nav wrap home-nav">
-          <Link href="/" className="brand" aria-label="로보티 (Lowboti) 홈">
-            <Logo height={40} />
-            <span className="brand-badge" aria-hidden="true">
-              AI
-            </span>
-          </Link>
-          <SiteNav />
-          <a href="#top" className="nav-cta">
-            최저가 찾기
-          </a>
-          <MobileMenu />
-        </div>
-      </header>
+      <SiteHeader />
 
       <section className="hero" id="top">
         <div className="hero-glow" aria-hidden="true" />
@@ -111,12 +96,16 @@ export default function Home() {
           </p>
           <LinkChecker />
           <div className="compared">
-            <span>로보티가 비교하는 곳</span>
-            <strong className="wordmark">Google Hotels</strong>
-            <em>예약 사이트별 호텔가</em>
+            <span className="compared-label">로보티가 비교하는 곳</span>
+            <span className="compared-item">
+              <strong className="wordmark">Google Hotels</strong>
+              <em>예약 사이트별 호텔가</em>
+            </span>
             <i aria-hidden="true" />
-            <strong className="wordmark">Google Flights</strong>
-            <em>실시간 항공 운임</em>
+            <span className="compared-item">
+              <strong className="wordmark">Google Flights</strong>
+              <em>실시간 항공 운임</em>
+            </span>
           </div>
         </div>
       </section>
@@ -223,38 +212,7 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="footer">
-        <div className="wrap">
-          <div className="brand">
-            <Logo tone="white" height={34} />
-          </div>
-          <p className="disclosure">
-            Lowboti는 여행 가격 비교 플랫폼입니다. Lowboti의 링크를 통해 예약하시면 제휴사로부터 소정의 수수료를 받을 수 있으며,
-            고객님이 지불하는 금액에는 영향을 주지 않습니다. 표시된 정보와 가격은 조회 시점 기준이며 실제 결제 금액과 다를 수 있습니다.
-            예약·결제·취소·환불은 각 예약 사이트의 약관과 정책을 따릅니다.
-          </p>
-          <p className="footer-links">
-            <Link href="/terms">이용약관</Link>
-            <Link href="/privacy">개인정보처리방침</Link>
-            {site.instagramUrl ? (
-              <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer">
-                Instagram
-              </a>
-            ) : (
-              <span>Instagram</span>
-            )}
-            <span>
-              문의 및 제휴: <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
-            </span>
-          </p>
-          <p className="footer-biz">
-            <span>상호 {site.business.name}</span>
-            <span>대표자 {site.business.ceo}</span>
-            <span>사업자등록번호 {site.business.registrationNo}</span>
-          </p>
-          <p className="copy">© {new Date().getFullYear()} Lowboti. All rights reserved.</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }

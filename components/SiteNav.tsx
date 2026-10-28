@@ -3,37 +3,74 @@
 import { useEffect, useRef, useState } from "react";
 import { openSearchTab, type TabId } from "@/components/LinkChecker";
 
-const items: { tab: TabId; label: string }[] = [
-  { tab: "stay", label: "숙소" },
-  { tab: "flight", label: "항공권" },
-  { tab: "ask", label: "로보티에게 물어보기" },
-];
-
-// 햄버거 메뉴 항목: 숙소 / 항공권 / 쇼핑·유심
-const mobileItems: { tab: TabId; label: string; soon?: boolean }[] = [
+// 헤더 메뉴. 데스크톱 가로 메뉴와 폰 햄버거 메뉴가 같은 목록을 쓴다
+const items: ({ tab: TabId; label: string; soon?: boolean } | { href: string; label: string; soon?: undefined })[] = [
   { tab: "stay", label: "숙소" },
   { tab: "flight", label: "항공권" },
   { tab: "shop", label: "쇼핑·유심", soon: true },
+  { tab: "ask", label: "로보티에게 물어보기" },
+  { href: "/#faq", label: "자주 묻는 질문" },
 ];
 
-// 헤더 메뉴: 누르면 첫 화면 검색창의 해당 탭이 열린다. 폰에서는 숨기고 MobileMenu를 쓴다
+// 첫 화면이면 검색창 탭을 바로 바꾸고, 다른 페이지(약관 등)면 첫 화면의 그 탭으로 이동한다
+function goTab(tab: TabId) {
+  if (document.getElementById("top")) openSearchTab(tab);
+  else window.location.href = `/?tab=${tab}#top`;
+}
+
+function MenuLinks({ className, onPick }: { className?: string; onPick?: () => void }) {
+  return (
+    <>
+      {items.map((it) =>
+        "href" in it ? (
+          <a key={it.label} href={it.href} className={className} onClick={onPick}>
+            {it.label}
+          </a>
+        ) : (
+          <a
+            key={it.label}
+            href={`/?tab=${it.tab}#top`}
+            className={className}
+            onClick={(e) => {
+              e.preventDefault();
+              onPick?.();
+              goTab(it.tab);
+            }}
+          >
+            {it.label}
+            {it.soon && <span className="badge soon-badge">준비 중</span>}
+          </a>
+        ),
+      )}
+    </>
+  );
+}
+
+// 데스크톱 가로 메뉴
 export function SiteNav() {
   return (
     <nav aria-label="주요 메뉴">
-      {items.map((it) => (
-        <a
-          key={it.tab}
-          href="#top"
-          onClick={(e) => {
-            e.preventDefault();
-            openSearchTab(it.tab);
-          }}
-        >
-          {it.label}
-        </a>
-      ))}
-      <a href="#faq">자주 묻는 질문</a>
+      <MenuLinks />
     </nav>
+  );
+}
+
+// '최저가 찾기' 버튼: 첫 화면이면 검색창으로 올라가고, 다른 페이지면 첫 화면으로 간다
+export function FindCta({ className, onPick }: { className: string; onPick?: () => void }) {
+  return (
+    <a
+      href="/#top"
+      className={className}
+      onClick={(e) => {
+        onPick?.();
+        if (document.getElementById("top")) {
+          e.preventDefault();
+          document.getElementById("top")?.scrollIntoView({ behavior: "smooth" });
+        }
+      }}
+    >
+      최저가 찾기
+    </a>
   );
 }
 
@@ -55,10 +92,7 @@ export function MobileMenu() {
     };
   }, [open]);
 
-  const go = (tab: TabId) => {
-    setOpen(false);
-    openSearchTab(tab);
-  };
+  const close = () => setOpen(false);
 
   return (
     <div className="mnav" ref={root}>
@@ -76,15 +110,8 @@ export function MobileMenu() {
       </button>
       {open && (
         <nav id="mobile-menu" className="mnav-panel" aria-label="모바일 메뉴">
-            {mobileItems.map((it) => (
-              <button key={it.tab} type="button" className="mnav-item" onClick={() => go(it.tab)}>
-                {it.label}
-                {it.soon && <span className="badge soon-badge">준비 중</span>}
-              </button>
-            ))}
-            <button type="button" className="mnav-cta" onClick={() => go("stay")}>
-              최저가 찾기
-            </button>
+          <MenuLinks className="mnav-item" onPick={close} />
+          <FindCta className="mnav-cta" onPick={close} />
         </nav>
       )}
     </div>

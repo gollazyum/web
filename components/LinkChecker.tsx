@@ -50,6 +50,9 @@ export function LinkChecker() {
   const samples = sampleLinks();
 
   useEffect(() => {
+    // 다른 페이지의 메뉴에서 /?tab=flight 처럼 들어오면 그 탭을 연다
+    const fromUrl = new URLSearchParams(window.location.search).get("tab");
+    if (tabs.some((t) => t.id === fromUrl)) setTab(fromUrl as TabId);
     const onTab = (e: Event) => setTab((e as CustomEvent<TabId>).detail);
     window.addEventListener(TAB_EVENT, onTab);
     return () => window.removeEventListener(TAB_EVENT, onTab);

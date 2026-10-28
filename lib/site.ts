@@ -6,7 +6,7 @@ export const site = {
   tagline: "가성비를 같이 골라 주는 호텔·항공권 가격 비교",
   description:
     "호텔과 항공권 가격을 여러 예약 사이트에서 실시간으로 비교하고, AI 도우미 로보티와 함께 가성비 좋은 숙소와 항공편을 골라 보세요. 세금·수수료를 포함한 총액으로 비교해요.",
-  instagramUrl: "", // [인스타 주소 입력] 예: "https://www.instagram.com/lowboti". 비어 있으면 푸터에 글자만 보인다
+  instagramUrl: "https://www.instagram.com/lowboti/", // 인스타그램 주소는 여기서만 바꾼다
   contactEmail: "hello@lowboti.com",
   notifyUrl: "", // 오픈 알림 신청 링크. 예: 카카오톡 채널, 구글 폼 주소
   // 첫 화면 안내 문구의 "숨은 예약 경로 N곳". 숫자는 여기서만 바꾼다
