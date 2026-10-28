@@ -50,6 +50,19 @@ export function roboSummary(h: HotelOption, all: HotelOption[], nights: number, 
   return `${lead}${b ? `${and(a)}, ${b}` : a}.`;
 }
 
+// 시트 위 '로보티 요약': 이 호텔의 후기·등급과 지금 불러온 사이트별 최저가로 만든다.
+// 사이트 가격이 없으면 목록 기준 요약(fallback)을 쓴다
+function sheetSummary(h: HotelOption, sources: HotelSource[], fallback: string): string {
+  const best = lowestCost(sources);
+  const site = best ? sources.find((s) => best.cost(s) === best.value) : null;
+  const price = site?.perNight ?? null;
+  if (!site || price === null) return fallback;
+  const kind = h.stars ? `${h.stars}성급 숙소` : "숙소";
+  const head =
+    h.rating !== null && h.reviews ? `후기 ${h.reviews.toLocaleString("ko-KR")}개(${h.rating.toFixed(1)}점)로 검증된 ${kind}예요! ` : h.stars ? `${kind}예요! ` : "";
+  return `${head}현재 ${site.name}에서 1박 평균 ${won(price)}으로 가장 저렴해요.`;
+}
+
 // "저렴해요" → "저렴하고"처럼 두 문장을 한 줄로 잇는다
 function and(s: string): string {
   return s.replace(/이에요$/, "이고").replace(/해요$/, "하고").replace(/아요$/, "고").replace(/어요$/, "고");
@@ -123,7 +136,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
           )}
 
           <p className="ps-robo">
-            <span aria-hidden="true">🤖</span> <b>로보티 요약</b> {summary}
+            <span aria-hidden="true">🤖</span> <b>로보티 요약:</b> {sheetSummary(hotel, sources, summary)}
           </p>
 
           <h3>
