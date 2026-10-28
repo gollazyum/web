@@ -404,7 +404,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           </div>
         </div>
         <p className="results-hint">
-          큰 숫자는 <b>{nights}박 총액</b>(세금·수수료 포함)이에요. 카드를 누르면 사이트별 가격이 나와요.
+          큰 숫자는 <b>{nights}박 총액</b>이에요 · 카드를 누르면 사이트별 가격
         </p>
 
         {shown.length ? (

@@ -614,9 +614,12 @@ html.sheet-lock body {
   }
   .results-hint {
     display: block;
-    margin: 10px 0;
+    margin: 8px 0;
     font-size: 12px;
     color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .results-hint b {
     color: var(--ink);
