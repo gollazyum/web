@@ -11,7 +11,7 @@ import { ScanProgress } from "./ScanProgress";
 import { SortMenu } from "./SortMenu";
 import { errorCode } from "@/lib/apiError";
 import { daysBetween, shortLabel, today } from "@/lib/dates";
-import { agodaSearchUrl, bookingLink, firstSites, hotelsPath, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
+import { agodaSearchUrl, bookingLink, firstSites, isAgoda, hotelsPath, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
 import { isPhone, useSheet } from "@/lib/useSheet";
 
@@ -630,7 +630,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
   const sources = prices?.kind === "ok" ? prices.sources : hotel.sources;
   const lowest = lowestCost(sources);
   const pick = roboPick(sources, hotel.token);
-  const why = pick ? roboReason(sources, hotel.deal, hotel.token) : "";
+  const why = pick ? roboReason(sources, pick, hotel.deal, hotel.token) : "";
   const [allSites, setAllSites] = useState(false);
   const first = firstSites(sources, pick);
   const hidden = sources.length - first.size;
@@ -762,6 +762,12 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
             <button type="button" className="more-sites" onClick={() => setAllSites(true)}>
               외 {hidden}개 사이트 가격 더 보기 ∨
             </button>
+          )}
+          {/* 가격이 한 곳만 나오면 아고다에서 이 도시 숙소를 더 볼 수 있게 */}
+          {sources.length === 1 && !isAgoda(sources[0].name) && (
+            <a className="more-sites" href={agodaSearchUrl(query.q, query)} target="_blank" rel="noopener noreferrer sponsored">
+              아고다에서 더 많은 숙소 보러가기 ↗
+            </a>
           )}
           {prices?.kind === "ok" && !sources.length && <p className="flight-note">이 호텔은 지금 예약 사이트 가격을 찾지 못했어요.</p>}
           {prices?.kind === "error" && <p className="flight-note">{prices.message}</p>}

@@ -2639,7 +2639,10 @@ a {
 }
 /* 예약 사이트가 5곳을 넘으면 나머지를 접어 두는 버튼 */
 .more-sites {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
   width: 100%;
   min-height: 44px;
   margin-top: 6px;
