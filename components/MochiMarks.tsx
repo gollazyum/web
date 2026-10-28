@@ -48,10 +48,10 @@ export function MochiStars({ count, size = 15 }: { count: number; size?: number 
 
 // 후기 점수 등급과 모찌 색 (Google 5점 만점)
 export function ratingTier(r: number): { word: string; color: string } {
-  // 색은 두 가지만 써서 눈이 흩어지지 않게: 4점 이상 에메랄드, 그 아래 슬레이트(오렌지는 최저가 전용)
+  // 4점 이상 에메랄드, 3.5점대 코랄, 3.5점 미만은 차분한 슬레이트
   if (r >= 4.5) return { word: "최고예요", color: "#10B981" };
   if (r >= 4) return { word: "매우 좋아요", color: "#10B981" };
-  if (r >= 3.5) return { word: "좋아요", color: "#64748B" };
+  if (r >= 3.5) return { word: "좋아요", color: "#F97316" };
   return { word: "괜찮아요", color: "#64748B" };
 }
 
