@@ -50,7 +50,7 @@ export function ResultsShell({ search, summary, children }: Props) {
 }
 
 // 결과를 못 보여 줄 때: 시무룩한 로보티와 안내, 다른 곳으로 가는 버튼
-export function ResultsMessage({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+export function ResultsMessage({ title, children, action }: { title?: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="results-message lb-st-sad">
       <div className="result-bot" aria-hidden="true">
@@ -58,6 +58,7 @@ export function ResultsMessage({ children, action }: { children: React.ReactNode
           <LowbotiBot fx={false} />
         </div>
       </div>
+      {title && <h1>{title}</h1>}
       <p>{children}</p>
       {action}
     </div>

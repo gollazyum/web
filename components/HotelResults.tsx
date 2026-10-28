@@ -57,7 +57,10 @@ export function HotelResultsView({ query }: { query: HotelQuery | null }) {
       summary={query && { title: query.q, sub: `${shortLabel(query.checkIn)} ~ ${shortLabel(query.checkOut)} · 성인 ${query.adults}명` }}
     >
       {!query ? (
-        <ResultsMessage>찾을 도시나 호텔, 날짜를 위에서 넣고 다시 검색해 주세요.</ResultsMessage>
+        <ResultsMessage title="호텔 가격 비교">
+          도시나 호텔 이름과 날짜를 위에서 넣어 주세요. 로보티가 아고다·트립닷컴·부킹닷컴 같은 예약 사이트와 호텔 공식 사이트의 실시간 가격을
+          모아 세금 포함 총액으로 비교해 드려요. 고민되면 오른쪽의 로보티에게 예산이나 원하는 조건을 물어보세요.
+        </ResultsMessage>
       ) : !revealed ? (
         <div className="results-loading">
           <ScanProgress
@@ -73,6 +76,11 @@ export function HotelResultsView({ query }: { query: HotelQuery | null }) {
               { text: "도시·날짜·인원 조건 읽는 중...", at: 0 },
               { text: "예약 사이트별 실시간 호텔 가격 모으는 중...", at: 0.2 },
               { text: "호텔마다 가격 정리하는 중...", at: 0.75 },
+            ]}
+            waitLines={[
+              "🔍 예약 사이트마다 가격을 하나씩 확인하고 있어요",
+              "🏨 같은 방이라도 사이트마다 값이 달라서 꼼꼼히 보는 중이에요",
+              "💸 세금 포함 총액으로 맞춰 보고 있어요. 거의 다 왔어요!",
             ]}
           />
         </div>
@@ -336,7 +344,7 @@ function bigger(src: string): string {
   return /googleusercontent\.com/.test(src) ? src.replace(/=w\d+-h\d+[^/]*$/, "=w640-h480-k-no") : src;
 }
 
-function Gallery({ images }: { images: string[] }) {
+function Gallery({ images, name }: { images: string[]; name: string }) {
   const [i, setI] = useState(0);
   const [failed, setFailed] = useState<Set<number>>(new Set());
   if (!images.length) return <div className="hcard-photo empty" />;
@@ -348,7 +356,7 @@ function Gallery({ images }: { images: string[] }) {
   return (
     <div className="hcard-photo">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" loading="lazy" onError={() => !failed.has(i) && setFailed(new Set(failed).add(i))} />
+      <img src={src} alt={`${name} 사진 ${i + 1}`} loading="lazy" onError={() => !failed.has(i) && setFailed(new Set(failed).add(i))} />
       {images.length > 1 && (
         <>
           <button type="button" className="photo-nav prev" onClick={go(-1)} aria-label="이전 사진">
@@ -391,7 +399,7 @@ function HotelCard({ hotel, query, nights, flash }: { hotel: HotelOption; query:
   const tier = hotel.rating ? ratingTier(hotel.rating) : null;
   return (
     <li id={`hotel-${hotel.token}`} className={`hcard${open ? " open" : ""}${flash ? " flash" : ""}`}>
-      <Gallery images={hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : []} />
+      <Gallery name={hotel.name} images={hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : []} />
       <div className="hcard-body">
         <h3 title={hotel.name}>{hotel.name}</h3>
         <p className="hcard-meta">
@@ -450,7 +458,7 @@ function HotelCard({ hotel, query, nights, flash }: { hotel: HotelOption; query:
                 return (
                   <li key={s.name} className={isAgoda(s.name) ? "pick" : undefined}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {s.logo ? <img src={s.logo} alt="" /> : <i />}
+                    {s.logo ? <img src={s.logo} alt={s.name} /> : <i />}
                     <span>
                       {s.name}
                       {s.official && <em> 공식</em>}

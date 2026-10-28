@@ -95,7 +95,10 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
       }
     >
       {!query ? (
-        <ResultsMessage>출발지·도착지와 날짜를 위에서 넣고 다시 검색해 주세요.</ResultsMessage>
+        <ResultsMessage title="항공권 가격 비교">
+          출발지·도착지와 날짜를 위에서 골라 주세요. 로보티가 Google 항공편의 실시간 운임을 싼 순서로 보여 드리고, 직항·경유와 시간대로
+          걸러 볼 수 있어요. 마음에 드는 항공편은 트립닷컴에서 바로 예약할 수 있어요.
+        </ResultsMessage>
       ) : !revealed ? (
         <div className="results-loading">
           <ScanProgress
@@ -111,6 +114,12 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
               { text: "출발지·도착지·날짜 조건 읽는 중...", at: 0 },
               { text: "항공사와 예약 사이트 실시간 가격 모으는 중...", at: 0.2 },
               { text: "싼 순서로 정리하는 중...", at: 0.75 },
+            ]}
+            waitLines={[
+              "🔍 항공사마다 운임을 하나씩 확인하고 있어요. 10초쯤 걸려요",
+              "✈️ 직항이랑 경유편 가격을 나란히 놓고 보는 중이에요",
+              "💸 세금·유류할증료까지 포함한 총액으로 맞춰 보고 있어요",
+              "🧳 거의 다 왔어요! 싼 순서로 줄 세우는 중이에요",
             ]}
           />
         </div>
@@ -345,7 +354,7 @@ function FlightCard({ option: o, link, roundTrip }: { option: FlightOption; link
     <li className={`fcard${open ? " open" : ""}`}>
       <div className="fcard-top">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {o.logo ? <img src={o.logo} alt="" className="fcard-logo" /> : <span className="fcard-logo" />}
+        {o.logo ? <img src={o.logo} alt={o.airlines.join(", ")} className="fcard-logo" /> : <span className="fcard-logo" />}
         <div className="fcard-route">
           <div className="fcard-end">
             <strong>{hhmm(o.departTime)}</strong>

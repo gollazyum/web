@@ -3,12 +3,20 @@ export const site = {
   name: "Lowboti",
   nameKo: "로보티",
   url: "https://www.lowboti.com",
-  tagline: "아고다 37개 경로 최저가 찾기",
+  tagline: "가성비를 같이 골라 주는 호텔·항공권 가격 비교",
   description:
-    "혹시 나만 비싸게 예약하고 있나요? 아고다 호텔 링크만 붙여넣으면 구글지도·카드사·항공사 등 37개 숨은 접속 경로로 한 번에 바꿔 드려요. 경로마다 세금·봉사료 포함 총액을 비교해 보세요.",
+    "호텔과 항공권 가격을 여러 예약 사이트에서 실시간으로 비교하고, AI 도우미 로보티와 함께 가성비 좋은 숙소와 항공편을 골라 보세요. 세금·수수료를 포함한 총액으로 비교해요.",
   instagramUrl: "", // 예: "https://www.instagram.com/lowboti"
   contactEmail: "", // 예: "hello@lowboti.com"
   notifyUrl: "", // 오픈 알림 신청 링크. 예: 카카오톡 채널, 구글 폼 주소
+};
+
+// 하위 페이지가 openGraph를 바꾸면 통째로 덮어써지므로 공통 항목을 같이 넣는다
+export const ogBase = {
+  siteName: `${site.nameKo} (${site.name})`,
+  images: [{ url: "/images/og-image.png", width: 1200, height: 630 }],
+  locale: "ko_KR",
+  type: "website" as const,
 };
 
 // URL로 어느 예약 사이트의 호텔 링크인지 판별한다

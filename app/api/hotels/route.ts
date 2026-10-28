@@ -24,6 +24,84 @@ function parseQuery(body: unknown) {
   return { q: q.trim(), checkIn, checkOut, adults, token: token as string | undefined, page: page as string | undefined };
 }
 
+// hl=ko로 불러도 Google이 편의시설을 영어로 줄 때가 있어 자주 나오는 것은 한글로 바꾼다
+const AMENITY_KO: Record<string, string> = {
+  "free wi-fi": "무료 와이파이",
+  "wi-fi": "와이파이",
+  "paid wi-fi": "와이파이(유료)",
+  "free breakfast": "무료 조식",
+  breakfast: "조식",
+  "free parking": "무료 주차",
+  parking: "주차",
+  "paid parking": "주차(유료)",
+  "pool": "수영장",
+  "outdoor pool": "야외 수영장",
+  "indoor pool": "실내 수영장",
+  "hot tub": "온수 욕조",
+  spa: "스파",
+  "fitness centre": "피트니스 센터",
+  "fitness center": "피트니스 센터",
+  restaurant: "레스토랑",
+  bar: "바",
+  "room service": "룸서비스",
+  "air conditioning": "에어컨",
+  "air-conditioned": "에어컨",
+  "airport shuttle": "공항 셔틀",
+  "free airport shuttle": "무료 공항 셔틀",
+  "full-service laundry": "세탁 서비스",
+  "laundry service": "세탁 서비스",
+  kitchen: "주방",
+  "kitchen in some rooms": "일부 객실 주방",
+  kitchenette: "간이 주방",
+  accessible: "장애인 편의시설",
+  "wheelchair accessible": "휠체어 이용 가능",
+  "pet-friendly": "반려동물 동반 가능",
+  "pets allowed": "반려동물 동반 가능",
+  "kid-friendly": "어린이 친화",
+  "child-friendly": "어린이 친화",
+  "business centre": "비즈니스 센터",
+  "business center": "비즈니스 센터",
+  "smoke-free property": "전 구역 금연",
+  "non-smoking": "금연",
+  "beach access": "해변 이용",
+  "public bath": "대욕장",
+  "hot spring": "온천",
+  "hot springs": "온천",
+  "onsen": "온천",
+  sauna: "사우나",
+  elevator: "엘리베이터",
+  "24-hour front desk": "24시간 프런트",
+  "front desk": "프런트",
+  "luggage storage": "짐 보관",
+  "airport transfer": "공항 이동 서비스",
+  "electric car charging station": "전기차 충전소",
+  "ev charger": "전기차 충전소",
+  "washer and dryer": "세탁기·건조기",
+  washer: "세탁기",
+  dryer: "건조기",
+  microwave: "전자레인지",
+  refrigerator: "냉장고",
+  balcony: "발코니",
+  "all-inclusive available": "올인클루시브 가능",
+  "golf": "골프",
+  "tennis": "테니스",
+  "ski-in/ski-out": "스키 인·아웃",
+  "crib": "아기 침대",
+  "cribs": "아기 침대",
+  heating: "난방",
+  "cable tv": "케이블 TV",
+  tv: "TV",
+};
+
+// "Breakfast ($)"처럼 유료 표시가 붙은 것도 바꾸고, 모르는 것은 그대로 둔다
+function amenityKo(name: string): string {
+  const paid = /\s*\(\$\)$/.test(name);
+  const base = name.replace(/\s*\(\$\)$/, "").trim();
+  const ko = AMENITY_KO[base.toLowerCase()];
+  if (!ko) return name;
+  return paid && !ko.includes("유료") ? `${ko}(유료)` : ko;
+}
+
 type Rate = { extracted_lowest?: number };
 type SerpPrice = { source?: string; logo?: string; link?: string; official?: boolean; rate_per_night?: Rate; total_rate?: Rate };
 type SerpProperty = {
@@ -78,7 +156,7 @@ function toOption(p: SerpProperty): HotelOption | null {
     image: images[0] ?? "",
     images,
     kind: p.type === "vacation rental" ? "휴가용 숙소" : p.type && p.type !== "hotel" ? p.type : "호텔",
-    amenities: (p.amenities ?? []).slice(0, MAX_AMENITIES),
+    amenities: [...new Set((p.amenities ?? []).map(amenityKo))].slice(0, MAX_AMENITIES),
     deal: [p.deal, p.deal_description].filter(Boolean).join(" · "),
     gps: typeof gps?.latitude === "number" && typeof gps?.longitude === "number" ? [gps.latitude, gps.longitude] : null,
     stars: p.extracted_hotel_class ?? null,
