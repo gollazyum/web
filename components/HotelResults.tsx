@@ -113,7 +113,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
   const [more, setMore] = useState<"idle" | "loading" | "error">("idle");
 
   // 예산은 카드의 큰 숫자와 같은 '총액' 기준이 기본. '1박'으로 바꿔 볼 수 있다
-  const [unit, setUnit] = useState<"total" | "night">("total");
+  const [unit, setUnit] = useState<"total" | "night">("night");
   const cost = (o: HotelOption) => (unit === "total" ? totalOf(o, nights) : o.perNight) ?? 0;
   const prices = data.options.map(cost);
   const floor = Math.floor(Math.min(...prices) / 10000) * 10000;
@@ -319,8 +319,8 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
               <div className="unit-toggle" role="group" aria-label="예산 기준">
                 {(
                   [
-                    ["total", `총액 (${nights}박)`],
                     ["night", "1박"],
+                    ["total", `총액 (${nights}박)`],
                   ] as const
                 ).map(([id, label]) => (
                   <button
@@ -410,7 +410,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           </div>
         </div>
         <p className="results-hint">
-          큰 숫자는 <b>{nights}박 총액</b>이에요 · <span className="m-only">카드를 누르면</span>
+          큰 숫자는 <b>1박 평균</b>(세금 포함)이에요 · <span className="m-only">카드를 누르면</span>
           <span className="pc-only">&apos;선택&apos;을 누르면</span> 사이트별 가격
         </p>
 
@@ -656,22 +656,25 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
         )}
       </div>
       <div className="hcard-price">
-        {hotel.perNight !== null && <span>1박 평균 {won(hotel.perNight)}</span>}
-        {total !== null && (
-          <strong>
-            <i className="pc-only">총 </i>
-            {won(total)}
-          </strong>
-        )}
-        <em>
-          {hotel.total !== null ? (
+        {/* 큰 숫자는 1박 평균(세금 포함), 총액은 아래 작은 줄. 1박 가격이 없으면 총액을 크게 */}
+        {hotel.perNight !== null ? (
+          <>
+            <em>1박 평균 · 세금 포함</em>
+            <strong>{won(hotel.perNight)}</strong>
+            {nights > 1 && total !== null && (
+              <span>
+                {nights}박 {hotel.total !== null ? "총" : "약"} {won(total)}
+              </span>
+            )}
+          </>
+        ) : (
+          total !== null && (
             <>
-              <i className="m-only">총액 · </i>세금·수수료 포함
+              <em>{nights}박 총액 · 세금 포함</em>
+              <strong>{won(total)}</strong>
             </>
-          ) : (
-            `${nights}박 기준 예상`
-          )}
-        </em>
+          )
+        )}
         <button type="button" onClick={select} aria-expanded={open} aria-haspopup="dialog" aria-label={`${hotel.name} 예약 사이트별 가격 보기`}>
           {open ? "접기" : "선택"}
         </button>
