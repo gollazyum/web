@@ -7,7 +7,7 @@ export const site = {
   description:
     "호텔과 항공권 가격을 여러 예약 사이트에서 실시간으로 비교하고, AI 도우미 로보티와 함께 가성비 좋은 숙소와 항공편을 골라 보세요. 세금·수수료를 포함한 총액으로 비교해요.",
   instagramUrl: "", // 예: "https://www.instagram.com/lowboti"
-  contactEmail: "", // 예: "hello@lowboti.com"
+  contactEmail: "hello@lowboti.com",
   notifyUrl: "", // 오픈 알림 신청 링크. 예: 카카오톡 채널, 구글 폼 주소
 };
 
