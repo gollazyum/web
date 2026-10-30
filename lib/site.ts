@@ -20,9 +20,12 @@ export const site = {
 };
 
 // 하위 페이지가 openGraph를 바꾸면 통째로 덮어써지므로 공통 항목을 같이 넣는다
+// 이미지를 바꾸면 v 숫자를 올린다. 카카오톡 등이 옛 미리보기를 캐시해 두기 때문
+export const ogImage = "/images/og-image.png?v=2";
+
 export const ogBase = {
   siteName: site.name,
-  images: [{ url: "/images/og-image.png", width: 1200, height: 630 }],
+  images: [{ url: ogImage, width: 1200, height: 630 }],
   locale: "ko_KR",
   type: "website" as const,
 };

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { site } from "@/lib/site";
+import { ogImage, site } from "@/lib/site";
 // 한글 전체가 든 2MB 폰트 대신, 화면에 쓰인 글자 묶음만 받아 오는 분할 폰트
 import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     description: site.description,
     url: site.url,
     siteName: site.name,
-    images: [{ url: "/images/og-image.png", width: 1200, height: 630 }],
+    images: [{ url: ogImage, width: 1200, height: 630 }],
     locale: "ko_KR",
     type: "website",
   },
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${site.name} | ${site.tagline}`,
     description: site.description,
-    images: ["/images/og-image.png"],
+    images: [ogImage],
   },
   verification: {
     google: "uHjh6W2iEsSIUKIJCFAlsYq3pryOirOYMdTrd7VHE4Q",
