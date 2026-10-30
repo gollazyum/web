@@ -2,7 +2,7 @@
 export const site = {
   name: "Gollazyum",
   nameKo: "Gollazyum",
-  url: "https://www.lowboti.com",
+  url: "https://www.gollazyum.com",
   tagline: "AI Travel & Lifestyle Platform",
   description:
     "글로벌 트래블 데이터와 AI 라이프스타일 솔루션을 하나로 연결하는 차세대 디지털 플랫폼. 숙소와 항공편의 실시간 데이터를 세금·수수료를 포함한 총액으로 한 화면에서 탐색하세요.",
@@ -20,9 +20,12 @@ export const site = {
 };
 
 // 하위 페이지가 openGraph를 바꾸면 통째로 덮어써지므로 공통 항목을 같이 넣는다
+// 이미지를 바꾸면 v 숫자를 올린다. 카카오톡 등이 옛 미리보기를 캐시해 두기 때문
+export const ogImage = "/images/og-image.png?v=2";
+
 export const ogBase = {
   siteName: site.name,
-  images: [{ url: "/images/og-image.png", width: 1200, height: 630 }],
+  images: [{ url: ogImage, width: 1200, height: 630 }],
   locale: "ko_KR",
   type: "website" as const,
 };

@@ -1,4 +1,4 @@
-# Lowboti 웹사이트 (lowboti.com)
+# Gollazyum 웹사이트 (gollazyum.com)
 
 로보티: 호텔·항공권 가격을 예약 사이트별로 실시간 비교하고, AI 도우미 로보티가 가성비 좋은 선택을 같이 골라 주는 서비스입니다.
 
@@ -30,4 +30,4 @@ npm run build   # 배포용 빌드
 ## 배포
 
 Vercel에 이 저장소를 연결하면 main 브랜치가 자동 배포됩니다.
-`lowboti.kr` 접속은 `next.config.ts`에서 `www.lowboti.com`으로 영구 리다이렉트됩니다.
+대표 주소는 `https://www.gollazyum.com`입니다. 옛 주소(`lowboti.com`, `lowboti.kr`)와 www 없는 `gollazyum.com` 접속은 `next.config.ts`에서 영구(308) 리다이렉트됩니다.
