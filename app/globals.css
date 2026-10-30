@@ -4932,3 +4932,61 @@ body:has(.compare-bar) .hcards {
     justify-content: center;
   }
 }
+
+/* 로고 글씨 (Gollazyum) */
+.logo-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  line-height: 1;
+}
+.logo-lockup img {
+  height: 100%;
+  width: auto;
+}
+.logo-word {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.logo-lockup.white .logo-word {
+  color: var(--white);
+}
+
+/* 히어로 제목 아래 한 줄 설명 */
+.hero-sub {
+  margin: 14px auto 0;
+  max-width: 640px;
+  font-size: clamp(15px, 1.6vw, 18px);
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--muted, #475569);
+}
+/* 메뉴 영어 이름 옆 한글 설명 */
+.nav-ko {
+  margin-left: 3px;
+  font-size: 0.86em;
+  font-weight: 500;
+  opacity: 0.7;
+}
+/* 데스크톱 메뉴: 영어 이름 아래 한글 설명을 작게 두 줄로 */
+.nav > nav {
+  gap: 26px;
+}
+.nav > nav a {
+  position: relative;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.15;
+}
+.nav > nav .nav-ko {
+  margin-left: 0;
+  font-size: 11px;
+}
+.nav > nav .soon-badge {
+  position: absolute;
+  top: -11px;
+  right: -22px;
+  padding: 1px 5px;
+  font-size: 9.5px;
+}

@@ -29,7 +29,7 @@ export function ResumeBanner() {
         <strong>
           🤖{" "}
           {compare.length
-            ? `지난번에 비교하던 ${city} 숙소 ${compare.length}곳이 남아 있어요`
+            ? `지난번에 담아 둔 ${city} 숙소 ${compare.length}곳이 남아 있어요`
             : `지난번에 찾던 ${city} 숙소, 이어서 볼까요?`}
         </strong>
         {compare.length > 0 && (

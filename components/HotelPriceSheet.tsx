@@ -44,7 +44,7 @@ export function roboSummary(h: HotelOption, all: HotelOption[], nights: number, 
   const pct = h.deal.match(/(\d+)\s*%/)?.[1];
   if (pct) facts.push(`평소보다 ${pct}% 저렴하게 나온 가격이에요`);
   if (h.amenities.some((a) => /조식/.test(a))) facts.push("조식 관련 표시가 있어요");
-  const lead = picked ? "로보티가 추천한 곳이에요. " : "";
+  const lead = picked ? "Gollazyum AI 인사이트가 붙은 곳이에요. " : "";
   if (!facts.length) return `${lead}${h.stars ? `${h.stars}성급 ` : ""}${h.kind}이에요. 사이트마다 총액이 달라서 아래에서 가장 싼 곳을 확인해 보세요.`;
   const [a, b] = facts;
   return `${lead}${b ? `${and(a)}, ${b}` : a}.`;
@@ -136,7 +136,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
           )}
 
           <p className="ps-robo">
-            <span aria-hidden="true">🤖</span> <b>로보티 요약:</b> {sheetSummary(hotel, sources, summary)}
+            <span aria-hidden="true">🤖</span> <b>Gollazyum AI 요약:</b> {sheetSummary(hotel, sources, summary)}
           </p>
 
           <h3>
@@ -155,8 +155,8 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
                     <span className="ps-site">
                       {s.name}
                       {s.official && <em> 공식</em>}
-                      {s.name === pick && <em className="hotel-pick"> 로보티 추천</em>}
-                      {isBest && <em className="best-badge">최저가</em>}
+                      {s.name === pick && <em className="hotel-pick"> AI Insight</em>}
+                      {isBest && <em className="best-badge">Smart Deal</em>}
                       {s.name === pick && <small className="pick-why">{why}</small>}
                     </span>
                     <span className="ps-cost">
@@ -196,7 +196,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
             </ul>
           )}
           <p className="flight-note">
-            Google 호텔 검색 기준, 검색 시점 가격이에요. 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요. 아고다 링크는 제휴 링크라 예약 시 로보티가
+            Google 호텔 검색 기준, 검색 시점 가격이에요. 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요. 아고다 링크는 제휴 링크라 예약 시 Gollazyum이
             수수료를 받을 수 있어요.
           </p>
         </div>

@@ -7,7 +7,7 @@ const EN_KO: Record<string, string> = {
   deal: "할인",
   "great price": "좋은 가격",
   "low price": "저렴한 가격",
-  "best price": "최저가",
+  "best price": "특가",
   // 숙소 종류
   hotel: "호텔",
   "vacation rental": "휴가용 숙소",

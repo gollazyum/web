@@ -10,7 +10,7 @@ export function RememberPrefsModal({ onClose }: { onClose: () => void }) {
     <div className="auth-modal" role="dialog" aria-modal="true" aria-label="이 취향 기억할까요?">
       <div className="auth-card">
         <strong>이 취향 기억할까요?</strong>
-        <p>로그인하면 다른 기기에서도 비교함과 선호를 이어서 볼 수 있어요.</p>
+        <p>로그인하면 다른 기기에서도 보관함과 선호를 이어서 볼 수 있어요.</p>
         {/* TODO(Phase 2): Supabase Auth signInWithOAuth({ provider: "kakao" | "google" }) */}
         <button type="button" className="auth-kakao" disabled>
           카카오로 계속하기

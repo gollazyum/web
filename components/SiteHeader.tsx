@@ -8,7 +8,7 @@ export function SiteHeader({ compact = false }: { compact?: boolean }) {
   return (
     <header className="nav-bar">
       <div className={`nav wrap home-nav${compact ? " results-nav" : ""}`}>
-        <Link href="/" className="brand" aria-label="로보티 (Lowboti) 홈">
+        <Link href="/" className="brand" aria-label="Gollazyum 홈">
           <Logo height={compact ? 34 : 40} />
           <span className="brand-badge" aria-hidden="true">
             AI

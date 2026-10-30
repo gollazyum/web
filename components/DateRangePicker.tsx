@@ -119,7 +119,7 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
       ? prompts[0]
       : end
         ? `${shortLabel(start)} → ${shortLabel(end)} · ${unit(span)}`
-        : `${shortLabel(start)} 선택됨 · ${prompts[1]}`;
+        : `${shortLabel(start)} 입력됨 · ${prompts[1]}`;
 
   function month(m: Date) {
     const y = m.getFullYear();
@@ -187,7 +187,7 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
     <div className="date-range" ref={wrap}>
       <button type="button" className={`field date-field${open && phase === "start" ? " active" : ""}`} onClick={() => openAt("start")}>
         <span>{labels[0]}</span>
-        <b className={start ? undefined : "empty"}>{start ? shortLabel(start) : "날짜 선택"}</b>
+        <b className={start ? undefined : "empty"}>{start ? shortLabel(start) : "날짜 입력"}</b>
       </button>
       <button type="button" className={`field date-field${open && phase === "end" ? " active" : ""}`} onClick={() => openAt("end")}>
         <span>
@@ -199,11 +199,11 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
 
       {open && sheet && <div className="sheet-dim dp-dim" aria-hidden="true" onClick={() => setOpen(false)} />}
       {open && (
-        <div ref={pop} className={`dp-pop${sheet ? " dp-sheet" : ""}`} role="dialog" aria-label="날짜 선택" onMouseLeave={() => setHover("")}>
+        <div ref={pop} className={`dp-pop${sheet ? " dp-sheet" : ""}`} role="dialog" aria-label="날짜 입력" onMouseLeave={() => setHover("")}>
           {sheet ? (
             <>
               <div className="dp-sheet-head">
-                <strong>{phase === "start" || !start ? labels[0] : labels[1]} 선택</strong>
+                <strong>{phase === "start" || !start ? labels[0] : labels[1]} 입력</strong>
                 <button type="button" className="filters-close" aria-label="달력 닫기" onClick={() => setOpen(false)}>
                   ✕
                 </button>
@@ -253,7 +253,7 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
                 </button>
               )}
               <button type="button" className="dp-done" onClick={() => setOpen(false)}>
-                {sheet && start && end ? `${dot(start)} – ${dot(end)} · ${unit(span)} 선택 완료` : "완료"}
+                {sheet && start && end ? `${dot(start)} – ${dot(end)} · ${unit(span)} 입력 완료` : "완료"}
               </button>
             </div>
           </div>

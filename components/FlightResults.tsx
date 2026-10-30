@@ -57,7 +57,7 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
 
   useEffect(() => {
     if (!query) return;
-    if (query.depart < today()) return setState({ kind: "error", message: "가는 날이 이미 지났어요. 위에서 날짜를 다시 골라 주세요." });
+    if (query.depart < today()) return setState({ kind: "error", message: "가는 날이 이미 지났어요. 위에서 날짜를 다시 입력해 주세요." });
     let cancelled = false;
     (async () => {
       try {
@@ -100,8 +100,8 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
       }
     >
       {!query ? (
-        <ResultsMessage title="항공권 가격 비교">
-          출발지·도착지와 날짜를 위에서 골라 주세요. 로보티가 Google 항공편의 실시간 운임을 싼 순서로 보여 드리고, 직항·경유와 시간대로
+        <ResultsMessage title="Flights 항공권 실시간 운임">
+          출발지·도착지와 날짜를 위에서 입력해 주세요. Gollazyum이 Google 항공편의 실시간 운임을 싼 순서로 보여 드리고, 직항·경유와 시간대로
           걸러 볼 수 있어요. 마음에 드는 항공편은 트립닷컴에서 바로 예약할 수 있어요.
         </ResultsMessage>
       ) : !revealed ? (
@@ -396,7 +396,7 @@ function FlightBoard({ data, query, request, link }: { data: FlightResults; quer
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/lowboti-mark.svg" alt="" />
-          <span className="fab-label">AI 추천</span>
+          <span className="fab-label">AI 인사이트</span>
         </button>
       )}
     </div>

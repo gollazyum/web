@@ -42,11 +42,11 @@ export function FlightSearch({ initial, compact }: Props) {
     e.preventDefault();
     const from = origin.code ?? codeFromText(origin.text);
     const dest = destination.code ?? codeFromText(destination.text);
-    if (!from) return setError("목록에서 출발지를 고르거나 공항 코드 세 글자(예: ICN)를 넣어 주세요.");
-    if (!dest) return setError("목록에서 도착지를 고르거나 공항 코드 세 글자(예: NRT)를 넣어 주세요.");
+    if (!from) return setError("목록에서 출발지를 누르거나 공항 코드 세 글자(예: ICN)를 넣어 주세요.");
+    if (!dest) return setError("목록에서 도착지를 누르거나 공항 코드 세 글자(예: NRT)를 넣어 주세요.");
     if (dest === from) return setError("출발지와 도착지가 같아요.");
-    if (!depart) return setError("가는 날을 골라 주세요.");
-    if (ret && ret < depart) return setError("오는 날은 가는 날 이후로 골라 주세요.");
+    if (!depart) return setError("가는 날을 입력해 주세요.");
+    if (ret && ret < depart) return setError("오는 날은 가는 날 이후로 입력해 주세요.");
     setError("");
     router.push(flightsPath({ from, to: dest, depart, ret, adults }));
   }
@@ -77,7 +77,7 @@ export function FlightSearch({ initial, compact }: Props) {
             setRet(b);
           }}
           labels={["가는 날", "오는 날"]}
-          prompts={["가는 날을 골라 주세요", "오는 날을 골라 주세요"]}
+          prompts={["가는 날을 입력해 주세요", "오는 날을 입력해 주세요"]}
           endPlaceholder="비우면 편도"
           minGap={0}
           unit={(n) => (n === 0 ? "당일 왕복" : `${n}박 ${n + 1}일`)}

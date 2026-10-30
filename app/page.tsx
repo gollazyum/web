@@ -11,22 +11,22 @@ import { site } from "@/lib/site";
 
 
 const steps = [
-  { title: "어디로, 언제", body: "도시나 호텔 이름, 또는 출발지·도착지와 날짜만 골라요." },
-  { title: "한눈에 비교", body: "로보티가 여러 예약 사이트의 실시간 가격을 훑어 총액 기준으로 나란히 보여 드려요." },
-  { title: "골라서 예약", body: "고민되면 로보티에게 물어보고, 마음에 드는 곳을 눌러 그 예약 사이트에서 결제해요." },
+  { title: "탐색 (Explore)", body: "도시나 호텔 이름, 또는 출발지·도착지와 날짜를 입력해요." },
+  { title: "스마트 데이터 (Smart Data)", body: "Gollazyum AI가 여러 예약 사이트의 실시간 데이터를 모아 총액 기준으로 한 화면에 보여 드려요." },
+  { title: "연결 (Connect)", body: "궁금한 건 Gollazyum AI에게 물어보고, 마음에 드는 곳을 눌러 그 예약 사이트에서 결제해요." },
 ];
 
 const faqs = [
   {
-    q: "Lowboti는 무료인가요?",
-    a: "네, 무료입니다. Lowboti를 통해 예약하시면 예약 사이트가 Lowboti에 소정의 수수료를 지급하며, 고객님이 내는 금액은 달라지지 않습니다.",
+    q: "Gollazyum은 무료인가요?",
+    a: "네, 무료입니다. Gollazyum을 통해 예약하시면 예약 사이트가 Gollazyum에 소정의 수수료를 지급하며, 고객님이 내는 금액은 달라지지 않습니다.",
   },
   {
     q: "예약과 결제는 어디서 하나요?",
-    a: "결제와 예약 확정, 취소는 모두 선택하신 예약 사이트에서 진행됩니다. Lowboti는 가장 낮은 가격의 사이트를 찾아 연결해 드립니다.",
+    a: "결제와 예약 확정, 취소는 모두 이동하신 예약 사이트에서 진행됩니다. Gollazyum은 실시간 데이터를 바탕으로 예약 사이트를 연결해 드립니다.",
   },
   {
-    q: "어떤 가격을 비교하나요?",
+    q: "어떤 데이터를 보여 주나요?",
     a: "호텔은 Google 호텔 검색에 나오는 예약 사이트별 가격을, 항공권은 Google 항공편 검색의 실시간 운임을 모아 보여 드립니다. 아고다 호텔 링크가 있다면 카드사·항공사 같은 아고다 할인 경로로 바꿔 보는 기능도 쓸 수 있어요.",
   },
   {
@@ -49,8 +49,7 @@ const jsonLd = {
       "@type": "WebSite",
       "@id": `${site.url}/#website`,
       url: site.url,
-      name: `${site.nameKo} (${site.name})`,
-      alternateName: [site.name, site.nameKo],
+      name: site.name,
       description: site.description,
       inLanguage: "ko-KR",
       publisher: { "@id": `${site.url}/#organization` },
@@ -59,7 +58,6 @@ const jsonLd = {
       "@type": "Organization",
       "@id": `${site.url}/#organization`,
       name: site.name,
-      alternateName: site.nameKo,
       url: site.url,
       logo: `${site.url}/brand/lowboti-mark.svg`,
       ...(site.contactEmail ? { email: site.contactEmail } : {}),
@@ -82,16 +80,17 @@ export default function Home() {
         <div className="hero-glow" aria-hidden="true" />
         <div className="hero-inner wrap">
           <span className="pill">
-            <span className="spark">✦</span> 나만의 AI 가성비 여행 파트너
+            <span className="spark">✦</span> AI Travel &amp; Lifestyle Platform
           </span>
           <h1>
-            <span className="nobr hero-line">여행 가격 비교,</span>{" "}
-            <span className="nobr hero-line grad-blue">AI 로보티에게 맡기세요.</span>
+            <span className="nobr hero-line">스마트한 여행과 일상의 시작,</span>{" "}
+            <span className="nobr hero-line grad-blue">Gollazyum</span>
           </h1>
+          <p className="hero-sub">글로벌 트래블 데이터와 AI 라이프스타일 솔루션을 하나로 연결하는 차세대 디지털 플랫폼</p>
           <LinkChecker />
           <ResumeBanner />
           <div className="compared">
-            <span className="compared-label">로보티가 비교하는 곳</span>
+            <span className="compared-label">연결된 데이터</span>
             <span className="compared-item">
               <strong className="wordmark">Google Hotels</strong>
               <em>예약 사이트별 호텔가</em>
@@ -121,9 +120,9 @@ export default function Home() {
         </section>
 
         <section id="features" className="section wrap">
-          <p className="eyebrow">로보티가 잘하는 것</p>
+          <p className="eyebrow">Gollazyum AI Solution</p>
           <h2>
-            가격 비교는 로보티에게,
+            데이터는 Gollazyum이,
             <br />
             여행 계획은 여유롭게.
           </h2>
@@ -134,7 +133,7 @@ export default function Home() {
                 <span className="badge">예시 화면</span>
               </div>
               <h3>한눈에 보는 분석 요약</h3>
-              <p>예약 사이트별 총액을 나란히 놓고, 어디가 얼마나 싼지 한눈에 볼 수 있어요.</p>
+              <p>예약 사이트별 총액을 한 화면에 모아, 가격 흐름을 한눈에 볼 수 있어요.</p>
               <AnalysisMock />
             </div>
             <div className="bento-card bento-stat">
@@ -158,26 +157,26 @@ export default function Home() {
               <p>찜해 둔 호텔이나 노선이 싸지면 알려 드리는 기능을 만들고 있어요. 아직은 신청이나 알림을 받을 수 없어요.</p>
             </div>
             <div className="bento-card">
-              <span className="badge lowest">최저가</span>
-              <h3>총액 기준 비교</h3>
-              <p>1박 표시가가 아니라 세금·수수료를 포함한 결제 금액으로 비교해요.</p>
+              <span className="badge lowest">Smart Data</span>
+              <h3>총액 기준 데이터</h3>
+              <p>1박 표시가가 아니라 세금·수수료를 포함한 결제 금액으로 보여 드려요.</p>
             </div>
             <div className="bento-card">
               <span className="badge ai">AI 도우미</span>
-              <h3>로보티에게 물어보기</h3>
-              <p>예산, 후기 점수, 조식처럼 중요한 걸 말하면 검색 결과 안에서 가성비 좋은 곳을 골라 드려요.</p>
+              <h3>Gollazyum AI에게 물어보기</h3>
+              <p>예산, 후기 점수, 조식처럼 중요한 걸 말하면 검색 결과 안에서 조건에 맞는 곳을 AI가 정리해 드려요.</p>
             </div>
             <div className="bento-card bento-wide">
               <span className="badge live">안전 결제</span>
               <h3>예약은 각 사이트에서</h3>
-              <p>결제와 취소는 선택한 예약 사이트에서 그대로 안전하게 진행돼요. 아고다 링크가 있다면 {routes.length}개 할인 경로로 바꿔 비교해 볼 수도 있어요.</p>
+              <p>결제와 취소는 연결된 예약 사이트에서 그대로 안전하게 진행돼요. 아고다 링크가 있다면 {routes.length}개 할인 경로도 함께 탐색할 수 있어요.</p>
             </div>
           </div>
         </section>
 
         <section id="family" className="section wrap">
-          <p className="eyebrow">로보티 패밀리</p>
-          <h2>숙소, 항공권, 쇼핑까지 최저가는 로보티가 찾아요</h2>
+          <p className="eyebrow">Gollazyum Family</p>
+          <h2>숙소, 항공권, 라이프스타일까지 Gollazyum이 연결해요</h2>
           <FamilyCards />
         </section>
 
@@ -197,12 +196,12 @@ export default function Home() {
         <section className="wrap">
           <div className="cta">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/family/main-white.svg" alt="로보티" />
+            <img src="/brand/family/main-white.svg" alt="Gollazyum" />
             <div>
-              <h2>다음 여행, 로보티와 같이 골라 볼까요?</h2>
-              <p>호텔과 항공권 가격을 한 번에 비교하고, 가성비 좋은 선택을 함께 찾아 드려요.</p>
+              <h2>다음 여행, Gollazyum에서 시작해 볼까요?</h2>
+              <p>호텔과 항공권의 실시간 데이터를 한 화면에서 탐색하고, 예약 사이트로 바로 연결해 드려요.</p>
             </div>
-            <a href="#top">최저가 찾기</a>
+            <a href="#top">탐색하기</a>
           </div>
         </section>
       </main>

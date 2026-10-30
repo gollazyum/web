@@ -1,11 +1,11 @@
 // 사이트 전역 설정. 인스타그램 주소 등은 여기서만 바꾸면 된다.
 export const site = {
-  name: "Lowboti",
-  nameKo: "로보티",
+  name: "Gollazyum",
+  nameKo: "Gollazyum",
   url: "https://www.lowboti.com",
-  tagline: "가성비를 같이 골라 주는 호텔·항공권 가격 비교",
+  tagline: "AI Travel & Lifestyle Platform",
   description:
-    "호텔과 항공권 가격을 여러 예약 사이트에서 실시간으로 비교하고, AI 도우미 로보티와 함께 가성비 좋은 숙소와 항공편을 골라 보세요. 세금·수수료를 포함한 총액으로 비교해요.",
+    "글로벌 트래블 데이터와 AI 라이프스타일 솔루션을 하나로 연결하는 차세대 디지털 플랫폼. 숙소와 항공편의 실시간 데이터를 세금·수수료를 포함한 총액으로 한 화면에서 탐색하세요.",
   instagramUrl: "https://www.instagram.com/lowboti/", // 인스타그램 주소는 여기서만 바꾼다
   contactEmail: "hello@lowboti.com",
   notifyUrl: "", // 오픈 알림 신청 링크. 예: 카카오톡 채널, 구글 폼 주소
@@ -21,7 +21,7 @@ export const site = {
 
 // 하위 페이지가 openGraph를 바꾸면 통째로 덮어써지므로 공통 항목을 같이 넣는다
 export const ogBase = {
-  siteName: `${site.nameKo} (${site.name})`,
+  siteName: site.name,
   images: [{ url: "/images/og-image.png", width: 1200, height: 630 }],
   locale: "ko_KR",
   type: "website" as const,

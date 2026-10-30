@@ -148,7 +148,7 @@ export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, o
       if (!res.ok || !res.body) {
         write(
           res.status === 503
-            ? "숙소 도우미는 곧 열려요. 그동안 왼쪽 필터로 골라 보세요!"
+            ? "숙소 도우미는 곧 열려요. 그동안 왼쪽 필터로 탐색해 보세요!"
             : res.status === 429
               ? "질문이 조금 많았어요. 잠시 쉬었다가 다시 물어봐 주세요."
               : "앗, 잠깐 문제가 생겼어요. 다시 시도해 주세요.",
@@ -176,19 +176,19 @@ export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, o
   const breakfast = hotels.filter((h) => h.amenities.some((a) => /조식|breakfast/i.test(a))).length;
   const talks = [
     `👀 ${query.q} 숙소 ${hotels.length}곳을 훑어봤어요!`,
-    good ? `⭐ 후기 4.5점 넘는 곳이 ${good}곳 있어요` : "💡 중요한 걸 골라 주면 딱 맞게 골라 드려요",
+    good ? `⭐ 후기 4.5점 넘는 곳이 ${good}곳 있어요` : "💡 중요한 조건을 알려 주면 딱 맞게 정리해 드려요",
     breakfast ? `🍳 조식 되는 곳도 ${breakfast}곳 찾았어요` : "🔍 가성비 좋은 곳도 찾아 드릴 수 있어요",
-    "💡 아래에서 중요한 걸 골라 보세요",
+    "💡 아래에서 중요한 조건을 눌러 보세요",
     "🙌 저를 세 번 콕콕콕 눌러 보세요!",
   ];
 
   function askWithPrefs() {
     if (!prefs.size) return;
-    send(`제가 중요하게 보는 건 ${[...prefs].map(plain).join(", ")} 쪽이에요. 이 중에서 골라 주세요.`);
+    send(`제가 중요하게 보는 건 ${[...prefs].map(plain).join(", ")} 쪽이에요. 이 조건으로 정리해 주세요.`);
   }
 
   const budget = quickBudget(hotels);
-  const quick = budget ? `${query.q}에서 1박 ${budget}만 원 이하 후기 좋은 곳 골라줘` : "";
+  const quick = budget ? `${query.q}에서 1박 ${budget}만 원 이하 후기 좋은 곳 알려줘` : "";
 
   // 답 속 [[번호]]를 호텔 이름 버튼으로 바꾼다. 번호는 보낸 목록 순서(1부터)
   function render(text: string) {
@@ -214,7 +214,7 @@ export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, o
     setLoadingMore(true);
     const ok = await onMore();
     setLoadingMore(false);
-    if (ok && last) setTimeout(() => send(`결과를 더 불러왔어요. 다시 골라 주세요: ${last}`), 80);
+    if (ok && last) setTimeout(() => send(`결과를 더 불러왔어요. 다시 정리해 주세요: ${last}`), 80);
   }
 
   function actionRow(actions: Action[]) {
@@ -247,10 +247,10 @@ export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, o
   }
 
   return (
-    <aside className={`advisor${open ? " open" : ""}`} aria-label="로보티 숙소 도우미">
+    <aside className={`advisor${open ? " open" : ""}`} aria-label="Gollazyum 숙소 도우미">
       <div className="advisor-head">
         <div>
-          <strong>로보티에게 물어보세요</strong>
+          <strong>Gollazyum AI에게 물어보세요</strong>
           <span>
             <i className="online" /> 여행 예약 도우미 AI
           </span>
@@ -261,10 +261,10 @@ export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, o
       </div>
 
       <div className="advisor-list" ref={listRef} aria-live="polite">
-        <LiveMochi compact thinking={busy} talks={talks} greeting={`🍡 ${query.q} 숙소, 같이 골라 볼까요?`} />
+        <LiveMochi compact thinking={busy} talks={talks} greeting={`🍡 ${query.q} 숙소, 같이 살펴볼까요?`} />
         {compare.length > 0 && (
           <table className="advisor-compare">
-            <caption>비교함 {compare.length}곳</caption>
+            <caption>보관함 {compare.length}곳</caption>
             <thead>
               <tr>
                 <th scope="col">호텔</th>
@@ -293,7 +293,7 @@ export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, o
         )}
         {!messages.length && (
           <div className="advisor-prefs">
-            <p>호텔 고를 때 뭐가 제일 중요하세요?</p>
+            <p>호텔 볼 때 뭐가 제일 중요하세요?</p>
             {PREFS.map((p) => (
               <button
                 key={p}
@@ -310,7 +310,7 @@ export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, o
               </button>
             ))}
             <button type="button" className="advisor-go" disabled={!prefs.size} onClick={askWithPrefs}>
-              {prefs.size === 1 ? `${plain([...prefs][0])} 기준으로 추천받기 ✨` : prefs.size ? `고른 ${prefs.size}가지 조건으로 추천받기 ✨` : "중요한 걸 골라 주세요"}
+              {prefs.size === 1 ? `${plain([...prefs][0])} 기준으로 AI 분석 ✨` : prefs.size ? `${prefs.size}가지 조건으로 AI 분석 ✨` : "중요한 조건을 눌러 주세요"}
             </button>
           </div>
         )}
@@ -327,7 +327,7 @@ export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, o
                   {!(busy && i === messages.length - 1) && actionsOf(m.content).length > 0 && actionRow(actionsOf(m.content))}
                 </div>
               ) : (
-                <p className="bubble typing" aria-label="로보티가 고르고 있어요">
+                <p className="bubble typing" aria-label="Gollazyum AI가 정리하고 있어요">
                   <span />
                   <span />
                   <span />
@@ -355,13 +355,13 @@ export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, o
           onChange={(e) => setInput(e.target.value)}
           placeholder="예: 15만 원 이하, 조식 있는 곳"
           maxLength={500}
-          aria-label="로보티에게 보낼 메시지"
+          aria-label="Gollazyum AI에게 보낼 메시지"
         />
         <button type="submit" disabled={busy || !input.trim()} aria-label="보내기">
           ↑
         </button>
       </form>
-      <p className="chat-note">AI 추천은 참고용이에요. 가격과 조건은 예약 사이트에서 꼭 확인해 주세요.</p>
+      <p className="chat-note">AI 답변은 참고용이에요. 가격과 조건은 예약 사이트에서 꼭 확인해 주세요.</p>
     </aside>
   );
 }

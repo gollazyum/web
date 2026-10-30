@@ -56,7 +56,7 @@ export function AnalysisMock() {
     <div ref={ref} className={`summary-mock${shown ? " shown" : ""}`} aria-hidden="true">
       <div className="summary-line">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/family/main.svg" alt="로보티" />
+        <img src="/brand/family/main.svg" alt="Gollazyum" />
         <span>
           <strong>아고다</strong>가 가장 싸요. 최고가보다 <strong className="save">{won(save)}</strong> 아낄 수 있어요.
         </span>
@@ -66,7 +66,7 @@ export function AnalysisMock() {
         <div key={r.name} className={`bar-row${r.best ? " best" : ""}`}>
           <span>
             {r.name}
-            {r.best && <em className="best-badge">최저가</em>}
+            {r.best && <em className="best-badge">Smart Deal</em>}
           </span>
           <div className="bar">
             <i style={{ width: shown ? `${r.w}%` : 0, transitionDelay: `${i * 120}ms` }} />

@@ -22,7 +22,7 @@ export function HotelSearch({ initial, compact }: Props) {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!q.trim()) return setError("도시나 호텔 이름을 넣어 주세요. 예: 도쿄 신주쿠, 다낭 해변 호텔");
-    if (!checkIn) return setError("체크인 날짜를 골라 주세요.");
+    if (!checkIn) return setError("체크인 날짜를 입력해 주세요.");
     const out = checkOut && checkOut > checkIn ? checkOut : addDays(checkIn, 1);
     setCheckOut(out);
     setError("");
@@ -41,7 +41,7 @@ export function HotelSearch({ initial, compact }: Props) {
             setCheckOut(b);
           }}
           labels={["체크인", "체크아웃"]}
-          prompts={["체크인 날짜를 골라 주세요", "체크아웃 날짜를 골라 주세요"]}
+          prompts={["체크인 날짜를 입력해 주세요", "체크아웃 날짜를 입력해 주세요"]}
           endPlaceholder="비우면 1박"
           minGap={1}
           unit={(n) => `${n}박`}
@@ -57,7 +57,7 @@ export function HotelSearch({ initial, compact }: Props) {
             ))}
           </select>
         </label>
-        <button type="submit">{compact ? "다시 검색" : "호텔 가격 비교"}</button>
+        <button type="submit">{compact ? "다시 검색" : "숙소 탐색"}</button>
       </form>
       {error && (
         <div className="search-result" role="status">

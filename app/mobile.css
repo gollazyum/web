@@ -60,9 +60,9 @@ html.sheet-lock body {
   .nav-bar .brand {
     padding: 8px 0;
   }
-  .nav-bar .brand img {
-    height: 28px;
-    width: auto;
+  .nav-bar .brand .logo-lockup {
+    height: 28px !important;
+    font-size: 17px !important;
   }
   .nav-bar .brand-badge {
     padding: 3px 6px 2px;
