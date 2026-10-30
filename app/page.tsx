@@ -12,8 +12,8 @@ import { site } from "@/lib/site";
 
 const steps = [
   { title: "탐색 (Explore)", body: "도시나 호텔 이름, 또는 출발지·도착지와 날짜를 입력해요." },
-  { title: "스마트 데이터 (Smart Data)", body: "Gollazyum AI가 여러 예약 사이트의 실시간 데이터를 모아 총액 기준으로 한 화면에 보여 드려요." },
-  { title: "연결 (Connect)", body: "궁금한 건 Gollazyum AI에게 물어보고, 마음에 드는 곳을 눌러 그 예약 사이트에서 결제해요." },
+  { title: "스마트 데이터 (Smart Data)", body: "로보티가 여러 예약 사이트의 실시간 데이터를 모아 총액 기준으로 한 화면에 보여 드려요." },
+  { title: "연결 (Connect)", body: "궁금한 건 로보티에게 물어보고, 마음에 드는 곳을 눌러 그 예약 사이트에서 결제해요." },
 ];
 
 const faqs = [
@@ -163,7 +163,7 @@ export default function Home() {
             </div>
             <div className="bento-card">
               <span className="badge ai">AI 도우미</span>
-              <h3>Gollazyum AI에게 물어보기</h3>
+              <h3>로보티에게 물어보기</h3>
               <p>예산, 후기 점수, 조식처럼 중요한 걸 말하면 검색 결과 안에서 조건에 맞는 곳을 AI가 정리해 드려요.</p>
             </div>
             <div className="bento-card bento-wide">

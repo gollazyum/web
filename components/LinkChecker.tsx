@@ -31,7 +31,7 @@ const tabs: { id: TabId; label: string; short: string; img: string; live: boolea
   { id: "stay", label: "숙소", short: "숙소", img: "hotel", live: true },
   { id: "flight", label: "항공권", short: "항공권", img: "flight", live: true },
   { id: "shop", label: "Lifestyle·eSIM", short: "Lifestyle", img: "shop", live: false, soon: "여행 준비물과 eSIM 데이터를 연결하는 Lifestyle 서비스를 준비하고 있어요." },
-  { id: "ask", label: "Gollazyum AI", short: "AI", img: "mark", live: true, ai: true },
+  { id: "ask", label: "로보티 AI", short: "AI", img: "mark", live: true, ai: true },
 ];
 
 export function LinkChecker() {

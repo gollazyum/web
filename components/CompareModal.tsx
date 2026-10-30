@@ -138,9 +138,9 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
   return createPortal(
     <>
       <div className="cmp-dim" aria-hidden="true" onClick={onClose} />
-      <div className="cmp" role="dialog" aria-modal="true" aria-label="Gollazyum AI 분석 결과">
+      <div className="cmp" role="dialog" aria-modal="true" aria-label="로보티 AI 분석 결과">
         <header className="cmp-head">
-          <strong>{stage === "prefs" ? "Gollazyum AI 분석" : `${items.length}곳 AI 분석 결과`}</strong>
+          <strong>{stage === "prefs" ? "로보티 AI 분석" : `${items.length}곳 AI 분석 결과`}</strong>
           <button type="button" className="cmp-close" onClick={onClose} aria-label="닫기">
             ✕
           </button>
@@ -312,11 +312,11 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
 
             <section className="cmp-verdict" aria-live="polite">
               {!verdict || !winner ? (
-                <p className="cmp-wait">🤖 Gollazyum AI가 숫자를 맞춰 보고 있어요...</p>
+                <p className="cmp-wait">🤖 로보티가 숫자를 맞춰 보고 있어요...</p>
               ) : (
                 <>
                   <p className="cmp-verdict-head">
-                    🤖 Gollazyum AI의 결론: &quot;{lead} 기준으로는 <b>{hotelNameKo(winner.name)}</b>이(가) 가장 잘 맞아요!&quot;
+                    🤖 로보티의 결론: &quot;{lead} 기준으로는 <b>{hotelNameKo(winner.name)}</b>이(가) 가장 잘 맞아요!&quot;
                   </p>
                   <ul>
                     {verdict.reasons.map((t) => (

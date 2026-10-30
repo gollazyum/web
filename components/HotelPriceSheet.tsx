@@ -44,7 +44,7 @@ export function roboSummary(h: HotelOption, all: HotelOption[], nights: number, 
   const pct = h.deal.match(/(\d+)\s*%/)?.[1];
   if (pct) facts.push(`평소보다 ${pct}% 저렴하게 나온 가격이에요`);
   if (h.amenities.some((a) => /조식/.test(a))) facts.push("조식 관련 표시가 있어요");
-  const lead = picked ? "Gollazyum AI 인사이트가 붙은 곳이에요. " : "";
+  const lead = picked ? "로보티 AI 인사이트가 붙은 곳이에요. " : "";
   if (!facts.length) return `${lead}${h.stars ? `${h.stars}성급 ` : ""}${h.kind}이에요. 사이트마다 총액이 달라서 아래에서 가장 싼 곳을 확인해 보세요.`;
   const [a, b] = facts;
   return `${lead}${b ? `${and(a)}, ${b}` : a}.`;
@@ -136,7 +136,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
           )}
 
           <p className="ps-robo">
-            <span aria-hidden="true">🤖</span> <b>Gollazyum AI 요약:</b> {sheetSummary(hotel, sources, summary)}
+            <span aria-hidden="true">🤖</span> <b>로보티 요약:</b> {sheetSummary(hotel, sources, summary)}
           </p>
 
           <h3>

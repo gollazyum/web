@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 const MODEL = "claude-opus-5-5";
 const KEYS = ["A", "B", "C"] as const;
 
-const SYSTEM = `너는 여행 데이터 플랫폼 Gollazyum의 AI야. 사용자가 보관함에 담은 호텔 2~3곳 중 사용자가 정한 선호 기준에 가장 잘 맞는 한 곳을 정해.
+const SYSTEM = `너는 여행 데이터 플랫폼 Gollazyum의 AI 도우미 "로보티"야. 사용자가 보관함에 담은 호텔 2~3곳 중 사용자가 정한 선호 기준에 가장 잘 맞는 한 곳을 정해.
 
 꼭 지킬 것
 - 아래 [호텔 데이터]에 있는 숫자와 이름만 근거로 써. 역까지 거리, 주변 시설, 방 크기 숫자, 후기 내용처럼 데이터에 없는 건 절대 추측해서 쓰지 마.

@@ -5,7 +5,7 @@ import { parseHotelsPath } from "@/lib/hotels";
 
 // 호텔 검색 결과 페이지. 검색 조건은 주소(?q=&checkin=&checkout=&adults=)에 있어 그대로 공유할 수 있다
 const HOTELS_DESCRIPTION =
-  "도시나 호텔 이름으로 아고다·트립닷컴·부킹닷컴·호텔 공식 사이트의 실시간 숙박 가격을 세금 포함 총액으로 한 화면에서 탐색하세요. 성급·후기 점수·편의시설로 거르고, Gollazyum AI에게 조건에 맞는 숙소를 물어볼 수 있어요.";
+  "도시나 호텔 이름으로 아고다·트립닷컴·부킹닷컴·호텔 공식 사이트의 실시간 숙박 가격을 세금 포함 총액으로 한 화면에서 탐색하세요. 성급·후기 점수·편의시설로 거르고, 로보티에게 조건에 맞는 숙소를 물어볼 수 있어요.";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
