@@ -5,13 +5,13 @@ import { LiveMochi } from "./LiveMochi";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const greeting = "안녕하세요, 로보티예요! 여행 계획이나 숙소 고르는 법, 예약 꿀팁까지 편하게 물어보세요.";
+const greeting = "안녕하세요, 로보티예요! 여행 계획이나 숙소 정보, 예약 꿀팁까지 편하게 물어보세요.";
 
 const suggestions = [
-  "도쿄 3박 숙소, 어떤 기준으로 고르면 좋을까?",
+  "도쿄 3박 숙소, 어떤 기준으로 보면 좋을까?",
   "호텔 예약할 때 총액에서 꼭 확인할 건?",
-  "무료 취소 요금, 꼭 골라야 할까?",
-  "로보티는 어떻게 쓰는 거야?",
+  "무료 취소 요금, 꼭 필요할까?",
+  "Gollazyum은 어떻게 쓰는 거야?",
 ];
 
 export function ChatBox() {

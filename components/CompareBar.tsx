@@ -11,7 +11,7 @@ export function CompareBar({ items, onRemove, onCompare }: { items: Item[]; onRe
   if (!items.length) return null;
   const ready = items.length >= 2;
   return (
-    <div className="compare-bar" role="region" aria-label="비교함">
+    <div className="compare-bar" role="region" aria-label="보관함">
       <ul className="compare-bar-list">
         {items.map((h) => (
           <li key={h.token} title={hotelNameKo(h.name)}>
@@ -23,14 +23,14 @@ export function CompareBar({ items, onRemove, onCompare }: { items: Item[]; onRe
             )}
             <span className="compare-bar-name">{hotelNameKo(h.name)}</span>
             {h.otherDates && <em className="compare-bar-dates">날짜가 달라요</em>}
-            <button type="button" className="compare-bar-x" onClick={() => onRemove(h.token)} aria-label={`${hotelNameKo(h.name)} 비교함에서 빼기`}>
+            <button type="button" className="compare-bar-x" onClick={() => onRemove(h.token)} aria-label={`${hotelNameKo(h.name)} 보관함에서 빼기`}>
               ×
             </button>
           </li>
         ))}
       </ul>
       <button type="button" className="compare-bar-go" onClick={onCompare} disabled={!ready}>
-        {ready ? `로보티에게 ${items.length}곳 비교 맡기기 ✨` : "1곳 더 담으면 비교할 수 있어요"}
+        {ready ? `로보티로 ${items.length}곳 분석하기 ✨` : "1곳 더 담으면 AI 분석을 할 수 있어요"}
       </button>
     </div>
   );

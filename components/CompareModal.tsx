@@ -138,9 +138,9 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
   return createPortal(
     <>
       <div className="cmp-dim" aria-hidden="true" onClick={onClose} />
-      <div className="cmp" role="dialog" aria-modal="true" aria-label="로보티 비교 결과">
+      <div className="cmp" role="dialog" aria-modal="true" aria-label="로보티 AI 분석 결과">
         <header className="cmp-head">
-          <strong>{stage === "prefs" ? "로보티에게 비교 맡기기" : `${items.length}곳 비교 결과`}</strong>
+          <strong>{stage === "prefs" ? "로보티 AI 분석" : `${items.length}곳 AI 분석 결과`}</strong>
           <button type="button" className="cmp-close" onClick={onClose} aria-label="닫기">
             ✕
           </button>
@@ -149,7 +149,7 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
         {stage === "prefs" ? (
           <div className="cmp-body">
             <h3 className="cmp-q">이번 여행에서 제일 중요한 건?</h3>
-            <p className="cmp-sub">최대 {MAX_CHIPS}개까지 골라 주세요. 다음에 비교할 때도 기억해 둘게요.</p>
+            <p className="cmp-sub">최대 {MAX_CHIPS}개까지 눌러 주세요. 다음 분석 때도 기억해 둘게요.</p>
             <div className="chip-row cmp-chips">
               {PREF_CHIPS.map((c) => {
                 const on = prefs.chips.includes(c.id);
@@ -168,14 +168,14 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
               })}
             </div>
             <label className="cmp-budget">
-              <span>1박 예산 (선택)</span>
+              <span>1박 예산 (입력 안 해도 돼요)</span>
               <span className="cmp-budget-box">
                 <input inputMode="decimal" placeholder="예: 15" value={budgetText} onChange={(e) => setBudget(e.target.value)} />
                 만 원 이하
               </span>
             </label>
             <button type="button" className="cmp-cta" onClick={start}>
-              로보티 비교 결과 보기 ✨
+              AI 분석 결과 보기 ✨
             </button>
           </div>
         ) : (
@@ -204,7 +204,7 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
                           <span className="cmp-noimg" />
                         )}
                         <span className="cmp-name">{hotelNameKo(r.name)}</span>
-                        {winner?.token === r.token && <em className="cmp-win">로보티 추천</em>}
+                        {winner?.token === r.token && <em className="cmp-win">AI Insight</em>}
                       </th>
                     ))}
                   </tr>
@@ -228,7 +228,7 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
                     ))}
                   </tr>
                   <tr>
-                    <th scope="row">최저가 사이트</th>
+                    <th scope="row">가장 낮은 총액 사이트</th>
                     {rows.map((r) => (
                       <td key={r.token}>{r.site?.name ?? (r.state?.kind === "error" ? "못 불러왔어요" : "-")}</td>
                     ))}
@@ -324,7 +324,7 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
                     ))}
                   </ul>
                   <p className="cmp-note">
-                    {verdict.by === "ai" ? "가격·점수·편의시설·후기 주제 숫자만 보고 썼어요." : "가격·점수·편의시설·후기 주제 숫자로 점수를 매겨 골랐어요."} 가격은 지금 시점 기준이에요.
+                    {verdict.by === "ai" ? "가격·점수·편의시설·후기 주제 숫자만 보고 썼어요." : "가격·점수·편의시설·후기 주제 숫자로 점수를 매겼어요."} 가격은 지금 시점 기준이에요.
                   </p>
                 </>
               )}
@@ -337,7 +337,7 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
                 </a>
               )}
               <button type="button" className="cmp-other" onClick={onClose}>
-                다른 후보 고르기
+                다른 후보 보기
               </button>
             </div>
           </div>
@@ -398,7 +398,7 @@ function dataVerdict(rows: Row[], prefs: Prefs, cheapest: number | null): Verdic
   const winner = scores.indexOf(Math.max(...scores));
   const w = rows[winner];
   const reasons: string[] = [];
-  if (w.perNight !== null && w.perNight === cheapest) reasons.push(`비교한 ${rows.length}곳 중 1박 ${won(w.perNight)}으로 가장 저렴해요`);
+  if (w.perNight !== null && w.perNight === cheapest) reasons.push(`분석한 ${rows.length}곳 중 1박 ${won(w.perNight)}으로 가장 저렴해요`);
   else if (w.perNight !== null && prefs.maxBudgetPerNight && w.perNight <= prefs.maxBudgetPerNight) reasons.push(`1박 ${won(w.perNight)}으로 예산 안에 들어와요`);
   if (w.rating !== null) reasons.push(`후기 ${w.rating.toFixed(1)}점(${(w.reviews ?? 0).toLocaleString("ko-KR")}개)이에요`);
   for (const id of prefs.chips) {

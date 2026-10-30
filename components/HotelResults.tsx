@@ -44,7 +44,7 @@ export function HotelResultsView({ query }: { query: HotelQuery | null }) {
 
   useEffect(() => {
     if (!query) return;
-    if (query.checkIn < today()) return setState({ kind: "error", message: "체크인 날짜가 이미 지났어요. 위에서 날짜를 다시 골라 주세요." });
+    if (query.checkIn < today()) return setState({ kind: "error", message: "체크인 날짜가 이미 지났어요. 위에서 날짜를 다시 입력해 주세요." });
     let cancelled = false;
     postHotels(query)
       .then(async (res) => {
@@ -63,9 +63,9 @@ export function HotelResultsView({ query }: { query: HotelQuery | null }) {
       summary={query && { title: query.q, sub: `${shortLabel(query.checkIn)} ~ ${shortLabel(query.checkOut)} · 성인 ${query.adults}명` }}
     >
       {!query ? (
-        <ResultsMessage title="호텔 가격 비교">
-          도시나 호텔 이름과 날짜를 위에서 넣어 주세요. 로보티가 아고다·트립닷컴·부킹닷컴 같은 예약 사이트와 호텔 공식 사이트의 실시간 가격을
-          모아 세금 포함 총액으로 비교해 드려요. 고민되면 오른쪽의 로보티에게 예산이나 원하는 조건을 물어보세요.
+        <ResultsMessage title="Stays 호텔 실시간 가격">
+          도시나 호텔 이름과 날짜를 위에서 넣어 주세요. Gollazyum이 아고다·트립닷컴·부킹닷컴 같은 예약 사이트와 호텔 공식 사이트의 실시간 가격을
+          모아 세금 포함 총액으로 보여 드려요. 궁금한 건 오른쪽의 로보티에게 예산이나 원하는 조건을 물어보세요.
         </ResultsMessage>
       ) : !revealed ? (
         <>
@@ -238,7 +238,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
 
   function toggleCompare(hotel: HotelOption) {
     const on = compared.includes(hotel.token);
-    if (!on && compared.length >= MAX_COMPARE) return setToast(`최대 ${MAX_COMPARE}곳까지 비교할 수 있어요`);
+    if (!on && compared.length >= MAX_COMPARE) return setToast(`최대 ${MAX_COMPARE}곳까지 담을 수 있어요`);
     updateStore((s) => ({
       ...s,
       compare: on ? s.compare.filter((c) => c.token !== hotel.token) : [...s.compare, compareItem(hotel, query)],
@@ -417,7 +417,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
               value={sort}
               onChange={setSort}
               options={[
-                { id: "recommended", label: "추천순" },
+                { id: "recommended", label: "AI 정렬순" },
                 { id: "price", label: "낮은 가격순" },
                 { id: "rating", label: "후기 점수 높은순" },
                 { id: "reviews", label: "후기 많은순" },
@@ -427,7 +427,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
         </div>
         <p className="results-hint">
           큰 숫자는 <b>1박 평균</b>(세금 포함)이에요 · <span className="m-only">카드를 누르면</span>
-          <span className="pc-only">&apos;선택&apos;을 누르면</span> 사이트별 가격
+          <span className="pc-only">&apos;가격 보기&apos;를 누르면</span> 사이트별 가격
         </p>
 
         {shown.length ? (
@@ -474,7 +474,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
 
         <p className="flight-note">
           Google 호텔 검색 기준, 검색 시점 가격이에요. 총액은 세금·봉사료를 포함한 금액이며, 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요.
-          아고다 링크는 제휴 링크라 예약 시 로보티가 수수료를 받을 수 있어요.
+          아고다 링크는 제휴 링크라 예약 시 Gollazyum이 수수료를 받을 수 있어요.
         </p>
       </section>
 
@@ -496,7 +496,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
         <button type="button" className={`advisor-fab${store.compare.length ? " lifted" : ""}`} onClick={openAdvisor}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/lowboti-mark.svg" alt="" />
-          <span className="fab-label">AI 추천</span>
+          <span className="fab-label">AI 인사이트</span>
         </button>
       )}
       {!sheetHotel && !filtersOpen && !compareOpen && !(advisorOpen && phoneSheet) && (
@@ -584,7 +584,7 @@ function NoMatch({ hotels, cost, unit, range, minRating, stars, amenities, query
   const shift = (d: number) => hotelsPath({ ...query, checkIn: addDays(query.checkIn, d), checkOut: addDays(query.checkOut, d) });
   return (
     <div className="nomatch">
-      <p className="nomatch-lead">이번에 찾은 {hotels.length}곳 중에는 조건에 딱 맞는 곳이 없었어요. 대신 가장 가까운 곳을 골라 봤어요!</p>
+      <p className="nomatch-lead">이번에 찾은 {hotels.length}곳 중에는 조건에 딱 맞는 곳이 없었어요. 대신 가장 가까운 곳을 모아 봤어요!</p>
       <ul className="nomatch-list">
         {closest.map(({ h, c }) => (
           <li key={h.token}>
@@ -709,8 +709,8 @@ function Gallery({ images, name, badge }: { images: string[]; name: string; badg
 // 휴대폰 카드 사진 위 배지 하나. 우선순위: 로보티 추천 > 이 검색 최저가 > 평소보다 n%↓
 type Badge = { kind: "robo" | "lowest" | "deal"; text: string } | null;
 function badgeFor(h: HotelOption, picks: Set<string>, lowestToken: string): Badge {
-  if (picks.has(h.token)) return { kind: "robo", text: "로보티 추천" };
-  if (h.token === lowestToken) return { kind: "lowest", text: "이 검색 최저가" };
+  if (picks.has(h.token)) return { kind: "robo", text: "AI Insight" };
+  if (h.token === lowestToken) return { kind: "lowest", text: "Smart Deal" };
   const pct = h.deal.match(/(\d+)\s*%/)?.[1];
   if (pct) return { kind: "deal", text: `평소보다 ${pct}%↓` };
   return null;
@@ -819,7 +819,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
           )
         )}
         <button type="button" onClick={select} aria-expanded={open} aria-haspopup="dialog" aria-label={`${hotel.name} 예약 사이트별 가격 보기`}>
-          {open ? "접기" : "선택"}
+          {open ? "접기" : "가격 보기"}
         </button>
       </div>
       <button
@@ -827,13 +827,13 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
         className="hcard-compare"
         aria-pressed={compared}
         aria-disabled={blocked}
-        aria-label={`${hotel.name} 비교 담기`}
+        aria-label={`${hotel.name} 보관함에 담기`}
         onClick={(e) => {
           e.stopPropagation();
           onCompare();
         }}
       >
-        {compared ? "비교함" : "비교 담기"}
+        {compared ? "담김" : "담기"}
       </button>
       {open && (
         <div className="hcard-sources">
@@ -852,8 +852,8 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
                     <span>
                       {s.name}
                       {s.official && <em> 공식</em>}
-                      {s.name === pick && <em className="hotel-pick"> 로보티 추천</em>}
-                      {lowest && lowest.value !== null && lowest.cost(s) === lowest.value && <em className="best-badge">최저가</em>}
+                      {s.name === pick && <em className="hotel-pick"> AI Insight</em>}
+                      {lowest && lowest.value !== null && lowest.cost(s) === lowest.value && <em className="best-badge">Smart Deal</em>}
                       {s.name === pick && <small className="pick-why">{why}</small>}
                     </span>
                     <b>
@@ -899,7 +899,7 @@ function HotelSkeletons() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/lowboti-mark.svg" alt="" />
         <p>
-          <strong>🔍 로보티가 실시간 최저가와 숨은 할인 경로를 비교하고 있어요...</strong>
+          <strong>🔍 로보티가 실시간 가격 데이터와 숨은 할인 경로를 분석하고 있어요...</strong>
           <span>예약 사이트별 숨은 총액까지 계산하는 중 · 약 5~10초</span>
         </p>
       </div>

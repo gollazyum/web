@@ -30,8 +30,8 @@ export function openSearchTab(tab: TabId) {
 const tabs: { id: TabId; label: string; short: string; img: string; live: boolean; ai?: boolean; soon?: string }[] = [
   { id: "stay", label: "숙소", short: "숙소", img: "hotel", live: true },
   { id: "flight", label: "항공권", short: "항공권", img: "flight", live: true },
-  { id: "shop", label: "쇼핑·유심", short: "쇼핑·유심", img: "shop", live: false, soon: "쇼핑봇이 여행 준비물과 유심 최저가 비교를 준비하고 있어요." },
-  { id: "ask", label: "로보티에게 물어보기", short: "물어보기", img: "mark", live: true, ai: true },
+  { id: "shop", label: "Lifestyle·eSIM", short: "Lifestyle", img: "shop", live: false, soon: "여행 준비물과 eSIM 데이터를 연결하는 Lifestyle 서비스를 준비하고 있어요." },
+  { id: "ask", label: "로보티 AI", short: "AI", img: "mark", live: true, ai: true },
 ];
 
 export function LinkChecker() {
@@ -104,7 +104,7 @@ export function LinkChecker() {
       {tab === "stay" && (
         <div className="stay-modes" role="group" aria-label="숙소 찾는 방법">
           <button type="button" className={stayMode === "search" ? "active" : undefined} onClick={() => setStayMode("search")}>
-            도시·호텔로 가격 비교
+            도시·호텔 탐색
           </button>
           <button type="button" className={stayMode === "link" ? "active" : undefined} onClick={() => setStayMode("link")}>
             아고다 링크 {routes.length}개 경로
@@ -133,14 +133,14 @@ export function LinkChecker() {
                 required
               />
             </label>
-            <button type="submit">최저가 경로 찾기</button>
+            <button type="submit">할인 경로 탐색</button>
           </form>
         ) : (
           <div className="search-card search-soon">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/brand/family/${current.img}.svg`} alt="" />
             <div>
-              <strong>{current.label} 비교, 곧 열려요</strong>
+              <strong>{current.label}, 곧 열려요</strong>
               <p>{current.soon}</p>
             </div>
             {site.notifyUrl ? (
@@ -244,7 +244,7 @@ function RouteList({ url }: { url: URL }) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/lowboti-mark.svg" alt="" />
           <span>
-            <strong>로보티 추천 링크</strong>
+            <strong>Gollazyum 제휴 링크</strong>
             <small>먼저 이 링크로 가격을 확인해 보세요</small>
           </span>
           <b>가격 보기 ↗</b>
@@ -254,7 +254,7 @@ function RouteList({ url }: { url: URL }) {
       {HOTEL_PROMOCODES.length > 0 && (
         <div className="promo">
           <span>
-            <strong>로보티 프로모코드</strong>
+            <strong>Gollazyum 프로모코드</strong>
             <small>아고다 결제 화면의 프로모션 코드 칸에 넣어 보세요. 적용 여부와 할인은 아고다 조건에 따라 달라요.</small>
           </span>
           <div className="promo-codes">
@@ -301,9 +301,9 @@ function RouteList({ url }: { url: URL }) {
       })}
 
       <p className="result-note">
-        아고다는 들어온 경로에 따라 같은 방도 가격이 달라질 수 있어요. 링크를 새 탭으로 열어 결제 직전 총액을 비교해 보세요.
+        아고다는 들어온 경로에 따라 같은 방도 가격이 달라질 수 있어요. 링크를 새 탭으로 열어 결제 직전 총액을 확인해 보세요.
         가격과 예약은 아고다에서 확인·진행돼요.
-        {AFFILIATE_CID && " 로보티 추천 링크는 제휴 링크라 예약 시 로보티가 수수료를 받을 수 있어요."}
+        {AFFILIATE_CID && " Gollazyum 제휴 링크로 예약하면 Gollazyum이 수수료를 받을 수 있어요."}
         {site.instagramUrl && (
           <>
             {" "}

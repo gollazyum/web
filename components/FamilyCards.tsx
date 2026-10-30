@@ -6,9 +6,9 @@ import { site } from "@/lib/site";
 import { SoonBadge } from "@/components/SoonBadge";
 
 const family: { img: BotKind; tab: TabId; name: string; en: string; body: string; live: boolean }[] = [
-  { img: "hotel", tab: "stay", name: "숙소봇", en: "Stay", body: "도시나 호텔 이름만 넣으면 예약 사이트별 가격을 한 번에 비교해요.", live: true },
-  { img: "flight", tab: "flight", name: "항공봇", en: "Flight", body: "출발지와 날짜만 넣으면 항공권 최저가를 찾아드려요.", live: true },
-  { img: "shop", tab: "shop", name: "쇼핑봇", en: "Shop", body: "여행 준비물과 유심도 최저가로 찾아드려요.", live: false },
+  { img: "hotel", tab: "stay", name: "숙소봇", en: "Stay", body: "도시나 호텔 이름만 넣으면 예약 사이트별 가격을 한 화면에 모아 보여 드려요.", live: true },
+  { img: "flight", tab: "flight", name: "항공봇", en: "Flight", body: "출발지와 날짜만 넣으면 항공권 실시간 운임을 찾아드려요.", live: true },
+  { img: "shop", tab: "shop", name: "라이프스타일봇", en: "Lifestyle", body: "여행 준비물과 eSIM 데이터도 연결해 드릴 예정이에요.", live: false },
 ];
 
 export function FamilyCards() {

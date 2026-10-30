@@ -4,12 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { openSearchTab, type TabId } from "@/components/LinkChecker";
 
 // 헤더 메뉴. 데스크톱 가로 메뉴와 폰 햄버거 메뉴가 같은 목록을 쓴다
-const items: ({ tab: TabId; label: string; soon?: boolean } | { href: string; label: string; soon?: undefined })[] = [
-  { tab: "stay", label: "숙소" },
-  { tab: "flight", label: "항공권" },
-  { tab: "shop", label: "쇼핑·유심", soon: true },
-  { tab: "ask", label: "로보티에게 물어보기" },
-  { href: "/#faq", label: "자주 묻는 질문" },
+type Item = { label: string; ko: string; soon?: boolean } & ({ tab: TabId } | { href: string });
+const items: Item[] = [
+  { tab: "flight", label: "Flights", ko: "항공" },
+  { tab: "stay", label: "Stays & Dining", ko: "숙박·미식" },
+  { tab: "shop", label: "eSIM", ko: "로밍", soon: true },
+  { tab: "shop", label: "Lifestyle", ko: "쇼핑·트렌드", soon: true },
+  { href: "/#top", label: "Gollazyum App", ko: "앱 다운로드", soon: true },
 ];
 
 // 첫 화면이면 검색창 탭을 바로 바꾸고, 다른 페이지(약관 등)면 첫 화면의 그 탭으로 이동한다
@@ -25,6 +26,8 @@ function MenuLinks({ className, onPick }: { className?: string; onPick?: () => v
         "href" in it ? (
           <a key={it.label} href={it.href} className={className} onClick={onPick}>
             {it.label}
+            <span className="nav-ko">{it.ko}</span>
+            {it.soon && <span className="badge soon-badge">준비 중</span>}
           </a>
         ) : (
           <a
@@ -38,6 +41,7 @@ function MenuLinks({ className, onPick }: { className?: string; onPick?: () => v
             }}
           >
             {it.label}
+            <span className="nav-ko">{it.ko}</span>
             {it.soon && <span className="badge soon-badge">준비 중</span>}
           </a>
         ),
@@ -55,7 +59,7 @@ export function SiteNav() {
   );
 }
 
-// '최저가 찾기' 버튼: 첫 화면이면 검색창으로 올라가고, 다른 페이지면 첫 화면으로 간다
+// '탐색하기' 버튼: 첫 화면이면 검색창으로 올라가고, 다른 페이지면 첫 화면으로 간다
 export function FindCta({ className, onPick }: { className: string; onPick?: () => void }) {
   return (
     <a
@@ -69,7 +73,7 @@ export function FindCta({ className, onPick }: { className: string; onPick?: () 
         }
       }}
     >
-      최저가 찾기
+      탐색하기
     </a>
   );
 }

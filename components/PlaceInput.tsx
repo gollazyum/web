@@ -116,7 +116,7 @@ export function PlaceInput({ value, onChange, onPicked }: Props) {
         aria-autocomplete="list"
         aria-activedescendant={showList ? `${listId}-${active}` : undefined}
         autoComplete="off"
-        placeholder="도시나 호텔 이름 (예: 도쿄 신주쿠)"
+        placeholder="목적지, 숙소, 또는 라이프스타일 키워드를 검색해 보세요"
         maxLength={100}
         value={value}
         enterKeyHint="search"
@@ -134,7 +134,7 @@ export function PlaceInput({ value, onChange, onPicked }: Props) {
       {sl.layer && !value.trim() && <p className="layer-tip">도시나 호텔 이름을 넣어 주세요. 예: 도쿄 신주쿠, 다낭 해변 호텔</p>}
       {showList && (
         <ul id={listId} role="listbox" className="airport-list">
-          {empty && <li className="airport-empty">추천할 곳이 없어요. 이대로 "호텔 가격 비교"를 눌러도 찾아 드려요.</li>}
+          {empty && <li className="airport-empty">연결할 곳이 없어요. 이대로 "숙소 탐색"을 눌러도 찾아 드려요.</li>}
           {results.map((p, i) => (
             <li
               key={`${p.kind}-${p.name}-${p.sub}`}

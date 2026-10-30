@@ -9,12 +9,13 @@ export const runtime = "nodejs";
 const MODEL = "claude-opus-5-5";
 const KEYS = ["A", "B", "C"] as const;
 
-const SYSTEM = `너는 호텔 가격 비교 사이트 로보티(Lowboti)의 AI야. 사용자가 비교함에 담은 호텔 2~3곳 중 사용자가 고른 선호 기준에 가장 잘 맞는 한 곳을 골라.
+const SYSTEM = `너는 여행 데이터 플랫폼 Gollazyum의 AI 도우미 "로보티"야. 사용자가 보관함에 담은 호텔 2~3곳 중 사용자가 정한 선호 기준에 가장 잘 맞는 한 곳을 정해.
 
 꼭 지킬 것
 - 아래 [호텔 데이터]에 있는 숫자와 이름만 근거로 써. 역까지 거리, 주변 시설, 방 크기 숫자, 후기 내용처럼 데이터에 없는 건 절대 추측해서 쓰지 마.
 - 후기 주제는 '긍정 n건 / 언급 m건' 숫자만 있어. 후기 글을 인용하거나 지어내지 마. 주제 데이터가 없는 호텔은 점수·후기 수·편의시설로만 비교해.
 - 1박 예산을 넘는 호텔은 그 점을 이유에 솔직하게 밝혀.
+- 이유에 "고르다", "골라", "비교", "최저가", "추천", "선택"이라는 말은 쓰지 마.
 - 이유는 3개, 각각 한 문장, 해요체, 60자 안쪽. 숫자를 하나씩 넣어. 이모지·마크다운은 쓰지 마.
 - 답은 JSON 하나만 써: {"winner":"A","reasons":["…","…","…"]}`;
 
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
       ` | 후기 주제: ${h.topics?.length ? h.topics.map((t) => `${t.name} 긍정 ${t.positive}건/언급 ${t.total}건`).join(", ") : "데이터 없음"}`,
   );
   const ask =
-    `[선호 기준] ${c.chips.length ? c.chips.join(", ") : "따로 고르지 않음 (가격과 후기 점수의 균형)"}` +
+    `[선호 기준] ${c.chips.length ? c.chips.join(", ") : "따로 정하지 않음 (가격과 후기 점수의 균형)"}` +
     `\n[1박 예산] ${c.budget ? won(c.budget) : "정하지 않음"}` +
     `\n\n[호텔 데이터] (후기 점수는 Google 5점 만점)\n${lines.join("\n")}`;
 

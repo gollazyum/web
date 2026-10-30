@@ -246,7 +246,7 @@ export function LiveMochi({ thinking = false, talks: customTalks, greeting, comp
       <p className={`mochi-bubble${swap ? " swap" : ""}`} aria-live="polite">
         {bubble}
       </p>
-      <div ref={mochiRef} className="mochi" role="button" tabIndex={0} aria-label="로보티 쓰다듬기">
+      <div ref={mochiRef} className="mochi" role="button" tabIndex={0} aria-label="Gollazyum 캐릭터 쓰다듬기">
         <div className="lb-breathe">
           <div ref={actRef} className="lb-act">
             <LowbotiBot />

@@ -1,6 +1,10 @@
-// 최종 헤더 로고 (최종 브랜드 키트: 모찌 마크 + Plus Jakarta Sans 글씨). 어두운 배경에는 tone="white"를 쓴다.
+// 헤더·푸터 로고: 모찌 마크 + "Gollazyum" 글씨. 어두운 배경에는 tone="white"를 쓴다.
 export function Logo({ height = 40, tone = "color" }: { height?: number; tone?: "color" | "white" }) {
-  const src = tone === "white" ? "/brand/lowboti-header-logo-white.svg" : "/brand/lowboti-header-logo.svg";
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt="Lowboti" height={height} width={Math.round((height * 5551) / 1323)} />;
+  return (
+    <span className={`logo-lockup${tone === "white" ? " white" : ""}`} style={{ height, fontSize: Math.round(height * 0.62) }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/lowboti-mark.svg" alt="" height={height} width={height} />
+      <span className="logo-word">Gollazyum</span>
+    </span>
+  );
 }

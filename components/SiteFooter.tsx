@@ -11,7 +11,7 @@ export function SiteFooter() {
           <Logo tone="white" height={34} />
         </div>
         <p className="disclosure">
-          Lowboti는 글로벌 여행 가격 비교 및 제휴 마케팅 플랫폼입니다. Lowboti의 링크를 통해 예약하시면 제휴사로부터 소정의 수수료를 제공받을 수
+          Gollazyum은 글로벌 트래블 데이터와 AI 솔루션을 연결하는 여행·라이프스타일 플랫폼입니다. Gollazyum의 링크를 통해 예약하시면 제휴사로부터 소정의 수수료를 제공받을 수
           있으나, 고객님이 지불하는 최종 금액에는 어떠한 영향도 주지 않습니다. 표시된 가격은 실시간 조회 시점 기준이며, 예약 및 결제·환불에 관한
           모든 책임은 해당 예약 사이트에 있습니다.
         </p>
@@ -30,7 +30,7 @@ export function SiteFooter() {
           <span>대표자 {site.business.ceo}</span>
           <span>사업자등록번호 {site.business.registrationNo}</span>
         </p>
-        <p className="copy">© {new Date().getFullYear()} Lowboti. All rights reserved.</p>
+        <p className="copy">© {new Date().getFullYear()} Gollazyum. All rights reserved.</p>
       </div>
     </footer>
   );
