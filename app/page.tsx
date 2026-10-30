@@ -11,9 +11,9 @@ import { site } from "@/lib/site";
 
 
 const steps = [
-  { title: "탐색 (Explore)", body: "도시나 호텔 이름, 또는 출발지·도착지와 날짜를 입력해요." },
-  { title: "스마트 데이터 (Smart Data)", body: "로보티가 여러 예약 사이트의 실시간 데이터를 모아 총액 기준으로 한 화면에 보여 드려요." },
-  { title: "연결 (Connect)", body: "궁금한 건 로보티에게 물어보고, 마음에 드는 곳을 눌러 그 예약 사이트에서 결제해요." },
+  { title: "탐색 (Explore)", body: "원하는 상품 링크나 키워드, 또는 여행지 숙소와 일정을 입력해요." },
+  { title: "스마트 데이터 (Smart Data)", body: "Gollazyum이 여러 스토어와 예약 사이트의 실시간 데이터를 모아 한 화면에 깔끔하게 정리해 드려요." },
+  { title: "연결 (Connect)", body: "궁금한 건 Gollazyum AI에게 물어보고, 마음에 드는 곳을 눌러 해당 스토어에서 바로 결제해요." },
 ];
 
 const faqs = [
@@ -86,14 +86,19 @@ export default function Home() {
             <span className="nobr hero-line">스마트한 여행과 일상의 시작,</span>{" "}
             <span className="nobr hero-line grad-blue">Gollazyum</span>
           </h1>
-          <p className="hero-sub">글로벌 트래블 데이터와 AI 라이프스타일 솔루션을 하나로 연결하는 차세대 디지털 플랫폼</p>
+          <p className="hero-sub">이커머스 쇼핑 트렌드와 글로벌 트래블 데이터를 하나로 연결하는 차세대 AI 라이프스타일 플랫폼</p>
           <LinkChecker />
           <ResumeBanner />
           <div className="compared">
             <span className="compared-label">연결된 데이터</span>
             <span className="compared-item">
+              <strong className="wordmark">Coupang · Naver</strong>
+              <em>스토어 데이터</em>
+            </span>
+            <i aria-hidden="true" />
+            <span className="compared-item">
               <strong className="wordmark">Google Hotels</strong>
-              <em>예약 사이트별 호텔가</em>
+              <em>실시간 숙박 정보</em>
             </span>
             <i aria-hidden="true" />
             <span className="compared-item">
@@ -163,7 +168,7 @@ export default function Home() {
             </div>
             <div className="bento-card">
               <span className="badge ai">AI 도우미</span>
-              <h3>로보티에게 물어보기</h3>
+              <h3>Gollazyum AI에게 물어보기</h3>
               <p>예산, 후기 점수, 조식처럼 중요한 걸 말하면 검색 결과 안에서 조건에 맞는 곳을 AI가 정리해 드려요.</p>
             </div>
             <div className="bento-card bento-wide">
@@ -176,7 +181,7 @@ export default function Home() {
 
         <section id="family" className="section wrap">
           <p className="eyebrow">Gollazyum Family</p>
-          <h2>숙소, 항공권, 라이프스타일까지 Gollazyum이 연결해요</h2>
+          <h2>쇼핑, 숙소, 항공권까지 Gollazyum이 연결해요</h2>
           <FamilyCards />
         </section>
 

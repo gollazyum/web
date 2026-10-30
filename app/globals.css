@@ -525,6 +525,27 @@ a {
   color: var(--muted);
   font-size: 14px;
 }
+/* 라이프·쇼핑 검색창: 긴 안내 문구는 칸 끝에서 말줄임 */
+.shop-card input::placeholder {
+  text-overflow: ellipsis;
+}
+.shop-soon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--white);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+.shop-soon .badge {
+  flex: none;
+  white-space: nowrap;
+}
 .search-card {
   display: grid;
   grid-template-columns: 2.4fr 1fr 1fr 0.7fr 0.7fr auto;
@@ -4956,7 +4977,8 @@ body:has(.compare-bar) .hcards {
 /* 히어로 제목 아래 한 줄 설명 */
 .hero-sub {
   margin: 14px auto 0;
-  max-width: 640px;
+  max-width: 720px;
+  word-break: keep-all;
   font-size: clamp(15px, 1.6vw, 18px);
   font-weight: 500;
   line-height: 1.55;

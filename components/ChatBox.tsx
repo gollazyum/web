@@ -5,7 +5,7 @@ import { LiveMochi } from "./LiveMochi";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const greeting = "안녕하세요, 로보티예요! 여행 계획이나 숙소 정보, 예약 꿀팁까지 편하게 물어보세요.";
+const greeting = "안녕하세요, Gollazyum AI예요! 여행 계획이나 숙소 정보, 예약 꿀팁까지 편하게 물어보세요.";
 
 const suggestions = [
   "도쿄 3박 숙소, 어떤 기준으로 보면 좋을까?",
@@ -85,7 +85,7 @@ export function ChatBox() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/lowboti-mark.svg" alt="" />
           <div>
-            <strong>로보티에게 물어보기</strong>
+            <strong>Gollazyum AI에게 물어보기</strong>
             <span>
               <i className="online" /> AI 여행 도우미
             </span>
@@ -115,7 +115,7 @@ export function ChatBox() {
               {m.content ? (
                 <p className="bubble">{m.content}</p>
               ) : (
-                <p className="bubble typing" aria-label="로보티가 답을 쓰고 있어요">
+                <p className="bubble typing" aria-label="Gollazyum AI가 답을 쓰고 있어요">
                   <span />
                   <span />
                   <span />
@@ -147,7 +147,7 @@ export function ChatBox() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="여행, 숙소, 예약 무엇이든 물어보세요"
           maxLength={1500}
-          aria-label="로보티에게 보낼 메시지"
+          aria-label="Gollazyum AI에게 보낼 메시지"
         />
         <button type="submit" disabled={busy || !input.trim()} aria-label="보내기">
           ↑

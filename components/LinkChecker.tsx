@@ -28,14 +28,15 @@ export function openSearchTab(tab: TabId) {
 }
 
 const tabs: { id: TabId; label: string; short: string; img: string; live: boolean; ai?: boolean; soon?: string }[] = [
+  { id: "shop", label: "라이프·쇼핑", short: "쇼핑", img: "shop", live: true },
   { id: "stay", label: "숙소", short: "숙소", img: "hotel", live: true },
-  { id: "flight", label: "항공권", short: "항공권", img: "flight", live: true },
-  { id: "shop", label: "Lifestyle·eSIM", short: "Lifestyle", img: "shop", live: false, soon: "여행 준비물과 eSIM 데이터를 연결하는 Lifestyle 서비스를 준비하고 있어요." },
-  { id: "ask", label: "로보티 AI", short: "AI", img: "mark", live: true, ai: true },
+  { id: "flight", label: "항공", short: "항공", img: "flight", live: true },
+  { id: "ask", label: "Gollazyum AI", short: "AI", img: "mark", live: true, ai: true },
 ];
 
 export function LinkChecker() {
-  const [tab, setTab] = useState<TabId>("stay");
+  // 첫 화면은 라이프·쇼핑 탭부터
+  const [tab, setTab] = useState<TabId>("shop");
   const [stayMode, setStayMode] = useState<"search" | "link">("search");
   const [url, setUrl] = useState("");
   const [result, setResult] = useState<Result | null>(null);
@@ -116,6 +117,8 @@ export function LinkChecker() {
         <div key={tab} className="tab-panel">
         {tab === "ask" ? (
           <ChatBox />
+        ) : tab === "shop" ? (
+          <ShopSearch />
         ) : tab === "flight" ? (
           <FlightSearch />
         ) : tab === "stay" && stayMode === "search" ? (
@@ -185,6 +188,45 @@ export function LinkChecker() {
         </div>
       )}
     </div>
+  );
+}
+
+// 라이프·쇼핑 검색창. 쇼핑 데이터 연결 전이라 입력하면 준비 중 안내만 보여 준다
+function ShopSearch() {
+  const [query, setQuery] = useState("");
+  const [sent, setSent] = useState(false);
+  return (
+    <>
+      <form
+        className="search-card stay-card shop-card"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSent(true);
+        }}
+      >
+        <label className="field field-url">
+          <span>상품명 또는 쇼핑몰 URL</span>
+          <input
+            type="text"
+            enterKeyHint="search"
+            placeholder="찾고 있는 상품명이나 쇼핑몰(쿠팡·네이버 등) URL을 입력해 스마트 데이터를 확인해 보세요"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSent(false);
+            }}
+            required
+          />
+        </label>
+        <button type="submit">데이터 탐색</button>
+      </form>
+      {sent && (
+        <div className="shop-soon" role="status">
+          <SoonBadge />
+          <span>쇼핑 스마트 데이터는 지금 준비 중이에요. 서비스가 열리면 이 자리에서 바로 확인할 수 있어요.</span>
+        </div>
+      )}
+    </>
   );
 }
 

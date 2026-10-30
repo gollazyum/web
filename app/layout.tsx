@@ -10,12 +10,14 @@ import "./mobile.css";
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: `${site.name} | ${site.tagline}`,
+    default: `${site.name} - ${site.tagline}`,
     template: `%s | ${site.name}`,
   },
   description: site.description,
   keywords: [
     "Gollazyum",
+    "AI 라이프스타일 플랫폼",
+    "쇼핑 트렌드 데이터",
     "AI 여행 플랫폼",
     "호텔 가격 정보",
     "항공권 실시간 운임",
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
     "AI 라이프스타일 솔루션",
   ],
   openGraph: {
-    title: `${site.name} | ${site.tagline}`,
+    title: `${site.name} - ${site.tagline}`,
     description: site.description,
     url: site.url,
     siteName: site.name,
@@ -33,7 +35,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: `${site.name} | ${site.tagline}`,
+    title: `${site.name} - ${site.tagline}`,
     description: site.description,
     images: [ogImage],
   },
