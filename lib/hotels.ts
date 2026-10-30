@@ -110,7 +110,7 @@ const ROLLING = [
   "⚡ 복잡한 해외 사이트 가입 없이 카카오·네이버페이로 1분 만에 결제돼요",
   "💳 트래블월렛·트래블로그 및 국내 제휴 카드 할인을 적용하기 가장 좋아요",
   "✨ 예약 즉시 확정 여부와 무료 취소 옵션을 한글로 가장 명확히 볼 수 있어요",
-  "🤖 가격, 결제 편의성, 예약 안정성을 종합한 로보티 AI 인사이트 경로예요",
+  "🤖 가격, 결제 편의성, 예약 안정성을 종합한 Gollazyum AI 인사이트 경로예요",
 ];
 export function roboReason(sources: HotelSource[], pick: string, deal: string, seed: string): string {
   const ranked = sources.filter((s) => s.perNight !== null).sort((a, b) => (a.perNight ?? 0) - (b.perNight ?? 0));
@@ -123,7 +123,7 @@ export function roboReason(sources: HotelSource[], pick: string, deal: string, s
     if (chosen.perNight === top.perNight) return "🏆 현재 모든 예약 사이트를 통틀어 가장 저렴해요!";
     if (chosen.official) return "🏨 호텔 공식 사이트라 예약 확인과 변경 문의가 가장 확실해요";
     if (KOREAN_OK.test(chosen.name)) return "🇰🇷 상위권 가격에 한국어로 예약하고 문의할 수 있는 사이트예요";
-    return "💡 상위권 중 가격과 조건을 따진 로보티 AI 인사이트예요";
+    return "💡 상위권 중 가격과 조건을 따진 Gollazyum AI 인사이트예요";
   }
   if (agoda && top) {
     if (agoda === top || agoda.perNight === top.perNight) return "🏆 현재 모든 예약 사이트를 통틀어 조건 없이 가장 저렴해요!";

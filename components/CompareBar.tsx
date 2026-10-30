@@ -30,7 +30,7 @@ export function CompareBar({ items, onRemove, onCompare }: { items: Item[]; onRe
         ))}
       </ul>
       <button type="button" className="compare-bar-go" onClick={onCompare} disabled={!ready}>
-        {ready ? `로보티로 ${items.length}곳 분석하기 ✨` : "1곳 더 담으면 AI 분석을 할 수 있어요"}
+        {ready ? `Gollazyum AI로 ${items.length}곳 분석하기 ✨` : "1곳 더 담으면 AI 분석을 할 수 있어요"}
       </button>
     </div>
   );

@@ -65,7 +65,7 @@ export function HotelResultsView({ query }: { query: HotelQuery | null }) {
       {!query ? (
         <ResultsMessage title="Stays 호텔 실시간 가격">
           도시나 호텔 이름과 날짜를 위에서 넣어 주세요. Gollazyum이 아고다·트립닷컴·부킹닷컴 같은 예약 사이트와 호텔 공식 사이트의 실시간 가격을
-          모아 세금 포함 총액으로 보여 드려요. 궁금한 건 오른쪽의 로보티에게 예산이나 원하는 조건을 물어보세요.
+          모아 세금 포함 총액으로 보여 드려요. 궁금한 건 오른쪽의 Gollazyum AI에게 예산이나 원하는 조건을 물어보세요.
         </ResultsMessage>
       ) : !revealed ? (
         <>
@@ -285,7 +285,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     setStars(new Set((f.stars ?? []).filter((s) => starList.includes(s))));
     setAmenities(new Set((f.amenities ?? []).filter((a) => amenityList.some(([name]) => name === a))));
     setAdvisorOpen(false);
-    setToast("로보티가 말한 조건을 필터에 넣었어요");
+    setToast("Gollazyum AI가 말한 조건을 필터에 넣었어요");
   }
 
   if (!data.options.length) {
@@ -899,7 +899,7 @@ function HotelSkeletons() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/lowboti-mark.svg" alt="" />
         <p>
-          <strong>🔍 로보티가 실시간 가격 데이터와 숨은 할인 경로를 분석하고 있어요...</strong>
+          <strong>🔍 Gollazyum AI가 실시간 가격 데이터와 숨은 할인 경로를 분석하고 있어요...</strong>
           <span>예약 사이트별 숨은 총액까지 계산하는 중 · 약 5~10초</span>
         </p>
       </div>
