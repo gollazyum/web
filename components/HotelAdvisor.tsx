@@ -247,10 +247,10 @@ export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, o
   }
 
   return (
-    <aside className={`advisor${open ? " open" : ""}`} aria-label="로보티 숙소 도우미">
+    <aside className={`advisor${open ? " open" : ""}`} aria-label="Gollazyum AI 숙소 도우미">
       <div className="advisor-head">
         <div>
-          <strong>로보티에게 물어보세요</strong>
+          <strong>Gollazyum AI에게 물어보세요</strong>
           <span>
             <i className="online" /> 여행 예약 도우미 AI
           </span>
@@ -327,7 +327,7 @@ export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, o
                   {!(busy && i === messages.length - 1) && actionsOf(m.content).length > 0 && actionRow(actionsOf(m.content))}
                 </div>
               ) : (
-                <p className="bubble typing" aria-label="로보티가 정리하고 있어요">
+                <p className="bubble typing" aria-label="Gollazyum AI가 정리하고 있어요">
                   <span />
                   <span />
                   <span />
@@ -355,7 +355,7 @@ export function HotelAdvisor({ hotels, hasMore, onMore, onFilter, query, open, o
           onChange={(e) => setInput(e.target.value)}
           placeholder="예: 15만 원 이하, 조식 있는 곳"
           maxLength={500}
-          aria-label="로보티에게 보낼 메시지"
+          aria-label="Gollazyum AI에게 보낼 메시지"
         />
         <button type="submit" disabled={busy || !input.trim()} aria-label="보내기">
           ↑

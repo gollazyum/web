@@ -31,7 +31,7 @@ const tabs: { id: TabId; label: string; short: string; img: string; live: boolea
   { id: "stay", label: "숙소", short: "숙소", img: "hotel", live: true },
   { id: "flight", label: "항공권", short: "항공권", img: "flight", live: true },
   { id: "shop", label: "Lifestyle·eSIM", short: "Lifestyle", img: "shop", live: false, soon: "여행 준비물과 eSIM 데이터를 연결하는 Lifestyle 서비스를 준비하고 있어요." },
-  { id: "ask", label: "로보티 AI", short: "AI", img: "mark", live: true, ai: true },
+  { id: "ask", label: "Gollazyum AI", short: "AI", img: "mark", live: true, ai: true },
 ];
 
 export function LinkChecker() {
@@ -92,7 +92,7 @@ export function LinkChecker() {
             onClick={() => setTab(t.id)}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={t.img === "mark" ? "/brand/lowboti-mark.svg" : `/brand/family/${t.img}.svg`} alt="" />
+            <img src={t.img === "mark" ? "/brand/gollazyum-mark.svg" : `/brand/family/${t.img}.svg`} alt="" />
             <span className="tab-label">{t.label}</span>
             <span className="tab-label-short">{t.short}</span>
             {t.ai && <span className="soon ai">AI</span>}
@@ -242,7 +242,7 @@ function RouteList({ url }: { url: URL }) {
       {AFFILIATE_CID && (
         <a className="route-best" href={withCid(url, AFFILIATE_CID)} target="_blank" rel="noopener noreferrer">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/lowboti-mark.svg" alt="" />
+          <img src="/brand/gollazyum-mark.svg" alt="" />
           <span>
             <strong>Gollazyum 제휴 링크</strong>
             <small>먼저 이 링크로 가격을 확인해 보세요</small>

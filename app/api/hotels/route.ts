@@ -1,4 +1,4 @@
-import type { HotelOption, HotelPrices, HotelResults, HotelSource, ReviewTopic } from "@/lib/hotels";
+import { lowestOffer, type HotelOption, type HotelPrices, type HotelResults, type HotelSource, type ReviewTopic } from "@/lib/hotels";
 import { DATE, serpSearch, today } from "@/lib/serpapi";
 import { amenityKo, dealKo, kindKo } from "@/lib/hotelText";
 
@@ -71,6 +71,11 @@ function cleanSources(list: SerpPrice[]): HotelSource[] {
 function toOption(p: SerpProperty): HotelOption | null {
   if (!p.name || !p.property_token) return null;
   const sources = cleanSources(p.prices ?? []);
+  // 카드에 적는 가격은 이번 응답에서 비교한 사이트 중 가장 낮은 곳이다.
+  // 숙소 맨 위 요금(rate_per_night)은 그 최솟값과 다른 사이트일 때가 있어 쓰지 않는다.
+  const best = lowestOffer(sources);
+  const shown = sources.slice(0, 3);
+  if (best && !shown.some((s) => s.name === best.name)) shown.unshift(best);
   const images = (p.images ?? []).map((i) => i.thumbnail ?? "").filter(Boolean).slice(0, MAX_IMAGES);
   const gps = p.gps_coordinates;
   return {
@@ -85,10 +90,10 @@ function toOption(p: SerpProperty): HotelOption | null {
     stars: p.extracted_hotel_class ?? null,
     rating: p.overall_rating ?? null,
     reviews: p.reviews ?? null,
-    // 한 곳짜리 응답은 맨 위 요금이 빠질 때가 있어 사이트별 최저가로 채운다
-    perNight: p.rate_per_night?.extracted_lowest ?? sources[0]?.perNight ?? null,
-    total: p.total_rate?.extracted_lowest ?? null,
-    sources: sources.slice(0, 3),
+    perNight: best ? best.perNight : (p.rate_per_night?.extracted_lowest ?? null),
+    total: best ? best.total : (p.total_rate?.extracted_lowest ?? null),
+    priceSource: best?.name ?? null,
+    sources: shown.slice(0, 3),
   };
 }
 

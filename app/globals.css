@@ -3366,6 +3366,14 @@ a {
   font-size: 12px;
   color: var(--muted);
 }
+.hcard-price .hcard-src {
+  display: block;
+  width: 100%;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: normal;
+}
 .hcard-price button,
 .fcard-buy a {
   margin-top: 10px;
@@ -4841,12 +4849,13 @@ body:has(.compare-bar) .hcards {
 
 /* ---------- 홈 재방문 '이어서 보기' 배너 ---------- */
 .resume {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 16px;
   max-width: 880px;
   margin: 16px auto 0;
-  padding: 14px 16px;
+  padding: 14px 44px 14px 16px;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.92);
@@ -4899,10 +4908,17 @@ body:has(.compare-bar) .hcards {
   font-weight: 500;
   color: var(--muted);
 }
+.resume-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
 .resume-go {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: 44px;
   padding: 0 16px;
   border-radius: 12px;
@@ -4912,11 +4928,42 @@ body:has(.compare-bar) .hcards {
   font-weight: 800;
   text-decoration: none;
 }
+.resume-clear,
+.resume-x {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.resume-clear {
+  min-height: 36px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.resume-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 16px;
+}
+.resume-x:hover,
+.resume-clear:hover {
+  color: var(--ink);
+}
 @media (max-width: 640px) {
   .resume {
     flex-direction: column;
     align-items: stretch;
     margin: 12px 0 0;
+  }
+  .resume-actions {
+    width: 100%;
   }
   .resume-list {
     flex-direction: column;
