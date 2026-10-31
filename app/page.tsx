@@ -61,7 +61,7 @@ const jsonLd = {
       url: site.url,
       logo: `${site.url}/brand/gollazyum-mark.svg`,
       ...(site.contactEmail ? { email: site.contactEmail } : {}),
-      // 저장소에 새 인스타그램 계정이 없어 sameAs는 넣지 않는다. 옛 instagram.com/lowboti 주소는 추측해서 바꾸지 않는다.
+      ...(site.instagramUrl ? { sameAs: [site.instagramUrl] } : {}),
     },
     {
       "@type": "FAQPage",
