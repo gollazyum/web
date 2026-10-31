@@ -3,10 +3,12 @@
 import { useSyncExternalStore } from "react";
 import type { HotelOption, HotelQuery, ReviewTopic } from "./hotels";
 
-// 가입 없이 쓰는 로보티 저장소. 브라우저 localStorage의 키 하나(lowboti:v1)에 비교함·선호·마지막 검색을 담는다.
+// 가입 없이 쓰는 저장소. 브라우저 localStorage의 키 하나(gollazyum:v1)에 비교함·선호·마지막 검색·후기 주제 캐시를 담는다.
+// 예전 키(lowboti:v1)가 있으면 처음 읽을 때 한 번만 새 키로 옮기고 옛 키는 지운다.
 // 브라우저를 닫았다 열어도, 새 탭에서도 남고, 다른 탭에서 바꾸면 storage 이벤트로 바로 따라 바뀐다.
 // Google 약관 때문에 후기 글은 담지 않는다 (점수·후기 수만)
-const KEY = "lowboti:v1";
+const KEY = "gollazyum:v1";
+const LEGACY_KEY = "lowboti:v1";
 export const MAX_COMPARE = 3; // 비교함은 검색이 달라도 합쳐서 3곳까지
 
 export type SearchParams = { q: string; checkin: string; checkout: string; adults: number };
@@ -86,17 +88,68 @@ function clean(raw: unknown): LowbotiStore {
 
 let cache: { text: string | null; value: LowbotiStore } = { text: null, value: EMPTY };
 
-function read(): LowbotiStore {
-  let text: string | null = null;
+function storedText(): string | null {
   try {
-    text = localStorage.getItem(KEY);
+    const current = localStorage.getItem(KEY);
+    if (current !== null) return current;
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy === null) return null;
+    try {
+      localStorage.setItem(KEY, legacy);
+      localStorage.removeItem(LEGACY_KEY);
+    } catch {
+      // 새 키를 못 쓰면 옛 값을 그대로 읽는다. 다음 기회에 다시 옮긴다.
+    }
+    return legacy;
   } catch {
-    // 저장소를 막아 둔 브라우저면 빈 상태로 둔다
+    return null;
   }
+}
+
+// 브라우저에 남아 있는 Gollazyum 저장을 모두 지운다. 옛 키도 함께 지운다.
+export function clearStoredData() {
+  try {
+    const drop: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k === KEY || k === LEGACY_KEY || k.startsWith("gollazyum:") || k.startsWith("lowboti:"))) drop.push(k);
+    }
+    for (const k of drop) localStorage.removeItem(k);
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(LEGACY_KEY);
+    const sessionDrop: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && (k.startsWith("gollazyum:") || k.startsWith("lowboti:"))) sessionDrop.push(k);
+    }
+    for (const k of sessionDrop) sessionStorage.removeItem(k);
+  } catch {
+    // 저장소를 막아 둔 브라우저면 메모리만 비운다
+  }
+  cache = { text: null, value: EMPTY };
+  listeners.forEach((l) => l());
+}
+
+function read(): LowbotiStore {
+  let text = storedText();
   if (text === cache.text) return cache.value;
   let value = EMPTY;
   try {
-    value = text ? clean(JSON.parse(text)) : EMPTY;
+    if (text) {
+      const raw = JSON.parse(text) as { topics?: unknown };
+      const before = raw?.topics && typeof raw.topics === "object" ? Object.keys(raw.topics).length : 0;
+      value = clean(raw);
+      // 7일이 지난 후기 주제 숫자는 읽을 때 저장소에서도 지운다
+      if (before > Object.keys(value.topics).length) {
+        const next = JSON.stringify(value);
+        try {
+          localStorage.setItem(KEY, next);
+          text = next;
+        } catch {
+          // 다시 못 써도 화면에는 기한이 지난 주제를 빼서 보여 준다
+        }
+      }
+    }
   } catch {
     value = EMPTY;
   }
@@ -124,7 +177,7 @@ export function updateStore(fn: (s: LowbotiStore) => LowbotiStore) {
 function subscribe(cb: () => void) {
   listeners.add(cb);
   const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY || e.key === null) cb();
+    if (e.key === KEY || e.key === LEGACY_KEY || e.key === null || e.key.startsWith("gollazyum:") || e.key.startsWith("lowboti:")) cb();
   };
   window.addEventListener("storage", onStorage);
   return () => {

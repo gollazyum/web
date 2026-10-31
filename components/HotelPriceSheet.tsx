@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MochiStars, ratingTier } from "./MochiMarks";
-import { agodaSearchUrl, bookingLink, firstSites, isAgoda, roboPick, roboReason, type HotelOption, type HotelQuery, type HotelSource, type ReviewTopic } from "@/lib/hotels";
+import { agodaSearchUrl, bookingLink, firstSites, isAgoda, lowestOffer, roboPick, roboReason, type HotelOption, type HotelQuery, type HotelSource, type ReviewTopic } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
 import { useSheet } from "@/lib/useSheet";
 
@@ -44,7 +44,7 @@ export function roboSummary(h: HotelOption, all: HotelOption[], nights: number, 
   const pct = h.deal.match(/(\d+)\s*%/)?.[1];
   if (pct) facts.push(`평소보다 ${pct}% 저렴하게 나온 가격이에요`);
   if (h.amenities.some((a) => /조식/.test(a))) facts.push("조식 관련 표시가 있어요");
-  const lead = picked ? "로보티 AI 인사이트가 붙은 곳이에요. " : "";
+  const lead = picked ? "Gollazyum AI가 붙은 곳이에요. " : "";
   if (!facts.length) return `${lead}${h.stars ? `${h.stars}성급 ` : ""}${h.kind}이에요. 사이트마다 총액이 달라서 아래에서 가장 싼 곳을 확인해 보세요.`;
   const [a, b] = facts;
   return `${lead}${b ? `${and(a)}, ${b}` : a}.`;
@@ -83,7 +83,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
   const best = lowestCost(sources);
   // 줄 세우기: 총액(없으면 1박가) 낮은 순
   const rows = [...sources].sort((a, b) => (a.total ?? a.perNight ?? Infinity) - (b.total ?? b.perNight ?? Infinity));
-  const top = rows.find((s) => s.total !== null) ?? rows[0];
+  const top = lowestOffer(rows) ?? rows.find((s) => s.total !== null) ?? rows[0];
   const linkOf = (s: HotelSource) => bookingLink(s, hotel.name, query);
   const pick = roboPick(sources, hotel.token);
   const why = pick ? roboReason(sources, pick, hotel.deal, hotel.token) : "";
@@ -136,7 +136,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
           )}
 
           <p className="ps-robo">
-            <span aria-hidden="true">🤖</span> <b>로보티 요약:</b> {sheetSummary(hotel, sources, summary)}
+            <span aria-hidden="true">🤖</span> <b>Gollazyum AI 요약:</b> {sheetSummary(hotel, sources, summary)}
           </p>
 
           <h3>
@@ -155,8 +155,8 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
                     <span className="ps-site">
                       {s.name}
                       {s.official && <em> 공식</em>}
-                      {s.name === pick && <em className="hotel-pick"> AI Insight</em>}
-                      {isBest && <em className="best-badge">Smart Deal</em>}
+                      {s.name === pick && <em className="hotel-pick"> Gollazyum AI</em>}
+                      {isBest && <em className="best-badge">최저가</em>}
                       {s.name === pick && <small className="pick-why">{why}</small>}
                     </span>
                     <span className="ps-cost">

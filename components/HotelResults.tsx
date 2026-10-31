@@ -11,7 +11,7 @@ import { ScanProgress } from "./ScanProgress";
 import { SortMenu } from "./SortMenu";
 import { errorCode } from "@/lib/apiError";
 import { addDays, daysBetween, shortLabel, today } from "@/lib/dates";
-import { agodaSearchUrl, bookingLink, firstSites, isAgoda, hotelsPath, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
+import { agodaSearchUrl, bookingLink, firstSites, isAgoda, hotelsPath, lowestOffer, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
 import { MAX_COMPARE, compareItem, saveTopics, toSearchParams, updateStore, useLowbotiStore } from "@/lib/lowbotiStore";
 import { isPhone, useSheet } from "@/lib/useSheet";
@@ -65,7 +65,7 @@ export function HotelResultsView({ query }: { query: HotelQuery | null }) {
       {!query ? (
         <ResultsMessage title="Stays 호텔 실시간 가격">
           도시나 호텔 이름과 날짜를 위에서 넣어 주세요. Gollazyum이 아고다·트립닷컴·부킹닷컴 같은 예약 사이트와 호텔 공식 사이트의 실시간 가격을
-          모아 세금 포함 총액으로 보여 드려요. 궁금한 건 오른쪽의 로보티에게 예산이나 원하는 조건을 물어보세요.
+          모아 세금 포함 총액으로 보여 드려요. 궁금한 건 오른쪽의 Gollazyum AI에게 예산이나 원하는 조건을 물어보세요.
         </ResultsMessage>
       ) : !revealed ? (
         <>
@@ -225,7 +225,18 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
       const prices = (await res.json()) as HotelPrices;
       const topics = prices.topics ?? null;
       saveTopics(hotel.token, topics);
-      put({ kind: "ok", sources: prices.sources.length ? prices.sources : (hotel.sources ?? []), topics });
+      const sources = prices.sources.length ? prices.sources : (hotel.sources ?? []);
+      const best = lowestOffer(sources);
+      put({ kind: "ok", sources, topics });
+      // 상세에서 더 낮은 사이트가 나오면 카드 가격·정렬도 그 곳으로 맞춘다
+      if (best) {
+        setData((d) => ({
+          ...d,
+          options: d.options.map((o) =>
+            o.token === hotel.token ? { ...o, perNight: best.perNight, total: best.total, priceSource: best.name } : o,
+          ),
+        }));
+      }
     } catch {
       put({ kind: "error", message: "연결이 불안정해요. 잠시 뒤에 다시 눌러 주세요." });
     }
@@ -285,7 +296,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     setStars(new Set((f.stars ?? []).filter((s) => starList.includes(s))));
     setAmenities(new Set((f.amenities ?? []).filter((a) => amenityList.some(([name]) => name === a))));
     setAdvisorOpen(false);
-    setToast("로보티가 말한 조건을 필터에 넣었어요");
+    setToast("Gollazyum AI가 말한 조건을 필터에 넣었어요");
   }
 
   if (!data.options.length) {
@@ -426,7 +437,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           </div>
         </div>
         <p className="results-hint">
-          큰 숫자는 <b>1박 평균</b>(세금 포함)이에요 · <span className="m-only">카드를 누르면</span>
+          큰 숫자는 비교한 곳 중 가장 낮은 <b>1박 평균</b>(세금 포함)이에요 · <span className="m-only">카드를 누르면</span>
           <span className="pc-only">&apos;가격 보기&apos;를 누르면</span> 사이트별 가격
         </p>
 
@@ -495,8 +506,8 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
       {!advisorOpen && !sheetHotel && !filtersOpen && (
         <button type="button" className={`advisor-fab${store.compare.length ? " lifted" : ""}`} onClick={openAdvisor}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/lowboti-mark.svg" alt="" />
-          <span className="fab-label">AI 인사이트</span>
+          <img src="/brand/gollazyum-mark.svg" alt="" />
+          <span className="fab-label">Gollazyum AI</span>
         </button>
       )}
       {!sheetHotel && !filtersOpen && !compareOpen && !(advisorOpen && phoneSheet) && (
@@ -709,8 +720,8 @@ function Gallery({ images, name, badge }: { images: string[]; name: string; badg
 // 휴대폰 카드 사진 위 배지 하나. 우선순위: 로보티 추천 > 이 검색 최저가 > 평소보다 n%↓
 type Badge = { kind: "robo" | "lowest" | "deal"; text: string } | null;
 function badgeFor(h: HotelOption, picks: Set<string>, lowestToken: string): Badge {
-  if (picks.has(h.token)) return { kind: "robo", text: "AI Insight" };
-  if (h.token === lowestToken) return { kind: "lowest", text: "Smart Deal" };
+  if (picks.has(h.token)) return { kind: "robo", text: "Gollazyum AI" };
+  if (h.token === lowestToken) return { kind: "lowest", text: "최저가" };
   const pct = h.deal.match(/(\d+)\s*%/)?.[1];
   if (pct) return { kind: "deal", text: `평소보다 ${pct}%↓` };
   return null;
@@ -740,8 +751,13 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
     if (!open) onPrices();
   }
 
-  const total = totalOf(hotel, nights);
   const sources = prices?.kind === "ok" ? prices.sources : hotel.sources;
+  const best = lowestOffer(sources);
+  const perNight = best?.perNight ?? hotel.perNight;
+  const offerTotal = best ? best.total : hotel.total;
+  const sourceName = best?.name ?? null;
+  const total = offerTotal ?? (perNight !== null ? perNight * nights : null);
+  const exactTotal = offerTotal !== null;
   const lowest = lowestCost(sources);
   const pick = roboPick(sources, hotel.token);
   const why = pick ? roboReason(sources, pick, hotel.deal, hotel.token) : "";
@@ -799,14 +815,15 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
         )}
       </div>
       <div className="hcard-price">
-        {/* 큰 숫자는 1박 평균(세금 포함), 총액은 아래 작은 줄. 1박 가격이 없으면 총액을 크게 */}
-        {hotel.perNight !== null ? (
+        {/* 큰 숫자는 비교한 사이트 중 가장 낮은 1박 평균(세금 포함). 총액과 사이트 이름은 그 곳의 값 */}
+        {perNight !== null ? (
           <>
             <em>1박 평균 · 세금 포함</em>
-            <strong>{won(hotel.perNight)}</strong>
+            <strong>{won(perNight)}</strong>
+            {sourceName && <span className="hcard-src">{sourceName}</span>}
             {nights > 1 && total !== null && (
               <span>
-                {nights}박 {hotel.total !== null ? "총" : "약"} {won(total)}
+                {nights}박 {exactTotal ? "총" : "약"} {won(total)}
               </span>
             )}
           </>
@@ -815,6 +832,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
             <>
               <em>{nights}박 총액 · 세금 포함</em>
               <strong>{won(total)}</strong>
+              {sourceName && <span className="hcard-src">{sourceName}</span>}
             </>
           )
         )}
@@ -852,8 +870,8 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
                     <span>
                       {s.name}
                       {s.official && <em> 공식</em>}
-                      {s.name === pick && <em className="hotel-pick"> AI Insight</em>}
-                      {lowest && lowest.value !== null && lowest.cost(s) === lowest.value && <em className="best-badge">Smart Deal</em>}
+                      {s.name === pick && <em className="hotel-pick"> Gollazyum AI</em>}
+                      {lowest && lowest.value !== null && lowest.cost(s) === lowest.value && <em className="best-badge">최저가</em>}
                       {s.name === pick && <small className="pick-why">{why}</small>}
                     </span>
                     <b>
@@ -897,9 +915,9 @@ function HotelSkeletons() {
     <div className="hcard-skeletons">
       <div className="skeleton-banner" role="status">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/lowboti-mark.svg" alt="" />
+        <img src="/brand/gollazyum-mark.svg" alt="" />
         <p>
-          <strong>🔍 로보티가 실시간 가격 데이터와 숨은 할인 경로를 분석하고 있어요...</strong>
+          <strong>🔍 Gollazyum AI가 가격 데이터와 숨은 할인 경로를 분석하고 있어요...</strong>
           <span>예약 사이트별 숨은 총액까지 계산하는 중 · 약 5~10초</span>
         </p>
       </div>

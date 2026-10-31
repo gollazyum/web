@@ -120,10 +120,10 @@ export function FlightAdvisor({ flights, query, open, onClose, onPick }: Props) 
   }
 
   return (
-    <aside className={`advisor flight-advisor${open ? " open" : ""}`} aria-label="로보티 항공권 도우미">
+    <aside className={`advisor flight-advisor${open ? " open" : ""}`} aria-label="Gollazyum AI 항공권 도우미">
       <div className="advisor-head">
         <div>
-          <strong>로보티에게 물어보세요</strong>
+          <strong>Gollazyum AI에게 물어보세요</strong>
           <span>
             <i className="online" /> 항공권 도우미 AI
           </span>
@@ -173,7 +173,7 @@ export function FlightAdvisor({ flights, query, open, onClose, onPick }: Props) 
               {m.content ? (
                 <p className="bubble">{render(m.content)}</p>
               ) : (
-                <p className="bubble typing" aria-label="로보티가 정리하고 있어요">
+                <p className="bubble typing" aria-label="Gollazyum AI가 정리하고 있어요">
                   <span />
                   <span />
                   <span />
@@ -196,7 +196,7 @@ export function FlightAdvisor({ flights, query, open, onClose, onPick }: Props) 
           onChange={(e) => setInput(e.target.value)}
           placeholder="예: 직항 중에 오전 출발"
           maxLength={500}
-          aria-label="로보티에게 보낼 메시지"
+          aria-label="Gollazyum AI에게 보낼 메시지"
         />
         <button type="submit" disabled={busy || !input.trim()} aria-label="보내기">
           ↑

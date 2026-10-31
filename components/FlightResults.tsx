@@ -395,8 +395,8 @@ function FlightBoard({ data, query, request, link }: { data: FlightResults; quer
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/lowboti-mark.svg" alt="" />
-          <span className="fab-label">AI 인사이트</span>
+          <img src="/brand/gollazyum-mark.svg" alt="" />
+          <span className="fab-label">Gollazyum AI</span>
         </button>
       )}
     </div>

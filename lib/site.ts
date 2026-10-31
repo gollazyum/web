@@ -6,7 +6,8 @@ export const site = {
   tagline: "AI Travel & Lifestyle Platform",
   description:
     "글로벌 트래블 데이터와 AI 라이프스타일 솔루션을 하나로 연결하는 차세대 디지털 플랫폼. 숙소와 항공편의 실시간 데이터를 세금·수수료를 포함한 총액으로 한 화면에서 탐색하세요.",
-  instagramUrl: "https://www.instagram.com/lowboti/", // 인스타그램 주소는 여기서만 바꾼다
+  // 푸터·안내 링크. 새 인스타그램 계정이 저장소에 없어 JSON-LD sameAs에는 넣지 않는다.
+  instagramUrl: "https://www.instagram.com/lowboti/",
   contactEmail: "gollazyum@gmail.com",
   notifyUrl: "", // 오픈 알림 신청 링크. 예: 카카오톡 채널, 구글 폼 주소
   // 첫 화면 안내 문구의 "숨은 예약 경로 N곳". 숫자는 여기서만 바꾼다

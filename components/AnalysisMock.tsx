@@ -61,12 +61,12 @@ export function AnalysisMock() {
           <strong>아고다</strong>가 가장 싸요. 최고가보다 <strong className="save">{won(save)}</strong> 아낄 수 있어요.
         </span>
       </div>
-      <span className="total-tag">세금·봉사료 포함 총액</span>
+      <span className="total-tag">예시 금액 · 검색으로 받은 가격이 아니에요</span>
       {rows.map((r, i) => (
         <div key={r.name} className={`bar-row${r.best ? " best" : ""}`}>
           <span>
             {r.name}
-            {r.best && <em className="best-badge">Smart Deal</em>}
+            {r.best && <em className="best-badge">최저가</em>}
           </span>
           <div className="bar">
             <i style={{ width: shown ? `${r.w}%` : 0, transitionDelay: `${i * 120}ms` }} />

@@ -3,7 +3,7 @@ export function Logo({ height = 40, tone = "color" }: { height?: number; tone?: 
   return (
     <span className={`logo-lockup${tone === "white" ? " white" : ""}`} style={{ height, fontSize: Math.round(height * 0.62) }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/lowboti-mark.svg" alt="" height={height} width={height} />
+      <img src="/brand/gollazyum-mark.svg" alt="" height={height} width={height} />
       <span className="logo-word">Gollazyum</span>
     </span>
   );

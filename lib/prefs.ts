@@ -1,6 +1,6 @@
 import type { ReviewTopic } from "./hotels";
 
-// '이번 여행에서 제일 중요한 건?' 선호 칩. 고른 칩 이름은 lowboti:v1.prefs.chips에 그대로 저장한다.
+// '이번 여행에서 제일 중요한 건?' 선호 칩. 누른 칩 이름은 gollazyum:v1.prefs.chips에 그대로 저장한다.
 // topic: Google 후기 주제(reviews_breakdown) 이름과 맞춰 볼 말 (한국어·영어 둘 다 올 수 있다)
 // amenity: 편의시설 이름과 맞춰 볼 말
 export type PrefChip = { id: string; emoji: string; topic?: RegExp; amenity?: RegExp };
