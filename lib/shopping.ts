@@ -216,6 +216,9 @@ export function maskSecrets(s: string): string {
 
 export function rawSellerLog(json: Record<string, unknown> | null, detail?: Record<string, unknown> | null) {
   const rows = shoppingResults(json).map((r) => ({
+    title: r.title ?? "",
+    price: r.extracted_price ?? null,
+    token: r.immersive_product_page_token ?? "",
     source: r.source ?? "",
     link: maskSecrets(r.link ?? ""),
     product_link: maskSecrets(r.product_link ?? ""),
@@ -223,6 +226,8 @@ export function rawSellerLog(json: Record<string, unknown> | null, detail?: Reco
   }));
   const stores = ((detail?.product_results as { stores?: SerpStore[] } | undefined)?.stores ?? []).map((s) => ({
     name: s.name ?? "",
+    price: s.extracted_price ?? null,
+    tag: s.tag ?? "",
     link: maskSecrets(s.link ?? ""),
     seller: normalizeSeller(s.name, s.link) ?? "(제외)",
   }));
