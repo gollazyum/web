@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     "Gollazyum",
     "AI 여행 플랫폼",
     "호텔 가격 정보",
-    "항공권 실시간 운임",
+    "항공권 운임",
     "트래블 데이터",
     "AI 라이프스타일 솔루션",
   ],

@@ -29,7 +29,7 @@ const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
 async function failMessage(res: Response): Promise<string> {
   if (res.status === 429) return "검색이 너무 잦아서 잠깐 쉬고 있어요. 잠시 뒤에 다시 찾아 주세요.";
-  if (res.status === 503) return "실시간 호텔 가격 기능을 준비하고 있어요. 아고다에서 먼저 찾아보세요.";
+  if (res.status === 503) return "호텔 가격 기능을 준비하고 있어요. 아고다에서 먼저 찾아보세요.";
   return `지금은 호텔 가격을 불러오지 못했어요. 잠시 뒤에 다시 찾아 주세요. (오류 ${await errorCode(res)})`;
 }
 
@@ -63,9 +63,9 @@ export function HotelResultsView({ query }: { query: HotelQuery | null }) {
       summary={query && { title: query.q, sub: `${shortLabel(query.checkIn)} ~ ${shortLabel(query.checkOut)} · 성인 ${query.adults}명` }}
     >
       {!query ? (
-        <ResultsMessage title="Stays 호텔 실시간 가격">
-          도시나 호텔 이름과 날짜를 위에서 넣어 주세요. Gollazyum이 아고다·트립닷컴·부킹닷컴 같은 예약 사이트와 호텔 공식 사이트의 실시간 가격을
-          모아 세금 포함 총액으로 보여 드려요. 궁금한 건 오른쪽의 Gollazyum AI에게 예산이나 원하는 조건을 물어보세요.
+        <ResultsMessage title="Stays 호텔 가격">
+          도시나 호텔 이름과 날짜를 위에서 넣어 주세요. Gollazyum이 아고다·트립닷컴·부킹닷컴 같은 예약 사이트와 호텔 공식 사이트의 가격을
+          검색할 때마다 새로 받아 세금 포함 총액으로 보여 드려요. 궁금한 건 오른쪽의 Gollazyum AI에게 예산이나 원하는 조건을 물어보세요.
         </ResultsMessage>
       ) : !revealed ? (
         <>
@@ -82,7 +82,7 @@ export function HotelResultsView({ query }: { query: HotelQuery | null }) {
             }}
             steps={[
               { text: "도시·날짜·인원 조건 읽는 중...", at: 0 },
-              { text: "예약 사이트별 실시간 호텔 가격 모으는 중...", at: 0.2 },
+              { text: "예약 사이트별 호텔 가격을 새로 받는 중...", at: 0.2 },
               { text: "호텔마다 가격 정리하는 중...", at: 0.75 },
             ]}
             waitLines={[
