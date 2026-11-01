@@ -3285,6 +3285,15 @@ a {
   font-size: 14px;
   font-weight: 800;
 }
+.hcard-rating .rating-scale[data-tier="good"] {
+  color: #10b981;
+}
+.hcard-rating .rating-scale[data-tier="ok"] {
+  color: #64748b;
+}
+.hcard-rating .rating-scale[data-tier="low"] {
+  color: var(--color-deal);
+}
 .hcard-rating em {
   font-style: normal;
   color: var(--muted);
@@ -3307,6 +3316,9 @@ a {
   font-weight: 800;
   color: var(--white);
   letter-spacing: -0.02em;
+}
+.rating-mochi[data-tier="low"] b {
+  color: var(--color-deal);
 }
 .mochi-stars {
   display: inline-flex;
@@ -3915,6 +3927,24 @@ a {
   margin: -4px 0 12px;
   font-size: 13px;
   color: var(--muted);
+}
+.hcard-limit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 2px 0 0;
+}
+.hcard-limit span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-deal-bg);
+  color: var(--color-deal);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 18px;
 }
 .results-hint b {
   color: var(--ink);

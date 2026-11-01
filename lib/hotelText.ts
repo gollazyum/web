@@ -172,6 +172,23 @@ const PLACES: Record<string, string> = {
   shinsaibashi: "신사이바시", dotonbori: "도톤보리", hakata: "하카타", tenjin: "덴진", susukino: "스스키노", station: "역", ekimae: "역앞",
 };
 
+// 남성 전용·여성 전용처럼 인원 구성이 안 맞을 수 있는 숙소. 이름에 적힌 표시만 본다
+export type StayLimit = "male" | "female";
+
+const MALE_ONLY = /男性専用|男性限定|男性のみ|남자\s*전용|남성\s*전용|\bmale\s*only\b|\bmen\s*only\b|\bgents\s*only\b/i;
+const FEMALE_ONLY = /女性専用|女性限定|女性のみ|여자\s*전용|여성\s*전용|\bfemale\s*only\b|\bwomen\s*only\b|\bladies\s*only\b/i;
+
+export function stayLimits(name: string): StayLimit[] {
+  const out: StayLimit[] = [];
+  if (MALE_ONLY.test(name)) out.push("male");
+  if (FEMALE_ONLY.test(name)) out.push("female");
+  return out;
+}
+
+export function stayLimitLabel(kind: StayLimit): string {
+  return kind === "male" ? "남성 전용 숙소예요" : "여성 전용 숙소예요";
+}
+
 // 화면에 보여 줄 호텔 이름. 예약 링크·검색에는 원래 이름을 그대로 쓴다
 export function hotelNameKo(name: string): string {
   let out = name;

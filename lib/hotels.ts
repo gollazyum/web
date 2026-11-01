@@ -1,4 +1,5 @@
 import { AFFILIATE_CID } from "./agoda";
+import { stayLimits } from "./hotelText";
 import { site } from "./site";
 
 const HIDDEN_ROUTES = site.hiddenRouteCount;
@@ -84,6 +85,21 @@ export function lowestOffer(sources: HotelSource[]): HotelSource | null {
   const useTotal = priced.filter((s) => s.total !== null).length > 1;
   const cost = (s: HotelSource) => (useTotal ? s.total ?? Number.POSITIVE_INFINITY : s.perNight ?? Number.POSITIVE_INFINITY);
   return priced.reduce((best, s) => (cost(s) < cost(best) ? s : best));
+}
+
+// 카드의 큰 숫자. 안내가 1박 평균이라, 아는 사이트 중 1박 요금이 가장 낮은 곳을 쓴다.
+export function lowestNightly(sources: HotelSource[]): HotelSource | null {
+  const priced = sources.filter((s): s is HotelSource & { perNight: number } => s.perNight !== null);
+  if (!priced.length) return null;
+  return priced.reduce((best, s) => (s.perNight < best.perNight ? s : best));
+}
+
+// '최저가' 배지. 이용 제한이 없고 평점이 이 값 이상인 숙소 중에서만 붙인다.
+export const LOWEST_BADGE_MIN_RATING = 3.5;
+
+export function canTakeLowestBadge(hotel: { name: string; rating: number | null }): boolean {
+  if (stayLimits(hotel.name).length > 0) return false;
+  return hotel.rating !== null && hotel.rating >= LOWEST_BADGE_MIN_RATING;
 }
 
 // 한국어로 예약할 수 있는 큰 예약 사이트. 아고다가 하위권일 때 대신 추천할 '안전한 곳'

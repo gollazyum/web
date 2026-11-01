@@ -103,8 +103,10 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
       }),
     })
       .then(async (res) => {
-        const j = res.ok ? ((await res.json()) as { winner: number; reasons: string[] }) : null;
-        if (!cancelled) setVerdict(j && rows[j.winner] ? { ...j, by: "ai" } : fallback());
+        const j = res.ok ? ((await res.json()) as { winner?: unknown; reasons?: unknown; by?: unknown }) : null;
+        const winner = typeof j?.winner === "number" && Number.isInteger(j.winner) ? j.winner : -1;
+        const reasons = Array.isArray(j?.reasons) ? j.reasons.filter((r): r is string => typeof r === "string" && r.length > 0).slice(0, 3) : [];
+        if (!cancelled) setVerdict(winner >= 0 && rows[winner] && reasons.length ? { winner, reasons, by: j?.by === "data" ? "data" : "ai" } : fallback());
       })
       .catch(() => !cancelled && setVerdict(fallback()));
     return () => {

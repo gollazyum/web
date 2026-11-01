@@ -11,8 +11,8 @@ import { ScanProgress } from "./ScanProgress";
 import { SortMenu } from "./SortMenu";
 import { errorCode } from "@/lib/apiError";
 import { addDays, daysBetween, shortLabel, today } from "@/lib/dates";
-import { agodaSearchUrl, bookingLink, firstSites, isAgoda, hotelsPath, lowestOffer, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
-import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
+import { agodaSearchUrl, bookingLink, canTakeLowestBadge, firstSites, isAgoda, hotelsPath, LOWEST_BADGE_MIN_RATING, lowestNightly, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
+import { cardAmenities, hotelNameKo, stayLimitLabel, stayLimits } from "@/lib/hotelText";
 import { MAX_COMPARE, compareItem, saveTopics, toSearchParams, updateStore, useLowbotiStore } from "@/lib/lowbotiStore";
 import { isPhone, useSheet } from "@/lib/useSheet";
 import { CompareBar } from "./CompareBar";
@@ -199,11 +199,15 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, unit, range[0], range[1], minRating, stars, amenities, sort]);
 
-  // 이 검색에서 총액이 가장 낮은 한 곳 ('이 검색 최저가' 배지)
+  // '최저가' 배지: 이용 제한이 없고 평점이 기준 이상인 숙소 중 1박 요금이 가장 낮은 한 곳
   const lowestToken = useMemo(() => {
-    if (data.options.length < 2) return "";
-    return data.options.reduce((a, b) => ((totalOf(b, nights) ?? Infinity) < (totalOf(a, nights) ?? Infinity) ? b : a)).token;
+    const nightly = (o: HotelOption) => o.perNight ?? (o.total !== null ? o.total / nights : Infinity);
+    const eligible = data.options.filter(canTakeLowestBadge);
+    if (data.options.length < 2 || !eligible.length) return "";
+    return eligible.reduce((a, b) => (nightly(b) < nightly(a) ? b : a)).token;
   }, [data, nights]);
+  // 사이트 가격을 받은 카드만 '가장 낮은 1박'이라고 말할 수 있다. 목록 가격만 있으면 그 말을 쓰지 않는다
+  const nightlyConfirmed = shown.some((h) => h.perNight !== null) && shown.every((h) => h.perNight === null || !!h.priceSource);
 
   // 도우미가 추천한 호텔 카드로 이동해 잠깐 반짝인다. 필터에 가려져 있으면 필터를 푼다
   function focusHotel(token: string) {
@@ -226,7 +230,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
       const topics = prices.topics ?? null;
       saveTopics(hotel.token, topics);
       const sources = prices.sources.length ? prices.sources : (hotel.sources ?? []);
-      const best = lowestOffer(sources);
+      const best = lowestNightly(sources);
       put({ kind: "ok", sources, topics });
       // 상세에서 더 낮은 사이트가 나오면 카드 가격·정렬도 그 곳으로 맞춘다
       if (best) {
@@ -437,8 +441,9 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           </div>
         </div>
         <p className="results-hint">
-          큰 숫자는 비교한 곳 중 가장 낮은 <b>1박 평균</b>(세금 포함)이에요 · <span className="m-only">카드를 누르면</span>
-          <span className="pc-only">&apos;가격 보기&apos;를 누르면</span> 사이트별 가격
+          큰 숫자는 {nightlyConfirmed ? "비교한 곳 중 가장 낮은 " : "지금 받은 "}
+          <b>1박 평균</b>(세금 포함)이에요 · <span className="m-only">카드를 누르면</span>
+          <span className="pc-only">&apos;가격 보기&apos;를 누르면</span> 사이트별 가격. 최저가 배지는 평점 {LOWEST_BADGE_MIN_RATING} 이상·이용 제한 없는 숙소 중이에요.
         </p>
 
         {shown.length ? (
@@ -721,7 +726,7 @@ function Gallery({ images, name, badge }: { images: string[]; name: string; badg
 type Badge = { kind: "robo" | "lowest" | "deal"; text: string } | null;
 function badgeFor(h: HotelOption, picks: Set<string>, lowestToken: string): Badge {
   if (picks.has(h.token)) return { kind: "robo", text: "Gollazyum AI" };
-  if (h.token === lowestToken) return { kind: "lowest", text: "최저가" };
+  if (h.token === lowestToken && canTakeLowestBadge(h)) return { kind: "lowest", text: "최저가" };
   const pct = h.deal.match(/(\d+)\s*%/)?.[1];
   if (pct) return { kind: "deal", text: `평소보다 ${pct}%↓` };
   return null;
@@ -752,10 +757,10 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
   }
 
   const sources = prices?.kind === "ok" ? prices.sources : hotel.sources;
-  const best = lowestOffer(sources);
+  const best = lowestNightly(sources);
   const perNight = best?.perNight ?? hotel.perNight;
   const offerTotal = best ? best.total : hotel.total;
-  const sourceName = best?.name ?? null;
+  const sourceName = best?.name ?? hotel.priceSource;
   const total = offerTotal ?? (perNight !== null ? perNight * nights : null);
   const exactTotal = offerTotal !== null;
   const lowest = lowestCost(sources);
@@ -764,7 +769,8 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
   const [allSites, setAllSites] = useState(false);
   const first = firstSites(sources, pick);
   const hidden = sources.length - first.size;
-  const tier = hotel.rating ? ratingTier(hotel.rating) : null;
+  const tier = hotel.rating !== null ? ratingTier(hotel.rating) : null;
+  const limits = stayLimits(hotel.name);
   const blocked = !compared && compareFull;
   const amenities = cardAmenities(hotel.amenities);
   return (
@@ -776,6 +782,13 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
       />
       <div className="hcard-body">
         <h3 title={hotel.name}>{hotelNameKo(hotel.name)}</h3>
+        {limits.length > 0 && (
+          <p className="hcard-limit">
+            {limits.map((kind) => (
+              <span key={kind}>⚠ {stayLimitLabel(kind)}</span>
+            ))}
+          </p>
+        )}
         <p className="hcard-meta">
           {hotel.stars ? (
             <>
@@ -802,11 +815,14 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
         )}
         {/* 특가가 사진 배지로 나가면 같은 말을 두 번 하지 않는다 */}
         {hotel.deal && badge?.kind !== "deal" && <p className="hcard-deal">{hotel.deal}</p>}
-        {hotel.rating !== null ? (
+        {hotel.rating !== null && tier ? (
           <div className="hcard-rating">
             <RatingMochi rating={hotel.rating} />
             <p>
-              {tier?.word && <span style={{ color: tier.color }}>{tier.word}</span>}
+              <span className="rating-scale" data-tier={tier.band}>
+                {hotel.rating.toFixed(1)}/5
+              </span>
+              <span style={{ color: tier.color }}>{tier.word}</span>
               {hotel.reviews ? <em>후기 {hotel.reviews.toLocaleString("ko-KR")}개</em> : null}
             </p>
           </div>
