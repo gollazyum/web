@@ -11,8 +11,13 @@ export const maxDuration = 30;
 
 const CACHE_MS = 6 * 60 * 60 * 1000;
 const isDev = process.env.NODE_ENV !== "production";
-// 원본 판매처 확인 화면(&debug=1): 개발 환경과 Vercel 미리보기에서만. 운영 사이트(VERCEL_ENV=production)에서는 꺼져 있다
-const debugAllowed = isDev || process.env.VERCEL_ENV === "preview";
+// 원본 판매처 확인 화면(&debug=1): 개발 환경과 Vercel 미리보기에서만. 운영 사이트에서는 꺼져 있다.
+// VERCEL_ENV가 안 보이는 설정도 있어, 운영 도메인(gollazyum.com)이 아닌 *.vercel.app 주소인지도 함께 본다
+function debugAllowed(url: URL): boolean {
+  if (isDev) return true;
+  if (process.env.VERCEL_ENV === "production") return false;
+  return process.env.VERCEL_ENV === "preview" || url.hostname.endsWith(".vercel.app");
+}
 
 const searchParams = (q: string) => ({ engine: "google_shopping", q, gl: "kr", hl: "ko", location: "South Korea" });
 const detailParams = (token: string) => ({ engine: "google_immersive_product", page_token: token, gl: "kr", hl: "ko" });
@@ -35,7 +40,7 @@ export async function GET(req: Request) {
   const q = url.searchParams.get("q")?.trim() ?? "";
   const token = url.searchParams.get("token") ?? "";
   if (!q || q.length > 100 || token.length > 2000) return Response.json({ error: "bad_request" }, { status: 400 });
-  const debug = debugAllowed && url.searchParams.get("debug") === "1";
+  const debug = debugAllowed(url) && url.searchParams.get("debug") === "1";
 
   // 로컬 개발에서 키가 없으면 예시 데이터로 화면을 그린다 (운영에서는 절대 쓰지 않음)
   if (!process.env.SERPAPI_API_KEY && isDev) {
