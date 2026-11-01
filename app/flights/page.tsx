@@ -5,7 +5,7 @@ import { parseFlightsPath } from "@/lib/flights";
 
 // 항공권 검색 결과 페이지. 검색 조건은 주소(?from=&to=&depart=&return=&adults=)에 있어 그대로 공유할 수 있다
 const FLIGHTS_DESCRIPTION =
-  "출발지·도착지와 날짜를 입력하면 Google 항공편의 항공권 운임을 낮은 가격 순서로 보여 드려요. 직항·경유, 출발 시간대, 항공사로 걸러 보고 트립닷컴에서 바로 예약하세요.";
+  "출발지·도착지와 날짜를 입력하면 항공 운임을 낮은 가격 순서로 보여 드려요. 직항·경유, 출발 시간대, 항공사로 걸러 보고 트립닷컴에서 바로 예약하세요.";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 

@@ -203,7 +203,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
             </ul>
           )}
           <p className="flight-note">
-            Google 호텔 검색 기준, 검색 시점 가격이에요. 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요. 아고다 링크는 제휴 링크라 예약 시 Gollazyum이
+            검색 시점의 예약 사이트별 가격이에요. 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요. 아고다 링크는 제휴 링크라 예약 시 Gollazyum이
             수수료를 받을 수 있어요.
           </p>
         </div>
