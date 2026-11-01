@@ -103,3 +103,21 @@ describe("개발용 원본 로그", () => {
     expect(rows[0]).toMatchObject({ source: "11번가", seller: "11번가" });
   });
 });
+
+describe("이상한 가격", () => {
+  it("1원 같은 값은 검색 목록에서 가격 없음", () => {
+    const { items } = shapeSearch(search([item({ extracted_price: 1 })]));
+    expect(items[0].price).toBeNull();
+  });
+  it("상세에서 1원·터무니없이 싼 값은 1위가 되지 않는다", () => {
+    const { product } = shapeDetail("q", "t", search([item()]), detail([
+      { name: "11번가", link: "https://www.11st.co.kr/1", extracted_price: 1 },
+      { name: "G마켓", link: "https://www.gmarket.co.kr/1", extracted_price: 300000 },
+      { name: "네이버", link: "https://smartstore.naver.com/1", extracted_price: 1300000 },
+      { name: "쿠팡", link: "https://www.coupang.com/1", extracted_price: 1310000 },
+      { name: "Gmarket", link: "https://www.gmarket.co.kr/2", extracted_price: 1320000 },
+    ]));
+    expect(product!.price).toBe(1300000);
+    expect(product!.offers[0].seller.key).toBe("네이버");
+  });
+});

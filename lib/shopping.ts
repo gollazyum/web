@@ -41,6 +41,12 @@ export type SearchItem = {
 export type SearchResponse = { items: SearchItem[]; sample?: boolean };
 
 export const MAX_SEARCH_ITEMS = 20;
+// 이보다 싼 값(1원 등)은 실제 판매가로 보지 않는다 (가격 미확인 처리)
+export const MIN_PRICE = 1000;
+// 다른 판매처 가운데값의 이 비율보다 싸면 미끼·오류 가격으로 보고 1위 후보에서 뺀다
+const OUTLIER_RATIO = 0.3;
+
+const realPrice = (n: number | null | undefined) => (typeof n === "number" && n >= MIN_PRICE ? n : null);
 
 // 1위 후보: 판매 중이고 가격이 확인된 판매처 (쿠팡 덧붙임 행은 가격이 없어 자동으로 빠진다)
 export const rankable = (o: Offer): o is Offer & { price: number } =>
@@ -88,7 +94,7 @@ export function shapeSearch(json: Record<string, unknown>): SearchResponse {
       token: r.immersive_product_page_token!,
       title: r.title!.trim(),
       image: r.thumbnail ?? "",
-      price: typeof r.extracted_price === "number" && r.extracted_price > 0 ? r.extracted_price : null,
+      price: realPrice(r.extracted_price),
       seller: normalizeSeller(r.source, resultLink(r)),
     }));
   return { items };
@@ -102,7 +108,7 @@ function toOffer(r: RawOffer, query: string, title: string): Offer | null {
   const coupang = name === "쿠팡" ? getCoupangLink({ title }, query) : null;
   // 쿠팡은 SerpApi가 준 원본 주소를 절대 쓰지 않는다. 다른 곳은 중간 이동을 푼 판매처 주소
   const link = coupang ? coupang.url : resolveSellerUrl(r.link);
-  return { seller: sellerInfo(name), price: r.price && r.price > 0 ? r.price : null, available: !r.soldOut, link, coupang };
+  return { seller: sellerInfo(name), price: realPrice(r.price), available: !r.soldOut, link, coupang };
 }
 
 // 판매처마다 1개만 남긴다 (1위 후보 중 가장 싼 것 → 없으면 처음 것)
@@ -169,6 +175,12 @@ export function shapeDetail(
   for (const [k, v] of pickBest(extra)) best.set(k, v);
 
   const list = [...best.values()];
+  // 다른 판매처보다 터무니없이 싼 값은 가격 미확인으로 돌린다 (판매처가 3곳 이상일 때만 판단)
+  const prices = list.filter((x) => rankable(x.offer)).map((x) => x.offer.price!).sort((a, b) => a - b);
+  if (prices.length >= 3) {
+    const median = prices[Math.floor(prices.length / 2)];
+    for (const x of list) if (x.offer.price !== null && rankable(x.offer) && x.offer.price < median * OUTLIER_RATIO) (x.offer as Offer).price = null;
+  }
   const ranked = list.filter((x) => rankable(x.offer)).sort((a, b) => a.offer.price! - b.offer.price!);
   const rest = list.filter((x) => !rankable(x.offer));
   const offers = [...ranked, ...rest].map((x) => x.offer);
@@ -185,7 +197,8 @@ export function shapeDetail(
     product: {
       query,
       title,
-      option: (selected?.extensions ?? []).slice(0, 2).join(" · "),
+      // 검색 결과의 부가 문구("저렴한 가격" 등)는 데이터 쪽 평가라 쓰지 않는다
+      option: "",
       image: pr?.thumbnails?.[0] || selected?.thumbnail || "",
       price: top?.offer.price ?? null,
       originalPrice,
