@@ -1317,8 +1317,19 @@ a {
   font-weight: 500;
   font-size: 14px;
 }
-.stay-card {
+.stay-card,
+.shop-card {
   grid-template-columns: 1fr auto;
+}
+.shop-switch {
+  margin-left: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue);
+  background: none;
+  border: 0;
+  cursor: pointer;
 }
 .route-best {
   display: flex;
