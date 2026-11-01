@@ -5,7 +5,7 @@ import { fetchedTime, won, type Offer } from "@/lib/shopping";
 
 // 순위 표시: 1~3위는 메달, 4위부터 숫자
 function Rank({ rank }: { rank: number | null }) {
-  if (rank === null) return <span className="pd-rank" aria-hidden="true">–</span>;
+  if (rank === null) return <span className="pd-rank" aria-hidden="true" />;
   if (rank <= 3) {
     return (
       <span className={`pd-medal pd-medal-${rank}`} aria-label={`${rank}위`}>
@@ -35,11 +35,11 @@ export function SellerRow({ offer, rank, topPrice, fetchedAt }: { offer: Offer; 
           <strong>{offer.seller.key}</strong>
           {diff > 0 && <em className="pd-diff">+{won(diff)}</em>}
         </span>
-        <span className={`pd-row-price${rank === null ? " none" : ""}`}>
-          {!offer.available ? "품절" : offer.price !== null ? won(offer.price) : "가격 확인 필요"}
+        <span className={`pd-row-price${offer.placeholder ? " check" : rank === null ? " none" : ""}`}>
+          {offer.placeholder ? "쿠팡에서 가격 확인" : !offer.available ? "품절" : offer.price !== null ? won(offer.price) : "가격 확인 필요"}
         </span>
       </span>
-      <span className="pd-row-meta">{fetchedTime(fetchedAt)} 기준</span>
+      {!offer.placeholder && <span className="pd-row-meta">{fetchedTime(fetchedAt)} 기준</span>}
     </>
   );
   const className = `pd-row${top ? " pd-row-top" : ""}`;
