@@ -15,7 +15,7 @@ type SellerDef = Seller & { aliases: string[]; hosts: string[] };
 // 탭 순서도 이 순서를 따른다: 전체 / 쿠팡 / 네이버 / G마켓 / 11번가
 const SELLERS: SellerDef[] = [
   { key: "쿠팡", initial: "쿠", color: "#475569", aliases: ["coupang", "쿠팡"], hosts: ["coupang.com"] },
-  { key: "네이버", initial: "N", color: "#64748b", aliases: ["naver", "네이버", "스마트스토어", "smartstore"], hosts: ["smartstore.naver.com", "shopping.naver.com"] },
+  { key: "네이버", initial: "N", color: "#64748b", aliases: ["naver", "네이버", "스마트스토어", "smartstore"], hosts: ["smartstore.naver.com", "shopping.naver.com", "brand.naver.com"] },
   { key: "G마켓", initial: "G", color: "#52627a", aliases: ["gmarket", "g마켓", "지마켓"], hosts: ["gmarket.co.kr"] },
   { key: "11번가", initial: "11", color: "#6b7a90", aliases: ["11st", "11번가", "11street"], hosts: ["11st.co.kr"] },
 ];
@@ -30,15 +30,37 @@ function clean(s: string): string {
     .replace(/[\s.\-_·]/g, "");
 }
 
-function hostOf(link: string | null | undefined): string {
+function parseUrl(s: string | null | undefined): URL | null {
+  if (!s || !/^https?:\/\//i.test(s)) return null;
   try {
-    return link ? new URL(link).hostname.toLowerCase() : "";
+    return new URL(s);
   } catch {
-    return "";
+    return null;
   }
 }
 
-// 판매처 이름(source)과 링크로 4곳 중 하나를 고른다. 해당 없으면 null
+// 구글 같은 중간 이동 주소(…/url?url=, /aclk?adurl=, ?q=)에서 실제 판매처 주소를 꺼낸다.
+// 주소의 쿼리 파라미터만 읽고, 외부로 요청(fetch/HEAD)은 절대 보내지 않는다. 꺼낼 게 없으면 원래 주소
+const REDIRECT_PARAMS = ["url", "adurl", "q", "u", "dest", "destination"];
+const isRedirector = (host: string) => /(^|\.)google\.[a-z.]+$/.test(host) || /(^|\.)googleadservices\.com$/.test(host) || /(^|\.)doubleclick\.net$/.test(host);
+
+export function resolveSellerUrl(link: string | null | undefined): string {
+  let current = parseUrl(link);
+  if (!current) return "";
+  for (let i = 0; i < 3 && isRedirector(current.hostname.toLowerCase()); i++) {
+    const inner = REDIRECT_PARAMS.map((k) => parseUrl(current!.searchParams.get(k))).find(Boolean);
+    if (!inner) break;
+    current = inner;
+  }
+  return current.toString();
+}
+
+export function sellerHost(link: string | null | undefined): string {
+  return parseUrl(resolveSellerUrl(link))?.hostname.toLowerCase() ?? "";
+}
+
+// 판매처 이름(source)과, 중간 이동을 푼 실제 판매처 주소의 도메인으로만 4곳 중 하나를 고른다.
+// 주소 전체 문자열이나 검색어에 글자가 들어 있는지로는 판단하지 않는다. 해당 없으면 null
 export function normalizeSeller(source: string | null | undefined, link?: string | null): SellerName | null {
   const c = clean(source ?? "");
   if (c) {
@@ -48,7 +70,7 @@ export function normalizeSeller(source: string | null | undefined, link?: string
       SELLERS.find((s) => s.aliases.some((a) => c.startsWith(clean(a))));
     if (hit) return hit.key;
   }
-  const host = hostOf(link);
+  const host = sellerHost(link);
   if (host) {
     const hit = SELLERS.find((s) => s.hosts.some((h) => host === h || host.endsWith("." + h)));
     if (hit) return hit.key;

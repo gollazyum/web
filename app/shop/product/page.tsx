@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ProductDetail } from "@/components/shop/ProductDetail";
+import { ProductResults } from "@/components/shop/ProductResults";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const readQuery = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim().slice(0, 100) : "");
+const read = (v: string | string[] | undefined, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
-// 상품 데이터 상세. 검색어는 주소(?q=)에 있어 그대로 공유할 수 있다. 검색 결과 주소라 검색엔진에는 노출하지 않는다
+// ?q= 만 있으면 상품 검색 목록, ?q=&token= 이면 고른 상품의 스토어별 가격 상세.
+// 검색 결과 주소라 검색엔진에는 노출하지 않는다
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const q = readQuery((await searchParams).q);
+  const q = read((await searchParams).q, 100);
   return {
     title: q ? `${q} 스토어별 가격` : "상품 데이터",
     alternates: { canonical: "/shop" },
@@ -17,7 +19,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default async function ProductPage({ searchParams }: Props) {
-  const q = readQuery((await searchParams).q);
+  const params = await searchParams;
+  const q = read(params.q, 100);
+  const token = read(params.token, 2000);
   if (!q) redirect("/shop");
-  return <ProductDetail key={q} query={q} />;
+  return token ? <ProductDetail key={`${q}|${token}`} query={q} token={token} /> : <ProductResults key={q} query={q} />;
 }

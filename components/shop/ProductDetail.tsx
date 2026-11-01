@@ -40,7 +40,7 @@ const SHARE = "M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v13";
 const STAR = "M12 2.8l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.6l-5.8 3.1 1.1-6.5L2.6 9.6l6.5-.9z";
 
 // 상품 데이터 상세 화면 (모바일 우선, 데스크톱은 가운데 좁은 칼럼)
-export function ProductDetail({ query }: { query: string }) {
+export function ProductDetail({ query, token }: { query: string; token: string }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [fav, setFav] = useState(false);
   const [toast, setToast] = useState("");
@@ -48,7 +48,7 @@ export function ProductDetail({ query }: { query: string }) {
   useEffect(() => {
     setFav(readFavs().includes(query));
     const ctrl = new AbortController();
-    fetch(`/api/shopping?q=${encodeURIComponent(query)}`, { signal: ctrl.signal })
+    fetch(`/api/shopping?q=${encodeURIComponent(query)}&token=${encodeURIComponent(token)}`, { signal: ctrl.signal })
       .then(async (res) => {
         if (!res.ok) return setState({ kind: "error", code: await errorCode(res) });
         const data = (await res.json()) as ShoppingResponse;
@@ -56,7 +56,7 @@ export function ProductDetail({ query }: { query: string }) {
       })
       .catch((e) => e.name !== "AbortError" && setState({ kind: "error", code: "network" }));
     return () => ctrl.abort();
-  }, [query]);
+  }, [query, token]);
 
   useEffect(() => {
     if (!toast) return;
@@ -92,7 +92,9 @@ export function ProductDetail({ query }: { query: string }) {
 
   const product = state.kind === "ok" ? state.product : null;
   const top = product?.offers.find(rankable) ?? null;
-  const hasCoupang = !!product?.offers.some((o) => o.seller.key === "쿠팡");
+  const realOffers = product?.offers.filter((o) => !o.placeholder) ?? [];
+  // 1위가 없으면 하단 버튼은 쿠팡 덧붙임 행(또는 첫 판매처)으로
+  const buyTarget = top ?? product?.offers.find((o) => o.placeholder) ?? product?.offers[0] ?? null;
 
   return (
     <div className="pd-page">
@@ -165,26 +167,23 @@ export function ProductDetail({ query }: { query: string }) {
             </a>
           </section>
 
-          {product.offers.length ? (
-            <PriceCompareList offers={product.offers} fetchedAt={product.fetchedAt} />
-          ) : (
-            <p className="pd-no-sellers">현재 확인된 판매처가 없어요</p>
-          )}
+          {!realOffers.length && <p className="pd-no-sellers">현재 확인된 판매처가 없어요</p>}
+          {product.offers.length > 0 && <PriceCompareList offers={product.offers} fetchedAt={product.fetchedAt} />}
 
+          {/* 쿠팡 대가성 문구: 초록 결정(2026-11-01)으로 상세 화면은 목록 아래 하나의 안내 박스에 합친다 */}
           <aside className="pd-notice">
             <ul>
               <li>
                 상품, 가격 정보가 다른 경우 <a href={reportHref(product.title)}>여기</a>에 제보해 주세요.
               </li>
-              <li>가격은 표시된 시각 기준이며, 판매처에서 바뀔 수 있어요. 최종 금액은 판매처 결제 화면에서 확인해 주세요.</li>
-              {/* 쿠팡 대가성 문구: 초록 결정(2026-11-01)으로 상세 화면은 하단 안내 박스에만 둔다 */}
-              {hasCoupang && <li className="pd-notice-cp">{COUPANG_DISCLOSURE}</li>}
+              <li className="pd-notice-cp">{COUPANG_DISCLOSURE}</li>
+              <li>Gollazyum은 상품 판매의 직접적인 당사자가 아니며, 모든 상거래의 책임은 구매자와 판매처에게 있습니다.</li>
             </ul>
           </aside>
         </main>
       )}
 
-      {product && product.offers.length > 0 && <BuyBar top={top} />}
+      {product && buyTarget && <BuyBar top={buyTarget} />}
     </div>
   );
 }
