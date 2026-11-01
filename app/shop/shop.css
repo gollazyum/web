@@ -621,3 +621,23 @@ a.pd-row-top:hover {
   font-size: 15px;
   color: var(--pd-text);
 }
+
+.pd-notice ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pd-notice li {
+  position: relative;
+  padding-left: 12px;
+}
+.pd-notice li::before {
+  content: "·";
+  position: absolute;
+  left: 2px;
+}
+.pd-notice-cp {
+  color: #334155;
+  font-weight: 500;
+}

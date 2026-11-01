@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { brandCopy } from "@/lib/brand-mode";
 import { BuyBar } from "@/components/shop/BuyBar";
-import { CoupangDisclosure } from "@/components/shop/CoupangDisclosure";
+import { COUPANG_DISCLOSURE } from "@/components/shop/CoupangDisclosure";
 import { PriceCompareList } from "@/components/shop/PriceCompareList";
 import { errorCode } from "@/lib/apiError";
 import { rankable, won, type ShoppingProduct, type ShoppingResponse } from "@/lib/shopping";
@@ -165,8 +165,6 @@ export function ProductDetail({ query }: { query: string }) {
             </a>
           </section>
 
-          {hasCoupang && <CoupangDisclosure />}
-
           {product.offers.length ? (
             <PriceCompareList offers={product.offers} fetchedAt={product.fetchedAt} />
           ) : (
@@ -174,7 +172,14 @@ export function ProductDetail({ query }: { query: string }) {
           )}
 
           <aside className="pd-notice">
-            상품, 가격 정보가 다른 경우 <a href={reportHref(product.title)}>여기</a>에 제보해 주세요.
+            <ul>
+              <li>
+                상품, 가격 정보가 다른 경우 <a href={reportHref(product.title)}>여기</a>에 제보해 주세요.
+              </li>
+              <li>가격은 표시된 시각 기준이며, 판매처에서 바뀔 수 있어요. 최종 금액은 판매처 결제 화면에서 확인해 주세요.</li>
+              {/* 쿠팡 대가성 문구: 초록 결정(2026-11-01)으로 상세 화면은 하단 안내 박스에만 둔다 */}
+              {hasCoupang && <li className="pd-notice-cp">{COUPANG_DISCLOSURE}</li>}
+            </ul>
           </aside>
         </main>
       )}
