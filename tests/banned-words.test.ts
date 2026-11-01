@@ -4,8 +4,16 @@ import { describe, expect, it } from "vitest";
 import { ALWAYS_BANNED_WORDS, BRAND_COPY_KEYS, brandCopy, findBannedWords } from "@/lib/brand-mode";
 import { COUPANG_SAMPLE_PRODUCTS } from "@/lib/coupang-links";
 
-// 화면 문구가 들어 있는 새 파일들 (주석은 빼고 검사한다)
-const UI_PATHS = ["components/shop", "app/shop"];
+// 화면 문구가 들어 있는 파일들 (주석은 빼고 검사한다)
+const UI_PATHS = [
+  "components/shop",
+  "app/shop",
+  "app/page.tsx",
+  "components/SiteNav.tsx",
+  "components/LinkChecker.tsx",
+  "components/ShopSearch.tsx",
+  "components/FamilyCards.tsx",
+];
 
 function walk(p: string): string[] {
   return statSync(p).isDirectory() ? readdirSync(p).flatMap((f) => walk(join(p, f))) : /\.tsx?$/.test(p) ? [p] : [];

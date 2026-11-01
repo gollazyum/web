@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { ChatBox } from "@/components/ChatBox";
 import { FlightSearch } from "@/components/FlightSearch";
 import { HotelSearch } from "@/components/HotelSearch";
+import { ResumeBanner } from "@/components/ResumeBanner";
+import { ShopSearch } from "@/components/ShopSearch";
 import { LowbotiBot } from "@/components/LowbotiBot";
 import { SCAN_FIRST_MS, SCAN_REPEAT_MS, ScanProgress } from "@/components/ScanProgress";
 import { AFFILIATE_CID, HOTEL_PROMOCODES, groupOrder, hotelNameFromUrl, parseAgodaUrl, routes, sampleLinks, withCid } from "@/lib/agoda";
@@ -27,16 +29,18 @@ export function openSearchTab(tab: TabId) {
   document.getElementById("top")?.scrollIntoView({ behavior: "smooth" });
 }
 
+// 첫 화면 4개 카드. 쇼핑이 1번이고 처음 들어오면 쇼핑이 선택돼 있다
 const tabs: { id: TabId; label: string; short: string; img: string; live: boolean; ai?: boolean; soon?: string }[] = [
+  { id: "shop", label: "쇼핑", short: "쇼핑", img: "shop", live: true },
   { id: "stay", label: "숙소", short: "숙소", img: "hotel", live: true },
-  { id: "flight", label: "항공권", short: "항공권", img: "flight", live: true },
-  { id: "shop", label: "Lifestyle·eSIM", short: "Lifestyle", img: "shop", live: false, soon: "여행 준비물과 eSIM 데이터를 연결하는 Lifestyle 서비스를 준비하고 있어요." },
+  { id: "flight", label: "항공·유심", short: "항공·유심", img: "flight", live: true },
   { id: "ask", label: "Gollazyum AI", short: "AI", img: "mark", live: true, ai: true },
 ];
 
 export function LinkChecker() {
-  const [tab, setTab] = useState<TabId>("stay");
+  const [tab, setTab] = useState<TabId>("shop");
   const [stayMode, setStayMode] = useState<"search" | "link">("search");
+  const [shopMode, setShopMode] = useState<"search" | "link">("search");
   const [url, setUrl] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   // 버튼 글자는 첫 HTML에 바로 넣고, 날짜가 들어간 주소는 누를 때 만든다
@@ -101,6 +105,17 @@ export function LinkChecker() {
         ))}
       </div>
 
+      {tab === "shop" && (
+        <div className="stay-modes" role="group" aria-label="상품 찾는 방법">
+          <button type="button" className={shopMode === "search" ? "active" : undefined} onClick={() => setShopMode("search")}>
+            상품·스토어 탐색
+          </button>
+          <button type="button" className={shopMode === "link" ? "active" : undefined} onClick={() => setShopMode("link")}>
+            쇼핑 링크 대조
+          </button>
+        </div>
+      )}
+
       {tab === "stay" && (
         <div className="stay-modes" role="group" aria-label="숙소 찾는 방법">
           <button type="button" className={stayMode === "search" ? "active" : undefined} onClick={() => setStayMode("search")}>
@@ -116,6 +131,8 @@ export function LinkChecker() {
         <div key={tab} className="tab-panel">
         {tab === "ask" ? (
           <ChatBox />
+        ) : tab === "shop" ? (
+          <ShopSearch key={shopMode} mode={shopMode} onUseKeyword={() => setShopMode("search")} />
         ) : tab === "flight" ? (
           <FlightSearch />
         ) : tab === "stay" && stayMode === "search" ? (
@@ -154,6 +171,8 @@ export function LinkChecker() {
         )}
         </div>
       </div>
+
+      {tab === "stay" && <ResumeBanner />}
 
       {tab === "stay" && stayMode === "link" && !result && (
         <div className="quick-try">
