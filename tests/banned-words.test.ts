@@ -13,6 +13,7 @@ const UI_PATHS = [
   "components/LinkChecker.tsx",
   "components/ShopSearch.tsx",
   "components/FamilyCards.tsx",
+  "components/SiteFooter.tsx",
 ];
 
 function walk(p: string): string[] {
