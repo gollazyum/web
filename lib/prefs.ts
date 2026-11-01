@@ -61,6 +61,31 @@ export function chipScore(chip: PrefChip, h: Facts, cheapest: number | null): nu
   return null;
 }
 
+// 모델 답을 못 받았을 때. 같은 숫자로 순서를 매기고, 이유도 그 숫자만 적는다.
+export function compareFallback(hotels: Facts[], chips: string[], budget: number | null): { winner: number; reasons: string[] } {
+  if (!hotels.length) return { winner: 0, reasons: ["가격과 후기 점수로 순서를 매겼어요"] };
+  const prices = hotels.map((h) => h.perNight).filter((n): n is number => n !== null);
+  const cheapest = prices.length ? Math.min(...prices) : null;
+  const scores = hotels.map((h) => prefScore(h, chips, budget, cheapest));
+  let winner = 0;
+  for (let i = 1; i < scores.length; i++) if (scores[i] > scores[winner]) winner = i;
+  const w = hotels[winner];
+  const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
+  const reasons: string[] = [];
+  if (w.perNight !== null && cheapest !== null && w.perNight === cheapest) reasons.push(`분석한 ${hotels.length}곳 중 1박 ${won(w.perNight)}으로 가장 저렴해요`);
+  else if (w.perNight !== null && budget && w.perNight <= budget) reasons.push(`1박 ${won(w.perNight)}으로 예산 안에 들어와요`);
+  if (w.rating !== null) reasons.push(`후기 ${w.rating.toFixed(1)}점(${(w.reviews ?? 0).toLocaleString("ko-KR")}개)이에요`);
+  for (const id of chips) {
+    const chip = chipOf(id);
+    const topic = chip && topicFor(chip, w.topics);
+    if (topic) reasons.push(`${id} 후기 ${topicLine(topic)}예요`);
+    else if (chip?.amenity && w.amenities.some((a) => chip.amenity!.test(a))) reasons.push(`${id} 편의시설 표시가 있어요`);
+  }
+  if (w.stars) reasons.push(`${w.stars}성급 숙소예요`);
+  if (!reasons.length) reasons.push("가격과 후기 점수로 순서를 매겼어요");
+  return { winner, reasons: reasons.slice(0, 3) };
+}
+
 // 예산과 칩을 함께 본 점수. 데이터가 없는 칩은 0.5로 친다
 export function prefScore(h: Facts, chips: string[], budget: number | null, cheapest: number | null): number {
   let score = 0;

@@ -1,4 +1,5 @@
 import { AFFILIATE_CID } from "./agoda";
+import { stayLimits } from "./hotelText";
 import { site } from "./site";
 
 const HIDDEN_ROUTES = site.hiddenRouteCount;
@@ -86,6 +87,21 @@ export function lowestOffer(sources: HotelSource[]): HotelSource | null {
   return priced.reduce((best, s) => (cost(s) < cost(best) ? s : best));
 }
 
+// 카드의 큰 숫자. 안내가 1박 평균이라, 아는 사이트 중 1박 요금이 가장 낮은 곳을 쓴다.
+export function lowestNightly(sources: HotelSource[]): HotelSource | null {
+  const priced = sources.filter((s): s is HotelSource & { perNight: number } => s.perNight !== null);
+  if (!priced.length) return null;
+  return priced.reduce((best, s) => (s.perNight < best.perNight ? s : best));
+}
+
+// '최저가' 배지. 이용 제한이 없고 평점이 이 값 이상인 숙소 중에서만 붙인다.
+export const LOWEST_BADGE_MIN_RATING = 3.5;
+
+export function canTakeLowestBadge(hotel: { name: string; rating: number | null }): boolean {
+  if (stayLimits(hotel.name).length > 0) return false;
+  return hotel.rating !== null && hotel.rating >= LOWEST_BADGE_MIN_RATING;
+}
+
 // 한국어로 예약할 수 있는 큰 예약 사이트. 아고다가 하위권일 때 대신 추천할 '안전한 곳'
 const KOREAN_OK = /agoda|아고다|trip\.com|트립닷컴|booking|부킹|expedia|익스피디아|hotels\.com|호텔스닷컴|klook|클룩|야놀자|여기어때|인터파크|myrealtrip|마이리얼트립/i;
 
@@ -131,13 +147,13 @@ export function roboReason(sources: HotelSource[], pick: string, deal: string, s
   const chosen = ranked.find((s) => s.name === pick);
   if (chosen && !isAgoda(chosen.name)) {
     if (ranked.length === 1) return "🏨 지금 가격이 나온 곳은 여기 한 곳이에요";
-    if (chosen.perNight === top.perNight) return "🏆 현재 모든 예약 사이트를 통틀어 가장 저렴해요!";
+    if (chosen.perNight === top.perNight) return "🏆 비교한 곳 중 가장 저렴해요!";
     if (chosen.official) return "🏨 호텔 공식 사이트라 예약 확인과 변경 문의가 가장 확실해요";
     if (KOREAN_OK.test(chosen.name)) return "🇰🇷 상위권 가격에 한국어로 예약하고 문의할 수 있는 사이트예요";
     return "💡 상위권 중 가격과 조건을 따진 Gollazyum AI예요";
   }
   if (agoda && top) {
-    if (agoda === top || agoda.perNight === top.perNight) return "🏆 현재 모든 예약 사이트를 통틀어 조건 없이 가장 저렴해요!";
+    if (agoda === top || agoda.perNight === top.perNight) return "🏆 비교한 곳 중 조건 없이 가장 저렴해요!";
     if ((agoda.perNight ?? 0) <= (top.perNight ?? 0) * 1.1) return "💡 카드사·간편결제 추가 할인을 받으면 체감가는 여기가 더 싸요";
     if (!KOREAN_OK.test(top.name) && !top.official) return "🛡️ 한국어 고객센터와 국내 결제가 완벽 지원되는 가장 안전한 경로예요";
   }

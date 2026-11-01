@@ -1,4 +1,4 @@
-import { lowestOffer, type HotelOption, type HotelPrices, type HotelResults, type HotelSource, type ReviewTopic } from "@/lib/hotels";
+import { lowestNightly, type HotelOption, type HotelPrices, type HotelResults, type HotelSource, type ReviewTopic } from "@/lib/hotels";
 import { DATE, serpSearch, today } from "@/lib/serpapi";
 import { amenityKo, dealKo, kindKo } from "@/lib/hotelText";
 
@@ -71,9 +71,9 @@ function cleanSources(list: SerpPrice[]): HotelSource[] {
 function toOption(p: SerpProperty): HotelOption | null {
   if (!p.name || !p.property_token) return null;
   const sources = cleanSources(p.prices ?? []);
-  // 카드에 적는 가격은 이번 응답에서 비교한 사이트 중 가장 낮은 곳이다.
-  // 숙소 맨 위 요금(rate_per_night)은 그 최솟값과 다른 사이트일 때가 있어 쓰지 않는다.
-  const best = lowestOffer(sources);
+  // 카드의 큰 숫자는 이번 응답에서 아는 사이트 중 가장 낮은 1박 요금이다.
+  // 사이트 가격이 없으면 목록에 온 1박 요금을 쓰고, 그때는 어느 사이트인지 밝히지 않는다.
+  const best = lowestNightly(sources);
   const shown = sources.slice(0, 3);
   if (best && !shown.some((s) => s.name === best.name)) shown.unshift(best);
   const images = (p.images ?? []).map((i) => i.thumbnail ?? "").filter(Boolean).slice(0, MAX_IMAGES);

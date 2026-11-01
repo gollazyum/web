@@ -46,22 +46,32 @@ export function MochiStars({ count, size = 15 }: { count: number; size?: number 
   );
 }
 
-// 후기 점수 등급과 모찌 색 (Google 5점 만점)
-export function ratingTier(r: number): { word: string; color: string } {
-  // 두 가지 색만: 3.8점 이상 에메랄드, 그 아래는 차분한 슬레이트 (오렌지는 최저가 전용)
-  if (r >= 4.5) return { word: "최고예요", color: "#10B981" };
-  if (r >= 4) return { word: "매우 좋아요", color: "#10B981" };
-  if (r >= 3.8) return { word: "좋아요", color: "#10B981" };
-  return { word: "괜찮아요", color: "#64748B" };
+// 후기 점수 등급과 색 (5점 만점). 3.8 미만을 한 단어로 뭉개지 않는다.
+export type RatingBand = "good" | "ok" | "low";
+
+export function ratingBand(r: number): RatingBand {
+  if (r >= 3.8) return "good";
+  if (r >= 3) return "ok";
+  return "low";
+}
+
+export function ratingTier(r: number): { word: string; color: string; band: RatingBand } {
+  const band = ratingBand(r);
+  if (r >= 4.5) return { word: "최고예요", color: "#10B981", band };
+  if (r >= 4) return { word: "매우 좋아요", color: "#10B981", band };
+  if (r >= 3.8) return { word: "좋아요", color: "#10B981", band };
+  if (r >= 3) return { word: "보통이에요", color: "#64748B", band };
+  // 3.0 미만. 글자는 진한 주황(흰 배경 대비). 밝은 주황 위 흰 글씨는 쓰지 않는다
+  return { word: "아쉬워요", color: "#C2410C", band };
 }
 
 // 점수를 품은 색 모찌
 export function RatingMochi({ rating, size = 40 }: { rating: number; size?: number }) {
-  const { color } = ratingTier(rating);
+  const { color, band } = ratingTier(rating);
   return (
-    <span className="rating-mochi" data-tier={rating >= 3.8 ? "good" : "ok"} style={{ width: size, height: size }}>
+    <span className="rating-mochi" data-tier={band} style={{ width: size, height: size }}>
       <svg viewBox="8 14 86 80" width={size} height={size} aria-hidden="true">
-        <path d={MOCHI} fill={color} />
+        <path d={MOCHI} fill={band === "low" ? "#FFEDD5" : color} />
       </svg>
       <b>{rating.toFixed(1)}</b>
     </span>

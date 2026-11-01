@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MochiStars, ratingTier } from "./MochiMarks";
 import { agodaSearchUrl, bookingLink, firstSites, isAgoda, lowestOffer, roboPick, roboReason, type HotelOption, type HotelQuery, type HotelSource, type ReviewTopic } from "@/lib/hotels";
-import { cardAmenities, hotelNameKo } from "@/lib/hotelText";
+import { cardAmenities, hotelNameKo, stayLimitLabel, stayLimits } from "@/lib/hotelText";
 import { useSheet } from "@/lib/useSheet";
 
 // 휴대폰 호텔 결과: 카드를 누르면 아래에서 올라오는 '예약 사이트별 가격' 시트.
@@ -113,6 +113,13 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
             </div>
           )}
           <h2>{hotelNameKo(hotel.name)}</h2>
+          {stayLimits(hotel.name).length > 0 && (
+            <p className="hcard-limit">
+              {stayLimits(hotel.name).map((kind) => (
+                <span key={kind}>⚠ {stayLimitLabel(kind)}</span>
+              ))}
+            </p>
+          )}
           <p className="ps-meta">
             {hotel.stars ? (
               <>
@@ -124,7 +131,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
             {hotel.rating !== null && (
               <>
                 {" · "}
-                <b className={`ps-rating${hotel.rating >= 3.8 ? "" : " ok"}`}>{hotel.rating.toFixed(1)}</b> {tier?.word}
+                <b className={`ps-rating${tier?.band === "low" ? " low" : tier?.band === "ok" ? " ok" : ""}`}>{hotel.rating.toFixed(1)}/5</b> {tier?.word}
                 {hotel.reviews ? ` · 후기 ${hotel.reviews.toLocaleString("ko-KR")}개` : ""}
               </>
             )}

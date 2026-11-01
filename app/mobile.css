@@ -623,14 +623,22 @@ html.sheet-lock body {
     padding-top: 0;
     padding-bottom: 0;
   }
+  .results-grid,
+  .hcards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .results-main {
+    min-width: 0;
+  }
   .results-hint {
     display: block;
     margin: 8px 0;
     font-size: 12px;
     color: var(--muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    word-break: keep-all;
   }
   .results-hint b {
     color: var(--ink);
@@ -695,6 +703,7 @@ html.sheet-lock body {
   .hcard,
   .with-advisor .hcard {
     position: relative;
+    min-width: 0;
     grid-template-columns: 96px minmax(0, 1fr);
     grid-template-rows: auto 1fr;
     column-gap: 12px;
@@ -746,6 +755,14 @@ html.sheet-lock body {
     background: var(--color-deal-bg);
     color: var(--color-deal);
   }
+  /* 96px 사진 안에 '비교한 곳 중 최저가'가 잘리지 않게 두 줄까지 허용 */
+  .hcard-badge.is-lowest {
+    height: auto;
+    max-width: calc(100% - 12px);
+    padding: 2px 6px;
+    white-space: normal;
+    line-height: 13px;
+  }
   .hcard-deal,
   .hcard-amen {
     display: none;
@@ -778,25 +795,30 @@ html.sheet-lock body {
     gap: 6px;
     font-size: 12px;
   }
+  /* 휴대폰 카드는 원 대신 '2.3/5' 알약. 글자색은 단계마다 덮어쓴다 */
   .hcard-rating .rating-mochi {
-    width: auto !important; /* 컴포넌트 인라인 40px 덮어쓰기 */
-    height: 22px !important;
-    padding: 0 7px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    background: var(--green);
-  }
-  .hcard-rating .rating-mochi[data-tier="ok"] {
-    background: var(--muted);
-  }
-  .hcard-rating .rating-mochi svg {
     display: none;
   }
-  .hcard-rating .rating-mochi b {
-    margin: 0;
+  .hcard-rating .rating-scale {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--green);
     font-size: 12px;
     font-weight: 800;
+  }
+  .hcard-rating .rating-scale[data-tier="good"],
+  .hcard-rating .rating-scale[data-tier="ok"] {
+    color: var(--white);
+  }
+  .hcard-rating .rating-scale[data-tier="ok"] {
+    background: var(--muted);
+  }
+  .hcard-rating .rating-scale[data-tier="low"] {
+    background: var(--color-deal-bg);
+    color: var(--color-deal);
   }
   .hcard-rating p {
     flex-direction: row;
@@ -1070,6 +1092,10 @@ html.sheet-lock body {
   }
   .ps-rating.ok {
     background: var(--muted);
+  }
+  .ps-rating.low {
+    background: var(--color-deal-bg);
+    color: var(--color-deal);
   }
   .ps-map {
     display: inline-flex;
