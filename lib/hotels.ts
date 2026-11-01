@@ -147,13 +147,13 @@ export function roboReason(sources: HotelSource[], pick: string, deal: string, s
   const chosen = ranked.find((s) => s.name === pick);
   if (chosen && !isAgoda(chosen.name)) {
     if (ranked.length === 1) return "🏨 지금 가격이 나온 곳은 여기 한 곳이에요";
-    if (chosen.perNight === top.perNight) return "🏆 현재 모든 예약 사이트를 통틀어 가장 저렴해요!";
+    if (chosen.perNight === top.perNight) return "🏆 비교한 곳 중 가장 저렴해요!";
     if (chosen.official) return "🏨 호텔 공식 사이트라 예약 확인과 변경 문의가 가장 확실해요";
     if (KOREAN_OK.test(chosen.name)) return "🇰🇷 상위권 가격에 한국어로 예약하고 문의할 수 있는 사이트예요";
     return "💡 상위권 중 가격과 조건을 따진 Gollazyum AI예요";
   }
   if (agoda && top) {
-    if (agoda === top || agoda.perNight === top.perNight) return "🏆 현재 모든 예약 사이트를 통틀어 조건 없이 가장 저렴해요!";
+    if (agoda === top || agoda.perNight === top.perNight) return "🏆 비교한 곳 중 조건 없이 가장 저렴해요!";
     if ((agoda.perNight ?? 0) <= (top.perNight ?? 0) * 1.1) return "💡 카드사·간편결제 추가 할인을 받으면 체감가는 여기가 더 싸요";
     if (!KOREAN_OK.test(top.name) && !top.official) return "🛡️ 한국어 고객센터와 국내 결제가 완벽 지원되는 가장 안전한 경로예요";
   }

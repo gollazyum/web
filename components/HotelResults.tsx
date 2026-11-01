@@ -11,7 +11,7 @@ import { ScanProgress } from "./ScanProgress";
 import { SortMenu } from "./SortMenu";
 import { errorCode } from "@/lib/apiError";
 import { addDays, daysBetween, shortLabel, today } from "@/lib/dates";
-import { agodaSearchUrl, bookingLink, canTakeLowestBadge, firstSites, isAgoda, hotelsPath, LOWEST_BADGE_MIN_RATING, lowestNightly, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
+import { agodaSearchUrl, bookingLink, canTakeLowestBadge, firstSites, isAgoda, hotelsPath, lowestNightly, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo, stayLimitLabel, stayLimits } from "@/lib/hotelText";
 import { MAX_COMPARE, compareItem, saveTopics, toSearchParams, updateStore, useLowbotiStore } from "@/lib/lowbotiStore";
 import { isPhone, useSheet } from "@/lib/useSheet";
@@ -206,8 +206,6 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     if (data.options.length < 2 || !eligible.length) return "";
     return eligible.reduce((a, b) => (nightly(b) < nightly(a) ? b : a)).token;
   }, [data, nights]);
-  // 사이트 가격을 받은 카드만 '가장 낮은 1박'이라고 말할 수 있다. 목록 가격만 있으면 그 말을 쓰지 않는다
-  const nightlyConfirmed = shown.some((h) => h.perNight !== null) && shown.every((h) => h.perNight === null || !!h.priceSource);
 
   // 도우미가 추천한 호텔 카드로 이동해 잠깐 반짝인다. 필터에 가려져 있으면 필터를 푼다
   function focusHotel(token: string) {
@@ -441,9 +439,8 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           </div>
         </div>
         <p className="results-hint">
-          큰 숫자는 {nightlyConfirmed ? "비교한 곳 중 가장 낮은 " : "지금 받은 "}
-          <b>1박 평균</b>(세금 포함)이에요 · <span className="m-only">카드를 누르면</span>
-          <span className="pc-only">&apos;가격 보기&apos;를 누르면</span> 사이트별 가격. 최저가 배지는 평점 {LOWEST_BADGE_MIN_RATING} 이상·이용 제한 없는 숙소 중이에요.
+          큰 숫자는 비교한 곳 중 가장 낮은 <b>1박 평균</b>(세금 포함)이에요 · <span className="m-only">카드를 누르면</span>
+          <span className="pc-only">&apos;가격 보기&apos;를 누르면</span> 사이트별 가격
         </p>
 
         {shown.length ? (
@@ -726,7 +723,7 @@ function Gallery({ images, name, badge }: { images: string[]; name: string; badg
 type Badge = { kind: "robo" | "lowest" | "deal"; text: string } | null;
 function badgeFor(h: HotelOption, picks: Set<string>, lowestToken: string): Badge {
   if (picks.has(h.token)) return { kind: "robo", text: "Gollazyum AI" };
-  if (h.token === lowestToken && canTakeLowestBadge(h)) return { kind: "lowest", text: "최저가" };
+  if (h.token === lowestToken && canTakeLowestBadge(h)) return { kind: "lowest", text: "비교한 곳 중 최저가" };
   const pct = h.deal.match(/(\d+)\s*%/)?.[1];
   if (pct) return { kind: "deal", text: `평소보다 ${pct}%↓` };
   return null;

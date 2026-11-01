@@ -755,6 +755,14 @@ html.sheet-lock body {
     background: var(--color-deal-bg);
     color: var(--color-deal);
   }
+  /* 96px 사진 안에 '비교한 곳 중 최저가'가 잘리지 않게 두 줄까지 허용 */
+  .hcard-badge.is-lowest {
+    height: auto;
+    max-width: calc(100% - 12px);
+    padding: 2px 6px;
+    white-space: normal;
+    line-height: 13px;
+  }
   .hcard-deal,
   .hcard-amen {
     display: none;
