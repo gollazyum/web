@@ -51,24 +51,34 @@ async function call(params: Record<string, string>, key: string): Promise<Record
 
 // params로 SerpApi를 부르고 shape로 화면용 데이터를 만들어 응답한다.
 // extra를 주면 같은 검색을 조건을 바꿔 한 번 더 불러(검색 1번 요금 추가) shape에 같이 넘긴다.
+// extra에 함수를 주면 첫 결과를 받은 뒤 그 결과로 다음 검색 조건을 만들어 이어서 부른다 (null이면 안 부름).
 // extra 쪽이 실패하면 null로 넘겨 기본 결과만으로 만든다. 횟수 제한은 검색 한 번으로 센다
 export async function serpSearch<T>(
   req: Request,
   params: Record<string, string>,
   shape: (json: Record<string, unknown>, extra: Record<string, unknown> | null) => T,
-  extra?: Record<string, string>,
+  extra?: Record<string, string> | ((json: Record<string, unknown>) => Record<string, string> | null),
 ): Promise<Response> {
   const key = process.env.SERPAPI_API_KEY;
   if (!key) return Response.json({ error: "not_configured" }, { status: 503 });
 
-  const cacheKey = JSON.stringify(extra ? [params, extra] : params);
+  const cacheKey = JSON.stringify(typeof extra === "function" ? [params, "chain"] : extra ? [params, extra] : params);
   const saved = cache.get(cacheKey);
   if (saved && Date.now() - saved.at < CACHE_MS) return Response.json(saved.data);
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
   if (rateLimited(ip)) return Response.json({ error: "rate_limited" }, { status: 429 });
 
-  const [json, more] = await Promise.all([call(params, key), extra ? call(extra, key) : null]);
+  let json: Record<string, unknown> | Response;
+  let more: Record<string, unknown> | Response | null;
+  if (typeof extra === "function") {
+    json = await call(params, key);
+    if (json instanceof Response) return json;
+    const next = extra(json);
+    more = next ? await call(next, key) : null;
+  } else {
+    [json, more] = await Promise.all([call(params, key), extra ? call(extra, key) : null]);
+  }
   if (json instanceof Response) return json;
 
   const data = shape(json, more instanceof Response ? null : more);

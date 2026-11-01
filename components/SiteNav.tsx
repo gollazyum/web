@@ -9,7 +9,7 @@ const items: Item[] = [
   { tab: "flight", label: "Flights", ko: "항공" },
   { tab: "stay", label: "Stays & Dining", ko: "숙박·미식" },
   { tab: "shop", label: "eSIM", ko: "로밍", soon: true },
-  { tab: "shop", label: "Lifestyle", ko: "쇼핑·트렌드", soon: true },
+  { href: "/shop", label: "Shopping", ko: "쇼핑" },
   { href: "/#top", label: "Gollazyum App", ko: "앱 다운로드", soon: true },
 ];
 
