@@ -20,7 +20,8 @@ export type ShoppingProduct = {
   title: string;
   option: string; // 옵션·요약 (회색 한 줄). 없으면 빈 값
   image: string;
-  price: number | null; // 대표 가격 = 1위 판매처 가격. 1위가 없으면 null
+  price: number | null; // 대표 가격 = 1위 판매처 가격. 1위가 없으면 목록에서 보여 준 가격, 그것도 없으면 null
+  priceFromList?: boolean; // true면 판매처 확인 전 목록 가격 ("판매처에 따라 달라질 수 있어요")
   originalPrice: number | null; // 정가 (취소선)
   changePct: number | null; // 정가 대비 내린 비율 (8 → ▼8%)
   fetchedAt: string; // 조회 시각 (ISO)
@@ -41,12 +42,12 @@ export type SearchItem = {
 export type SearchResponse = { items: SearchItem[]; sample?: boolean };
 
 export const MAX_SEARCH_ITEMS = 20;
-// 이보다 싼 값(1원 등)은 실제 판매가로 보지 않는다 (가격 미확인 처리)
-export const MIN_PRICE = 1000;
+// 이 값 이하(0원, 1원 등)는 실제 판매가로 보지 않는다 (목록과 1위 계산에서 뺀다)
+export const MAX_FAKE_PRICE = 100;
 // 다른 판매처 가운데값의 이 비율보다 싸면 미끼·오류 가격으로 보고 1위 후보에서 뺀다
 const OUTLIER_RATIO = 0.3;
 
-const realPrice = (n: number | null | undefined) => (typeof n === "number" && n >= MIN_PRICE ? n : null);
+const realPrice = (n: number | null | undefined) => (typeof n === "number" && n > MAX_FAKE_PRICE ? n : null);
 
 // 1위 후보: 판매 중이고 가격이 확인된 판매처 (쿠팡 덧붙임 행은 가격이 없어 자동으로 빠진다)
 export const rankable = (o: Offer): o is Offer & { price: number } =>
@@ -89,6 +90,8 @@ const resultLink = (r: SerpShoppingResult) => r.link || r.product_link || "";
 export function shapeSearch(json: Record<string, unknown>): SearchResponse {
   const items = shoppingResults(json)
     .filter((r) => r.immersive_product_page_token)
+    // 0원·1원처럼 가격이 이상한 상품은 목록에서 뺀다
+    .filter((r) => !(typeof r.extracted_price === "number" && r.extracted_price <= MAX_FAKE_PRICE))
     .slice(0, MAX_SEARCH_ITEMS)
     .map((r) => ({
       token: r.immersive_product_page_token!,
@@ -191,6 +194,8 @@ export function shapeDetail(
   }
 
   const top = ranked[0] ?? null;
+  // 4곳 중 확인된 판매처가 없어도 목록에서 보여 준 가격은 대표 가격으로 남긴다
+  const listPrice = top ? null : realPrice(selected?.extracted_price);
   const originalPrice = top && top.original && top.original > top.offer.price! ? top.original : null;
 
   return {
@@ -200,7 +205,8 @@ export function shapeDetail(
       // 검색 결과의 부가 문구("저렴한 가격" 등)는 데이터 쪽 평가라 쓰지 않는다
       option: "",
       image: pr?.thumbnails?.[0] || selected?.thumbnail || "",
-      price: top?.offer.price ?? null,
+      price: top?.offer.price ?? listPrice,
+      priceFromList: !top && listPrice !== null,
       originalPrice,
       changePct: top && originalPrice ? Math.round(((originalPrice - top.offer.price!) / originalPrice) * 100) : null,
       fetchedAt: now.toISOString(),

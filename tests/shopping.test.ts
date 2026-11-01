@@ -90,6 +90,20 @@ describe("shapeDetail 규칙", () => {
     expect(product!.price).toBeNull();
   });
 
+  it("4곳이 0곳이어도 목록에서 보여 준 가격은 대표 가격으로 남긴다", () => {
+    const sel = item({ title: "Apple iPhone 17 자급제 256GB 화이트", source: "KREAM", extracted_price: 1310000 });
+    const { product } = shapeDetail("아이폰 17", "t", search([sel]), detail([]));
+    expect(product!.price).toBe(1310000);
+    expect(product!.priceFromList).toBe(true);
+    expect(product!.offers.filter((o) => !o.placeholder)).toEqual([]);
+  });
+
+  it("1위 판매처가 있으면 목록 가격 표시가 아니다", () => {
+    const { product } = shapeDetail("q", "t", search([item({ extracted_price: 999 })]), detail([{ name: "11번가", link: "https://www.11st.co.kr/1", extracted_price: 5000 }]));
+    expect(product!.price).toBe(5000);
+    expect(product!.priceFromList).toBe(false);
+  });
+
   it("고른 상품을 찾지 못하면 null", () => {
     expect(shapeDetail("x", "t", {}, null).product).toBeNull();
   });
@@ -105,9 +119,20 @@ describe("개발용 원본 로그", () => {
 });
 
 describe("이상한 가격", () => {
-  it("1원 같은 값은 검색 목록에서 가격 없음", () => {
-    const { items } = shapeSearch(search([item({ extracted_price: 1 })]));
-    expect(items[0].price).toBeNull();
+  it("100원 이하(0원·1원 등)는 검색 목록에서 뺀다", () => {
+    const { items } = shapeSearch(search([
+      item({ immersive_product_page_token: "a", extracted_price: 1 }),
+      item({ immersive_product_page_token: "b", extracted_price: 0 }),
+      item({ immersive_product_page_token: "c", extracted_price: 100 }),
+      item({ immersive_product_page_token: "d", extracted_price: 101 }),
+      item({ immersive_product_page_token: "e" }),
+    ]));
+    expect(items.map((i) => [i.token, i.price])).toEqual([["d", 101], ["e", null]]);
+  });
+  it("100원 이하 값은 목록 대표 가격으로도 쓰지 않는다", () => {
+    const { product } = shapeDetail("q", "t", search([item({ extracted_price: 1 })]), detail([]));
+    expect(product!.price).toBeNull();
+    expect(product!.priceFromList).toBe(false);
   });
   it("상세에서 1원·터무니없이 싼 값은 1위가 되지 않는다", () => {
     const { product } = shapeDetail("q", "t", search([item()]), detail([

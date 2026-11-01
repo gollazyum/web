@@ -19,7 +19,7 @@ const COLORS: Record<string, string> = {
   블루: "blue", blue: "blue", 그린: "green", green: "green", 핑크: "pink", pink: "pink", 퍼플: "purple", purple: "purple",
   레드: "red", red: "red", 옐로: "yellow", 옐로우: "yellow", yellow: "yellow", 그레이: "gray", gray: "gray", grey: "gray",
   미드나이트: "midnight", 미드나잇: "midnight", midnight: "midnight", 스타라이트: "starlight", starlight: "starlight",
-  라벤더: "lavender", lavender: "lavender", 세이지: "sage", sage: "sage", 미스트블루: "mistblue", 오렌지: "orange", orange: "orange",
+  라벤더: "lavender", lavender: "lavender", 세이지: "sage", sage: "sage", 미스트블루: "mistblue", mistblue: "mistblue", spacegray: "spacegray", spaceblack: "spaceblack", 오렌지: "orange", orange: "orange",
   네이비: "navy", navy: "navy", 베이지: "beige", beige: "beige", 브라운: "brown", brown: "brown", 민트: "mint", mint: "mint",
   티타늄: "titanium", titanium: "titanium", 내추럴: "natural", natural: "natural", 데저트: "desert", desert: "desert",
 };
@@ -34,6 +34,9 @@ function tokenize(title: string): string[] {
     .replace(/갤럭시/g, " galaxy ")
     .replace(/아이패드/g, " ipad ")
     .replace(/에어팟/g, " airpods ")
+    // 띄어 쓴 두 단어 색상 이름 ("미스트 블루", "mist blue")은 한 색으로 묶는다
+    .replace(/미스트\s*블루|mist\s*blue/g, " mistblue ")
+    .replace(/스페이스\s*(그레이|블랙)|space\s*(gray|grey|black)/g, (m) => (/블랙|black/.test(m) ? " spaceblack " : " spacegray "))
     .replace(/(\d+)\s*(gb|tb|기가|테라)/g, (_, n, u) => ` ${n}${u === "tb" || u === "테라" ? "tb" : "gb"} `)
     .replace(/(\d)\s*(개|매|입|팩|ea)\b/g, "$1개")
     .replace(/[^0-9a-z가-힣]+/g, " ");

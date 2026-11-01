@@ -29,6 +29,17 @@ describe("isSameProduct", () => {
     ["다른 상품군", "갤럭시 S17 256GB 블랙"],
   ])("다른 상품 (%s): %s", (_, t) => expect(isSameProduct(BASE, t)).toBe(false));
 
+  it.each([
+    ["Apple iPhone 17 자급제 256GB 화이트", "아이폰 17 256GB White 자급제"],
+    ["Apple iPhone 17 자급제 256GB 블랙", "애플 아이폰17 256기가 BLACK"],
+    ["아이폰 17 256GB 미스트 블루", "Apple iPhone 17 256GB Mist Blue"],
+    ["아이폰 17 256GB 미스트 블루", "아이폰 17 256GB 미스트블루 자급제"],
+  ])("iPhone=아이폰, 영문·한글 색상을 같게 본다: %s / %s", (a, b) => expect(isSameProduct(a, b)).toBe(true));
+
+  it("미스트 블루와 그냥 블루는 다른 색", () => {
+    expect(isSameProduct("아이폰 17 256GB 미스트 블루", "아이폰 17 256GB 블루")).toBe(false);
+  });
+
   it("'자급제'는 거르지 않는다", () => {
     expect(isSameProduct("아이폰 17 256GB 블랙", "아이폰 17 256GB 블랙 자급제")).toBe(true);
   });

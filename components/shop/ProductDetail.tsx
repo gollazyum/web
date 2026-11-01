@@ -6,6 +6,7 @@ import { BuyBar } from "@/components/shop/BuyBar";
 import { COUPANG_DISCLOSURE } from "@/components/shop/CoupangDisclosure";
 import { PriceCompareList } from "@/components/shop/PriceCompareList";
 import { errorCode } from "@/lib/apiError";
+import { getCoupangLink } from "@/lib/coupang-links";
 import { rankable, won, type ShoppingProduct, type ShoppingResponse } from "@/lib/shopping";
 import { site } from "@/lib/site";
 
@@ -93,8 +94,9 @@ export function ProductDetail({ query, token }: { query: string; token: string }
   const product = state.kind === "ok" ? state.product : null;
   const top = product?.offers.find(rankable) ?? null;
   const realOffers = product?.offers.filter((o) => !o.placeholder) ?? [];
-  // 1위가 없으면 하단 버튼은 쿠팡 덧붙임 행(또는 첫 판매처)으로
-  const buyTarget = top ?? product?.offers.find((o) => o.placeholder) ?? product?.offers[0] ?? null;
+  // 1위가 없으면(확인된 판매처 0곳 포함) 하단 버튼은 쿠팡으로: "쿠팡에서 찾아보기"
+  const coupangRow = product?.offers.find((o) => o.placeholder) ?? product?.offers.find((o) => o.coupang) ?? null;
+  const coupang = coupangRow?.coupang ?? getCoupangLink({ title: product?.title ?? query }, query);
 
   return (
     <div className="pd-page">
@@ -156,6 +158,7 @@ export function ProductDetail({ query, token }: { query: string; token: string }
 
           <section className="pd-price">
             {product.price !== null && <strong className="pd-price-now">{won(product.price)}</strong>}
+            {product.priceFromList && <p className="pd-price-note">판매처에 따라 달라질 수 있어요</p>}
             {product.originalPrice && (
               <span className="pd-price-sub">
                 <s>{won(product.originalPrice)}</s>
@@ -183,7 +186,8 @@ export function ProductDetail({ query, token }: { query: string; token: string }
         </main>
       )}
 
-      {product && buyTarget && <BuyBar top={buyTarget} />}
+      {/* 하단 바는 판매처가 0곳이어도, 데이터를 못 찾았어도 항상 보인다 */}
+      {state.kind !== "loading" && (top ? <BuyBar top={top} /> : <BuyBar top={null} coupangUrl={coupang.url} />)}
     </div>
   );
 }

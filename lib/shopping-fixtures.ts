@@ -13,6 +13,9 @@ export const SAMPLE_SEARCH_JSON = {
     { title: "Apple 아이폰 17 512GB 자급제 블랙", source: "네이버", link: "https://smartstore.naver.com/store/products/6006", extracted_price: 1590000, thumbnail: "", immersive_product_page_token: "sample-6" },
     { title: "아이폰 17 256GB 블랙 실리콘 케이스", source: "쿠팡", link: "https://www.coupang.com/vp/products/7007", extracted_price: 19900, thumbnail: "", immersive_product_page_token: "sample-7" },
     { title: "Apple 아이폰 17 256GB 자급제 블랙", source: "SSG.COM", link: "https://www.ssg.com/item/8008", extracted_price: 1280000, thumbnail: "", immersive_product_page_token: "sample-8" },
+    // 실제 "아이폰 17" 결과처럼 4곳 밖(KREAM 등)에서만 오는 상품, 1원 가격
+    { title: "Apple iPhone 17 자급제 256GB 화이트", source: "KREAM", link: "", product_link: "https://www.google.com/search?ibp=oshop&q=x", extracted_price: 1310000, thumbnail: "", immersive_product_page_token: "sample-white-kream" },
+    { title: "Apple iPhone 17 자급제 256GB 블랙", source: "KT모바일샵", link: "", product_link: "https://www.google.com/search?ibp=oshop&q=y", extracted_price: 1, thumbnail: "", immersive_product_page_token: "sample-black-1won" },
   ],
 };
 

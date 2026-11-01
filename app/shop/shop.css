@@ -165,6 +165,11 @@
   letter-spacing: -0.02em;
   color: var(--pd-ink);
 }
+.pd-price-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pd-muted);
+}
 .pd-price-sub {
   display: flex;
   gap: 8px;
@@ -403,7 +408,7 @@ a.pd-row-top:hover {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 10;
+  z-index: 30;
   background: #fff;
   border-top: 1px solid var(--pd-line);
   padding-bottom: env(safe-area-inset-bottom);

@@ -20,7 +20,8 @@ function BellIcon() {
 }
 
 // 하단 고정 바: 왼쪽 알림 버튼, 오른쪽 1위 판매처로 가는 큰 버튼. 콘텐츠를 가리지 않게 본문 아래에 같은 높이 여백을 둔다
-export function BuyBar({ top }: { top: Offer | null }) {
+// top이 없으면 쿠팡 링크(getCoupangLink 결과 그대로)로 "쿠팡에서 찾아보기"를 보여 준다
+export function BuyBar({ top, coupangUrl }: { top: Offer | null; coupangUrl?: string }) {
   const [note, setNote] = useState(false);
 
   useEffect(() => {
@@ -29,8 +30,10 @@ export function BuyBar({ top }: { top: Offer | null }) {
     return () => clearTimeout(t);
   }, [note]);
 
-  const label = top?.coupang ? COUPANG_LABEL[top.coupang.type] : "스토어로 이동하기";
-  const attrs = top?.coupang ? COUPANG_LINK_ATTRS : { target: "_blank", rel: "nofollow noopener noreferrer" };
+  const fallback = !top && !!coupangUrl;
+  const label = fallback ? "쿠팡에서 찾아보기" : top?.coupang ? COUPANG_LABEL[top.coupang.type] : "스토어로 이동하기";
+  const attrs = fallback || top?.coupang ? COUPANG_LINK_ATTRS : { target: "_blank", rel: "nofollow noopener noreferrer" };
+  const href = fallback ? coupangUrl : top?.link;
 
   return (
     <div className="pd-buybar">
@@ -41,8 +44,8 @@ export function BuyBar({ top }: { top: Offer | null }) {
         <button type="button" className="pd-bell" aria-label="가격 알림" onClick={() => setNote(true)}>
           <BellIcon />
         </button>
-        {top?.link ? (
-          <a className="pd-buy" href={top.link} {...attrs}>
+        {href ? (
+          <a className="pd-buy" href={href} {...attrs}>
             {label}
           </a>
         ) : (
