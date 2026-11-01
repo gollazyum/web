@@ -101,7 +101,7 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
     >
       {!query ? (
         <ResultsMessage title="Flights 항공권 운임">
-          출발지·도착지와 날짜를 위에서 입력해 주세요. Gollazyum이 검색할 때마다 Google 항공편 운임을 새로 받아 싼 순서로 보여 드리고, 직항·경유와
+          출발지·도착지와 날짜를 위에서 입력해 주세요. Gollazyum이 검색할 때마다 항공 운임을 새로 받아 싼 순서로 보여 드리고, 직항·경유와
           시간대로 걸러 볼 수 있어요. 마음에 드는 항공편은 트립닷컴에서 바로 예약할 수 있어요.
         </ResultsMessage>
       ) : !revealed ? (
@@ -375,7 +375,7 @@ function FlightBoard({ data, query, request, link }: { data: FlightResults; quer
         )}
 
         <p className="flight-note">
-          Google 항공편 검색 기준, 검색 시점 가격이에요{query.ret ? " (왕복 총액, 가는 편 기준으로 표시)" : ""}. 실제 금액과 좌석은 예약 사이트에서 꼭
+          검색 시점 항공 운임이에요{query.ret ? " (왕복 총액, 가는 편 기준으로 표시)" : ""}. 실제 금액과 좌석은 예약 사이트에서 꼭
           확인해 주세요.
         </p>
         <a className="results-out" href={link} target="_blank" rel="noopener noreferrer">

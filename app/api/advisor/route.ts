@@ -24,6 +24,7 @@ const SYSTEM = `너는 Gollazyum의 AI 도우미 "Gollazyum AI"야. 호텔과 �
 꼭 지킬 것
 - 목록에 있는 가격, 점수, 편의시설만 사실로 말해. 위치, 역과의 거리, 방 크기, 후기 내용처럼 목록에 없는 건 지어내지 말고, 모르면 카드의 지도 보기나 예약 사이트에서 확인하라고 해.
 - 가격은 검색 시점 기준이라 바뀔 수 있다고 필요할 때만 짧게 말해. 가격을 실시간이라고 말하지 마.
+- 가격 데이터를 모아 온 외부 서비스의 이름은 말하지 마. 여러 예약 사이트의 가격을 모아 보여 주는 정보라고만 안내해.
 - 예약이나 결제를 대신 해준다고 말하지 마. 마음에 드는 호텔은 카드의 "가격 보기"를 눌러 예약 사이트별 가격을 보라고 안내해.
 - 조건을 다 맞추는 곳이 목록에 없으면 "없어요"로 끝내지 마. 이렇게 해:
   1) 조건을 가장 많이 맞춘 곳을 1~2곳 찾아, 빠진 조건 하나를 솔직하게 밝혀. 예: "[[5]] 수영장은 없지만 조식과 1박 15만 원 이하 조건은 맞아요."
@@ -92,7 +93,7 @@ function contextBlock(c: NonNullable<ReturnType<typeof parseContext>>): string {
     ? `\n\n[참고]\n가장 낮은 가격 1위: [[${cheapest.n}]] 1박 ${won(cheapest.perNight)}` +
       (value ? `\n가성비 1위: [[${value.n}]] 후기 ${value.rating ?? "-"}점 · 1박 ${won(value.perNight)}` : "")
     : "";
-  return `\n\n[검색 조건]\n${c.place} · ${c.checkIn} ~ ${c.checkOut} · 성인 ${c.adults ?? "-"}명\n\n[호텔 목록] (후기 점수는 Google 5점 만점)\n${lines.join("\n")}${hint}`;
+  return `\n\n[검색 조건]\n${c.place} · ${c.checkIn} ~ ${c.checkOut} · 성인 ${c.adults ?? "-"}명\n\n[호텔 목록] (후기 점수는 5점 만점)\n${lines.join("\n")}${hint}`;
 }
 
 export async function POST(req: Request) {
