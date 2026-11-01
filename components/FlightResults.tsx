@@ -75,7 +75,7 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
                 res.status === 429
                   ? "검색이 너무 잦아서 잠깐 쉬고 있어요. 트립닷컴에서 바로 확인해 보세요."
                   : res.status === 503
-                    ? "실시간 가격 기능을 준비하고 있어요. 트립닷컴에서 바로 확인해 보세요."
+                    ? "항공권 가격 기능을 준비하고 있어요. 트립닷컴에서 바로 확인해 보세요."
                     : `지금은 사이트 안에서 가격을 불러오지 못했어요. 트립닷컴에서 바로 확인해 보세요. (오류 ${await errorCode(res)})`,
             };
         if (!cancelled) setState(next);
@@ -100,9 +100,9 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
       }
     >
       {!query ? (
-        <ResultsMessage title="Flights 항공권 실시간 운임">
-          출발지·도착지와 날짜를 위에서 입력해 주세요. Gollazyum이 Google 항공편의 실시간 운임을 싼 순서로 보여 드리고, 직항·경유와 시간대로
-          걸러 볼 수 있어요. 마음에 드는 항공편은 트립닷컴에서 바로 예약할 수 있어요.
+        <ResultsMessage title="Flights 항공권 운임">
+          출발지·도착지와 날짜를 위에서 입력해 주세요. Gollazyum이 검색할 때마다 Google 항공편 운임을 새로 받아 싼 순서로 보여 드리고, 직항·경유와
+          시간대로 걸러 볼 수 있어요. 마음에 드는 항공편은 트립닷컴에서 바로 예약할 수 있어요.
         </ResultsMessage>
       ) : !revealed ? (
         <div className="results-loading">
@@ -117,7 +117,7 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
             }}
             steps={[
               { text: "출발지·도착지·날짜 조건 읽는 중...", at: 0 },
-              { text: "항공사와 예약 사이트 실시간 가격 모으는 중...", at: 0.2 },
+              { text: "항공사와 예약 사이트 가격을 새로 받는 중...", at: 0.2 },
               { text: "싼 순서로 정리하는 중...", at: 0.75 },
             ]}
             waitLines={[
