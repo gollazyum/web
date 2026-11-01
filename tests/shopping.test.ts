@@ -146,3 +146,31 @@ describe("이상한 가격", () => {
     expect(product!.offers[0].seller.key).toBe("네이버");
   });
 });
+
+describe("shapeDetail (실제 아이폰 17 화이트 스토어 목록, more_stores)", () => {
+  const sel = item({ title: "Apple iPhone 17 자급제 256GB 화이트", source: "KREAM", extracted_price: 1310000, immersive_product_page_token: "w" });
+  const stores = [
+    { name: "KREAM", extracted_price: 1310000, link: "https://kream.co.kr/products/604070" },
+    { name: "Apple", extracted_price: 1450000, link: "/goto?url=A" },
+    { name: "11번가", extracted_price: 1000, link: "https://www.11st.co.kr/connect/Gateway.tmall?prdNo=1" },
+    { name: "KT모바일샵", extracted_price: 886000, link: "/goto?url=B" },
+    { name: "G마켓", extracted_price: 1499000, link: "/goto?url=C" },
+    { name: "세컨웨어", extracted_price: 1000000, link: "/goto?url=D" },
+    { name: "KT모바일샵", extracted_price: 1, link: "/goto?url=E" },
+    { name: "G마켓", extracted_price: 1590000, link: "/goto?url=F" },
+    { name: "롯데하이마트", extracted_price: 1450000, link: "/goto?url=G" },
+  ];
+  const { product } = shapeDetail("아이폰 17", "w", search([sel]), detail(stores));
+
+  it("4곳만 보여 주고, 4곳이 2곳뿐이어도 11번가 1,000원은 전체 가운데값 기준 미끼 가격으로 뺀다", () => {
+    expect(product!.offers.map((o) => [o.seller.key, o.price])).toEqual([["G마켓", 1499000], ["11번가", null], ["쿠팡", null]]);
+    expect(product!.price).toBe(1499000);
+    expect(product!.offers[0].link).toBe("https://www.google.com/goto?url=C");
+  });
+
+  it("4곳이 하나도 없으면 목록 가격 1,310,000원을 대표 가격으로 남기고 쿠팡 행은 유지", () => {
+    const { product: p } = shapeDetail("아이폰 17", "w", search([sel]), detail(stores.slice(0, 2)));
+    expect(p).toMatchObject({ price: 1310000, priceFromList: true });
+    expect(p!.offers.map((o) => o.seller.key)).toEqual(["쿠팡"]);
+  });
+});

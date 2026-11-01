@@ -20,7 +20,8 @@ function debugAllowed(url: URL): boolean {
 }
 
 const searchParams = (q: string) => ({ engine: "google_shopping", q, gl: "kr", hl: "ko", location: "South Korea" });
-const detailParams = (token: string) => ({ engine: "google_immersive_product", page_token: token, gl: "kr", hl: "ko" });
+// more_stores=true: 없으면 스토어가 3곳만 와서 G마켓·11번가 등이 빠진다 (아이폰 17 화이트: 3곳 → 13곳)
+const detailParams = (token: string) => ({ engine: "google_immersive_product", page_token: token, more_stores: "true", gl: "kr", hl: "ko" });
 
 // 개발 환경에서만, 걸러 내기 전 판매처 목록을 찍는다 (인증 값은 지움)
 function devLog(q: string, json: Record<string, unknown> | null, detail?: Record<string, unknown> | null) {

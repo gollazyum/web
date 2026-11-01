@@ -60,3 +60,14 @@ describe("중간 이동 주소 풀기 (외부 요청 없이 쿼리만 읽음)", 
     expect(resolveSellerUrl("https://www.google.com/url?url=javascript:alert(1)")).toBe("https://www.google.com/url?url=javascript:alert(1)");
   });
 });
+
+describe("스토어 목록의 상대 주소 (/goto?url=…)", () => {
+  it("구글 주소로 붙여서 누를 수 있게 하고, 이름으로 판매처를 맞춘다", () => {
+    expect(resolveSellerUrl("/goto?url=CAESnwIB6zsw")).toBe("https://www.google.com/goto?url=CAESnwIB6zsw");
+    expect(normalizeSeller("G마켓", "/goto?url=CAESnwIB6zsw")).toBe("G마켓");
+    expect(normalizeSeller("롯데하이마트", "/goto?url=CAES0gEB")).toBeNull();
+  });
+  it("다른 상대 주소는 그대로 무시한다", () => {
+    expect(resolveSellerUrl("/search?q=x")).toBe("");
+  });
+});

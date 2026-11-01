@@ -44,8 +44,12 @@ function parseUrl(s: string | null | undefined): URL | null {
 const REDIRECT_PARAMS = ["url", "adurl", "q", "u", "dest", "destination"];
 const isRedirector = (host: string) => /(^|\.)google\.[a-z.]+$/.test(host) || /(^|\.)googleadservices\.com$/.test(host) || /(^|\.)doubleclick\.net$/.test(host);
 
+// 스토어 목록의 링크가 "/goto?url=…"처럼 상대 주소로 올 때가 있다. 이건 구글 이동 주소라 앞을 붙여 둔다
+// (url 값이 판매처 주소가 아닌 암호화된 값이라 풀 수 없다. 누르면 판매처 페이지로 이동한다)
+const absolutize = (s: string | null | undefined) => (s && /^\/goto\?/.test(s) ? `https://www.google.com${s}` : s);
+
 export function resolveSellerUrl(link: string | null | undefined): string {
-  let current = parseUrl(link);
+  let current = parseUrl(absolutize(link));
   if (!current) return "";
   for (let i = 0; i < 3 && isRedirector(current.hostname.toLowerCase()); i++) {
     const inner = REDIRECT_PARAMS.map((k) => parseUrl(current!.searchParams.get(k))).find(Boolean);

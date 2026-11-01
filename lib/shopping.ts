@@ -178,8 +178,17 @@ export function shapeDetail(
   for (const [k, v] of pickBest(extra)) best.set(k, v);
 
   const list = [...best.values()];
-  // 다른 판매처보다 터무니없이 싼 값은 가격 미확인으로 돌린다 (판매처가 3곳 이상일 때만 판단)
-  const prices = list.filter((x) => rankable(x.offer)).map((x) => x.offer.price!).sort((a, b) => a - b);
+  // 다른 판매처보다 터무니없이 싼 값은 가격 미확인으로 돌린다.
+  // 가운데값은 4곳만이 아니라 스토어 목록 전체(KREAM·하이마트 등 포함)와 고른 상품 가격으로 잡는다.
+  // 4곳이 2곳뿐이어도 11번가 1,000원 같은 미끼 가격을 걸러 내기 위해서 (기준 가격이 3개 이상일 때만 판단)
+  const prices = [
+    ...fromStores.filter((r) => !r.soldOut).map((r) => r.price),
+    selected?.extracted_price,
+    ...extra.map((x) => x.offer.price),
+  ]
+    .map((n) => realPrice(n))
+    .filter((n): n is number => n !== null)
+    .sort((a, b) => a - b);
   if (prices.length >= 3) {
     const median = prices[Math.floor(prices.length / 2)];
     for (const x of list) if (x.offer.price !== null && rankable(x.offer) && x.offer.price < median * OUTLIER_RATIO) (x.offer as Offer).price = null;
