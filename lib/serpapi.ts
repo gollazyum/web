@@ -86,3 +86,41 @@ export async function serpSearch<T>(
   cache.set(cacheKey, { at: Date.now(), data });
   return Response.json(data);
 }
+
+// SerpApi 원본 응답을 그대로 받아 오고, 같은 조건은 cacheMs 동안 저장해 두고 다시 쓴다.
+// 서버 인스턴스 메모리와 Next 데이터 캐시(revalidate) 둘 다 써서, 인스턴스가 바뀌어도 같은 검색을 다시 부르지 않게 한다.
+// 실패 응답은 저장하지 않는다. 키는 저장 키에 넣지 않는다
+const rawCache = new Map<string, { at: number; data: Record<string, unknown> }>();
+
+export async function serpRaw(params: Record<string, string>, cacheMs: number): Promise<Record<string, unknown> | Response> {
+  const key = process.env.SERPAPI_API_KEY;
+  if (!key) return Response.json({ error: "not_configured" }, { status: 503 });
+  const cacheKey = JSON.stringify(params);
+  const saved = rawCache.get(cacheKey);
+  if (saved && Date.now() - saved.at < cacheMs) return saved.data;
+
+  try {
+    const res = await fetch(`https://serpapi.com/search.json?${new URLSearchParams({ ...params, api_key: key })}`, {
+      next: { revalidate: Math.floor(cacheMs / 1000) },
+      signal: AbortSignal.timeout(25_000),
+    });
+    const json = (await res.json()) as Record<string, unknown>;
+    const error = typeof json.error === "string" ? json.error : "";
+    if (!res.ok && !error.includes("hasn't returned any results")) {
+      console.error("serpapi", params.engine, res.status, error);
+      return Response.json({ error: "upstream", detail: `${res.status} ${error}`.slice(0, 120) }, { status: 502 });
+    }
+    if (rawCache.size >= CACHE_MAX) rawCache.delete(rawCache.keys().next().value!);
+    rawCache.set(cacheKey, { at: Date.now(), data: json });
+    return json;
+  } catch (e) {
+    console.error("serpapi", params.engine, e);
+    return Response.json({ error: "upstream", detail: e instanceof Error ? e.name : "fetch failed" }, { status: 502 });
+  }
+}
+
+// 한 사람이 너무 자주 찾지 못하게 막는다. 막혔으면 돌려줄 응답, 아니면 null
+export function rateLimit(req: Request): Response | null {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  return rateLimited(ip) ? Response.json({ error: "rate_limited" }, { status: 429 }) : null;
+}
