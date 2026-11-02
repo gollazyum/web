@@ -40,7 +40,7 @@ export function ShopSearch({ mode, onUseKeyword }: { mode: "search" | "link"; on
               onChange={(e) => setQ(e.target.value)}
             />
           </label>
-          <button type="submit">데이터 탐색</button>
+          <button type="submit">최저가 찾기</button>
         </form>
       ) : (
         <form onSubmit={onLink} className="search-card shop-card">
