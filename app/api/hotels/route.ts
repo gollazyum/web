@@ -1,6 +1,7 @@
 import { lowestNightly, type HotelOption, type HotelPrices, type HotelResults, type HotelSource, type ReviewTopic } from "@/lib/hotels";
 import { DATE, serpSearch, today } from "@/lib/serpapi";
 import { amenityKo, dealKo, kindKo } from "@/lib/hotelText";
+import { allowedSellers } from "@/lib/hotel-sellers";
 
 // 실시간 호텔 가격. SerpApi의 Google Hotels 결과를 받아 화면용으로 줄인다.
 // token 없이 부르면 호텔 목록, token을 주면 그 호텔의 예약 사이트별 가격.
@@ -57,23 +58,24 @@ function toSource(p: SerpPrice): HotelSource | null {
   };
 }
 
+// 한국 사용자용 허용 목록(lib/hotel-sellers.ts) 안의 판매처만 남기고 이름을 표준 이름으로 맞춘다.
 // 같은 사이트가 두 번 오면 싼 쪽만 남기고, 싼 순서로 줄 세운다
 function cleanSources(list: SerpPrice[]): HotelSource[] {
-  const best = new Map<string, HotelSource>();
-  for (const s of list.map(toSource)) {
-    if (!s || s.perNight === null) continue;
-    const prev = best.get(s.name);
-    if (!prev || s.perNight < (prev.perNight ?? Infinity)) best.set(s.name, s);
-  }
-  return [...best.values()].sort((a, b) => (a.perNight ?? 0) - (b.perNight ?? 0)).slice(0, MAX_SOURCES);
+  const priced = list.map(toSource).filter((s): s is HotelSource => !!s && s.perNight !== null);
+  return allowedSellers(priced)
+    .sort((a, b) => (a.perNight ?? 0) - (b.perNight ?? 0))
+    .slice(0, MAX_SOURCES);
 }
 
 function toOption(p: SerpProperty): HotelOption | null {
   if (!p.name || !p.property_token) return null;
-  const sources = cleanSources(p.prices ?? []);
-  // 카드의 큰 숫자는 이번 응답에서 아는 사이트 중 가장 낮은 1박 요금이다.
-  // 사이트 가격이 없으면 목록에 온 1박 요금을 쓰고, 그때는 어느 사이트인지 밝히지 않는다.
+  const raw = p.prices ?? [];
+  const sources = cleanSources(raw);
+  // 카드의 큰 숫자는 허용 목록으로 거른 사이트 중 가장 낮은 1박 요금이다.
+  // 사이트 가격이 아예 없으면 목록에 온 1박 요금을 쓰고, 그때는 어느 사이트인지 밝히지 않는다.
+  // 사이트 가격은 왔는데 모두 허용 목록 밖이면 그 가격을 쓰지 않는다 (목록에서 빠진다)
   const best = lowestNightly(sources);
+  if (!best && raw.some((r) => r.source)) return null;
   const shown = sources.slice(0, 3);
   if (best && !shown.some((s) => s.name === best.name)) shown.unshift(best);
   const images = (p.images ?? []).map((i) => i.thumbnail ?? "").filter(Boolean).slice(0, MAX_IMAGES);

@@ -1,8 +1,6 @@
-import { AFFILIATE_CID } from "./agoda";
+import { AGODA_CID, agodaAffiliateOn } from "./affiliate";
+import { agodaSearch, hotelSellerKey, isGoogleLink, sellerSearchUrl } from "./hotel-sellers";
 import { stayLimits } from "./hotelText";
-import { site } from "./site";
-
-const HIDDEN_ROUTES = site.hiddenRouteCount;
 
 // 호텔 검색 결과 모양과 링크. 서버(app/api/hotels)와 화면(HotelSearch)이 같이 쓴다.
 
@@ -58,19 +56,9 @@ export function parseHotelsPath(sp: Record<string, string | string[] | undefined
   return { q, checkIn, checkOut, adults };
 }
 
-// 아고다 가격은 로보티 제휴 번호가 붙은 아고다 검색으로 보낸다 (제휴 수수료)
+// 아고다 검색 결과 주소. cid는 제휴 설정(lib/affiliate.ts)이 켜져 있을 때만 붙는다
 export function agodaSearchUrl(name: string, query: HotelQuery): string {
-  const p = new URLSearchParams({
-    textToSearch: name,
-    checkIn: query.checkIn,
-    checkOut: query.checkOut,
-    rooms: "1",
-    adults: String(query.adults),
-    children: "0",
-    currencyCode: "KRW",
-    cid: AFFILIATE_CID,
-  });
-  return `https://www.agoda.com/ko-kr/search?${p}`;
+  return agodaSearch(name, query);
 }
 
 export function isAgoda(source: string): boolean {
@@ -105,78 +93,36 @@ export function canTakeLowestBadge(hotel: { name: string; rating: number | null 
 // 한국어로 예약할 수 있는 큰 예약 사이트. 아고다가 하위권일 때 대신 추천할 '안전한 곳'
 const KOREAN_OK = /agoda|아고다|trip\.com|트립닷컴|booking|부킹|expedia|익스피디아|hotels\.com|호텔스닷컴|klook|클룩|야놀자|여기어때|인터파크|myrealtrip|마이리얼트립/i;
 
-// 같은 호텔은 몇 번을 열어도 같은 문구가 나오게, 호텔 토큰으로 고르는 수
-function hash(seed: string): number {
-  let h = 0;
-  for (const c of seed) h = (h * 31 + c.charCodeAt(0)) | 0;
-  return Math.abs(h);
+// 'Gollazyum AI' 표시를 붙일 사이트 이름. 실제 최저가(lowestOffer와 같은 기준)인 한 곳에만 붙인다
+export function roboPick(sources: HotelSource[], _seed?: string): string | null {
+  return lowestOffer(sources)?.name ?? null;
 }
 
-// '로보티 추천'을 붙일 사이트 이름. 아고다가 1박 가격 순위 안에 있으면 순위에 따라 확률로 아고다
-// (1위 100%, 2위 90%, 3위 80%, 4위 60%, 5위 50%, 6위부터 0%). 같은 호텔은 늘 같은 결과가 나오게 호텔 토큰으로 정한다.
-// 아고다를 고르지 않으면 상위 3곳 안에서 공식 사이트 → 한국어 되는 큰 예약 사이트 → 가장 싼 곳 순서로 고른다.
-// 가격이 한 곳만 나오면 그곳
-const PICK_ODDS = [100, 90, 80, 60, 50];
-export function roboPick(sources: HotelSource[], seed: string): string | null {
-  const ranked = sources.filter((s) => s.perNight !== null).sort((a, b) => (a.perNight ?? 0) - (b.perNight ?? 0));
-  if (!ranked.length) return null;
-  if (ranked.length === 1) return ranked[0].name;
-  const agoda = ranked.find((s) => isAgoda(s.name));
-  if (agoda) {
-    const rank = ranked.filter((s) => (s.perNight as number) < (agoda.perNight as number)).length;
-    if (hash(`pick:${seed}`) % 100 < (PICK_ODDS[rank] ?? 0)) return agoda.name;
-  }
-  const top = ranked.slice(0, 3).filter((s) => s !== agoda);
-  return (top.find((s) => s.official) ?? top.find((s) => KOREAN_OK.test(s.name)) ?? top[0] ?? ranked[0]).name;
+// 표시 이유 한 줄. 받아 온 가격으로 확인되는 사실만 말한다
+export function roboReason(sources: HotelSource[], pick: string): string {
+  const priced = sources.filter((s) => s.total !== null || s.perNight !== null);
+  if (priced.length <= 1) return "🏨 지금 가격이 나온 곳은 여기 한 곳이에요";
+  return priced.some((s) => s.name === pick) ? `🏆 확인한 ${priced.length}곳 중 가장 저렴해요` : "";
 }
 
-// 추천하는 이유 한 줄. 아고다는 조건이 맞는 이유가 먼저, 없으면 호텔마다 골고루 돌린다
-const ROLLING = [
-  `🔍 Gollazyum의 ${HIDDEN_ROUTES}개 숨은 할인 경로로 한 번 더 낮춰볼 수 있는 경로예요`,
-  "🇰🇷 한국어 화면과 원화 결제로 처음 쓰는 분도 헷갈리지 않는 경로예요",
-  "⚡ 복잡한 해외 사이트 가입 없이 카카오·네이버페이로 1분 만에 결제돼요",
-  "💳 트래블월렛·트래블로그 및 국내 제휴 카드 할인을 적용하기 가장 좋아요",
-  "✨ 예약 즉시 확정 여부와 무료 취소 옵션을 한글로 가장 명확히 볼 수 있어요",
-  "🤖 가격, 결제 편의성, 예약 안정성을 종합한 Gollazyum AI 경로예요",
-];
-export function roboReason(sources: HotelSource[], pick: string, deal: string, seed: string): string {
-  const ranked = sources.filter((s) => s.perNight !== null).sort((a, b) => (a.perNight ?? 0) - (b.perNight ?? 0));
-  const agoda = ranked.find((s) => isAgoda(s.name));
-  const top = ranked[0];
-  // 아고다가 아닌 곳을 고른 경우: 고른 이유를 사실대로 한 줄
-  const chosen = ranked.find((s) => s.name === pick);
-  if (chosen && !isAgoda(chosen.name)) {
-    if (ranked.length === 1) return "🏨 지금 가격이 나온 곳은 여기 한 곳이에요";
-    if (chosen.perNight === top.perNight) return "🏆 비교한 곳 중 가장 저렴해요!";
-    if (chosen.official) return "🏨 호텔 공식 사이트라 예약 확인과 변경 문의가 가장 확실해요";
-    if (KOREAN_OK.test(chosen.name)) return "🇰🇷 상위권 가격에 한국어로 예약하고 문의할 수 있는 사이트예요";
-    return "💡 상위권 중 가격과 조건을 따진 Gollazyum AI예요";
-  }
-  if (agoda && top) {
-    if (agoda === top || agoda.perNight === top.perNight) return "🏆 비교한 곳 중 조건 없이 가장 저렴해요!";
-    if ((agoda.perNight ?? 0) <= (top.perNight ?? 0) * 1.1) return "💡 카드사·간편결제 추가 할인을 받으면 체감가는 여기가 더 싸요";
-    if (!KOREAN_OK.test(top.name) && !top.official) return "🛡️ 한국어 고객센터와 국내 결제가 완벽 지원되는 가장 안전한 경로예요";
-  }
-  if (/\d+\s*%/.test(deal)) return "🔥 평소 시세보다 가격이 크게 떨어진 아고다 오늘의 특가 상품이에요";
-  return ROLLING[hash(seed) % ROLLING.length];
-}
-
-// 예약 사이트로 가는 주소. 사이트를 알아볼 수 있으면 한국어·원화로 열리게 바꾸고,
-// 아고다는 그 호텔 페이지 주소에 로보티 제휴 cid를 붙인다. Google을 거쳐 가는 주소는 손대지 않는다
+// 예약 사이트로 가는 주소. Google을 거쳐 가는 주소는 쓰지 않는다.
+// 1) 응답에 판매처 직링크(google 도메인 아님)가 있으면 그 주소를 한국어·원화로 열리게 바꿔 쓰고
+// 2) 없으면 그 판매처의 검색 결과 주소(호텔 이름 쿼리)로 보낸다. 허용 목록 밖 판매처는 빈 문자열
 export function bookingLink(s: HotelSource, hotelName: string, query: HotelQuery): string {
-  if (!s.link) return isAgoda(s.name) ? agodaSearchUrl(hotelName, query) : "";
+  const key = hotelSellerKey(s.name, s.official, s.link);
+  if (!key) return "";
+  if (!s.link || isGoogleLink(s.link)) return sellerSearchUrl(key, hotelName, query);
   let url: URL;
   try {
     url = new URL(s.link);
   } catch {
-    return s.link;
+    return sellerSearchUrl(key, hotelName, query);
   }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return sellerSearchUrl(key, hotelName, query);
   const host = url.hostname.toLowerCase();
   const on = (domain: string) => host === domain || host.endsWith(`.${domain}`);
   const p = url.searchParams;
-  // Google이 준 링크에 영국 사이트로 여는 값(userCountry=GB)이 섞여 오면 한국으로 바꾼다
-  const country = p.has("userCountry");
-  if (country) p.set("userCountry", "KR");
+  if (p.has("userCountry")) p.set("userCountry", "KR");
   // 주소 맨 앞의 언어 칸(/en-us/, /en/ …)을 바꾼다
   const relocale = (to: string) => {
     const parts = url.pathname.split("/");
@@ -186,7 +132,9 @@ export function bookingLink(s: HotelSource, hotelName: string, query: HotelQuery
   if (on("agoda.com")) {
     relocale("ko-kr");
     p.delete("tag");
-    p.set("cid", AFFILIATE_CID);
+    // 제휴 설정이 꺼져 있으면 cid를 붙이지 않는다 (원래 붙어 온 값도 뺀다)
+    if (agodaAffiliateOn()) p.set("cid", AGODA_CID);
+    else p.delete("cid");
     p.set("currencyCode", "KRW");
   } else if (on("trip.com")) {
     // 트립닷컴은 주소의 locale보다 사이트 주소(www·us…)를 따른다. 한국 사이트로 보낸다
@@ -199,11 +147,6 @@ export function bookingLink(s: HotelSource, hotelName: string, query: HotelQuery
   } else if (on("hotels.com")) {
     p.set("locale", "ko_KR");
     p.set("currency", "KRW");
-  } else if (on("klook.com")) {
-    relocale("ko");
-    p.set("currency", "KRW");
-  } else {
-    return country ? url.toString() : s.link;
   }
   return url.toString();
 }
