@@ -19,7 +19,7 @@ describe("shapeShopping", () => {
   });
 
   it("같은 판매처는 가장 싼 1개만 남긴다", () => {
-    const { product } = shapeShopping("q", first, detail([
+    const { product } = shapeShopping("상품", first, detail([
       { name: "11st", link: "https://www.11st.co.kr/a", extracted_price: 30000 },
       { name: "11번가", link: "https://www.11st.co.kr/b", extracted_price: 25000 },
     ]));
@@ -29,7 +29,7 @@ describe("shapeShopping", () => {
   });
 
   it("품절이나 가격 미확인 판매처는 1위가 되지 않고 뒤로 간다", () => {
-    const { product } = shapeShopping("q", first, detail([
+    const { product } = shapeShopping("상품", first, detail([
       { name: "쿠팡", link: "https://www.coupang.com/x", extracted_price: 10000, tag: "일시품절" },
       { name: "Gmarket", link: "https://www.gmarket.co.kr/x" },
       { name: "Naver", link: "https://smartstore.naver.com/x", extracted_price: 20000 },
@@ -42,7 +42,7 @@ describe("shapeShopping", () => {
   });
 
   it("4곳이 모두 없으면 판매처 목록이 비어 있다", () => {
-    const { product } = shapeShopping("q", first, detail([{ name: "SSG.COM", link: "https://www.ssg.com/x", extracted_price: 5000 }]));
+    const { product } = shapeShopping("상품", first, detail([{ name: "SSG.COM", link: "https://www.ssg.com/x", extracted_price: 5000 }]));
     expect(product!.offers).toEqual([]);
     expect(product!.price).toBeNull();
   });

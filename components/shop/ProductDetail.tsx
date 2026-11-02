@@ -6,10 +6,16 @@ import { BuyBar } from "@/components/shop/BuyBar";
 import { COUPANG_DISCLOSURE } from "@/components/shop/CoupangDisclosure";
 import { PriceCompareList } from "@/components/shop/PriceCompareList";
 import { errorCode } from "@/lib/apiError";
-import { rankable, won, type ShoppingProduct, type ShoppingResponse } from "@/lib/shopping";
+import { rankable, won, type ShoppingCandidate, type ShoppingProduct, type ShoppingResponse } from "@/lib/shopping";
 import { site } from "@/lib/site";
 
-type State = { kind: "loading" } | { kind: "empty" } | { kind: "error"; code: string } | { kind: "ok"; product: ShoppingProduct };
+type State =
+  | { kind: "loading" }
+  | { kind: "miss"; candidates: ShoppingCandidate[] }
+  | { kind: "error"; code: string }
+  | { kind: "ok"; product: ShoppingProduct };
+
+const EXAMPLE_QUERIES = ["에어팟 프로 2 USB-C", "캐리어 24인치", "보조배터리 20000"];
 
 const FAV_KEY = "gollazyum:shop-favs";
 
@@ -24,6 +30,18 @@ function readFavs(): string[] {
 
 const reportHref = (q: string) =>
   `mailto:${site.contactEmail}?subject=${encodeURIComponent(`[상품 정보 제보] ${q}`)}`;
+
+// 검색어 그대로 두고, 받침에 맞춰 와/과만 붙인다. 0영 1일 3삼 6육 7칠 8팔은 받침이 있다.
+function waGwa(text: string): "와" | "과" {
+  const last = [...text.trim()].pop() ?? "";
+  const code = last.codePointAt(0) ?? 0;
+  if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28 === 0 ? "와" : "과";
+  if ("013678".includes(last)) return "과";
+  if ("2459".includes(last)) return "와";
+  if (/[aeiou]$/i.test(last)) return "와";
+  if (/[a-z]$/i.test(last)) return "과";
+  return "와";
+}
 
 function Icon({ d, label, onClick, active }: { d: string; label: string; onClick: () => void; active?: boolean }) {
   return (
@@ -52,7 +70,7 @@ export function ProductDetail({ query }: { query: string }) {
       .then(async (res) => {
         if (!res.ok) return setState({ kind: "error", code: await errorCode(res) });
         const data = (await res.json()) as ShoppingResponse;
-        setState(data.product ? { kind: "ok", product: data.product } : { kind: "empty" });
+        setState(data.product ? { kind: "ok", product: data.product } : { kind: "miss", candidates: data.candidates ?? [] });
       })
       .catch((e) => e.name !== "AbortError" && setState({ kind: "error", code: "network" }));
     return () => ctrl.abort();
@@ -93,9 +111,10 @@ export function ProductDetail({ query }: { query: string }) {
   const product = state.kind === "ok" ? state.product : null;
   const top = product?.offers.find(rankable) ?? null;
   const hasCoupang = !!product?.offers.some((o) => o.seller.key === "쿠팡");
+  const showBuy = !!product && product.offers.length > 0;
 
   return (
-    <div className="pd-page">
+    <div className={`pd-page${showBuy ? "" : " pd-page-nobuy"}`}>
       <header className="pd-topbar">
         <Icon d={BACK} label="뒤로가기" onClick={back} />
         <span className="pd-topbar-space" />
@@ -105,6 +124,7 @@ export function ProductDetail({ query }: { query: string }) {
       <p className="pd-toast" aria-live="polite">
         {toast}
       </p>
+      <QueryBar query={query} />
 
       {state.kind === "loading" && (
         <div className="pd-state">
@@ -112,14 +132,7 @@ export function ProductDetail({ query }: { query: string }) {
           <p>스토어별 가격을 불러오고 있어요</p>
         </div>
       )}
-      {state.kind === "empty" && (
-        <div className="pd-state">
-          <p>“{query}” 상품 데이터를 찾지 못했어요. 상품명을 조금 다르게 입력해 보세요.</p>
-          <a className="pd-state-link" href="/shop">
-            쇼핑으로 돌아가기
-          </a>
-        </div>
-      )}
+      {state.kind === "miss" && <MissState query={query} candidates={state.candidates} />}
       {state.kind === "error" && (
         <div className="pd-state">
           <p>지금은 상품 데이터를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.</p>
@@ -171,20 +184,97 @@ export function ProductDetail({ query }: { query: string }) {
             <p className="pd-no-sellers">현재 확인된 판매처가 없어요</p>
           )}
 
-          <aside className="pd-notice">
-            <ul>
-              <li>
-                상품, 가격 정보가 다른 경우 <a href={reportHref(product.title)}>여기</a>에 제보해 주세요.
-              </li>
-              <li>가격은 표시된 시각 기준이며, 판매처에서 바뀔 수 있어요. 최종 금액은 판매처 결제 화면에서 확인해 주세요.</li>
-              {/* 쿠팡 대가성 문구: 초록 결정(2026-11-01)으로 상세 화면은 하단 안내 박스에만 둔다 */}
-              {hasCoupang && <li className="pd-notice-cp">{COUPANG_DISCLOSURE}</li>}
-            </ul>
-          </aside>
+          <ProductNotice subject={product.title} showCoupang={hasCoupang} />
         </main>
       )}
 
-      {product && product.offers.length > 0 && <BuyBar top={top} />}
+      {showBuy && <BuyBar top={top} />}
     </div>
+  );
+}
+
+function QueryBar({ query }: { query: string }) {
+  return (
+    <form className="pd-requery" action="/shop/product" method="get" role="search">
+      <input
+        key={query}
+        name="q"
+        type="search"
+        required
+        maxLength={100}
+        defaultValue={query}
+        aria-label="상품 이름"
+        enterKeyHint="search"
+        autoCapitalize="off"
+        spellCheck={false}
+      />
+      <button type="submit">다시 찾기</button>
+    </form>
+  );
+}
+
+function MissState({ query, candidates }: { query: string; candidates: ShoppingCandidate[] }) {
+  return (
+    <main className="pd-main">
+      <section className="pd-miss" role="status">
+        <h1 className="pd-miss-title">‘{query}’{waGwa(query)} 이름이 맞는 상품을 못 찾았어요</h1>
+        <p className="pd-miss-sub">상품 이름이나 모델명으로 다시 찾아보세요. 쿠팡·네이버 상품 링크를 붙여 넣어도 돼요.</p>
+      </section>
+
+      {candidates.length > 0 && (
+        <section className="pd-candidates" aria-label="이름이 비슷하지 않지만 가장 가까운 결과">
+          <h2 className="pd-miss-label">이름이 비슷하지 않지만 가장 가까운 결과</h2>
+          <ul>
+            {candidates.map((c, i) => (
+              <li key={`${c.title}-${i}`} className="pd-candidate">
+                <div className="pd-candidate-thumb">
+                  {c.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={c.image} alt="" referrerPolicy="no-referrer" />
+                  ) : (
+                    <span aria-hidden="true">🛍️</span>
+                  )}
+                </div>
+                <div className="pd-candidate-body">
+                  <strong>{c.title}</strong>
+                  <span className="pd-diff-badge">검색어와 이름이 달라요</span>
+                </div>
+                <a className="pd-candidate-open" href={`/shop/product?q=${encodeURIComponent(c.title)}`}>
+                  이 상품 보기
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="pd-examples-block">
+        <h2 className="pd-subhead">이렇게 찾아보세요</h2>
+        <div className="pd-examples">
+          {EXAMPLE_QUERIES.map((q) => (
+            <a key={q} className="pd-chip" href={`/shop/product?q=${encodeURIComponent(q)}`}>
+              {q}
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <ProductNotice subject={query} showCoupang={false} />
+    </main>
+  );
+}
+
+function ProductNotice({ subject, showCoupang }: { subject: string; showCoupang: boolean }) {
+  return (
+    <aside className="pd-notice">
+      <ul>
+        <li>
+          상품, 가격 정보가 다른 경우 <a href={reportHref(subject)}>여기</a>에 제보해 주세요.
+        </li>
+        <li>가격은 표시된 시각 기준이며, 판매처에서 바뀔 수 있어요. 최종 금액은 판매처 결제 화면에서 확인해 주세요.</li>
+        {/* 쿠팡 대가성 문구: 초록 결정(2026-11-01)으로 상세 화면은 하단 안내 박스에만 둔다 */}
+        {showCoupang && <li className="pd-notice-cp">{COUPANG_DISCLOSURE}</li>}
+      </ul>
+    </aside>
   );
 }

@@ -1,4 +1,5 @@
 import { getCoupangLink, type CoupangLink } from "@/lib/coupang-links";
+import { compactText, filterProductOptions, titleRelevance } from "@/lib/shop-match";
 import { normalizeSeller, sellerInfo, type Seller } from "@/lib/sellers";
 
 // 상품 상세 화면용 데이터. SerpApi 쇼핑 결과를 줄여 만든다. (출처는 화면에 표시하지 않는다)
@@ -24,7 +25,19 @@ export type ShoppingProduct = {
   sample?: boolean; // 개발용 예시 데이터
 };
 
-export type ShoppingResponse = { product: ShoppingProduct | null };
+// 검색어와 이름이 약하게만 겹칠 때. 확정 상품이 아니므로 가격은 싣지 않는다.
+export type ShoppingCandidate = {
+  title: string;
+  image: string;
+  option: string;
+};
+
+export type ShoppingResponse = {
+  product: ShoppingProduct | null;
+  candidates: ShoppingCandidate[];
+};
+
+const MAX_CANDIDATES = 3;
 
 // 1위 후보: 판매 중이고 가격이 확인된 판매처
 export const rankable = (o: Offer): o is Offer & { price: number } => o.available && o.price !== null && o.price > 0;
@@ -54,9 +67,43 @@ type SerpShoppingResult = {
 
 const SOLD_OUT = /품절|재고\s*없음|out of stock|sold out|unavailable/i;
 
-export function firstShoppingResult(json: Record<string, unknown>): SerpShoppingResult | null {
+function shoppingResults(json: Record<string, unknown>): SerpShoppingResult[] {
   const list = Array.isArray(json.shopping_results) ? (json.shopping_results as SerpShoppingResult[]) : [];
-  return list.find((r) => r.title) ?? null;
+  return list.filter((r) => r.title?.trim());
+}
+
+export function firstShoppingResult(json: Record<string, unknown>): SerpShoppingResult | null {
+  return shoppingResults(json)[0] ?? null;
+}
+
+// 검색어와 강하게 겹치는 상품만 고른다. 겹침이 더 큰 쪽, 같으면 제목이 검색어와 같은 쪽, 그것도 같으면 앞에 있는 쪽.
+export function relevantShoppingResult(query: string, json: Record<string, unknown>): SerpShoppingResult | null {
+  let best: { item: SerpShoppingResult; coverage: number; exact: boolean } | null = null;
+  for (const item of shoppingResults(json)) {
+    const rel = titleRelevance(query, item.title ?? "");
+    if (!rel.strong) continue;
+    const exact = compactText(query) === compactText(item.title ?? "");
+    if (!best || rel.coverage > best.coverage || (rel.coverage === best.coverage && exact && !best.exact)) {
+      best = { item, coverage: rel.coverage, exact };
+    }
+  }
+  return best?.item ?? null;
+}
+
+function toCandidate(r: SerpShoppingResult): ShoppingCandidate {
+  return {
+    title: (r.title ?? "").trim(),
+    image: r.thumbnail || "",
+    option: filterProductOptions(r.extensions ?? []),
+  };
+}
+
+function weakCandidates(query: string, json: Record<string, unknown>): ShoppingCandidate[] {
+  return shoppingResults(json)
+    .map((r, i) => ({ r, i, coverage: titleRelevance(query, r.title ?? "").coverage }))
+    .sort((a, b) => b.coverage - a.coverage || a.i - b.i)
+    .slice(0, MAX_CANDIDATES)
+    .map(({ r }) => toCandidate(r));
 }
 
 type RawOffer = { name: string; link: string; price: number | null; original: number | null; soldOut: boolean };
@@ -85,19 +132,24 @@ function toOffers(raw: RawOffer[], query: string, title: string): { offers: Offe
   return { offers: [...ranked, ...rest], originals };
 }
 
-// google_shopping 결과(json)와 그 첫 상품의 google_immersive_product 결과(detail)로 화면 데이터를 만든다
+// 쇼핑 결과(json)와, 이름이 맞는 상품의 상세(detail)로 화면 데이터를 만든다.
+// 검색어와 상품명이 약하면 product 를 비우고 candidates 만 돌려준다.
 export function shapeShopping(
   query: string,
   json: Record<string, unknown>,
   detail: Record<string, unknown> | null,
   now: Date = new Date(),
 ): ShoppingResponse {
-  const first = firstShoppingResult(json);
-  if (!first) return { product: null };
+  const hit = relevantShoppingResult(query, json);
+  if (!hit) return { product: null, candidates: weakCandidates(query, json) };
 
   const pr = (detail?.product_results ?? null) as { title?: string; thumbnails?: string[]; stores?: SerpStore[] } | null;
-  const title = pr?.title || first.title || query;
-  const stores = Array.isArray(pr?.stores) ? pr!.stores! : [];
+  const detailTitle = pr?.title?.trim() ?? "";
+  // 상세 제목이 검색어와 약하면 다른 상품이므로 스토어 목록을 붙이지 않는다.
+  const detailOk = !!pr && (!detailTitle || titleRelevance(query, detailTitle).strong);
+  const linked = detailOk ? pr : null;
+  const title = (linked && detailTitle) || hit.title?.trim() || query;
+  const stores = Array.isArray(linked?.stores) ? linked.stores : [];
 
   const raw: RawOffer[] = stores.length
     ? stores.map((s) => ({
@@ -109,11 +161,11 @@ export function shapeShopping(
       }))
     : [
         {
-          name: first.source ?? "",
-          link: first.product_link ?? first.link ?? "",
-          price: first.extracted_price ?? null,
-          original: first.extracted_old_price ?? null,
-          soldOut: SOLD_OUT.test(first.tag ?? ""),
+          name: hit.source ?? "",
+          link: hit.product_link ?? hit.link ?? "",
+          price: hit.extracted_price ?? null,
+          original: hit.extracted_old_price ?? null,
+          soldOut: SOLD_OUT.test(hit.tag ?? ""),
         },
       ];
   const { offers, originals } = toOffers(raw, query, title);
@@ -126,14 +178,15 @@ export function shapeShopping(
     product: {
       query,
       title,
-      option: (first.extensions ?? []).slice(0, 2).join(" · "),
-      image: pr?.thumbnails?.[0] || first.thumbnail || "",
+      option: filterProductOptions(hit.extensions ?? []),
+      image: linked?.thumbnails?.[0] || hit.thumbnail || "",
       price: top?.price ?? null,
       originalPrice,
       changePct: top && originalPrice ? Math.round(((originalPrice - top.price) / originalPrice) * 100) : null,
       fetchedAt: now.toISOString(),
       offers,
     },
+    candidates: [],
   };
 }
 
@@ -154,6 +207,14 @@ export const SAMPLE_SHOPPING_JSON = {
       extensions: ["화이트", "USB-C 케이스"],
       thumbnail: "",
       immersive_product_page_token: "sample",
+    },
+    {
+      title: "Apple iPhone 17 128GB",
+      source: "Coupang",
+      extracted_price: 1250000,
+      extensions: ["근처", "37 km", "화이트", "128GB"],
+      thumbnail: "",
+      immersive_product_page_token: "sample-iphone",
     },
   ],
 };
