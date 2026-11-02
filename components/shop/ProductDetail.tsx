@@ -41,7 +41,7 @@ const SHARE = "M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v13";
 const STAR = "M12 2.8l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.6l-5.8 3.1 1.1-6.5L2.6 9.6l6.5-.9z";
 
 // 상품 데이터 상세 화면 (모바일 우선, 데스크톱은 가운데 좁은 칼럼)
-export function ProductDetail({ query, token }: { query: string; token: string }) {
+export function ProductDetail({ query, token, pid = "" }: { query: string; token: string; pid?: string }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [fav, setFav] = useState(false);
   const [toast, setToast] = useState("");
@@ -49,7 +49,7 @@ export function ProductDetail({ query, token }: { query: string; token: string }
   useEffect(() => {
     setFav(readFavs().includes(query));
     const ctrl = new AbortController();
-    fetch(`/api/shopping?q=${encodeURIComponent(query)}&token=${encodeURIComponent(token)}`, { signal: ctrl.signal })
+    fetch(`/api/shopping?${new URLSearchParams({ q: query, token, pid })}`, { signal: ctrl.signal })
       .then(async (res) => {
         if (!res.ok) return setState({ kind: "error", code: await errorCode(res) });
         const data = (await res.json()) as ShoppingResponse;
@@ -57,7 +57,7 @@ export function ProductDetail({ query, token }: { query: string; token: string }
       })
       .catch((e) => e.name !== "AbortError" && setState({ kind: "error", code: "network" }));
     return () => ctrl.abort();
-  }, [query, token]);
+  }, [query, token, pid]);
 
   useEffect(() => {
     if (!toast) return;

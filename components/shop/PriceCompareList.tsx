@@ -13,7 +13,8 @@ export function PriceCompareList({ offers, fetchedAt }: { offers: Offer[]; fetch
   if (!offers.length) return null;
 
   const top = offers.find(rankable) ?? null;
-  const tabs = offers.map((o) => o.seller.key).sort((a, b) => sellerOrder(a) - sellerOrder(b));
+  // 탭은 주요 4곳만 (그 밖 판매처는 "전체"에서 보인다)
+  const tabs = [...new Set(offers.filter((o) => o.seller.major).map((o) => o.seller.key))].sort((a, b) => sellerOrder(a) - sellerOrder(b));
   const ranked = offers.map((offer, i) => ({ offer, rank: rankable(offer) ? i + 1 : null }));
   const shown = tab === "all" ? ranked : ranked.filter((r) => r.offer.seller.key === tab);
 

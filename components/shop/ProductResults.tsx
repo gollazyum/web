@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { errorCode } from "@/lib/apiError";
-import { won, type SearchItem, type SearchResponse } from "@/lib/shopping";
+import { detailHref, won, type SearchItem, type SearchResponse } from "@/lib/shopping";
 
 type State = { kind: "loading" } | { kind: "error"; code: string } | { kind: "ok"; items: SearchItem[]; sample: boolean };
 
@@ -66,8 +66,8 @@ export function ProductResults({ query }: { query: string }) {
             </p>
             <ul className="sr-list">
               {state.items.map((item) => (
-                <li key={item.token}>
-                  <a className="sr-item" href={`/shop/product?q=${encodeURIComponent(query)}&token=${encodeURIComponent(item.token)}`}>
+                <li key={item.token || item.productId}>
+                  <a className="sr-item" href={detailHref(query, item)}>
                     <span className="sr-thumb">
                       {item.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
