@@ -40,6 +40,7 @@ export type SearchItem = {
   image: string;
   price: number | null;
   seller: string | null; // 검색 결과의 판매처 이름
+  storeCount?: number; // 판매처 수. 아직 받는 데이터가 없어 비워 둔다 (있을 때만 "판매처 N곳" 표시)
 };
 
 // 고른 상품을 가리키는 값. 토큰과 product_id 중 있는 것

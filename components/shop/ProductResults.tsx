@@ -3,12 +3,16 @@
 import { useEffect, useState } from "react";
 import { errorCode } from "@/lib/apiError";
 import { detailHref, won, type SearchItem, type SearchResponse } from "@/lib/shopping";
+import { useMediaQuery } from "@/lib/useMediaQuery";
+import { DesktopResults } from "./DesktopResults";
 
 type State = { kind: "loading" } | { kind: "error"; code: string } | { kind: "ok"; items: SearchItem[]; sample: boolean };
 
 // 상품 검색 목록. 여기서는 스토어별 가격을 부르지 않고, 상품을 고르면 그 상품만 상세 조회한다
 export function ProductResults({ query }: { query: string }) {
   const [state, setState] = useState<State>({ kind: "loading" });
+  // PC(1024px 이상)만 그리드 화면. 모바일·태블릿은 아래 기존 목록 그대로
+  const desktop = useMediaQuery("(min-width: 1024px)");
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -28,7 +32,7 @@ export function ProductResults({ query }: { query: string }) {
   }
 
   return (
-    <div className="pd-page">
+    <div className="pd-page sr-page">
       <header className="pd-topbar">
         <button type="button" className="pd-icon-btn" aria-label="뒤로가기" onClick={back}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -58,7 +62,10 @@ export function ProductResults({ query }: { query: string }) {
             <p>“{query}” 상품 데이터를 찾지 못했어요. 상품명을 조금 다르게 입력해 보세요.</p>
           </div>
         )}
-        {state.kind === "ok" && state.items.length > 0 && (
+        {state.kind === "ok" && state.items.length > 0 && desktop && (
+          <DesktopResults query={query} items={state.items} sample={state.sample} />
+        )}
+        {state.kind === "ok" && state.items.length > 0 && !desktop && (
           <>
             <p className="sr-head">
               “{query}” 상품 {state.items.length}개 · 상품을 누르면 스토어별 가격을 보여 드려요
