@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MochiStars, ratingTier } from "./MochiMarks";
-import { agodaSearchUrl, bookingLink, firstSites, isAgoda, lowestOffer, roboPick, roboReason, type HotelOption, type HotelQuery, type HotelSource, type ReviewTopic } from "@/lib/hotels";
+import { agodaAffiliateOn } from "@/lib/affiliate";
+import { allowedSellers, hotelSellerKey, linkRel, withRo } from "@/lib/hotel-sellers";
+import { agodaSearchUrl, bookingLink, firstSites, isAgoda, lowestOffer, roboReason, type HotelOption, type HotelQuery, type HotelSource, type ReviewTopic } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo, stayLimitLabel, stayLimits } from "@/lib/hotelText";
 import { useSheet } from "@/lib/useSheet";
 
 // 휴대폰 호텔 결과: 카드를 누르면 아래에서 올라오는 '예약 사이트별 가격' 시트.
-// 사진(옆으로 넘기기), 로보티 한 줄 요약, 사이트별 총액, 맨 아래 고정된 최저 총액 예약 버튼
+// 사진(옆으로 넘기기), Gollazyum AI 한 줄 요약, 사이트별 총액(허용 목록 판매처만), 맨 아래 고정된 최저 총액 예약 버튼
 
 export type PriceState = { kind: "loading" } | { kind: "ok"; sources: HotelSource[]; topics?: ReviewTopic[] | null } | { kind: "error"; message: string };
 
@@ -74,24 +76,47 @@ type Props = {
   nights: number;
   prices: PriceState | null;
   summary: string;
+  onRetry: () => void;
   onClose: () => void;
 };
 
-export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose }: Props) {
+const TOAST_MS = 1600;
+
+export function HotelPriceSheet({ hotel, query, nights, prices, summary, onRetry, onClose }: Props) {
   useSheet(true, onClose);
-  const sources = prices?.kind === "ok" ? prices.sources : hotel.sources;
+  // 한국 사용자용 허용 목록 안의 판매처만. 최저가·배지·하단 버튼 모두 이 목록 기준이다
+  const sources = allowedSellers(prices?.kind === "ok" ? prices.sources : hotel.sources);
   const best = lowestCost(sources);
   // 줄 세우기: 총액(없으면 1박가) 낮은 순
   const rows = [...sources].sort((a, b) => (a.total ?? a.perNight ?? Infinity) - (b.total ?? b.perNight ?? Infinity));
-  const top = lowestOffer(rows) ?? rows.find((s) => s.total !== null) ?? rows[0];
+  const top = lowestOffer(rows);
   const linkOf = (s: HotelSource) => bookingLink(s, hotel.name, query);
-  const pick = roboPick(sources, hotel.token);
-  const why = pick ? roboReason(sources, pick, hotel.deal, hotel.token) : "";
+  const relOf = (s: HotelSource) => linkRel(hotelSellerKey(s.name, s.official, s.link));
+  // Gollazyum AI 표시는 실제 최저가 줄 한 곳에만 (두 곳 이상 가격이 있을 때)
+  const pick = best && top ? top.name : null;
+  const why = pick ? roboReason(sources, pick) : "";
+  const affiliate = agodaAffiliateOn();
   const [allSites, setAllSites] = useState(false);
   const first = firstSites(rows, pick);
   const hidden = rows.length - first.size;
   const images = hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : [];
   const tier = hotel.rating !== null ? ratingTier(hotel.rating) : null;
+  const agodaRow = rows.find((s) => isAgoda(s.name)) ?? null;
+  const agodaTop = !!top && isAgoda(top.name);
+  const empty = prices?.kind === "ok" && rows.length === 0;
+
+  // 예약/이동 버튼을 누르면 잠깐 안내 토스트
+  const [toast, setToast] = useState("");
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+  const going = (name: string) => () => {
+    setToast(withRo(name));
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setToast(""), TOAST_MS);
+  };
+  const footName = (s: HotelSource) => (s.official ? "공식 사이트" : s.name);
 
   return (
     <>
@@ -150,33 +175,37 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
             예약 사이트별 {best?.totals === false ? "1박 요금" : "총액"} <small>({nights}박 · 세금 포함)</small>
             {prices?.kind === "loading" && <span className="dots"> 더 불러오는 중</span>}
           </h3>
+          {affiliate && agodaRow && <p className="ps-aff">아고다 링크는 제휴 링크라 예약 시 Gollazyum이 수수료를 받을 수 있어요.</p>}
           {rows.length > 0 && (
             <ul className="ps-sources">
               {rows.filter((s) => allSites || first.has(s.name)).map((s) => {
                 const link = linkOf(s);
                 const isBest = best !== null && best.cost(s) === best.value;
+                const agoda = isAgoda(s.name);
                 return (
-                  <li key={s.name} className={isBest ? "best" : undefined}>
+                  <li key={s.name} className={`${isBest ? "best" : ""}${agoda ? " is-agoda" : ""}`.trim() || undefined}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {s.logo ? <img src={s.logo} alt="" /> : <i />}
                     <span className="ps-site">
                       {s.name}
                       {s.official && <em> 공식</em>}
+                      {agoda && affiliate && <em className="ps-aff-tag">제휴</em>}
                       {s.name === pick && <em className="hotel-pick"> Gollazyum AI</em>}
                       {isBest && <em className="best-badge">최저가</em>}
-                      {s.name === pick && <small className="pick-why">{why}</small>}
+                      {s.name === pick && why && <small className="pick-why">{why}</small>}
                     </span>
                     <span className="ps-cost">
                       <b>{s.total !== null ? won(s.total) : s.perNight !== null ? won(s.perNight) : "-"}</b>
                       <small>{s.total !== null ? (s.perNight !== null ? `1박 ${won(s.perNight)}` : "") : "1박"}</small>
                     </span>
                     {link ? (
-                      <a href={link} target="_blank" rel="noopener noreferrer sponsored" aria-label={`${s.name}에서 예약`}>
-                        예약 ↗
+                      <a href={link} target="_blank" rel={relOf(s)} aria-label={agoda ? "아고다 사이트로 이동 (새 탭)" : `${s.name}에서 예약 (새 탭)`} onClick={going(s.name)}>
+                        {agoda ? "아고다 ↗" : "예약 ↗"}
                       </a>
                     ) : (
                       <span />
                     )}
+                    {agoda && link && <small className="ps-go-note">아고다 사이트로 바로 가요 · 새 탭</small>}
                   </li>
                 );
               })}
@@ -189,11 +218,18 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
           )}
           {/* 가격이 한 곳만 나오면 아고다에서 이 도시 숙소를 더 볼 수 있게 */}
           {sources.length === 1 && !isAgoda(sources[0].name) && (
-            <a className="more-sites" href={agodaSearchUrl(query.q, query)} target="_blank" rel="noopener noreferrer sponsored">
+            <a className="more-sites" href={agodaSearchUrl(query.q, query)} target="_blank" rel={linkRel("agoda")} onClick={going("Agoda")}>
               아고다에서 더 많은 숙소 보러가기 ↗
             </a>
           )}
-          {prices?.kind === "ok" && !sources.length && <p className="flight-note">이 호텔은 지금 예약 사이트 가격을 찾지 못했어요.</p>}
+          {empty && (
+            <div className="ps-empty" role="status">
+              <p>지금 비교할 수 있는 예약 사이트가 없어요.</p>
+              <button type="button" onClick={onRetry}>
+                다시 검색
+              </button>
+            </div>
+          )}
           {prices?.kind === "error" && <p className="flight-note">{prices.message}</p>}
           {cardAmenities(hotel.amenities).length > 0 && (
             <ul className="hcard-amen ps-amen">
@@ -202,21 +238,37 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onClose
               ))}
             </ul>
           )}
-          <p className="flight-note">
-            Google 호텔 검색 기준, 검색 시점 가격이에요. 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요. 아고다 링크는 제휴 링크라 예약 시 Gollazyum이
-            수수료를 받을 수 있어요.
-          </p>
+          <p className="flight-note">검색 시점 가격이에요. 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요.</p>
         </div>
         {top && linkOf(top) && (
-          <div className="ps-foot">
-            <span>
+          <div className={`ps-foot${agodaTop ? "" : " has-alt"}`}>
+            <span className="ps-foot-price">
               <small>최저 {top.total !== null ? "총액" : "1박"}</small>
               <b>{won((top.total ?? top.perNight) as number)}</b>
             </span>
-            <a href={linkOf(top)} target="_blank" rel="noopener noreferrer sponsored">
-              {top.name}에서 예약 ↗
-            </a>
+            <div className="ps-foot-btns">
+              <a className="ps-main" href={linkOf(top)} target="_blank" rel={relOf(top)} onClick={going(top.name)}>
+                {agodaTop ? "Agoda에서 예약 ↗" : `${footName(top)}에서 예약 ↗`}
+              </a>
+              {!agodaTop && (
+                <a
+                  className="ps-alt"
+                  href={agodaRow ? linkOf(agodaRow) : agodaSearchUrl(hotel.name, query)}
+                  target="_blank"
+                  rel={linkRel("agoda")}
+                  onClick={going("Agoda")}
+                >
+                  Agoda에서 보기 ↗
+                </a>
+              )}
+            </div>
           </div>
+        )}
+        {toast && (
+          <p className="toast ps-toast" role="status">
+            <span>{toast} 이동해요</span>
+            <span> · 최종 금액은 결제 화면에서 확인해 주세요</span>
+          </p>
         )}
       </div>
     </>
