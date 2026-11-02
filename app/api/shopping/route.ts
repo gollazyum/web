@@ -1,8 +1,8 @@
 import { serpSearch } from "@/lib/serpapi";
-import { firstShoppingResult, SAMPLE_PRODUCT_JSON, SAMPLE_SHOPPING_JSON, shapeShopping } from "@/lib/shopping";
+import { relevantShoppingResult, SAMPLE_PRODUCT_JSON, SAMPLE_SHOPPING_JSON, shapeShopping } from "@/lib/shopping";
 
-// 상품 상세 데이터. SerpApi 구글 쇼핑에서 상품을 찾고(google_shopping),
-// 그 첫 상품의 스토어별 가격(google_immersive_product)을 이어서 받아 화면용으로 줄인다. 검색 1번에 SerpApi 2회.
+// 상품 상세 데이터. 쇼핑 결과에서 검색어와 이름이 맞는 상품의 스토어별 가격을 이어서 받아 화면용으로 줄인다.
+// 맞는 상품이 없으면 두 번째 호출은 하지 않는다.
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     { engine: "google_shopping", q, gl: "kr", hl: "ko", location: "South Korea" },
     (json, detail) => shapeShopping(q, json, detail),
     (json) => {
-      const token = firstShoppingResult(json)?.immersive_product_page_token;
+      const token = relevantShoppingResult(q, json)?.immersive_product_page_token;
       return token ? { engine: "google_immersive_product", page_token: token, gl: "kr", hl: "ko" } : null;
     },
   );
