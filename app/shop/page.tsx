@@ -30,7 +30,7 @@ export default function ShopPage() {
         </section>
         <CoupangSection />
       </main>
-      <SiteFooter />
+      <SiteFooter variant="shop" />
     </>
   );
 }

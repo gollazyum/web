@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { MochiStars } from "./MochiMarks";
 import type { PriceState } from "./HotelPriceSheet";
 import { RememberPrefsModal, AUTH_ENABLED } from "./RememberPrefsModal";
+import { hotelSellerKey, linkRel } from "@/lib/hotel-sellers";
 import { bookingLink, type HotelQuery, type HotelSource, type ReviewTopic } from "@/lib/hotels";
 import { hotelNameKo } from "@/lib/hotelText";
 import type { CompareItem, Prefs, TopicCache } from "@/lib/lowbotiStore";
@@ -286,7 +287,7 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
                     {rows.map((r) => (
                       <td key={r.token}>
                         {link(r) ? (
-                          <a href={link(r)} target="_blank" rel="noopener noreferrer sponsored" className="cmp-book">
+                          <a href={link(r)} target="_blank" rel={linkRel(r.site ? hotelSellerKey(r.site.name, r.site.official, r.site.link) : null)} className="cmp-book">
                             예약 ↗
                           </a>
                         ) : (
@@ -334,7 +335,7 @@ export function CompareModal({ items, query, nights, prices, topicCache, ensureP
 
             <div className="cmp-actions">
               {winner && link(winner) && (
-                <a href={link(winner)} target="_blank" rel="noopener noreferrer sponsored" className="cmp-cta">
+                <a href={link(winner)} target="_blank" rel={linkRel(winner.site ? hotelSellerKey(winner.site.name, winner.site.official, winner.site.link) : null)} className="cmp-cta">
                   {winner.site?.name}에서 예약하기 ↗
                 </a>
               )}

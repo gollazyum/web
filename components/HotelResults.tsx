@@ -15,6 +15,8 @@ import { agodaSearchUrl, bookingLink, canTakeLowestBadge, firstSites, isAgoda, h
 import { cardAmenities, hotelNameKo, stayLimitLabel, stayLimits } from "@/lib/hotelText";
 import { MAX_COMPARE, compareItem, saveTopics, toSearchParams, updateStore, useLowbotiStore } from "@/lib/lowbotiStore";
 import { isPhone, useSheet } from "@/lib/useSheet";
+import { agodaAffiliateOn } from "@/lib/affiliate";
+import { allowedSellers, hotelSellerKey, linkRel } from "@/lib/hotel-sellers";
 import { CompareBar } from "./CompareBar";
 import { CompareModal } from "./CompareModal";
 
@@ -98,7 +100,7 @@ export function HotelResultsView({ query }: { query: HotelQuery | null }) {
       ) : (
         <ResultsMessage
           action={
-            <a className="results-out" href={agodaSearchUrl(query.q, query)} target="_blank" rel="noopener noreferrer sponsored">
+            <a className="results-out" href={agodaSearchUrl(query.q, query)} target="_blank" rel={linkRel("agoda")}>
               아고다에서 바로 찾아보기 ↗
             </a>
           }
@@ -217,8 +219,8 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
   }
 
   // 예약 사이트별 가격 (+ 후기 주제 숫자). 비교함에 다른 검색에서 담은 호텔도 지금 날짜로 받는다
-  async function loadPrices(hotel: { token: string; sources?: HotelOption["sources"]; q?: string }) {
-    if (priceMap[hotel.token] && priceMap[hotel.token].kind !== "error") return;
+  async function loadPrices(hotel: { token: string; sources?: HotelOption["sources"]; q?: string }, force = false) {
+    if (!force && priceMap[hotel.token] && priceMap[hotel.token].kind !== "error") return;
     const put = (v: PriceState) => setPriceMap((m) => ({ ...m, [hotel.token]: v }));
     put({ kind: "loading" });
     try {
@@ -227,7 +229,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
       const prices = (await res.json()) as HotelPrices;
       const topics = prices.topics ?? null;
       saveTopics(hotel.token, topics);
-      const sources = prices.sources.length ? prices.sources : (hotel.sources ?? []);
+      const sources = allowedSellers(prices.sources.length ? prices.sources : (hotel.sources ?? []));
       const best = lowestNightly(sources);
       put({ kind: "ok", sources, topics });
       // 상세에서 더 낮은 사이트가 나오면 카드 가격·정렬도 그 곳으로 맞춘다
@@ -305,7 +307,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     return (
       <ResultsMessage
         action={
-          <a className="results-out" href={agodaSearchUrl(query.q, query)} target="_blank" rel="noopener noreferrer sponsored">
+          <a className="results-out" href={agodaSearchUrl(query.q, query)} target="_blank" rel={linkRel("agoda")}>
             아고다에서 바로 찾아보기 ↗
           </a>
         }
@@ -486,8 +488,8 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
         )}
 
         <p className="flight-note">
-          Google 호텔 검색 기준, 검색 시점 가격이에요. 총액은 세금·봉사료를 포함한 금액이며, 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요.
-          아고다 링크는 제휴 링크라 예약 시 Gollazyum이 수수료를 받을 수 있어요.
+          검색 시점 가격이에요. 총액은 세금·봉사료를 포함한 금액이며, 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요.
+          {agodaAffiliateOn() && " 아고다 링크는 제휴 링크라 예약 시 Gollazyum이 수수료를 받을 수 있어요."}
         </p>
       </section>
 
@@ -527,6 +529,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           nights={nights}
           prices={priceMap[sheetHotel.token] ?? null}
           summary={roboSummary(sheetHotel, data.options, nights, picks.has(sheetHotel.token))}
+          onRetry={() => loadPrices(sheetHotel, true)}
           onClose={() => setSheetToken("")}
         />
       )}
@@ -753,7 +756,8 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
     if (!open) onPrices();
   }
 
-  const sources = prices?.kind === "ok" ? prices.sources : hotel.sources;
+  // 허용 목록 안의 판매처만 (예전에 담아 둔 데이터도 여기서 한 번 더 거른다)
+  const sources = allowedSellers(prices?.kind === "ok" ? prices.sources : hotel.sources);
   const best = lowestNightly(sources);
   const perNight = best?.perNight ?? hotel.perNight;
   const offerTotal = best ? best.total : hotel.total;
@@ -762,7 +766,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
   const exactTotal = offerTotal !== null;
   const lowest = lowestCost(sources);
   const pick = roboPick(sources, hotel.token);
-  const why = pick ? roboReason(sources, pick, hotel.deal, hotel.token) : "";
+  const why = pick ? roboReason(sources, pick) : "";
   const [allSites, setAllSites] = useState(false);
   const first = firstSites(sources, pick);
   const hidden = sources.length - first.size;
@@ -892,7 +896,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
                       {s.total !== null && <small> · 총 {won(s.total)}</small>}
                     </b>
                     {link ? (
-                      <a href={link} target="_blank" rel="noopener noreferrer sponsored">
+                      <a href={link} target="_blank" rel={linkRel(hotelSellerKey(s.name, s.official, s.link))}>
                         예약하기 ↗
                       </a>
                     ) : (
@@ -910,7 +914,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
           )}
           {/* 가격이 한 곳만 나오면 아고다에서 이 도시 숙소를 더 볼 수 있게 */}
           {sources.length === 1 && !isAgoda(sources[0].name) && (
-            <a className="more-sites" href={agodaSearchUrl(query.q, query)} target="_blank" rel="noopener noreferrer sponsored">
+            <a className="more-sites" href={agodaSearchUrl(query.q, query)} target="_blank" rel={linkRel("agoda")}>
               아고다에서 더 많은 숙소 보러가기 ↗
             </a>
           )}
@@ -930,8 +934,8 @@ function HotelSkeletons() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/gollazyum-mark.svg" alt="" />
         <p>
-          <strong>🔍 Gollazyum AI가 가격 데이터와 숨은 할인 경로를 분석하고 있어요...</strong>
-          <span>예약 사이트별 숨은 총액까지 계산하는 중 · 약 5~10초</span>
+          <strong>🔍 Gollazyum AI가 예약 사이트별 가격을 모으고 있어요...</strong>
+          <span>세금 포함 총액까지 계산하는 중 · 약 5~10초</span>
         </p>
       </div>
       <ul className="hcards" aria-hidden="true">
