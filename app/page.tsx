@@ -79,23 +79,23 @@ export default function Home() {
         <div className="hero-glow" aria-hidden="true" />
         <div className="hero-inner wrap">
           <span className="pill">
-            <span className="spark">✦</span> AI Travel &amp; Lifestyle Platform
+            <span className="spark">✦</span> AI Shopping &amp; Travel Platform
           </span>
           <h1>
             <span className="nobr hero-line">스마트한 여행과 일상의 시작,</span>{" "}
             <span className="nobr hero-line grad-blue">Gollazyum</span>
           </h1>
-          <p className="hero-sub">이커머스 쇼핑 데이터와 글로벌 트래블 솔루션을 하나로 연결하는 차세대 디지털 플랫폼</p>
+          <p className="hero-sub">쿠팡·네이버 같은 쇼핑몰과 여러 예약 사이트의 가격을 한 화면에서 비교해요</p>
           <LinkChecker />
           <div className="compared">
-            <span className="compared-label">지원 데이터</span>
+            <span className="compared-label">비교하는 곳</span>
             <span className="compared-item">
               <strong>쿠팡 · 네이버 · G마켓 · 11번가</strong>
-              <em>스토어 가격</em>
+              <em>쇼핑몰</em>
             </span>
             <i aria-hidden="true" />
             <span className="compared-item">
-              <strong>글로벌 숙박 요금</strong>
+              <strong>숙소 예약 사이트</strong>
             </span>
           </div>
         </div>

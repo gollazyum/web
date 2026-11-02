@@ -94,7 +94,7 @@ export function FlightSearch({ initial, compact }: Props) {
             ))}
           </select>
         </label>
-        <button type="submit">{compact ? "다시 검색" : "항공권 찾기"}</button>
+        <button type="submit">{compact ? "다시 검색" : "항공권 최저가 찾기"}</button>
       </form>
       {error && (
         <div className="search-result" role="status">

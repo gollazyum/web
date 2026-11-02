@@ -57,7 +57,7 @@ export function HotelSearch({ initial, compact }: Props) {
             ))}
           </select>
         </label>
-        <button type="submit">{compact ? "다시 검색" : "숙소 탐색"}</button>
+        <button type="submit">{compact ? "다시 검색" : "숙소 최저가 찾기"}</button>
       </form>
       {error && (
         <div className="search-result" role="status">
