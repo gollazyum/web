@@ -12,7 +12,7 @@ export type Offer = {
   seller: Seller;
   price: number | null; // 가격을 확인하지 못하면 null
   available: boolean; // 품절이면 false
-  link: string; // 판매처로 가는 주소. 쿠팡이면 SerpApi 원본 대신 getCoupangLink 결과
+  link: string; // 판매처로 가는 주소. 쿠팡이면 getCoupangLink 결과 (실제 상품 주소 또는 쿠팡 검색결과)
   coupang: CoupangLink | null; // 쿠팡 판매처일 때만
   placeholder?: boolean; // 데이터에 쿠팡이 없어 덧붙인 쿠팡 행 (순위·차액·대표 가격 계산에서 빠짐)
 };
@@ -183,10 +183,11 @@ type RawOffer = { name: string; link: string; price: number | null; original: nu
 function toOffer(r: RawOffer, query: string, title: string): Offer | null {
   const seller = shopSeller(r.name, r.link);
   if (!seller) return null;
-  const coupang = seller.key === "쿠팡" ? getCoupangLink({ title }, query) : null;
-  // 쿠팡은 SerpApi가 준 원본 주소를 절대 쓰지 않는다. 다른 곳은 중간 이동을 푼 판매처 주소
-  // (쇼핑은 숙소와 달리 구글 경유 주소도 지우지 않는다: 지우면 판매처가 통째로 사라진다)
-  const link = coupang ? coupang.url : resolveSellerUrl(r.link);
+  const resolved = resolveSellerUrl(r.link);
+  // 쿠팡: 중간 이동을 푼 주소가 쿠팡 상품 상세 주소면 그 주소, 아니면 쿠팡 안 상품명 검색결과 (쿠팡 홈 고정 링크는 쓰지 않는다)
+  // 다른 곳은 중간 이동을 푼 판매처 주소 (쇼핑은 숙소와 달리 경유 주소도 지우지 않는다: 지우면 판매처가 통째로 사라진다)
+  const coupang = seller.key === "쿠팡" ? getCoupangLink({ title, link: resolved }, query) : null;
+  const link = coupang ? coupang.url : resolved;
   return { seller, price: realPrice(r.price), available: !r.soldOut, link, coupang };
 }
 

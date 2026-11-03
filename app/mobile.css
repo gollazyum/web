@@ -14,8 +14,24 @@ html.sheet-lock body {
 .hcard-skeletons,
 .sheet-dim,
 .layer-back,
-.flight-fab {
+.flight-fab,
+.shop-link-hint {
   display: none;
+}
+/* 상품 검색창 아래 '링크 붙여넣기는 준비 중' 안내: 휴대폰에서는 항상, 넓은 화면은 주소를 넣었을 때(.on)만 */
+.shop-link-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #64748b;
+}
+.shop-link-hint.on {
+  display: block;
+}
+@media (max-width: 640px) {
+  .shop-link-hint {
+    display: block;
+  }
 }
 .fcard.flash {
   animation: card-flash 1.1s ease 2;

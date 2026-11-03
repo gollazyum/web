@@ -1,5 +1,6 @@
 import { brandCopy } from "@/lib/brand-mode";
 import { COUPANG_LINK_ATTRS } from "@/lib/coupang-links";
+import { CoupangLabel } from "@/components/shop/CoupangLabel";
 import { SellerIcon } from "@/components/shop/SellerIcon";
 import { fetchedTime, won, type Offer } from "@/lib/shopping";
 
@@ -20,7 +21,7 @@ function Rank({ rank }: { rank: number | null }) {
   );
 }
 
-// 스토어별 가격 한 줄. 누르면 그 판매처로 간다 (쿠팡이면 getCoupangLink로 만든 주소)
+// 스토어별 가격 한 줄. 누르면 그 판매처로 간다 (쿠팡이면 getCoupangLink로 만든 상품 주소 또는 상품명 검색결과)
 // rank가 null이면 품절이거나 가격을 확인하지 못한 판매처 (1위 후보에서 빠짐)
 export function SellerRow({ offer, rank, topPrice, fetchedAt }: { offer: Offer; rank: number | null; topPrice: number | null; fetchedAt: string }) {
   const diff = rank !== null && offer.price !== null && topPrice !== null ? offer.price - topPrice : 0;
@@ -40,6 +41,11 @@ export function SellerRow({ offer, rank, topPrice, fetchedAt }: { offer: Offer; 
         </span>
       </span>
       {!offer.placeholder && <span className="pd-row-meta">{fetchedTime(fetchedAt)} 기준</span>}
+      {offer.coupang?.type === "search" && (
+        <span className="pd-row-cp">
+          <CoupangLabel link={offer.coupang} />
+        </span>
+      )}
     </>
   );
   const className = `pd-row${top ? " pd-row-top" : ""}`;
