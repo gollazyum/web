@@ -4,13 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { openSearchTab, type TabId } from "@/components/LinkChecker";
 
 // 헤더 메뉴. 데스크톱 가로 메뉴와 폰 햄버거 메뉴가 같은 목록을 쓴다
-type Item = { label: string; ko: string; soon?: boolean } & ({ tab: TabId } | { href: string });
+type Item = { label: string; ko: string; review?: boolean } & ({ tab: TabId } | { href: string });
 const items: Item[] = [
   { href: "/shop", label: "Shopping", ko: "쇼핑" },
   { tab: "stay", label: "Stays", ko: "숙소" },
   { tab: "flight", label: "Flights", ko: "항공" },
-  { tab: "flight", label: "eSIM", ko: "유심", soon: true },
-  { href: "/#top", label: "Gollazyum App", ko: "앱 다운로드", soon: true },
+  { href: "/#top", label: "Gollazyum App", ko: "앱 다운로드", review: true },
 ];
 
 // 첫 화면이면 검색창 탭을 바로 바꾸고, 다른 페이지(약관 등)면 첫 화면의 그 탭으로 이동한다
@@ -24,10 +23,21 @@ function MenuLinks({ className, onPick }: { className?: string; onPick?: () => v
     <>
       {items.map((it) =>
         "href" in it ? (
-          <a key={it.label} href={it.href} className={className} onClick={onPick}>
+          <a
+            key={it.label}
+            href={it.href}
+            className={className}
+            onClick={(e) => {
+              onPick?.();
+              // 앱은 스토어 심사 중이라 이동하지 않고 경고창만 띄운다
+              if (it.review) {
+                e.preventDefault();
+                window.alert("Gollazyum App (심사중)");
+              }
+            }}
+          >
             {it.label}
             <span className="nav-ko">{it.ko}</span>
-            {it.soon && <span className="badge soon-badge">준비 중</span>}
           </a>
         ) : (
           <a
@@ -42,7 +52,6 @@ function MenuLinks({ className, onPick }: { className?: string; onPick?: () => v
           >
             {it.label}
             <span className="nav-ko">{it.ko}</span>
-            {it.soon && <span className="badge soon-badge">준비 중</span>}
           </a>
         ),
       )}
