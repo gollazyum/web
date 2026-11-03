@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LinkPasteHint } from "@/components/shop/LinkPasteHint";
+import { LINK_PASTE_HINT, looksLikeUrl } from "@/lib/shop-results";
 
 // 홈 첫 화면의 쇼핑 탭 검색창. 키워드를 넣으면 상품 데이터 상세(/shop/product?q=…)로 넘어간다
 // mode="link"는 스토어 상품 링크를 붙여 넣는 칸이다. 링크 읽기는 아직 없어서 키워드 탐색으로 안내한다
@@ -15,6 +17,8 @@ export function ShopSearch({ mode, onUseKeyword }: { mode: "search" | "link"; on
     e.preventDefault();
     const keyword = q.trim().slice(0, 100);
     if (!keyword) return setNote("상품명이나 키워드를 넣어 주세요. 예: 무선충전기, 로봇청소기");
+    // 스토어 상품 주소는 아직 읽지 못한다: 결과 없음 화면으로 보내지 않고 안내만
+    if (looksLikeUrl(keyword)) return setNote(LINK_PASTE_HINT);
     setNote("");
     router.push(`/shop/product?q=${encodeURIComponent(keyword)}`);
   }
@@ -57,6 +61,7 @@ export function ShopSearch({ mode, onUseKeyword }: { mode: "search" | "link"; on
           <button type="submit">링크 대조</button>
         </form>
       )}
+      {mode === "search" && note !== LINK_PASTE_HINT && <LinkPasteHint className="home-link-hint" />}
       {note && (
         <div className="search-result" role="status">
           <span>{note}</span>

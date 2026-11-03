@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { COUPANG_LINK_ATTRS, type CoupangLinkType } from "@/lib/coupang-links";
+import { CoupangLabel } from "@/components/shop/CoupangLabel";
+import { COUPANG_LINK_ATTRS, type CoupangLink } from "@/lib/coupang-links";
 import type { Offer } from "@/lib/shopping";
-
-const COUPANG_LABEL: Record<CoupangLinkType, string> = {
-  home: "쿠팡에서 찾아보기",
-  search: "쿠팡 검색결과 보기",
-  product: "구매하러 가기",
-};
 
 function BellIcon() {
   return (
@@ -20,8 +15,8 @@ function BellIcon() {
 }
 
 // 하단 고정 바: 왼쪽 알림 버튼, 오른쪽 1위 판매처로 가는 큰 버튼. 콘텐츠를 가리지 않게 본문 아래에 같은 높이 여백을 둔다
-// top이 없으면 쿠팡 링크(getCoupangLink 결과 그대로)로 "쿠팡에서 찾아보기"를 보여 준다
-export function BuyBar({ top, coupangUrl }: { top: Offer | null; coupangUrl?: string }) {
+// top이 없으면 쿠팡 링크(getCoupangLink 결과: 상품 주소 또는 상품명 검색결과)를 보여 준다
+export function BuyBar({ top, coupang }: { top: Offer | null; coupang?: CoupangLink }) {
   const [note, setNote] = useState(false);
 
   useEffect(() => {
@@ -30,10 +25,10 @@ export function BuyBar({ top, coupangUrl }: { top: Offer | null; coupangUrl?: st
     return () => clearTimeout(t);
   }, [note]);
 
-  const fallback = !top && !!coupangUrl;
-  const label = fallback ? "쿠팡에서 찾아보기" : top?.coupang ? COUPANG_LABEL[top.coupang.type] : "스토어로 이동하기";
-  const attrs = fallback || top?.coupang ? COUPANG_LINK_ATTRS : { target: "_blank", rel: "nofollow noopener noreferrer" };
-  const href = fallback ? coupangUrl : top?.link;
+  const cp = top ? top.coupang : (coupang ?? null);
+  const label = cp ? <CoupangLabel link={cp} /> : "스토어로 이동하기";
+  const attrs = cp ? COUPANG_LINK_ATTRS : { target: "_blank", rel: "nofollow noopener noreferrer" };
+  const href = top ? top.link : cp?.url;
 
   return (
     <div className="pd-buybar">

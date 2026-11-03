@@ -1,51 +1,41 @@
 import { describe, expect, it } from "vitest";
-import { COUPANG_HOME, getCoupangLink } from "@/lib/coupang-links";
+import { COUPANG_HOME, coupangLinkLabel, coupangSearchUrl, getCoupangLink, isCoupangProductUrl, withPartnersTag } from "@/lib/coupang-links";
 
-const HOME = "https://link.coupang.com/a/home";
-const links = {
-  에어팟: "https://link.coupang.com/a/airpods",
-  "에어팟 프로": "https://link.coupang.com/a/airpodspro",
-  캐리어: "https://link.coupang.com/a/carrier",
-};
+const PRODUCT = "https://www.coupang.com/vp/products/7007?itemId=1&vendorItemId=2";
 
 describe("getCoupangLink", () => {
-  it("키워드 링크가 비어 있으면 쿠팡 홈 링크", () => {
-    expect(getCoupangLink({ title: "에어팟 프로 2" }, "에어팟", { home: HOME, keywordLinks: {} })).toEqual({ url: HOME, type: "home" });
+  it("쿠팡 상품 상세 주소가 있으면 그 주소 그대로 (추적 파라미터 없음)", () => {
+    expect(getCoupangLink({ title: "에어팟 프로 2", link: PRODUCT }, "에어팟", { partnersTag: "" })).toEqual({ url: PRODUCT, type: "product", name: "에어팟 프로 2" });
+    expect(getCoupangLink({ title: "x", link: "https://m.coupang.com/vm/products/12" }, "x", { partnersTag: "" }).type).toBe("product");
   });
 
-  it("기본 설정은 COUPANG_HOME을 그대로 쓴다", () => {
-    expect(getCoupangLink(null, "아무거나")).toEqual({ url: COUPANG_HOME, type: "home" });
-    expect(COUPANG_HOME).toBe("https://link.coupang.com/a/ijuyP3uVoW");
+  it("추적 파라미터가 설정돼 있을 때만 붙인다", () => {
+    expect(getCoupangLink({ title: "a", link: PRODUCT }, "a", { partnersTag: "AF123" }).url).toBe(`${PRODUCT}&lptag=AF123`);
+    expect(withPartnersTag(PRODUCT, "lptag=AF1&subid=g")).toBe(`${PRODUCT}&lptag=AF1&subid=g`);
+    expect(withPartnersTag(PRODUCT, "")).toBe(PRODUCT);
   });
 
-  it("검색어가 키와 같으면 검색결과 링크 (공백·대소문자 무시)", () => {
-    expect(getCoupangLink(null, " 에어팟프로 ", { home: HOME, keywordLinks: links })).toEqual({ url: links["에어팟 프로"], type: "search" });
+  it("상품 주소가 없거나 쿠팡 상품 상세가 아니면 상품명 검색결과 (쿠팡 홈 아님)", () => {
+    for (const link of [undefined, "", "https://www.coupang.com/", "https://www.coupang.com/np/campaigns/82", "https://www.11st.co.kr/products/1", "https://evil.com/vp/products/1"]) {
+      const r = getCoupangLink({ title: "에어팟 프로 2 케이스", link }, "에어팟");
+      expect(r).toEqual({ url: coupangSearchUrl("에어팟 프로 2 케이스"), type: "search", name: "에어팟 프로 2 케이스" });
+      expect(r.url).not.toBe(COUPANG_HOME);
+    }
   });
 
-  it("검색어나 상품명에 키가 들어 있으면 긴 키를 먼저 고른다", () => {
-    expect(getCoupangLink(null, "에어팟 프로 2세대 화이트", { home: HOME, keywordLinks: links }).url).toBe(links["에어팟 프로"]);
-    expect(getCoupangLink({ title: "하드 캐리어 24인치" }, "여행가방", { home: HOME, keywordLinks: links })).toEqual({ url: links.캐리어, type: "search" });
+  it("상품마다 주소가 다르다", () => {
+    const a = getCoupangLink({ title: "에어팟 프로 2" }, "에어팟").url;
+    const b = getCoupangLink({ title: "에어팟 프로 2 실리콘 케이스" }, "에어팟").url;
+    expect(a).not.toBe(b);
+    expect(a).toBe(`https://www.coupang.com/np/search?q=${encodeURIComponent("에어팟 프로 2")}`);
   });
 
-  it("맞는 키워드가 없으면 홈 링크", () => {
-    expect(getCoupangLink({ title: "무선 청소기" }, "청소기", { home: HOME, keywordLinks: links })).toEqual({ url: HOME, type: "home" });
+  it("상품명이 없으면 검색어로 찾는다", () => {
+    expect(getCoupangLink(null, " 캐리어 ").url).toBe(coupangSearchUrl("캐리어"));
   });
 
-  it("빈 링크 값은 무시한다", () => {
-    expect(getCoupangLink(null, "캐리어", { home: HOME, keywordLinks: { 캐리어: "" } })).toEqual({ url: HOME, type: "home" });
-  });
-
-  it("링크 주소를 가공하거나 파라미터를 붙이지 않는다", () => {
-    const raw = "https://link.coupang.com/a/Ab_c-9?x=1";
-    expect(getCoupangLink(null, "캐리어", { home: HOME, keywordLinks: { 캐리어: raw } }).url).toBe(raw);
-    expect(getCoupangLink(null, "없음", { home: raw, keywordLinks: {} }).url).toBe(raw);
-  });
-
-  it("API가 켜져 있어도 연동 전에는 검색결과/홈 링크로 넘어간다", () => {
-    expect(getCoupangLink(null, "캐리어", { home: HOME, keywordLinks: links, apiEnabled: true })).toEqual({ url: links.캐리어, type: "search" });
-  });
-
-  it("상품과 검색어가 없어도 동작한다", () => {
-    expect(getCoupangLink(undefined, undefined, { home: HOME, keywordLinks: links })).toEqual({ url: HOME, type: "home" });
+  it("문구", () => {
+    expect(coupangLinkLabel(getCoupangLink({ title: "에어팟" }, ""))).toBe("쿠팡에서 '에어팟' 검색결과 보기 ↗");
+    expect(isCoupangProductUrl(PRODUCT)).toBe(true);
   });
 });

@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { brandCopy } from "@/lib/brand-mode";
 import { BuyBar } from "@/components/shop/BuyBar";
-import { COUPANG_DISCLOSURE } from "@/components/shop/CoupangDisclosure";
+import { CoupangDisclosure } from "@/components/shop/CoupangDisclosure";
+import { LinkPasteHint } from "@/components/shop/LinkPasteHint";
 import { PriceCompareList } from "@/components/shop/PriceCompareList";
 import { errorCode } from "@/lib/apiError";
-import { getCoupangLink } from "@/lib/coupang-links";
+import { COUPANG_LINK_ATTRS, getCoupangLink, type CoupangLink } from "@/lib/coupang-links";
 import { rankable, won, type ShoppingProduct, type ShoppingResponse } from "@/lib/shopping";
 import { site } from "@/lib/site";
 
@@ -94,9 +95,11 @@ export function ProductDetail({ query, token, pid = "" }: { query: string; token
   const product = state.kind === "ok" ? state.product : null;
   const top = product?.offers.find(rankable) ?? null;
   const realOffers = product?.offers.filter((o) => !o.placeholder) ?? [];
-  // 1위가 없으면(확인된 판매처 0곳 포함) 하단 버튼은 쿠팡으로: "쿠팡에서 찾아보기"
+  // 1위가 없으면(확인된 판매처 0곳 포함) 하단 버튼은 쿠팡으로: 상품 주소 또는 상품명 검색결과
   const coupangRow = product?.offers.find((o) => o.placeholder) ?? product?.offers.find((o) => o.coupang) ?? null;
-  const coupang = coupangRow?.coupang ?? getCoupangLink({ title: product?.title ?? query }, query);
+  const coupang = coupangRow?.coupang ?? getCoupangLink({ title: product?.title || query }, query);
+  // 판매처 0곳: 상품 데이터를 못 찾았거나, 찾았어도 확인된 판매처가 없을 때
+  const noSellers = state.kind === "empty" || (!!product && !realOffers.length);
 
   return (
     <div className="pd-page">
@@ -110,6 +113,9 @@ export function ProductDetail({ query, token, pid = "" }: { query: string; token
         {toast}
       </p>
 
+      {/* 쿠팡 대가성 문구: 헤더 바로 아래, 모든 구매 버튼보다 위 (판매처 0곳 화면은 안내 상자 안 쿠팡 버튼 바로 위) */}
+      {!noSellers && <CoupangDisclosure className="pd-disclosure" />}
+
       {state.kind === "loading" && (
         <div className="pd-state">
           <span className="pd-spinner" aria-hidden="true" />
@@ -117,12 +123,9 @@ export function ProductDetail({ query, token, pid = "" }: { query: string; token
         </div>
       )}
       {state.kind === "empty" && (
-        <div className="pd-state">
-          <p>“{query}” 상품 데이터를 찾지 못했어요. 상품명을 조금 다르게 입력해 보세요.</p>
-          <a className="pd-state-link" href="/shop">
-            쇼핑으로 돌아가기
-          </a>
-        </div>
+        <main className="pd-main">
+          <NoSellers query={query} coupang={coupang} />
+        </main>
       )}
       {state.kind === "error" && (
         <div className="pd-state">
@@ -133,6 +136,8 @@ export function ProductDetail({ query, token, pid = "" }: { query: string; token
 
       {product && (
         <main className="pd-main">
+          {noSellers && <NoSellers query={query} coupang={coupang} />}
+
           {top && (
             <div className="pd-banner">
               <span className="pd-banner-dot" aria-hidden="true" />
@@ -170,16 +175,13 @@ export function ProductDetail({ query, token, pid = "" }: { query: string; token
             </a>
           </section>
 
-          {!realOffers.length && <p className="pd-no-sellers">현재 확인된 판매처가 없어요</p>}
-          {product.offers.length > 0 && <PriceCompareList offers={product.offers} fetchedAt={product.fetchedAt} />}
+          {realOffers.length > 0 && <PriceCompareList offers={product.offers} fetchedAt={product.fetchedAt} />}
 
-          {/* 쿠팡 대가성 문구: 초록 결정(2026-11-01)으로 상세 화면은 목록 아래 하나의 안내 박스에 합친다 */}
           <aside className="pd-notice">
             <ul>
               <li>
                 상품, 가격 정보가 다른 경우 <a href={reportHref(product.title)}>여기</a>에 제보해 주세요.
               </li>
-              <li className="pd-notice-cp">{COUPANG_DISCLOSURE}</li>
               <li>Gollazyum은 상품 판매의 직접적인 당사자가 아니며, 모든 상거래의 책임은 구매자와 판매처에게 있습니다.</li>
             </ul>
           </aside>
@@ -187,7 +189,25 @@ export function ProductDetail({ query, token, pid = "" }: { query: string; token
       )}
 
       {/* 하단 바는 판매처가 0곳이어도, 데이터를 못 찾았어도 항상 보인다 */}
-      {state.kind !== "loading" && (top ? <BuyBar top={top} /> : <BuyBar top={null} coupangUrl={coupang.url} />)}
+      {state.kind !== "loading" && <BuyBar top={top} coupang={coupang} />}
     </div>
+  );
+}
+
+// 판매처 0곳 안내: 제목 → 검색어가 채워진 입력창과 '다시 찾기' → 쿠팡 파트너스 고지 → 쿠팡 검색결과 버튼
+function NoSellers({ query, coupang }: { query: string; coupang: CoupangLink }) {
+  return (
+    <section className="pd-zero" aria-labelledby="pd-zero-title">
+      <h2 id="pd-zero-title">아직 스토어별 가격을 못 찾았어요</h2>
+      <form className="pd-zero-form" action="/shop/product" method="get" role="search">
+        <input name="q" type="search" defaultValue={query} maxLength={100} aria-label="상품 이름" required />
+        <button type="submit">다시 찾기</button>
+      </form>
+      <LinkPasteHint />
+      <CoupangDisclosure className="pd-disclosure" />
+      <a className="pd-zero-cp" href={coupang.url} {...COUPANG_LINK_ATTRS}>
+        쿠팡 검색결과에서 가격 보기 ↗
+      </a>
+    </section>
   );
 }

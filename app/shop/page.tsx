@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CoupangSection } from "@/components/shop/CoupangSection";
+import { LinkPasteHint } from "@/components/shop/LinkPasteHint";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ogBase } from "@/lib/site";
@@ -27,6 +28,7 @@ export default function ShopPage() {
             <input name="q" type="search" required maxLength={100} placeholder="예: 무선 이어폰, 캐리어 24인치" aria-label="상품 이름" />
             <button type="submit">찾기</button>
           </form>
+          <LinkPasteHint />
         </section>
         <CoupangSection />
       </main>

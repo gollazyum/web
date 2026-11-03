@@ -972,3 +972,233 @@ a.pd-row-top:hover {
   font-weight: 600;
   color: var(--pd-text);
 }
+
+/* ───────── 상품 화면 쿠팡 파트너스 고지 (헤더 바로 아래, 모든 구매 버튼보다 위) ───────── */
+.cp-disclosure.pd-disclosure {
+  margin: 0 20px 8px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pd-zero .cp-disclosure.pd-disclosure {
+  margin: 0;
+}
+
+/* 쿠팡 링크 문구: 상품명만 말줄임 */
+.cp-label {
+  display: inline-flex;
+  align-items: baseline;
+  max-width: 100%;
+  min-width: 0;
+}
+.cp-label-l1 {
+  display: inline-flex;
+  min-width: 0;
+}
+.cp-label-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cp-label-l2 {
+  flex: none;
+  margin-left: 0.3em;
+  white-space: nowrap;
+}
+.pd-buy {
+  min-width: 0;
+  padding: 0 12px;
+  overflow: hidden;
+}
+.pd-buy .cp-label {
+  flex-direction: column;
+  align-items: center;
+  font-size: 15px;
+  line-height: 1.25;
+}
+.pd-buy .cp-label-l1 {
+  max-width: 100%;
+}
+.pd-buy .cp-label-l2 {
+  margin-left: 0;
+}
+.pd-row-cp {
+  display: flex;
+  min-width: 0;
+  padding-left: 34px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+/* ───────── 판매처 0곳 안내 ───────── */
+.pd-zero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid var(--pd-line);
+  background: #fff;
+}
+.pd-zero h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0b1220;
+}
+.pd-zero-form {
+  display: flex;
+  gap: 8px;
+}
+.pd-zero-form input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--pd-line);
+  background: var(--pd-card);
+  font: inherit;
+  font-size: 16px;
+}
+.pd-zero-form button {
+  flex: none;
+  height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  background: #1d4ed8;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pd-zero .shop-link-hint {
+  margin-top: -4px;
+}
+.pd-zero-cp {
+  display: grid;
+  place-items: center;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 16px;
+  background: #1d4ed8;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+.pd-zero-cp:hover {
+  background: #1e40af;
+}
+
+/* ───────── 검색 목록: 방금 보고 온 상품 카드 표시 ───────── */
+.sr-item.sr-recent,
+.srd-card.sr-recent {
+  border-radius: 12px;
+  animation: sr-recent 2.5s ease forwards;
+}
+.sr-item.sr-recent {
+  border-radius: var(--pd-radius);
+}
+@keyframes sr-recent {
+  0%,
+  60% {
+    box-shadow: 0 0 0 3px #bfdbfe;
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgba(191, 219, 254, 0);
+  }
+}
+
+.sr-link-hint {
+  margin: 0 20px 4px;
+}
+
+/* ───────── 검색 목록: 모바일(640px 이하) 정렬·필터 칩 ───────── */
+.mf {
+  position: sticky;
+  top: 56px;
+  z-index: 4;
+  padding: 4px 0 8px;
+  background: rgba(255, 255, 255, 0.97);
+  border-bottom: 1px solid var(--pd-line);
+  margin-bottom: 8px;
+}
+.mf-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.mf-row::-webkit-scrollbar {
+  display: none;
+}
+.mf-chip,
+.mf-opt {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #dbe3ee;
+  background: #fff;
+  color: #0b1220;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mf-chip {
+  border-radius: 999px;
+}
+.mf-chip.on {
+  border-color: #1d4ed8;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.mf-chip.open {
+  border-color: #0b1220;
+}
+.mf-x {
+  font-size: 12px;
+}
+.mf-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px 2px;
+}
+.mf-opt {
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.mf-opt.on {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+  color: #fff;
+}
+.sr-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 16px;
+  text-align: center;
+}
+@media (min-width: 641px) {
+  .mf {
+    display: none;
+  }
+}
