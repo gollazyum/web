@@ -1,4 +1,4 @@
-import { COUPANG_HOME, COUPANG_LINK_ATTRS, COUPANG_SAMPLE_PRODUCTS, getCoupangLink } from "@/lib/coupang-links";
+import { COUPANG_HOME, COUPANG_LINK_ATTRS, COUPANG_SAMPLE_PRODUCTS, sampleCoupangHref } from "@/lib/coupang-links";
 import { CoupangDisclosure } from "@/components/shop/CoupangDisclosure";
 
 // 쇼핑 탭의 쿠팡 섹션. 맨 위에 대가성 문구를 고정으로 두고, 그 아래에만 쿠팡 링크를 둔다.
@@ -21,7 +21,7 @@ export function CoupangSection() {
       <h3 className="cp-sub">여행 준비 상품</h3>
       <ul className="cp-cards">
         {COUPANG_SAMPLE_PRODUCTS.map((p) => {
-          const href = p.link || getCoupangLink({ title: p.name }, p.keyword).url;
+          const href = sampleCoupangHref(p);
           return (
             <li key={p.name}>
               <a className="cp-card" href={href} {...COUPANG_LINK_ATTRS}>

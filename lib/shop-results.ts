@@ -77,3 +77,45 @@ export function lowestItem(items: SearchItem[]): SearchItem | null {
 }
 
 export const itemKey = (it: Pick<SearchItem, "token" | "productId" | "title">) => it.token || it.productId || it.title;
+
+// ───────── 모바일 '본품만' (수동 단어 추가 없이 자동 판별) ─────────
+// 1) 가격: 결과 전체 가격 중앙값의 25% 미만인 초저가(액세서리·부품류)는 뺀다
+// 2) 단어: 상품명에 기본 액세서리 단어가 있으면 뺀다. 단, 검색어 자체에 그 단어가 있으면 그 단어로는 빼지 않는다
+export const MAIN_ONLY_PRICE_RATIO = 0.25;
+export const ACCESSORY_WORDS = ["케이스", "충전기", "필름", "커버", "스트랩", "거치대", "파우치", "케이블", "어댑터", "키링", "호환", "리필"] as const;
+// 상품명이 영어로 오는 경우가 많아 같은 뜻의 영어 단어도 본다 (단어 단위로만: showcase·discover 같은 말은 빼지 않는다)
+export const ACCESSORY_WORDS_EN = ["case", "charger", "charging", "film", "cover", "strap", "stand", "pouch", "cable", "adapter", "keyring", "compatible", "refill"] as const;
+
+const compact = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+
+export function medianPrice(items: SearchItem[]): number | null {
+  const prices = items
+    .map((it) => it.price)
+    .filter((p): p is number => p !== null && p > 0)
+    .sort((a, b) => a - b);
+  if (!prices.length) return null;
+  const mid = Math.floor(prices.length / 2);
+  return prices.length % 2 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2;
+}
+
+export function mainOnly(items: SearchItem[], query: string): SearchItem[] {
+  const median = medianPrice(items);
+  const q = compact(query);
+  const words = ACCESSORY_WORDS.filter((w) => !q.includes(w));
+  const en = ACCESSORY_WORDS_EN.filter((w) => !q.includes(w));
+  const enRe = en.length ? new RegExp(`\\b(${en.join("|")})(e?s)?\\b`, "i") : null;
+  return items.filter((it) => {
+    if (median !== null && it.price !== null && it.price > 0 && it.price < median * MAIN_ONLY_PRICE_RATIO) return false;
+    const title = compact(it.title);
+    if (words.some((w) => title.includes(w))) return false;
+    return !(enRe && enRe.test(it.title));
+  });
+}
+
+// ───────── 링크 붙여넣기 (아직 지원 전) ─────────
+export const LINK_PASTE_HINT = "지금은 상품 이름으로 찾아요 · 링크 붙여넣기는 준비 중이에요";
+// 검색어가 스토어 상품 주소처럼 보이는지 (http 주소, www., 주요 스토어 도메인)
+export function looksLikeUrl(s: string): boolean {
+  const t = s.trim();
+  return /^(https?:\/\/|www\.)/i.test(t) || /(^|[\s./])(coupang\.com|coupa\.ng|naver\.com|naver\.me|gmarket\.co\.kr|11st\.co\.kr)(\/|$|\s)/i.test(t);
+}
