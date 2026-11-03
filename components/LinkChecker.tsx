@@ -33,7 +33,7 @@ export function openSearchTab(tab: TabId) {
 const tabs: { id: TabId; label: string; short: string; img: string; live: boolean; ai?: boolean; soon?: string }[] = [
   { id: "shop", label: "쇼핑", short: "쇼핑", img: "shop", live: true },
   { id: "stay", label: "숙소", short: "숙소", img: "hotel", live: true },
-  { id: "flight", label: "항공·유심", short: "항공·유심", img: "flight", live: true },
+  { id: "flight", label: "항공", short: "항공", img: "flight", live: true },
   { id: "ask", label: "Gollazyum AI", short: "AI", img: "mark", live: true, ai: true },
 ];
 
