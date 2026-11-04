@@ -1,6 +1,8 @@
 import { rateLimit, serpRaw } from "@/lib/serpapi";
 import { detailStores, findSelected, MAX_TOKEN_LENGTH, rawSellerLog, shapeDetail, shapeSearch, SHOP_CACHE_MS, shoppingResults, shoppingSearchParams } from "@/lib/shopping";
 import { SAMPLE_DETAIL_JSON, SAMPLE_SEARCH_JSON } from "@/lib/shopping-fixtures";
+import { deeplinkEnabled, toDeeplinks } from "@/lib/coupang-deeplink";
+import type { ShoppingResponse } from "@/lib/shopping";
 
 // 쇼핑 데이터.
 // - ?q=검색어 → 상품 검색 목록 (google_shopping 1회). 스토어별 가격은 부르지 않는다
@@ -93,7 +95,19 @@ export async function GET(req: Request) {
   // 실패·0건이면 detailJson 없이 검색 결과의 판매처 1곳으로 만든다
   devLog(q, search, detailJson);
   if (debug) return debugResponse(url, q, search, detailJson, detailError);
-  return Response.json(shapeDetail(q, { token, pid }, search, detailJson));
+  return Response.json(await withDeeplinks(shapeDetail(q, { token, pid }, search, detailJson)));
+}
+
+// 쿠팡 판매처 링크(상품 주소·검색결과 주소)를 파트너스 딥링크로 바꾼다. 키가 없으면 그대로
+async function withDeeplinks(data: ShoppingResponse): Promise<ShoppingResponse> {
+  const offers = data.product?.offers.filter((o) => o.coupang) ?? [];
+  if (!offers.length || !deeplinkEnabled()) return data;
+  const links = await toDeeplinks(offers.map((o) => o.link));
+  offers.forEach((o, i) => {
+    o.link = links[i];
+    if (o.coupang) o.coupang = { ...o.coupang, url: links[i] };
+  });
+  return data;
 }
 
 // 걸러 내기 전 원본 판매처 목록 (인증 값은 지움). 검색 결과마다 상세 확인 주소를 붙인다

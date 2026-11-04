@@ -135,3 +135,14 @@ describe("숙소 거리·사진 (LB-059·063)", () => {
     expect(resized("https://example.com/a.jpg", 288, 360)).toBe("https://example.com/a.jpg");
   });
 });
+
+describe("쿠팡 파트너스 딥링크 (LB-051)", () => {
+  it("서명 시각과 Authorization 모양", async () => {
+    const { authorization, signedDate, toDeeplinks } = await import("@/lib/coupang-deeplink");
+    const d = new Date(Date.UTC(2026, 10, 4, 9, 5, 7));
+    expect(signedDate(d)).toBe("261104T090507Z");
+    expect(authorization("POST", "/v2/x", "", "AK", "SK", d)).toMatch(/^CEA algorithm=HmacSHA256, access-key=AK, signed-date=261104T090507Z, signature=[0-9a-f]{64}$/);
+    // 키가 없으면 주소 그대로
+    expect(await toDeeplinks(["https://www.coupang.com/vp/products/1"])).toEqual(["https://www.coupang.com/vp/products/1"]);
+  });
+});

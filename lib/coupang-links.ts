@@ -78,8 +78,8 @@ export function getCoupangLink(
   const name = (product?.title ?? "").trim() || (query ?? "").trim();
 
   if (apiEnabled) {
-    // TODO(쿠팡 파트너스 API): 최종 승인 후 Deeplink API로 상품 원본 주소를 파트너스 링크로 바꿔
-    // { url: 받은 shortenUrl 그대로, type: "product" } 를 돌려준다. 서버에서만 호출하고 키는 환경변수에 둔다.
+    // 파트너스 딥링크 변환은 서버(app/api/shopping → lib/coupang-deeplink.ts)가 응답을 보내기 전에 한다.
+    // COUPANG_ACCESS_KEY·COUPANG_SECRET_KEY가 있으면 여기서 만든 상품·검색 주소가 link.coupang.com 주소로 바뀐다
   }
 
   if (product?.link && isCoupangProductUrl(product.link)) {
