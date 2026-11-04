@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CoupangSection } from "@/components/shop/CoupangSection";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { ogBase } from "@/lib/site";
+import { ogBase, ogImage } from "@/lib/site";
 
 const DESCRIPTION = "상품 이름으로 쿠팡·네이버·G마켓·11번가의 판매 가격 데이터를 한 화면에서 확인하고, 쿠팡에서 여행 준비 상품을 찾아볼 수 있어요.";
 
@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: "/shop" },
   openGraph: { title: "Shopping | Gollazyum", description: DESCRIPTION, ...ogBase, url: "/shop" },
+  // 설정하지 않으면 사이트 공통 설명(여행)이 나가므로 og:description과 같은 쇼핑 설명을 넣는다
+  twitter: { card: "summary_large_image", title: "Shopping | Gollazyum", description: DESCRIPTION, images: [ogImage] },
 };
 
 // 검색창 아래 예시 칩. 누르면 그 말로 상품 데이터 화면을 연다

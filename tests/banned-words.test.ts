@@ -13,6 +13,7 @@ const UI_PATHS = [
   "components/LinkChecker.tsx",
   "components/ShopSearch.tsx",
   "components/FamilyCards.tsx",
+  "components/PopularPlaces.tsx",
   "components/SiteFooter.tsx",
 ];
 
@@ -23,6 +24,9 @@ const APPROVED_PHRASES = [
   "최저가 찾기",
   "쇼핑 가격 비교",
   "판매 가격을 한 화면에서 비교해 보여 드려요.",
+  // 2026-11-04 초록이 정한 홈 섹션 문구
+  "비교는 Gollazyum이,",
+  "한눈에 비교",
 ];
 
 function stripApproved(code: string): string {
