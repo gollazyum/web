@@ -212,10 +212,11 @@ describe("상세 응답 키 여러 개", () => {
       stores: [{ source: "lotteon.com", product_link: "https://www.lotteon.com/p/1", extracted_total: 43000, extracted_price: 40000 }],
     };
     const { product } = shapeDetail("q", { token: "", pid: "123" }, search([sel]), d);
+    // 가격은 상품 가격(배송비 빼고). 총액과의 차이(3,000원)는 배송비로 따로 둔다
     expect(product!.offers.map((o) => [o.seller.key, o.price, o.link])).toEqual([
+      ["lotteon", 40000, "https://www.lotteon.com/p/1"],
       ["11번가", 41000, "https://www.11st.co.kr/d"],
       ["G마켓", 42000, "https://item.gmarket.co.kr/1"],
-      ["lotteon", 43000, "https://www.lotteon.com/p/1"],
       ["KREAM", 50000, ""],
       ["쿠팡", null, coupangSearchUrl("Apple 아이폰 17 256GB 자급제 블랙")],
     ]);

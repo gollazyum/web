@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SoonBadge } from "@/components/SoonBadge";
 import { routes } from "@/lib/agoda";
+import { HOME_SHOP_COPY } from "@/lib/brand-mode";
 import { site } from "@/lib/site";
 
 
@@ -86,7 +87,8 @@ export default function Home() {
             <span className="nobr hero-line">스마트한 여행과 일상의 시작,</span>{" "}
             <span className="nobr hero-line grad-blue">Gollazyum</span>
           </h1>
-          <p className="hero-sub">쿠팡·네이버 같은 쇼핑몰과 여러 예약 사이트의 가격을 한 화면에서 비교해요</p>
+          <p className="hero-sub m-only">{HOME_SHOP_COPY.heroSubM}</p>
+          <p className="hero-sub pc-only">쿠팡·네이버 같은 쇼핑몰과 여러 예약 사이트의 가격을 한 화면에서 비교해요</p>
           <LinkChecker />
           <PopularPlaces />
           <div className="compared">

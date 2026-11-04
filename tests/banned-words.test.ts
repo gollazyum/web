@@ -53,8 +53,8 @@ describe("금지어", () => {
   });
 
   it("모드에 따라 문구가 바뀐다", () => {
-    expect(brandCopy("topBanner", true)).toBe("현재 가장 유리한 조건의 스토어 데이터예요");
-    expect(brandCopy("topBanner", false)).toBe("확인한 판매처 중 가장 저렴해요");
+    expect(brandCopy("topBanner", true)).toBe("찾은 판매처 중 가장 낮은 가격이에요");
+    expect(brandCopy("topBanner", false)).toBe("찾은 판매처 중 가장 낮은 가격이에요");
     expect(brandCopy("topTabBadge", true)).toBe("BEST");
     expect(brandCopy("topTabBadge", false)).toBe("최저");
     expect(brandCopy("topCardLabel", true)).toBe("스토어 데이터 1위");

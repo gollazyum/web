@@ -1,4 +1,5 @@
 import { getCoupangLink, type CoupangLink } from "@/lib/coupang-links";
+import { relevantOnly } from "@/lib/shop-results";
 import { isSameProduct } from "@/lib/product-match";
 import { resolveSellerUrl, sellerInfo, shopSeller, type Seller } from "@/lib/sellers";
 
@@ -15,7 +16,13 @@ export type Offer = {
   link: string; // 판매처로 가는 주소. 쿠팡이면 getCoupangLink 결과 (실제 상품 주소 또는 쿠팡 검색결과)
   coupang: CoupangLink | null; // 쿠팡 판매처일 때만
   placeholder?: boolean; // 데이터에 쿠팡이 없어 덧붙인 쿠팡 행 (순위·차액·대표 가격 계산에서 빠짐)
+  condition?: Condition; // 상품 상태. 없으면 새 상품
+  grade?: string | null; // 중고 등급 (상품명의 "B+", "S급" 등). 모르면 null
+  shippingFee?: number | null; // 배송비. 0이면 무료배송, null이면 데이터에 없음 (배송비 확인 필요)
 };
+
+// 새 상품 / 중고 / 리퍼
+export type Condition = "new" | "used" | "refurb";
 
 export type ShoppingProduct = {
   query: string;
@@ -28,6 +35,7 @@ export type ShoppingProduct = {
   changePct: number | null; // 정가 대비 내린 비율 (8 → ▼8%)
   fetchedAt: string; // 조회 시각 (ISO)
   offers: Offer[]; // 1위 후보를 싼 순서로, 그다음 품절·가격 미확인, 맨 아래 쿠팡 덧붙임 행
+  productId?: string; // 찜(★)·공유에 쓰는 상품 ID (검색 결과의 product_id). 없으면 빈 값
   sample?: boolean; // 개발용 예시 데이터
 };
 
@@ -40,6 +48,7 @@ export type SearchItem = {
   image: string;
   price: number | null;
   seller: string | null; // 검색 결과의 판매처 이름
+  used?: boolean; // 중고·리퍼 상품
   storeCount?: number; // 판매처 수. 아직 받는 데이터가 없어 비워 둔다 (있을 때만 "판매처 N곳" 표시)
 };
 
@@ -57,9 +66,13 @@ export const detailHref = (query: string, item: Pick<SearchItem, "token" | "prod
   return `/shop/product?${p}`;
 };
 
-export type SearchResponse = { items: SearchItem[]; sample?: boolean };
+// unrelated: 검색 결과가 있었지만 검색어와 관계가 약해 모두 뺐다 ("비슷한 상품을 못 찾았어요")
+export type SearchResponse = { items: SearchItem[]; sample?: boolean; unrelated?: boolean };
 
 export const MAX_SEARCH_ITEMS = 20;
+// 같은 검색과 같은 상품은 6시간 동안 저장해 두고 다시 부르지 않는다 (API와 공유 미리보기가 같은 저장분을 쓴다)
+export const SHOP_CACHE_MS = 6 * 60 * 60 * 1000;
+export const shoppingSearchParams = (q: string) => ({ engine: "google_shopping", q, gl: "kr", hl: "ko", location: "South Korea" });
 // 이 값 이하(0원, 1원 등)는 실제 판매가로 보지 않는다 (목록과 1위 계산에서 뺀다)
 export const MAX_FAKE_PRICE = 100;
 // 다른 판매처 가운데값의 이 비율보다 싸면 미끼·오류 가격으로 보고 1위 후보에서 뺀다
@@ -70,6 +83,30 @@ const realPrice = (n: number | null | undefined) => (typeof n === "number" && n 
 // 1위 후보: 판매 중이고 가격이 확인된 판매처 (쿠팡 덧붙임 행은 가격이 없어 자동으로 빠진다)
 export const rankable = (o: Offer): o is Offer & { price: number } =>
   !o.placeholder && o.available && o.price !== null && o.price > 0;
+
+export const isNew = (o: Offer) => (o.condition ?? "new") === "new";
+
+// 판매처 목록 보기 설정: 중고 포함 여부, 배송비를 더해서 순위를 매길지
+export type OfferView = { includeUsed: boolean; withShipping: boolean };
+export const DEFAULT_OFFER_VIEW: OfferView = { includeUsed: false, withShipping: false };
+
+// 순위에 쓰는 값: 배송비 포함이면 상품 가격 + 배송비 (배송비를 모르면 상품 가격만)
+export const offerCost = (o: Offer & { price: number }, withShipping: boolean) => (withShipping ? o.price + (o.shippingFee ?? 0) : o.price);
+
+// 화면에 보일 판매처와 순위. 새 상품만이면 중고·리퍼는 빼고(hiddenUsed로 개수만), 1위 후보끼리 싼 순서 → 품절·가격 미확인 → 쿠팡 덧붙임 행
+export function rankOffers(offers: Offer[], view: OfferView) {
+  const visible = offers.filter((o) => o.placeholder || view.includeUsed || isNew(o));
+  const hiddenUsed = offers.length - visible.length;
+  const ranked = visible
+    .filter(rankable)
+    .map((o, i) => ({ o, i }))
+    .sort((a, b) => offerCost(a.o, view.withShipping) - offerCost(b.o, view.withShipping) || a.i - b.i)
+    .map((x) => x.o);
+  const rest = visible.filter((o) => !rankable(o) && !o.placeholder);
+  const tail = visible.filter((o) => o.placeholder);
+  const list = [...ranked.map((offer, i) => ({ offer, rank: i + 1 as number | null })), ...[...rest, ...tail].map((offer) => ({ offer, rank: null }))];
+  return { list, top: ranked[0] ?? null, hiddenUsed };
+}
 
 // 상세 응답의 판매처 한 줄. 엔진마다 키 이름이 달라 모두 받는다
 type SerpStore = {
@@ -86,6 +123,11 @@ type SerpStore = {
   extracted_original_price?: number;
   extracted_total?: number;
   base_price?: string | number;
+  shipping?: string;
+  shipping_extracted?: number;
+  additional_costs?: string;
+  condition?: string;
+  second_hand_condition?: string;
 };
 export type SerpShoppingResult = {
   title?: string;
@@ -99,9 +141,49 @@ export type SerpShoppingResult = {
   product_id?: string;
   extensions?: string[];
   tag?: string;
+  second_hand_condition?: string;
 };
 
 const SOLD_OUT = /품절|재고\s*없음|out of stock|sold out|unavailable/i;
+const REFURB = /리퍼|refurb|리뉴드|renewed/i;
+const USED = /중고|used|pre-?owned|second[\s-]?hand|전시\s*상품|반품\s*상품|개봉\s*상품/i;
+// "미개봉", "새상품"은 중고가 아니다
+const NOT_USED = /미개봉|새\s*상품|새제품|신품/;
+
+// 상품 상태: 데이터의 상태 값(중고 등)과 상품명을 함께 본다. 확실한 표시가 없으면 새 상품
+export function conditionOf(flags: string, title = ""): Condition {
+  if (REFURB.test(flags) || REFURB.test(title)) return "refurb";
+  if (USED.test(flags)) return "used";
+  if (USED.test(title) && !NOT_USED.test(title)) return "used";
+  return "new";
+}
+
+// 중고 등급: 상품명의 "S급", "A+급", "B+ 등급", 끝에 붙은 "B+" 같은 표시. 없으면 null
+export function gradeOf(title: string): string | null {
+  const t = ` ${title} `;
+  const m = t.match(/[\s(\[]([SABC][+-]?)\s*(급|등급)/i) ?? t.match(/[\s(\[]([SABC][+-]?)(?=[\s)\]])/);
+  if (!m) return null;
+  const g = m[1].toUpperCase();
+  // 끝 글자 하나(예: "C")만 덩그러니 있으면 모델명일 수 있어 + / - 나 '급'이 있을 때만 쓴다
+  if (!m[2] && g.length === 1) return null;
+  return g;
+}
+
+// 배송비: 무료면 0, 금액이 있으면 그 금액, 모르면 null
+export function shippingOf(s: Pick<SerpStore, "shipping" | "shipping_extracted" | "additional_costs" | "details_and_offers">): number | null {
+  if (typeof s.shipping_extracted === "number" && Number.isFinite(s.shipping_extracted)) return Math.max(0, s.shipping_extracted);
+  const text = `${s.shipping ?? ""} ${JSON.stringify(s.details_and_offers ?? "")}`;
+  if (/무료\s*배송|배송비\s*무료|free\s*(delivery|shipping)|^\s*무료/i.test(text) || /^무료$/.test((s.shipping ?? "").trim())) return 0;
+  const fee = text.match(/배송비[:\s]*₩?\s*([\d,]+)/);
+  if (fee) return Number(fee[1].replace(/,/g, ""));
+  return null;
+}
+
+// '근처, 37 km' 같은 매장 위치 문구는 상품 정보가 아니라 뺀다
+const LOCATION = /(근처|nearby)\s*[,·]?\s*\d+(?:[.,]\d+)?\s*km|\b\d+(?:[.,]\d+)?\s*km\s*(거리|떨어진|away)?/gi;
+export function stripLocation(s: string): string {
+  return s.replace(LOCATION, "").replace(/\s*[,·]\s*$/, "").replace(/^\s*[,·]\s*/, "").replace(/\s{2,}/g, " ").trim();
+}
 
 // 검색 결과 상품: shopping_results 와 inline_shopping_results 둘 다 본다
 export function shoppingResults(json: Record<string, unknown> | null): SerpShoppingResult[] {
@@ -145,15 +227,23 @@ export function detailStores(json: Record<string, unknown> | null): SerpStore[] 
   return lists.flatMap((l) => (Array.isArray(l) ? (l as SerpStore[]) : [])).filter((x) => x && typeof x === "object");
 }
 
-// 판매처 한 줄을 공통 모양으로: 이름 name|merchant|source, 가격 extracted_total|extracted_price|base_price, 링크 direct_link|link|product_link
+// 판매처 한 줄을 공통 모양으로: 이름 name|merchant|source, 가격 extracted_price|base_price|extracted_total, 링크 direct_link|link|product_link
+// 가격은 상품 가격(배송비 빼고)이다. 배송비는 따로 shipping에 담는다 ('배송비 포함' 칩에서 더해 본다)
 export function storeToRaw(s: SerpStore): RawOffer {
   const merchant = typeof s.merchant === "string" ? s.merchant : s.merchant?.name;
+  const details = JSON.stringify(s.details_and_offers ?? "");
+  const price = toNumber(s.extracted_price) ?? toNumber(s.base_price) ?? toNumber(s.extracted_total);
+  const total = toNumber(s.extracted_total);
   return {
-    name: s.name || merchant || s.source || "",
+    name: stripLocation(s.name || merchant || s.source || ""),
     link: s.direct_link || s.link || s.product_link || "",
-    price: toNumber(s.extracted_total) ?? toNumber(s.extracted_price) ?? toNumber(s.base_price),
+    price,
     original: s.extracted_original_price ?? null,
-    soldOut: SOLD_OUT.test(`${s.tag ?? ""} ${JSON.stringify(s.details_and_offers ?? "")}`),
+    soldOut: SOLD_OUT.test(`${s.tag ?? ""} ${details}`),
+    flags: `${s.tag ?? ""} ${details} ${s.condition ?? ""} ${s.second_hand_condition ?? ""}`,
+    title: s.title ?? "",
+    // 배송비 칸이 없어도 총액이 상품 가격보다 크면 그 차이가 배송비다
+    shipping: shippingOf(s) ?? (price !== null && total !== null && total > price ? total - price : null),
   };
 }
 
@@ -161,11 +251,16 @@ export function storeToRaw(s: SerpStore): RawOffer {
 const resultLink = (r: SerpShoppingResult) => r.link || r.product_link || "";
 
 // 검색 목록 화면용
-export function shapeSearch(json: Record<string, unknown>): SearchResponse {
-  const items = shoppingResults(json)
+export function shapeSearch(json: Record<string, unknown>, query = ""): SearchResponse {
+  const found = shoppingResults(json)
     .filter((r) => r.immersive_product_page_token || productIdOf(r))
     // 0원·1원처럼 가격이 이상한 상품은 목록에서 뺀다
-    .filter((r) => !(typeof r.extracted_price === "number" && r.extracted_price <= MAX_FAKE_PRICE))
+    .filter((r) => !(typeof r.extracted_price === "number" && r.extracted_price <= MAX_FAKE_PRICE));
+  // 검색어와 관계가 약한 상품은 빼고(자르기 전에), 하나도 맞지 않으면 "비슷한 상품을 못 찾았어요"
+  const { items: kept, unrelated } = query ? relevantOnly(found.map((r) => ({ r, title: r.title! })), query) : { items: found.map((r) => ({ r, title: r.title! })), unrelated: false };
+  if (unrelated) return { items: [], unrelated };
+  const items = kept
+    .map((x) => x.r)
     .slice(0, MAX_SEARCH_ITEMS)
     .map((r) => ({
       token: r.immersive_product_page_token ?? "",
@@ -173,12 +268,22 @@ export function shapeSearch(json: Record<string, unknown>): SearchResponse {
       title: r.title!.trim(),
       image: r.thumbnail ?? "",
       price: realPrice(r.extracted_price),
-      seller: shopSeller(r.source, resultLink(r))?.key ?? null,
+      seller: shopSeller(stripLocation(r.source ?? ""), resultLink(r))?.key ?? null,
+      ...(conditionOf(r.second_hand_condition ?? "", r.title) !== "new" ? { used: true } : {}),
     }));
   return { items };
 }
 
-type RawOffer = { name: string; link: string; price: number | null; original: number | null; soldOut: boolean };
+type RawOffer = {
+  name: string;
+  link: string;
+  price: number | null;
+  original: number | null;
+  soldOut: boolean;
+  flags?: string; // 상태 표시(중고 등)가 들어 있는 글자들
+  title?: string; // 그 판매처의 상품명 (중고 등급 찾기용)
+  shipping?: number | null;
+};
 
 function toOffer(r: RawOffer, query: string, title: string): Offer | null {
   const seller = shopSeller(r.name, r.link);
@@ -188,7 +293,18 @@ function toOffer(r: RawOffer, query: string, title: string): Offer | null {
   // 다른 곳은 중간 이동을 푼 판매처 주소 (쇼핑은 숙소와 달리 경유 주소도 지우지 않는다: 지우면 판매처가 통째로 사라진다)
   const coupang = seller.key === "쿠팡" ? getCoupangLink({ title, link: resolved }, query) : null;
   const link = coupang ? coupang.url : resolved;
-  return { seller, price: realPrice(r.price), available: !r.soldOut, link, coupang };
+  const ownTitle = r.title || title;
+  const condition = conditionOf(r.flags ?? "", ownTitle);
+  return {
+    seller,
+    price: realPrice(r.price),
+    available: !r.soldOut,
+    link,
+    coupang,
+    condition,
+    grade: condition === "new" ? null : gradeOf(ownTitle),
+    shippingFee: r.shipping ?? null,
+  };
 }
 
 // 판매처마다 1개만 남긴다 (1위 후보 중 가장 싼 것 → 없으면 처음 것)
@@ -226,6 +342,9 @@ export function shapeDetail(
     price: r.extracted_price ?? null,
     original: r.extracted_old_price ?? null,
     soldOut: SOLD_OUT.test(r.tag ?? ""),
+    flags: `${r.tag ?? ""} ${r.second_hand_condition ?? ""}`,
+    title: r.title ?? "",
+    shipping: null,
   });
 
   const collected: { offer: Offer; original: number | null }[] = [];
@@ -275,7 +394,8 @@ export function shapeDetail(
     offers.push({ seller: sellerInfo("쿠팡"), price: null, available: true, link: coupang.url, coupang, placeholder: true });
   }
 
-  const top = ranked[0] ?? null;
+  // 대표 가격(1위)은 새 상품끼리만. 새 상품이 하나도 없으면(중고 상품 화면) 전체에서
+  const top = ranked.find((x) => isNew(x.offer)) ?? ranked[0] ?? null;
   // 4곳 중 확인된 판매처가 없어도 목록에서 보여 준 가격은 대표 가격으로 남긴다
   const listPrice = top ? null : realPrice(selected?.extracted_price);
   const originalPrice = top && top.original && top.original > top.offer.price! ? top.original : null;
@@ -293,6 +413,7 @@ export function shapeDetail(
       changePct: top && originalPrice ? Math.round(((originalPrice - top.offer.price!) / originalPrice) * 100) : null,
       fetchedAt: now.toISOString(),
       offers,
+      productId: selected ? productIdOf(selected) : sel.pid,
     },
   };
 }

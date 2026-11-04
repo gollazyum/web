@@ -26,8 +26,10 @@ export function BuyBar({ top, coupang }: { top: Offer | null; coupang?: CoupangL
   }, [note]);
 
   const cp = top ? top.coupang : (coupang ?? null);
-  const label = cp ? <CoupangLabel link={cp} /> : "스토어로 이동하기";
-  const attrs = cp ? COUPANG_LINK_ATTRS : { target: "_blank", rel: "nofollow noopener noreferrer" };
+  const label = cp ? <CoupangLabel link={cp} /> : `${top?.seller.key ?? "스토어"}에서 보기 ↗`;
+  const name = cp ? (cp.type === "product" ? "쿠팡에서 구매하러 가기" : `쿠팡에서 '${cp.name}' 검색결과 보기`) : `${top?.seller.key ?? "스토어"}에서 보기`;
+  // 판매처로 가는 링크는 모두 새 탭 + sponsored
+  const attrs = COUPANG_LINK_ATTRS;
   const href = top ? top.link : cp?.url;
 
   return (
@@ -40,7 +42,7 @@ export function BuyBar({ top, coupang }: { top: Offer | null; coupang?: CoupangL
           <BellIcon />
         </button>
         {href ? (
-          <a className="pd-buy" href={href} {...attrs}>
+          <a className="pd-buy" href={href} {...attrs} aria-label={`${name}, 새 탭에서 열려요`}>
             {label}
           </a>
         ) : (

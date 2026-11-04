@@ -1,5 +1,5 @@
 import { rateLimit, serpRaw } from "@/lib/serpapi";
-import { detailStores, findSelected, MAX_TOKEN_LENGTH, rawSellerLog, shapeDetail, shapeSearch, shoppingResults } from "@/lib/shopping";
+import { detailStores, findSelected, MAX_TOKEN_LENGTH, rawSellerLog, shapeDetail, shapeSearch, SHOP_CACHE_MS, shoppingResults, shoppingSearchParams } from "@/lib/shopping";
 import { SAMPLE_DETAIL_JSON, SAMPLE_SEARCH_JSON } from "@/lib/shopping-fixtures";
 
 // 쇼핑 데이터.
@@ -11,7 +11,7 @@ import { SAMPLE_DETAIL_JSON, SAMPLE_SEARCH_JSON } from "@/lib/shopping-fixtures"
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const CACHE_MS = 6 * 60 * 60 * 1000;
+const CACHE_MS = SHOP_CACHE_MS;
 const isDev = process.env.NODE_ENV !== "production";
 // 원본 판매처 확인 화면(&debug=1): 개발 환경과 Vercel 미리보기에서만. 운영 사이트에서는 꺼져 있다.
 // VERCEL_ENV가 안 보이는 설정도 있어, 운영 도메인(gollazyum.com)이 아닌 *.vercel.app 주소인지도 함께 본다
@@ -21,7 +21,7 @@ function debugAllowed(url: URL): boolean {
   return process.env.VERCEL_ENV === "preview" || url.hostname.endsWith(".vercel.app");
 }
 
-const searchParams = (q: string) => ({ engine: "google_shopping", q, gl: "kr", hl: "ko", location: "South Korea" });
+const searchParams = shoppingSearchParams;
 // more_stores=true: 없으면 스토어가 3곳만 와서 G마켓·11번가 등이 빠진다 (아이폰 17 화이트: 3곳 → 13곳)
 const detailParams = (token: string) => ({ engine: "google_immersive_product", page_token: token, more_stores: "true", gl: "kr", hl: "ko" });
 const productParams = (pid: string) => ({ engine: "google_product", product_id: pid, offers: "1", gl: "kr", hl: "ko" });
@@ -51,7 +51,7 @@ export async function GET(req: Request) {
   if (!process.env.SERPAPI_API_KEY && isDev) {
     if (!token && !pid) {
       devLog(q, SAMPLE_SEARCH_JSON);
-      return Response.json({ ...shapeSearch(SAMPLE_SEARCH_JSON), sample: true });
+      return Response.json({ ...shapeSearch(SAMPLE_SEARCH_JSON, q), sample: true });
     }
     const detail = SAMPLE_DETAIL_JSON[token] ?? null;
     devLog(q, SAMPLE_SEARCH_JSON, detail);
@@ -68,7 +68,7 @@ export async function GET(req: Request) {
   if (!token && !pid) {
     devLog(q, search);
     if (debug) return debugResponse(url, q, search);
-    return Response.json(shapeSearch(search));
+    return Response.json(shapeSearch(search, q));
   }
 
   // 상세: 검색 결과에 있는 상품만 조회한다 (아무 토큰으로 요금을 쓰지 못하게)

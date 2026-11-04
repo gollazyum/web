@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CoupangSection } from "@/components/shop/CoupangSection";
 import { LinkPasteHint } from "@/components/shop/LinkPasteHint";
+import { ShopQueryInput } from "@/components/shop/ShopQueryInput";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ogBase, ogImage } from "@/lib/site";
@@ -31,7 +32,7 @@ export default function ShopPage() {
           <h1>쇼핑 가격 비교</h1>
           <p className="shop-lead">상품 이름을 입력하면 쿠팡·네이버·G마켓·11번가의 판매 가격을 한 화면에서 비교해 보여 드려요.</p>
           <form className="shop-search" action="/shop/product" method="get" role="search">
-            <input name="q" type="search" required maxLength={100} placeholder="예: 무선 이어폰, 캐리어 24인치" aria-label="상품 이름" />
+            <ShopQueryInput placeholder="예: 무선 이어폰, 캐리어 24인치" />
             <button type="submit">찾기</button>
           </form>
           <LinkPasteHint />
