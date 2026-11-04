@@ -27,11 +27,10 @@ describe("shapeDetail (아이폰 17: 스토어 목록에 11번가만 오는 경�
     expect(product!.offers.map((o) => o.price)).toEqual([1290000, 1300000, 1310000, 1335000, null]);
   });
 
-  it("쿠팡이 없으면 맨 아래 덧붙임 행: 가격 없음, 순위·대표 가격 계산에서 빠짐, getCoupangLink 주소", () => {
+  it("쿠팡이 없으면 맨 아래 덧붙임 행: 가격 없음, 순위·대표 가격 계산에서 빠짐, 파트너스 링크 (딥링크 대상은 상품명 검색결과)", () => {
     const cp = product!.offers.at(-1)!;
     const url = coupangSearchUrl(product!.title);
-    expect(cp).toMatchObject({ placeholder: true, price: null, link: url, coupang: { url, type: "search", name: product!.title } });
-    expect(cp.link).not.toBe(COUPANG_HOME);
+    expect(cp).toMatchObject({ placeholder: true, price: null, link: COUPANG_HOME, coupang: { url: COUPANG_HOME, type: "home", name: product!.title, target: { url, type: "search" } } });
     expect(rankable(cp)).toBe(false);
     expect(product!.price).toBe(1290000);
     expect(product!.changePct).toBe(8);
@@ -51,11 +50,11 @@ describe("shapeDetail (아이폰 17: 스토어 목록에 11번가만 오는 경�
 });
 
 describe("shapeDetail 규칙", () => {
-  it("쿠팡 판매처에 실제 상품 주소가 있으면 그 주소, 덧붙임 행은 없다", () => {
+  it("쿠팡 판매처에 실제 상품 주소가 있으면 그 주소를 딥링크 대상으로, 화면 링크는 파트너스 링크. 덧붙임 행은 없다", () => {
     const { product } = shapeDetail("q", "t", search([item({ source: "" })]), detail([{ name: "Coupang", link: "https://www.coupang.com/vp/products/1", extracted_price: 1000 }]));
     expect(product!.offers).toHaveLength(1);
-    expect(product!.offers[0].link).toBe("https://www.coupang.com/vp/products/1");
-    expect(product!.offers[0].coupang?.type).toBe("product");
+    expect(product!.offers[0].link).toBe(COUPANG_HOME);
+    expect(product!.offers[0].coupang?.target).toEqual({ url: "https://www.coupang.com/vp/products/1", type: "product" });
     expect(product!.offers[0].placeholder).toBeUndefined();
   });
 
@@ -193,7 +192,9 @@ describe("shapeDetail (실제 아이폰 17 화이트 스토어 목록, more_stor
       ["11번가", null],
       ["쿠팡", null],
     ]);
-    expect(product!.offers.find((o) => o.seller.key === "G마켓")!.link).toBe("https://www.google.com/goto?url=C");
+    // 구글 이동 주소(/goto)뿐인 판매처는 그 판매처의 검색 페이지로 (google.com 링크는 내보내지 않는다)
+    expect(product!.offers.find((o) => o.seller.key === "G마켓")!.link).toBe(`https://browse.gmarket.co.kr/search?keyword=${encodeURIComponent(product!.title)}`);
+    expect(product!.offers.some((o) => /google\./.test(o.link))).toBe(false);
   });
 
   it("주요 4곳이 없어도 판매처 목록이 비지 않는다", () => {
@@ -218,7 +219,7 @@ describe("상세 응답 키 여러 개", () => {
       ["11번가", 41000, "https://www.11st.co.kr/d"],
       ["G마켓", 42000, "https://item.gmarket.co.kr/1"],
       ["KREAM", 50000, ""],
-      ["쿠팡", null, coupangSearchUrl("Apple 아이폰 17 256GB 자급제 블랙")],
+      ["쿠팡", null, COUPANG_HOME],
     ]);
   });
   it("검색 목록은 토큰이 없어도 product_id가 있으면 넣고, inline_shopping_results 도 읽는다", () => {
@@ -229,7 +230,7 @@ describe("상세 응답 키 여러 개", () => {
 });
 
 describe("숙소 필터와 분리", () => {
-  it("쇼핑 판매처는 숙소 허용 목록·구글 링크 제거를 거치지 않는다", async () => {
+  it("쇼핑 판매처는 숙소 허용 목록을 거치지 않는다. 구글 이동 주소는 판매처 검색 페이지로 바꾼다", async () => {
     const { allowedSellers } = await import("@/lib/hotel-sellers");
     expect(typeof allowedSellers).toBe("function");
     const { product } = shapeDetail("q", "t", search([item({ source: "" })]), detail([
@@ -239,7 +240,7 @@ describe("숙소 필터와 분리", () => {
       { name: "11번가", link: "https://www.11st.co.kr/1", extracted_price: 13000 },
     ]));
     expect(product!.offers.map((o) => o.seller.key)).toEqual(["쿠팡", "네이버", "G마켓", "11번가"]);
-    expect(product!.offers[1].link).toBe("https://www.google.com/goto?url=n");
+    expect(product!.offers[1].link).toBe("https://search.shopping.naver.com/search/all?query=" + encodeURIComponent("Apple 아이폰 17 256GB 자급제 블랙"));
   });
 });
 
@@ -255,5 +256,25 @@ describe("상세 화면 주소", () => {
     const sel = item({ immersive_product_page_token: "x".repeat(2100), product_id: "77", source: "무신사", extracted_price: 57900, link: "https://www.musinsa.com/p/1" });
     const { product } = shapeDetail("q", { token: "", pid: "77" }, search([sel]), null);
     expect(product!.offers[0]).toMatchObject({ price: 57900, link: "https://www.musinsa.com/p/1" });
+  });
+});
+
+describe("구글 쇼핑으로 가는 판매처 링크 (2026-11-04)", () => {
+  const title = "Apple 아이폰 17 256GB 자급제 블랙";
+  it("구글 이동 주소뿐이면 판매처 검색 페이지, 모르는 판매처는 링크 없는 '가격 참고' 줄", () => {
+    const { product } = shapeDetail("q", "t", search([item({ source: "" })]), detail([
+      { name: "무신사", link: "https://www.google.com/search?ibp=oshop&q=x&prds=1", extracted_price: 20000 },
+      { name: "어떤쇼핑몰", link: "https://www.google.com/goto?url=ENC", extracted_price: 21000 },
+      { name: "KREAM", link: "/goto?url=ENC2", extracted_price: 22000 },
+      { name: "11번가", link: "https://www.11st.co.kr/products/1", extracted_price: 23000 },
+    ]));
+    const link = (k: string) => product!.offers.find((o) => o.seller.key === k)!.link;
+    expect(link("무신사")).toBe(`https://www.musinsa.com/search/goods?keyword=${encodeURIComponent(title)}`);
+    expect(link("어떤쇼핑몰")).toBe("");
+    expect(link("KREAM")).toBe(`https://kream.co.kr/search?keyword=${encodeURIComponent(title)}`);
+    expect(link("11번가")).toBe("https://www.11st.co.kr/products/1");
+    expect(product!.offers.some((o) => /google\./.test(o.link))).toBe(false);
+    // 가격은 받은 값 그대로 (링크가 없어도 가격 참고로 보인다)
+    expect(product!.offers.find((o) => o.seller.key === "어떤쇼핑몰")!.price).toBe(21000);
   });
 });

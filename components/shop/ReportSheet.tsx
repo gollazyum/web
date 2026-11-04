@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useSheet } from "@/lib/useSheet";
 import { site } from "@/lib/site";
 
@@ -30,12 +31,47 @@ export function reportMailto(reason: ReportReason, ctx: ReportContext, to = site
   return `mailto:${to}?subject=${encodeURIComponent(`[상품 정보 제보] ${reason} · ${ctx.title}`)}&body=${encodeURIComponent(body)}`;
 }
 
+// 열리면 초점을 시트로 옮기고, Esc로 닫고, Tab은 시트 안에서만 돈다. 닫히면 연 버튼으로 초점을 돌려준다
 export function ReportSheet({ ctx, onClose }: { ctx: ReportContext; onClose: () => void }) {
   useSheet(true, onClose);
+  const sheet = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    sheet.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeRef.current();
+        return;
+      }
+      if (e.key !== "Tab" || !sheet.current) return;
+      const items = [...sheet.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled])")];
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === sheet.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      opener?.focus?.();
+    };
+  }, []);
+
   return (
     <>
       <div className="sheet-dim pd-sheet-dim" aria-hidden="true" onClick={onClose} />
-      <div className="pd-sheet" role="dialog" aria-modal="true" aria-labelledby="pd-report-title">
+      <div ref={sheet} className="pd-sheet" role="dialog" aria-modal="true" aria-labelledby="pd-report-title" tabIndex={-1}>
         <span className="pd-sheet-grab" aria-hidden="true" />
         <div className="pd-sheet-head">
           <h2 id="pd-report-title">어떤 점이 다른가요?</h2>

@@ -121,3 +121,40 @@ export const sellerOrder = (name: string) => {
   const i = SELLER_ORDER.indexOf(name as SellerName);
   return i < 0 ? SELLER_ORDER.length : i;
 };
+
+// 쇼핑 판매처의 검색 페이지. 판매처 링크가 구글을 거쳐 가는 주소(google.com/search?ibp=oshop…, /goto?…)뿐일 때
+// 그 판매처 안에서 상품명으로 찾은 결과로 보낸다. 목록에 없는 판매처는 null (링크 없는 '가격 참고' 줄이 된다)
+type ShopSearchDef = { aliases: string[]; hosts: string[]; url: (q: string) => string };
+const SHOP_SEARCH: ShopSearchDef[] = [
+  { aliases: ["네이버"], hosts: ["naver.com"], url: (q) => `https://search.shopping.naver.com/search/all?query=${q}` },
+  { aliases: ["G마켓", "gmarket", "지마켓"], hosts: ["gmarket.co.kr"], url: (q) => `https://browse.gmarket.co.kr/search?keyword=${q}` },
+  { aliases: ["11번가", "11st"], hosts: ["11st.co.kr"], url: (q) => `https://search.11st.co.kr/Search.tmall?kwd=${q}` },
+  { aliases: ["옥션", "auction"], hosts: ["auction.co.kr"], url: (q) => `https://www.auction.co.kr/n/search?keyword=${q}` },
+  { aliases: ["무신사", "musinsa"], hosts: ["musinsa.com"], url: (q) => `https://www.musinsa.com/search/goods?keyword=${q}` },
+  { aliases: ["kream", "크림"], hosts: ["kream.co.kr"], url: (q) => `https://kream.co.kr/search?keyword=${q}` },
+  { aliases: ["29cm"], hosts: ["29cm.co.kr"], url: (q) => `https://www.29cm.co.kr/search?keyword=${q}` },
+  { aliases: ["롯데온", "lotteon", "롯데on"], hosts: ["lotteon.com"], url: (q) => `https://www.lotteon.com/search/search/search.ecn?render=search&platform=pc&q=${q}` },
+  { aliases: ["ssg", "ssgcom", "신세계몰", "이마트몰", "emart"], hosts: ["ssg.com"], url: (q) => `https://www.ssg.com/search.ssg?query=${q}` },
+  { aliases: ["하이마트", "롯데하이마트", "himart", "ehimart"], hosts: ["e-himart.co.kr"], url: (q) => `https://www.e-himart.co.kr/app/search/totalSearch?query=${q}` },
+  { aliases: ["오늘의집", "ohouse"], hosts: ["ohou.se"], url: (q) => `https://ohou.se/search/index?query=${q}` },
+  { aliases: ["컬리", "마켓컬리", "kurly"], hosts: ["kurly.com"], url: (q) => `https://www.kurly.com/search?sword=${q}` },
+  { aliases: ["올리브영", "oliveyoung"], hosts: ["oliveyoung.co.kr"], url: (q) => `https://www.oliveyoung.co.kr/store/search/getSearchMain.do?query=${q}` },
+  { aliases: ["wconcept", "w컨셉"], hosts: ["wconcept.co.kr"], url: (q) => `https://www.wconcept.co.kr/Search?kwd=${q}` },
+  { aliases: ["삼성닷컴", "삼성전자", "samsung"], hosts: ["samsung.com"], url: (q) => `https://www.samsung.com/sec/search/?keyword=${q}` },
+  { aliases: ["애플", "apple"], hosts: ["apple.com"], url: (q) => `https://www.apple.com/kr/search/${q}` },
+];
+
+export function shopSellerSearchUrl(sellerName: string, title: string): string | null {
+  const c = clean(sellerName);
+  if (!c) return null;
+  const def =
+    SHOP_SEARCH.find((d) => d.aliases.some((a) => clean(a) === c)) ??
+    SHOP_SEARCH.find((d) => d.aliases.some((a) => clean(a).length >= 3 && c.startsWith(clean(a))));
+  return def ? def.url(encodeURIComponent(title.trim())) : null;
+}
+
+// 구글·광고를 거쳐 가는 주소인지 (중간 이동을 풀고 나서도 남아 있으면 판매처 주소를 알 수 없다)
+export function isRedirectorUrl(link: string | null | undefined): boolean {
+  const url = parseUrl(link);
+  return !!url && isRedirector(url.hostname.toLowerCase());
+}

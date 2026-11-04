@@ -25,13 +25,14 @@ export function authorization(method: string, path: string, query: string, acces
   return `CEA algorithm=HmacSHA256, access-key=${access}, signed-date=${dt}, signature=${signature}`;
 }
 
-// 주소들을 파트너스 링크로. 실패하거나 꺼져 있으면 받은 주소 그대로 돌려준다 (순서·개수 유지)
+// 주소들을 파트너스 링크로. 실패하거나 꺼져 있으면 받은 주소 그대로 돌려준다 (순서·개수 유지).
+// 부르는 쪽(applyDeeplink)은 link.coupang.com 이 아닌 결과를 기본 파트너스 링크로 바꾼다
 export async function toDeeplinks(urls: string[]): Promise<string[]> {
   const access = process.env.COUPANG_ACCESS_KEY?.trim() ?? "";
   const secret = process.env.COUPANG_SECRET_KEY?.trim() ?? "";
   if (!access || !secret || !urls.length) return urls;
   const now = Date.now();
-  const todo = [...new Set(urls.filter((u) => !(cache.get(u) && now - cache.get(u)!.at < CACHE_MS)))];
+  const todo = [...new Set(urls.filter((u) => u && !(cache.get(u) && now - cache.get(u)!.at < CACHE_MS)))];
   for (let i = 0; i < todo.length; i += MAX_PER_CALL) {
     const batch = todo.slice(i, i + MAX_PER_CALL);
     try {

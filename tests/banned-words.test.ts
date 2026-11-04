@@ -9,25 +9,25 @@ const UI_PATHS = [
   "components/shop",
   "app/shop",
   "app/page.tsx",
+  "app/privacy",
+  "app/hotels",
+  "app/flights",
   "components/SiteNav.tsx",
   "components/LinkChecker.tsx",
   "components/ShopSearch.tsx",
   "components/FamilyCards.tsx",
   "components/PopularPlaces.tsx",
   "components/SiteFooter.tsx",
+  "components/HotelSearch.tsx",
+  "components/FlightSearch.tsx",
+  "components/AnalysisMock.tsx",
+  "components/HotelResults.tsx",
+  "components/HotelPriceSheet.tsx",
+  "components/FlightResults.tsx",
 ];
 
-// 초록이 2026-11-02에 직접 정해 준 문구. 안전 모드라도 이 문장 그대로는 허용한다 (다른 곳의 비교·최저가는 계속 잡는다)
-const APPROVED_PHRASES = [
-  "쿠팡·네이버 같은 쇼핑몰과 여러 예약 사이트의 가격을 한 화면에서 비교해요",
-  "비교하는 곳",
-  "최저가 찾기",
-  "쇼핑 가격 비교",
-  "판매 가격을 한 화면에서 비교해 보여 드려요.",
-  // 2026-11-04 초록이 정한 홈 섹션 문구
-  "비교는 Gollazyum이,",
-  "한눈에 비교",
-];
+// 2026-11-04 초록 요청으로 예외 문구는 모두 없앴다. 상표 심사 중에는 화면·메타에 '비교'·'최저가'를 쓰지 않는다
+const APPROVED_PHRASES: string[] = [];
 
 function stripApproved(code: string): string {
   return APPROVED_PHRASES.reduce((s, p) => s.split(p).join(""), code);
@@ -74,6 +74,10 @@ describe("금지어", () => {
 
   it("쇼핑 탭 예시 상품 이름에도 금지어가 없다", () => {
     for (const p of COUPANG_SAMPLE_PRODUCTS) expect(findBannedWords(`${p.name} ${p.keyword}`, true)).toEqual([]);
+  });
+
+  it.each(UI_PATHS.flatMap(walk))("%s 에서 google.com 으로 나가는 링크가 없다", (file) => {
+    expect(stripComments(readFileSync(file, "utf8"))).not.toMatch(/https?:\/\/(www\.)?google\./);
   });
 
   it("항상 금지 목록에 '골라'가 들어 있다", () => {

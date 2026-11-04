@@ -1,5 +1,7 @@
 "use client";
 
+import { brandCopy } from "@/lib/brand-mode";
+import { mapUrl } from "@/lib/maps";
 import { useEffect, useMemo, useState } from "react";
 import { HotelAdvisor, type AdvisorFilter } from "./HotelAdvisor";
 import { HotelPriceSheet, lowestCost, roboSummary, totalOf, type PriceState } from "./HotelPriceSheet";
@@ -473,7 +475,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
           </div>
         )}
         <p className="results-hint">
-          큰 숫자는 비교한 곳 중 가장 낮은 <b>1박 평균</b>(세금 포함)이에요 · <span className="m-only">카드를 누르면</span>
+          큰 숫자는 {brandCopy("hotelHintLowest")} <b>1박 평균</b>(세금 포함)이에요 · <span className="m-only">카드를 누르면</span>
           <span className="pc-only">&apos;가격 보기&apos;를 누르면</span> 사이트별 가격
         </p>
 
@@ -754,7 +756,7 @@ function Gallery({ images, name, badge }: { images: string[]; name: string; badg
 type Badge = { kind: "robo" | "lowest" | "deal"; text: string } | null;
 function badgeFor(h: HotelOption, picks: Set<string>, lowestToken: string): Badge {
   if (picks.has(h.token)) return { kind: "robo", text: "Gollazyum AI" };
-  if (h.token === lowestToken && canTakeLowestBadge(h)) return { kind: "lowest", text: "비교한 곳 중 최저가" };
+  if (h.token === lowestToken && canTakeLowestBadge(h)) return { kind: "lowest", text: brandCopy("hotelLowestBadge") };
   const pct = h.deal.match(/(\d+)\s*%/)?.[1];
   if (pct) return { kind: "deal", text: `평소보다 ${pct}%↓` };
   return null;
@@ -837,7 +839,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
           {hotel.gps && (
             <span className="hcard-map">
               {" · "}
-              <a href={`https://www.google.com/maps/search/?api=1&query=${hotel.gps[0]},${hotel.gps[1]}`} target="_blank" rel="noopener noreferrer">
+              <a href={mapUrl(hotel.gps[0], hotel.gps[1])} target="_blank" rel="noopener noreferrer">
                 지도 보기
               </a>
             </span>
@@ -924,7 +926,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
                       {s.name}
                       {s.official && <em> 공식</em>}
                       {s.name === pick && <em className="hotel-pick"> Gollazyum AI</em>}
-                      {lowest && lowest.value !== null && lowest.cost(s) === lowest.value && <em className="best-badge">최저가</em>}
+                      {lowest && lowest.value !== null && lowest.cost(s) === lowest.value && <em className="best-badge">{brandCopy("hotelBestBadge")}</em>}
                       {s.name === pick && <small className="pick-why">{why}</small>}
                     </span>
                     <b>

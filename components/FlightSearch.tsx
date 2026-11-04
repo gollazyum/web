@@ -1,5 +1,6 @@
 "use client";
 
+import { brandCopy } from "@/lib/brand-mode";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AirportInput } from "./AirportInput";
@@ -94,7 +95,7 @@ export function FlightSearch({ initial, compact }: Props) {
             ))}
           </select>
         </label>
-        <button type="submit">{compact ? "다시 검색" : "항공권 최저가 찾기"}</button>
+        <button type="submit">{compact ? "다시 검색" : brandCopy("flightButton")}</button>
       </form>
       {error && (
         <div className="search-result" role="status">

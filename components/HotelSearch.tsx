@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { brandCopy } from "@/lib/brand-mode";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DateRangePicker } from "./DateRangePicker";
 import { PlaceInput } from "./PlaceInput";
@@ -8,9 +9,10 @@ import { addDays } from "@/lib/dates";
 import { hotelsPath, type HotelQuery } from "@/lib/hotels";
 
 // 숙소 검색창. 찾기를 누르면 결과 페이지(/hotels?…)로 넘어가고, 그 페이지 위쪽에서도 그대로 다시 쓴다
-type Props = { initial?: HotelQuery; compact?: boolean };
+// preset: 첫 화면 '인기 여행지' 칩. 도시를 넣고 날짜 고르기를 연다 (n이 바뀔 때마다)
+type Props = { initial?: HotelQuery; compact?: boolean; preset?: { q: string; n: number } | null; onPresetUsed?: () => void };
 
-export function HotelSearch({ initial, compact }: Props) {
+export function HotelSearch({ initial, compact, preset, onPresetUsed }: Props) {
   const router = useRouter();
   const [q, setQ] = useState(initial?.q ?? "");
   const [checkIn, setCheckIn] = useState(initial?.checkIn ?? "");
@@ -18,6 +20,16 @@ export function HotelSearch({ initial, compact }: Props) {
   const [adults, setAdults] = useState(initial?.adults ?? 2);
   const [error, setError] = useState("");
   const [dateKick, setDateKick] = useState(0); // 휴대폰에서 목적지를 고르면 바로 날짜 고르기로
+
+  useEffect(() => {
+    if (!preset) return;
+    setQ(preset.q);
+    setError("");
+    setDateKick((k) => k + 1);
+    // 한 번 쓰고 나면 지운다 (탭을 다시 열 때 달력이 또 뜨지 않게)
+    onPresetUsed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preset]);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,7 +69,7 @@ export function HotelSearch({ initial, compact }: Props) {
             ))}
           </select>
         </label>
-        <button type="submit">{compact ? "다시 검색" : "숙소 최저가 찾기"}</button>
+        <button type="submit">{compact ? "다시 검색" : brandCopy("hotelButton")}</button>
       </form>
       {error && (
         <div className="search-result" role="status">

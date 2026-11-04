@@ -9,7 +9,7 @@ import { PriceCompareList } from "@/components/shop/PriceCompareList";
 import { ReportSheet, type ReportContext } from "@/components/shop/ReportSheet";
 import { ShopLoading } from "@/components/shop/ShopLoading";
 import { errorCode } from "@/lib/apiError";
-import { COUPANG_LINK_ATTRS, getCoupangLink, type CoupangLink } from "@/lib/coupang-links";
+import { COUPANG_LINK_ATTRS, coupangLinkLabel, getCoupangLink, type CoupangLink } from "@/lib/coupang-links";
 import { favId, isFav, toggleFavId } from "@/lib/shop-favs";
 import { DEFAULT_OFFER_VIEW, isNew, rankable, rankOffers, won, type OfferView, type ShoppingProduct, type ShoppingResponse } from "@/lib/shopping";
 
@@ -104,6 +104,8 @@ export function ProductDetail({ query, token, pid = "" }: { query: string; token
   // 1위가 없으면(확인된 판매처 0곳 포함) 하단 버튼은 쿠팡으로: 상품 주소 또는 상품명 검색결과
   const coupangRow = product?.offers.find((o) => o.placeholder) ?? product?.offers.find((o) => o.coupang) ?? null;
   const coupang = coupangRow?.coupang ?? getCoupangLink({ title: product?.title || query }, query);
+  // 하단 버튼: 1위 판매처. 1위가 링크 없는 '가격 참고' 줄이면 다음 순위 중 링크가 있는 판매처로
+  const buyTop = ranked?.list.find((r) => r.rank !== null && rankable(r.offer) && r.offer.link)?.offer ?? null;
   // 판매처 0곳: 상품 데이터를 못 찾았거나, 찾았어도 확인된 판매처가 없을 때
   const noSellers = state.kind === "empty" || (!!product && !realOffers.length);
   // 큰 가격: 지금 보기 조건의 1위. 없으면 서버가 정한 대표 가격
@@ -207,11 +209,14 @@ export function ProductDetail({ query, token, pid = "" }: { query: string; token
       )}
 
       {/* 하단 바는 판매처가 0곳이어도, 데이터를 못 찾았어도 항상 보인다 */}
-      {state.kind !== "loading" && <BuyBar top={top && rankable(top) ? top : null} coupang={coupang} />}
+      {state.kind !== "loading" && <BuyBar top={buyTop} coupang={coupang} />}
       {report && reportCtx && <ReportSheet ctx={reportCtx} onClose={() => setReport(false)} />}
     </div>
   );
 }
+
+// 판매처 0곳 화면의 쿠팡 버튼 문구. 검색결과 딥링크일 때만 '검색결과'라고 쓴다
+const zeroLabel = (cp: CoupangLink) => (cp.type === "search" ? "쿠팡 검색결과에서 가격 보기 ↗" : coupangLinkLabel(cp));
 
 // 판매처 0곳 안내: 제목 → 검색어가 채워진 입력창과 '다시 찾기' → 쿠팡 파트너스 고지 → 쿠팡 검색결과 버튼
 function NoSellers({ query, coupang }: { query: string; coupang: CoupangLink }) {
@@ -224,8 +229,8 @@ function NoSellers({ query, coupang }: { query: string; coupang: CoupangLink }) 
       </form>
       <LinkPasteHint />
       <CoupangDisclosure className="pd-disclosure" />
-      <a className="pd-zero-cp" href={coupang.url} {...COUPANG_LINK_ATTRS} aria-label="쿠팡 검색결과에서 가격 보기, 새 탭에서 열려요">
-        쿠팡 검색결과에서 가격 보기 ↗
+      <a className="pd-zero-cp" href={coupang.url} {...COUPANG_LINK_ATTRS} aria-label={`${zeroLabel(coupang).replace(/ ↗$/, "")}, 새 탭에서 열려요`}>
+        {zeroLabel(coupang)}
       </a>
     </section>
   );

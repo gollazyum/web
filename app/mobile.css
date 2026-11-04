@@ -23,7 +23,8 @@ html.sheet-lock body {
   margin-top: 8px;
   font-size: 13px;
   line-height: 1.5;
-  color: #64748b;
+  /* 배경과 대비 4.5:1 이상 (#64748b는 연한 배경 위에서 모자랐다) */
+  color: #334155;
 }
 .shop-link-hint.on {
   display: block;
@@ -1742,4 +1743,41 @@ html.sheet-lock body {
   .shop-card .sq-panel {
     top: calc(100% + 8px);
   }
+}
+
+/* 2026-11-04 탭별 예시 칩 (휴대폰만). 쇼핑 탭은 상품 예시 칩, 인기 여행지 칩은 숙소 탭에서만. 칩은 44px 이상 눌리게 */
+.shop-examples-m {
+  display: none;
+}
+@media (max-width: 640px) {
+  /* 이름 줄 + 칩 한 줄로 고정: 글꼴이 바뀌어도 줄 수가 같아 아래가 밀리지 않는다 (넘치면 칩 줄만 옆으로 밀어 본다) */
+  .shop-examples-m {
+    display: block;
+    margin-top: 12px;
+    text-align: center;
+  }
+  .shop-examples-m .hot-places {
+    margin-top: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .shop-examples-m .hot-places::-webkit-scrollbar {
+    display: none;
+  }
+  .shop-examples-m .hot-chip {
+    flex: none;
+  }
+  .hot-places.m-off {
+    display: none;
+  }
+  .hot-chip {
+    min-height: 44px;
+    height: auto;
+    text-decoration: none;
+  }
+}
+/* 휴대폰 첫 화면 문구는 정해 둔 자리(\n)에서 줄을 바꾼다 (시스템 글꼴 → Pretendard로 바뀔 때 줄 수가 달라져 아래가 밀리지 않게) */
+.hero-sub.m-only {
+  white-space: pre-line;
 }

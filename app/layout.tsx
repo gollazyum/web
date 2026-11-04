@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { ogImage, site } from "@/lib/site";
-// 한글 전체가 든 2MB 폰트 대신, 화면에 쓰인 글자 묶음만 받아 오는 분할 폰트
-import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+// 본문 글꼴 Pretendard: 화면에 쓰인 글자 묶음만 받는 분할 폰트 중 굵기 400·700만 (scripts/build-pretendard-css.mjs 로 만든다).
+// preload 하지 않고 font-display: swap 이라 폰트가 늦으면 시스템 글꼴(Apple SD Gothic Neo, 맑은 고딕)로 먼저 보인다
+import "./pretendard.css";
 import "./globals.css";
 // 휴대폰(640px 이하) 전용 보정. 기존 스타일 뒤에 불러와 덮어쓴다
 import "./mobile.css";

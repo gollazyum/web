@@ -6,13 +6,13 @@ import { PRICE_BANDS, priceBandCounts, sellerOptions, type PriceBand, type SortK
 import type { SearchItem } from "@/lib/shopping";
 
 export type MobileFilter = { sort: SortKey; bands: PriceBand[]; sellers: string[]; main: boolean };
-export const DEFAULT_MOBILE_FILTER: MobileFilter = { sort: "low", bands: [], sellers: [], main: false };
+// 기본 정렬은 관련도순(검색 결과 순서). '낮은 가격순'이 기본이면 '에어팟 프로 2'의 첫 10개가 모두 케이스였다
+export const DEFAULT_MOBILE_FILTER: MobileFilter = { sort: "default", bands: [], sellers: [], main: false };
 
 const SORTS: { key: SortKey; label: string }[] = [
+  { key: "default", label: COPY.sortDefault },
   { key: "low", label: COPY.sortLow },
   { key: "high", label: COPY.sortHigh },
-  // 모바일은 안전 모드 금지어(추천)를 피해 '기본순'으로 쓴다
-  { key: "default", label: "기본순" },
 ];
 
 type Menu = "sort" | "band" | "seller" | null;
@@ -25,7 +25,7 @@ export function MobileFilters({ items, value, onChange }: { items: SearchItem[];
   const sellers = useMemo(() => sellerOptions(items), [items]);
   const set = (patch: Partial<MobileFilter>) => onChange({ ...value, ...patch });
   const open = (m: Exclude<Menu, null>) => setMenu((cur) => (cur === m ? null : m));
-  const sortLabel = SORTS.find((s) => s.key === value.sort)?.label ?? COPY.sortLow;
+  const sortLabel = SORTS.find((s) => s.key === value.sort)?.label ?? COPY.sortDefault;
   const bandLabel = (k: PriceBand) => PRICE_BANDS.find((b) => b.key === k)!.label;
 
   return (

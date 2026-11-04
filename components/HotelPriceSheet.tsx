@@ -1,5 +1,6 @@
 "use client";
 
+import { mapUrl } from "@/lib/maps";
 import { useEffect, useRef, useState } from "react";
 import { MochiStars, ratingTier } from "./MochiMarks";
 import { agodaAffiliateOn } from "@/lib/affiliate";
@@ -139,7 +140,7 @@ export function HotelPriceSheet({ hotel, query, nights, prices, summary, onRetry
   };
   const footName = (s: HotelSource) => (s.official ? "공식 사이트" : s.name);
   const gpsLink = hotel.gps && (
-    <a className="ps-map" href={`https://www.google.com/maps/search/?api=1&query=${hotel.gps[0]},${hotel.gps[1]}`} target="_blank" rel="noopener noreferrer">
+    <a className="ps-map" href={mapUrl(hotel.gps[0], hotel.gps[1])} target="_blank" rel="noopener noreferrer">
       지도 보기 ↗
     </a>
   );

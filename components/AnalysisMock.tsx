@@ -1,5 +1,6 @@
 "use client";
 
+import { brandCopy } from "@/lib/brand-mode";
 import { useEffect, useRef, useState } from "react";
 
 const rows = [
@@ -66,7 +67,7 @@ export function AnalysisMock() {
         <div key={r.name} className={`bar-row${r.best ? " best" : ""}`}>
           <span>
             {r.name}
-            {r.best && <em className="best-badge">최저가</em>}
+            {r.best && <em className="best-badge">{brandCopy("mockBestBadge")}</em>}
           </span>
           <div className="bar">
             <i style={{ width: shown ? `${r.w}%` : 0, transitionDelay: `${i * 120}ms` }} />

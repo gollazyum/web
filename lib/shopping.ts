@@ -1,7 +1,7 @@
 import { getCoupangLink, type CoupangLink } from "@/lib/coupang-links";
 import { relevantOnly } from "@/lib/shop-results";
 import { isSameProduct } from "@/lib/product-match";
-import { resolveSellerUrl, sellerInfo, shopSeller, type Seller } from "@/lib/sellers";
+import { isRedirectorUrl, resolveSellerUrl, sellerInfo, shopSeller, shopSellerSearchUrl, type Seller } from "@/lib/sellers";
 
 // 쇼핑 데이터. SerpApi 결과를 화면용으로 줄인다. (출처는 화면에 표시하지 않는다)
 // 1) 검색 목록: google_shopping 결과 → 상품 카드 목록 (판매처별 가격은 아직 부르지 않음)
@@ -13,7 +13,7 @@ export type Offer = {
   seller: Seller;
   price: number | null; // 가격을 확인하지 못하면 null
   available: boolean; // 품절이면 false
-  link: string; // 판매처로 가는 주소. 쿠팡이면 getCoupangLink 결과 (실제 상품 주소 또는 쿠팡 검색결과)
+  link: string; // 판매처로 가는 주소. 쿠팡이면 파트너스 링크(link.coupang.com). 빈 값이면 링크 없는 '가격 참고' 줄
   coupang: CoupangLink | null; // 쿠팡 판매처일 때만
   placeholder?: boolean; // 데이터에 쿠팡이 없어 덧붙인 쿠팡 행 (순위·차액·대표 가격 계산에서 빠짐)
   condition?: Condition; // 상품 상태. 없으면 새 상품
@@ -290,9 +290,10 @@ function toOffer(r: RawOffer, query: string, title: string): Offer | null {
   if (!seller) return null;
   const resolved = resolveSellerUrl(r.link);
   // 쿠팡: 중간 이동을 푼 주소가 쿠팡 상품 상세 주소면 그 주소, 아니면 쿠팡 안 상품명 검색결과 (쿠팡 홈 고정 링크는 쓰지 않는다)
-  // 다른 곳은 중간 이동을 푼 판매처 주소 (쇼핑은 숙소와 달리 경유 주소도 지우지 않는다: 지우면 판매처가 통째로 사라진다)
+  // 다른 곳은 중간 이동을 푼 판매처 주소. 구글을 거쳐 가는 주소만 남으면(google.com/search?ibp=oshop…, /goto?…)
+  // 그 판매처의 검색 페이지로 바꾸고, 검색 페이지를 모르는 판매처는 링크 없이 '가격 참고' 줄로 둔다 (google.com 링크는 내보내지 않는다)
   const coupang = seller.key === "쿠팡" ? getCoupangLink({ title, link: resolved }, query) : null;
-  const link = coupang ? coupang.url : resolved;
+  const link = coupang ? coupang.url : isRedirectorUrl(resolved) ? (shopSellerSearchUrl(seller.key, title) ?? "") : resolved;
   const ownTitle = r.title || title;
   const condition = conditionOf(r.flags ?? "", ownTitle);
   return {

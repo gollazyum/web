@@ -1494,3 +1494,7 @@ a.pd-row-top:hover {
   font-weight: 700;
   color: #334155;
 }
+/* 제보 시트는 열릴 때 시트 자체로 초점을 옮긴다 (테두리는 그리지 않는다) */
+.pd-sheet:focus {
+  outline: none;
+}
