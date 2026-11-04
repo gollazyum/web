@@ -13,6 +13,8 @@ import { errorCode } from "@/lib/apiError";
 import { addDays, daysBetween, shortLabel, today } from "@/lib/dates";
 import { agodaSearchUrl, bookingLink, canTakeLowestBadge, firstSites, isAgoda, hotelsPath, lowestNightly, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo, stayLimitLabel, stayLimits } from "@/lib/hotelText";
+import { hotelDistance } from "@/lib/hotel-distance";
+import { resized } from "@/lib/hotel-photo";
 import { MAX_COMPARE, compareItem, saveTopics, toSearchParams, updateStore, useLowbotiStore } from "@/lib/lowbotiStore";
 import { isPhone, useSheet } from "@/lib/useSheet";
 import { agodaAffiliateOn } from "@/lib/affiliate";
@@ -440,6 +442,36 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
             />
           </div>
         </div>
+        {/* 휴대폰: 적용된 필터를 하나씩 끌 수 있는 칩 ('필터 1'처럼 숫자만 보여 주지 않는다) */}
+        {active > 0 && (
+          <div className="hf-chips m-only" role="group" aria-label="적용된 필터">
+            {userRange && (
+              <button type="button" className="hf-chip" aria-label={`예산 필터 끄기`} onClick={() => setRange(null)}>
+                {unit === "total" ? "총액" : "1박"} {won(userRange[0])}~{won(userRange[1])} <span aria-hidden="true">✕</span>
+              </button>
+            )}
+            {minRating > 0 && (
+              <button type="button" className="hf-chip" aria-label={`후기 ${minRating.toFixed(1)} 이상 필터 끄기`} onClick={() => setMinRating(0)}>
+                후기 {minRating.toFixed(1)} 이상 <span aria-hidden="true">✕</span>
+              </button>
+            )}
+            {[...stars].map((n) => (
+              <button key={`s${n}`} type="button" className="hf-chip" aria-label={`${n}성급 필터 끄기`} onClick={() => setStars(toggle(stars, n))}>
+                {n}성급 <span aria-hidden="true">✕</span>
+              </button>
+            ))}
+            {[...amenities].map((a) => (
+              <button key={`a${a}`} type="button" className="hf-chip" aria-label={`${a} 필터 끄기`} onClick={() => setAmenities(toggle(amenities, a))}>
+                {a} <span aria-hidden="true">✕</span>
+              </button>
+            ))}
+            {active > 1 && (
+              <button type="button" className="hf-chip hf-reset" onClick={reset}>
+                모두 해제
+              </button>
+            )}
+          </div>
+        )}
         <p className="results-hint">
           큰 숫자는 비교한 곳 중 가장 낮은 <b>1박 평균</b>(세금 포함)이에요 · <span className="m-only">카드를 누르면</span>
           <span className="pc-only">&apos;가격 보기&apos;를 누르면</span> 사이트별 가격
@@ -670,16 +702,16 @@ function AmenityFilter({ list, picked, onToggle }: { list: [string, number][]; p
   );
 }
 
-// Google 사진 주소는 크기를 바꿔 받을 수 있어 카드 크기에 맞게 키운다
+
+// PC 카드 사진(240px 폭)용으로 키운다
 function bigger(src: string): string {
-  return /googleusercontent\.com/.test(src) ? src.replace(/=w\d+-h\d+[^/]*$/, "=w640-h480-k-no") : src;
+  return resized(src, 640, 480);
 }
 
-// 휴대폰 컴팩트 카드(96px)용 작은 사진 묶음. Google 사진이 아니면 원래 주소 하나만
-function srcSet(src: string): string | undefined {
-  if (!/googleusercontent\.com/.test(src)) return undefined;
-  const at = (w: number, h: number) => src.replace(/=w\d+-h\d+[^/]*$/, `=w${w}-h${h}-k-no`);
-  return `${at(192, 240)} 192w, ${at(288, 360)} 288w, ${at(640, 480)} 640w`;
+// 휴대폰 카드 사진 칸은 96×120 그대로 두고, 사진은 288×360 이상으로 받는다 (2x 576×720, 3x 864×1080)
+function phoneSrcSet(src: string): string | undefined {
+  if (resized(src, 1, 1) === src) return undefined;
+  return `${resized(src, 288, 360)} 1x, ${resized(src, 576, 720)} 2x, ${resized(src, 864, 1080)} 3x`;
 }
 
 function Gallery({ images, name, badge }: { images: string[]; name: string; badge?: React.ReactNode }) {
@@ -694,15 +726,11 @@ function Gallery({ images, name, badge }: { images: string[]; name: string; badg
   return (
     <div className="hcard-photo">
       {badge}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        srcSet={failed.has(i) ? undefined : srcSet(images[i])}
-        sizes="(max-width: 640px) 96px, 240px"
-        alt={`${name} 사진 ${i + 1}`}
-        loading="lazy"
-        onError={() => !failed.has(i) && setFailed(new Set(failed).add(i))}
-      />
+      <picture>
+        {!failed.has(i) && phoneSrcSet(images[i]) && <source media="(max-width: 640px)" srcSet={phoneSrcSet(images[i])} />}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={`${name} 사진 ${i + 1}`} loading="lazy" onError={() => !failed.has(i) && setFailed(new Set(failed).add(i))} />
+      </picture>
       {images.length > 1 && (
         <>
           <button type="button" className="photo-nav prev" onClick={go(-1)} aria-label="이전 사진">
@@ -774,6 +802,7 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
   const limits = stayLimits(hotel.name);
   const blocked = !compared && compareFull;
   const amenities = cardAmenities(hotel.amenities);
+  const dist = hotelDistance(hotel.gps, query.q);
   return (
     <li id={`hotel-${hotel.token}`} className={`hcard${open ? " open" : ""}${flash ? " flash" : ""}${compared ? " is-compared" : ""}`}>
       <Gallery
@@ -783,6 +812,13 @@ function HotelCard({ hotel, query, nights, flash, badge, prices, onPrices, onShe
       />
       <div className="hcard-body">
         <h3 title={hotel.name}>{hotelNameKo(hotel.name)}</h3>
+        {dist && (
+          <p className="hcard-dist m-only">
+            <span aria-hidden="true">📍 </span>
+            {dist.text}
+            {dist.outside && <span className="hcard-outside">{dist.outside}</span>}
+          </p>
+        )}
         {limits.length > 0 && (
           <p className="hcard-limit">
             {limits.map((kind) => (

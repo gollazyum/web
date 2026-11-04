@@ -111,7 +111,7 @@ export function LinkChecker() {
             상품·스토어 탐색
           </button>
           <button type="button" className={shopMode === "link" ? "active" : undefined} onClick={() => setShopMode("link")}>
-            쇼핑 링크 대조
+            쇼핑 링크 대조 <span className="soon m-only">준비 중</span>
           </button>
         </div>
       )}

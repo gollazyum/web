@@ -102,7 +102,8 @@ export function roboPick(sources: HotelSource[], _seed?: string): string | null 
 export function roboReason(sources: HotelSource[], pick: string): string {
   const priced = sources.filter((s) => s.total !== null || s.perNight !== null);
   if (priced.length <= 1) return "🏨 지금 가격이 나온 곳은 여기 한 곳이에요";
-  return priced.some((s) => s.name === pick) ? `🏆 확인한 ${priced.length}곳 중 가장 저렴해요` : "";
+  const totals = priced.filter((s) => s.total !== null).length > 1;
+  return priced.some((s) => s.name === pick) ? `🏆 확인한 ${priced.length}곳 중 ${totals ? "총액이" : "1박 요금이"} 가장 낮아요` : "";
 }
 
 // 예약 사이트로 가는 주소. Google을 거쳐 가는 주소는 쓰지 않는다.

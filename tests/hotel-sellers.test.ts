@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AGODA_AFFILIATE_ENABLED, AGODA_CID } from "@/lib/affiliate";
-import { allowedSellers, hotelSellerKey, isGoogleLink, linkRel, withRo } from "@/lib/hotel-sellers";
+import { allowedSellers, anySellerKey, hotelSellerKey, isGoogleLink, linkRel, withRo } from "@/lib/hotel-sellers";
 import { agodaSearchUrl, bookingLink, roboPick, type HotelSource } from "@/lib/hotels";
 
 const q = { q: "도쿄", checkIn: "2026-12-10", checkOut: "2026-12-12", adults: 2 };
@@ -23,17 +23,23 @@ describe("숙소 판매처 허용 목록", () => {
     expect(hotelSellerKey("Expedia.co.kr")).toBe("expedia");
     expect(hotelSellerKey("Hoteles.com")).toBe("hotels");
     expect(hotelSellerKey("hotels . com")).toBe("hotels");
-    expect(hotelSellerKey("Booking.com")).toBe("booking");
     expect(hotelSellerKey("야놀자")).toBe("yanolja");
     expect(hotelSellerKey("여기어때")).toBe("yeogi");
-    expect(hotelSellerKey("NOL 인터파크")).toBe("interpark");
-    expect(hotelSellerKey("MyRealTrip")).toBe("myrealtrip");
+    // 정의는 남아 있지만 지금은 보여 주지 않는 곳 (HOTEL_SELLERS_SHOWN 밖)
+    expect(anySellerKey("Booking.com")).toBe("booking");
+    expect(anySellerKey("NOL 인터파크")).toBe("interpark");
+    expect(anySellerKey("MyRealTrip")).toBe("myrealtrip");
   });
 
-  it("공식 사이트는 플래그나 키워드로 판별한다", () => {
-    expect(hotelSellerKey("HOTEL MYSTAYS Asakusabashi", true)).toBe("official");
-    expect(hotelSellerKey("Hilton Official Site")).toBe("official");
-    expect(hotelSellerKey("신라호텔 공식")).toBe("official");
+  it("보여 주는 곳은 아고다·트립닷컴·익스피디아·호텔스닷컴·야놀자·여기어때 6곳뿐이다", () => {
+    for (const n of ["Booking.com", "NOL 인터파크", "MyRealTrip", "Hilton Official Site"]) expect(hotelSellerKey(n), n).toBeNull();
+    expect(hotelSellerKey("HOTEL MYSTAYS Asakusabashi", true)).toBeNull();
+  });
+
+  it("공식 사이트는 플래그나 키워드로 판별한다 (지금은 숨김)", () => {
+    expect(anySellerKey("HOTEL MYSTAYS Asakusabashi", true)).toBe("official");
+    expect(anySellerKey("Hilton Official Site")).toBe("official");
+    expect(anySellerKey("신라호텔 공식")).toBe("official");
   });
 
   it("목록 밖 판매처는 뺀다", () => {
@@ -54,18 +60,18 @@ describe("숙소 판매처 허용 목록", () => {
 
 describe("예약 링크", () => {
   it("google 주소는 쓰지 않고 판매처 검색 주소로 보낸다", () => {
-    for (const n of ["Agoda", "Trip.com", "Expedia", "Hotels.com", "Booking.com", "야놀자", "여기어때", "인터파크", "마이리얼트립"]) {
+    for (const n of ["Agoda", "Trip.com", "Expedia", "Hotels.com", "야놀자", "여기어때"]) {
       const link = bookingLink(src(n, 1000), "Hotel Mystays", q);
       expect(link, n).not.toBe("");
       expect(isGoogleLink(link), `${n} ${link}`).toBe(false);
       expect(link, n).toContain(encodeURIComponent("Hotel Mystays").slice(0, 5));
     }
-    expect(isGoogleLink(bookingLink(src("Some Hotel", 1000, { official: true }), "Some Hotel", q))).toBe(false);
+    expect(bookingLink(src("Some Hotel", 1000, { official: true }), "Some Hotel", q)).toBe("");
   });
 
   it("직링크가 있으면 그 주소를 쓴다", () => {
-    const link = bookingLink(src("Booking.com", 1000, { link: "https://www.booking.com/hotel/jp/x.html?aid=1" }), "X", q);
-    expect(link.startsWith("https://www.booking.com/hotel/jp/x.html")).toBe(true);
+    const link = bookingLink(src("Hotels.com", 1000, { link: "https://kr.hotels.com/ho123/?x=1" }), "X", q);
+    expect(link.startsWith("https://kr.hotels.com/ho123/")).toBe(true);
   });
 
   it("목록 밖 판매처는 링크가 없다", () => {

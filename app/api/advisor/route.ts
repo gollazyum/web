@@ -92,7 +92,7 @@ function contextBlock(c: NonNullable<ReturnType<typeof parseContext>>): string {
     ? `\n\n[참고]\n가장 낮은 가격 1위: [[${cheapest.n}]] 1박 ${won(cheapest.perNight)}` +
       (value ? `\n가성비 1위: [[${value.n}]] 후기 ${value.rating ?? "-"}점 · 1박 ${won(value.perNight)}` : "")
     : "";
-  return `\n\n[검색 조건]\n${c.place} · ${c.checkIn} ~ ${c.checkOut} · 성인 ${c.adults ?? "-"}명\n\n[호텔 목록] (후기 점수는 Google 5점 만점)\n${lines.join("\n")}${hint}`;
+  return `\n\n[검색 조건]\n${c.place} · ${c.checkIn} ~ ${c.checkOut} · 성인 ${c.adults ?? "-"}명\n\n[호텔 목록] (후기 점수는 5점 만점)\n${lines.join("\n")}${hint}`;
 }
 
 export async function POST(req: Request) {

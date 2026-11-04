@@ -5078,3 +5078,80 @@ body:has(.compare-bar) .hcards {
   padding: 1px 5px;
   font-size: 9.5px;
 }
+
+/* ───────── 첫 화면 높이 (PC·태블릿) ─────────
+   1440×900에서 검색창이 위에서 520px 안쪽, 1366×768에서 검색 버튼이 스크롤 없이 보이게.
+   'Gollazyum' 제목 글자 크기는 그대로 두고 여백과 카테고리 카드 높이만 줄인다. 휴대폰(640px 이하)은 mobile.css 그대로 */
+@media (min-width: 641px) {
+  .hero {
+    padding: 28px 0 40px;
+  }
+  .pill {
+    margin-bottom: 14px;
+    padding: 6px 16px;
+  }
+  .hero-sub {
+    margin-top: 8px;
+  }
+  .search {
+    margin-top: 20px;
+  }
+  .search-tabs {
+    margin-bottom: 10px;
+  }
+  .search-tab {
+    gap: 4px;
+    padding: 8px 8px;
+    border-radius: 18px;
+  }
+  .search-tab img {
+    width: 40px;
+    height: 40px;
+  }
+  .stay-modes {
+    margin-bottom: 8px;
+  }
+  .compared {
+    margin-top: 20px;
+  }
+}
+/* 넓은 화면에서는 카테고리 카드의 그림과 이름을 한 줄로 놓아 높이를 더 줄인다 */
+@media (min-width: 1024px) {
+  .search-tab {
+    flex-direction: row;
+    gap: 8px;
+  }
+}
+
+/* 첫 화면 검색창 아래 '인기 여행지' 칩 (무채색만 사용) */
+.hot-places {
+  max-width: 980px;
+  margin: 12px auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.hot-places-label {
+  font-size: 13px;
+  color: var(--muted);
+  margin-right: 2px;
+}
+.hot-chip {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.hot-chip:hover {
+  background: #e2e8f0;
+}

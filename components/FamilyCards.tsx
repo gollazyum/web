@@ -5,10 +5,10 @@ import { LowbotiBot, type BotKind } from "@/components/LowbotiBot";
 import { site } from "@/lib/site";
 import { SoonBadge } from "@/components/SoonBadge";
 
-const family: { img: BotKind; tab: TabId; name: string; en: string; body: string; live: boolean }[] = [
-  { img: "shop", tab: "shop", name: "쇼핑봇", en: "Shopping", body: "상품명이나 키워드만 넣으면 쿠팡·네이버·G마켓·11번가 스토어 가격을 한 화면에 모아 보여 드려요.", live: true },
-  { img: "hotel", tab: "stay", name: "숙소봇", en: "Stay", body: "도시나 호텔 이름만 넣으면 예약 사이트별 가격을 한 화면에 모아 보여 드려요.", live: true },
-  { img: "flight", tab: "flight", name: "항공봇", en: "Flight", body: "출발지와 날짜만 넣으면 항공권 운임을 찾아드려요.", live: true },
+const family: { img: BotKind; tab: TabId; name: string; body: string; live: boolean }[] = [
+  { img: "shop", tab: "shop", name: "쇼핑봇", body: "상품명이나 키워드만 넣으면 쿠팡·네이버·G마켓·11번가 스토어 가격을 한 화면에 모아 보여 드려요.", live: true },
+  { img: "hotel", tab: "stay", name: "숙소봇", body: "도시나 호텔 이름만 넣으면 예약 사이트별 가격을 한 화면에 모아 보여 드려요.", live: true },
+  { img: "flight", tab: "flight", name: "항공봇", body: "출발지와 날짜만 넣으면 항공권 운임을 찾아드려요.", live: true },
 ];
 
 export function FamilyCards() {
@@ -19,9 +19,7 @@ export function FamilyCards() {
           <div className="family-bot lb-breathe" aria-hidden="true">
             <LowbotiBot kind={f.img} fx={false} />
           </div>
-          <h3>
-            {f.name} <span>{f.en}</span>
-          </h3>
+          <h3>{f.name}</h3>
           <p>{f.body}</p>
           {f.live ? (
             <button type="button" className="family-go" onClick={() => openSearchTab(f.tab)}>

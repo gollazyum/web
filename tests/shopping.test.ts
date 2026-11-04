@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { findBannedWords } from "@/lib/brand-mode";
-import { COUPANG_HOME } from "@/lib/coupang-links";
+import { COUPANG_HOME, coupangSearchUrl } from "@/lib/coupang-links";
 import { detailHref, maskSecrets, rankable, rawSellerLog, shapeDetail, shapeSearch } from "@/lib/shopping";
 import { SAMPLE_DETAIL_JSON, SAMPLE_SEARCH_JSON } from "@/lib/shopping-fixtures";
 
@@ -29,7 +29,9 @@ describe("shapeDetail (아이폰 17: 스토어 목록에 11번가만 오는 경�
 
   it("쿠팡이 없으면 맨 아래 덧붙임 행: 가격 없음, 순위·대표 가격 계산에서 빠짐, getCoupangLink 주소", () => {
     const cp = product!.offers.at(-1)!;
-    expect(cp).toMatchObject({ placeholder: true, price: null, link: COUPANG_HOME, coupang: { url: COUPANG_HOME, type: "home" } });
+    const url = coupangSearchUrl(product!.title);
+    expect(cp).toMatchObject({ placeholder: true, price: null, link: url, coupang: { url, type: "search", name: product!.title } });
+    expect(cp.link).not.toBe(COUPANG_HOME);
     expect(rankable(cp)).toBe(false);
     expect(product!.price).toBe(1290000);
     expect(product!.changePct).toBe(8);
@@ -49,10 +51,11 @@ describe("shapeDetail (아이폰 17: 스토어 목록에 11번가만 오는 경�
 });
 
 describe("shapeDetail 규칙", () => {
-  it("쿠팡이 있으면 SerpApi 원본 주소 대신 getCoupangLink, 덧붙임 행은 없다", () => {
+  it("쿠팡 판매처에 실제 상품 주소가 있으면 그 주소, 덧붙임 행은 없다", () => {
     const { product } = shapeDetail("q", "t", search([item({ source: "" })]), detail([{ name: "Coupang", link: "https://www.coupang.com/vp/products/1", extracted_price: 1000 }]));
     expect(product!.offers).toHaveLength(1);
-    expect(product!.offers[0].link).toBe(COUPANG_HOME);
+    expect(product!.offers[0].link).toBe("https://www.coupang.com/vp/products/1");
+    expect(product!.offers[0].coupang?.type).toBe("product");
     expect(product!.offers[0].placeholder).toBeUndefined();
   });
 
@@ -209,12 +212,13 @@ describe("상세 응답 키 여러 개", () => {
       stores: [{ source: "lotteon.com", product_link: "https://www.lotteon.com/p/1", extracted_total: 43000, extracted_price: 40000 }],
     };
     const { product } = shapeDetail("q", { token: "", pid: "123" }, search([sel]), d);
+    // 가격은 상품 가격(배송비 빼고). 총액과의 차이(3,000원)는 배송비로 따로 둔다
     expect(product!.offers.map((o) => [o.seller.key, o.price, o.link])).toEqual([
+      ["lotteon", 40000, "https://www.lotteon.com/p/1"],
       ["11번가", 41000, "https://www.11st.co.kr/d"],
       ["G마켓", 42000, "https://item.gmarket.co.kr/1"],
-      ["lotteon", 43000, "https://www.lotteon.com/p/1"],
       ["KREAM", 50000, ""],
-      ["쿠팡", null, COUPANG_HOME],
+      ["쿠팡", null, coupangSearchUrl("Apple 아이폰 17 256GB 자급제 블랙")],
     ]);
   });
   it("검색 목록은 토큰이 없어도 product_id가 있으면 넣고, inline_shopping_results 도 읽는다", () => {

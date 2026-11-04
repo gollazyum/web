@@ -464,7 +464,8 @@ a.pd-row-top:hover {
 
 /* ───────── 쇼핑 탭 ───────── */
 .shop-page {
-  max-width: 560px;
+  /* 홈(.wrap)과 같은 본문 폭 1080px (좌우 여백 20px 포함 1120px) */
+  max-width: 1120px;
   margin: 0 auto;
   padding: 32px 20px 64px;
   display: flex;
@@ -512,6 +513,34 @@ a.pd-row-top:hover {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+}
+
+.shop-examples {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--pd-muted);
+}
+.shop-examples > span {
+  margin-right: 4px;
+}
+.shop-chip {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.shop-chip:hover {
+  background: #e2e8f0;
 }
 
 .cp-section {
@@ -565,11 +594,19 @@ a.pd-row-top:hover {
 }
 .cp-cards {
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 768px) {
+  .cp-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 .cp-card {
+  height: 100%;
   display: flex;
   gap: 14px;
   align-items: center;
@@ -971,4 +1008,489 @@ a.pd-row-top:hover {
   font-size: 13px;
   font-weight: 600;
   color: var(--pd-text);
+}
+
+/* ───────── 상품 화면 쿠팡 파트너스 고지 (헤더 바로 아래, 모든 구매 버튼보다 위) ───────── */
+.cp-disclosure.pd-disclosure {
+  margin: 0 20px 8px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pd-zero .cp-disclosure.pd-disclosure {
+  margin: 0;
+}
+
+/* 쿠팡 링크 문구: 상품명만 말줄임 */
+.cp-label {
+  display: inline-flex;
+  align-items: baseline;
+  max-width: 100%;
+  min-width: 0;
+}
+.cp-label-l1 {
+  display: inline-flex;
+  min-width: 0;
+}
+.cp-label-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cp-label-l2 {
+  flex: none;
+  margin-left: 0.3em;
+  white-space: nowrap;
+}
+.pd-buy {
+  min-width: 0;
+  padding: 0 12px;
+  overflow: hidden;
+}
+.pd-buy .cp-label {
+  flex-direction: column;
+  align-items: center;
+  font-size: 15px;
+  line-height: 1.25;
+}
+.pd-buy .cp-label-l1 {
+  max-width: 100%;
+}
+.pd-buy .cp-label-l2 {
+  margin-left: 0;
+}
+.pd-row-cp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  padding-left: 34px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+/* ───────── 판매처 0곳 안내 ───────── */
+.pd-zero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid var(--pd-line);
+  background: #fff;
+}
+.pd-zero h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0b1220;
+}
+.pd-zero-form {
+  display: flex;
+  gap: 8px;
+}
+.pd-zero-form input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--pd-line);
+  background: var(--pd-card);
+  font: inherit;
+  font-size: 16px;
+}
+.pd-zero-form button {
+  flex: none;
+  height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  background: #1d4ed8;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pd-zero .shop-link-hint {
+  margin-top: -4px;
+}
+.pd-zero-cp {
+  display: grid;
+  place-items: center;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 16px;
+  background: #1d4ed8;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+.pd-zero-cp:hover {
+  background: #1e40af;
+}
+
+/* ───────── 검색 목록: 방금 보고 온 상품 카드 표시 ───────── */
+.sr-item.sr-recent,
+.srd-card.sr-recent {
+  border-radius: 12px;
+  animation: sr-recent 2.5s ease forwards;
+}
+.sr-item.sr-recent {
+  border-radius: var(--pd-radius);
+}
+@keyframes sr-recent {
+  0%,
+  60% {
+    box-shadow: 0 0 0 3px #bfdbfe;
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgba(191, 219, 254, 0);
+  }
+}
+
+.sr-link-hint {
+  margin: 0 20px 4px;
+}
+
+/* ───────── 검색 목록: 모바일(640px 이하) 정렬·필터 칩 ───────── */
+.mf {
+  position: sticky;
+  top: 56px;
+  z-index: 4;
+  padding: 4px 0 8px;
+  background: rgba(255, 255, 255, 0.97);
+  border-bottom: 1px solid var(--pd-line);
+  margin-bottom: 8px;
+}
+.mf-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.mf-row::-webkit-scrollbar {
+  display: none;
+}
+.mf-chip,
+.mf-opt {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #dbe3ee;
+  background: #fff;
+  color: #0b1220;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mf-chip {
+  border-radius: 999px;
+}
+.mf-chip.on {
+  border-color: #1d4ed8;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.mf-chip.open {
+  border-color: #0b1220;
+}
+.mf-x {
+  font-size: 12px;
+}
+.mf-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px 2px;
+}
+.mf-opt {
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.mf-opt.on {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+  color: #fff;
+}
+.sr-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 16px;
+  text-align: center;
+}
+@media (min-width: 641px) {
+  .mf {
+    display: none;
+  }
+}
+
+/* ───────── LB-054 상품 상태·배송비, 보기 조건 칩 ───────── */
+.pd-view {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+.pd-view::-webkit-scrollbar {
+  display: none;
+}
+.pd-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #dbe3ee;
+  background: #fff;
+  color: #0b1220;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pd-chip.on {
+  border-color: #1d4ed8;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.pd-chip:disabled {
+  color: #94a3b8;
+  cursor: default;
+}
+.pd-view-note {
+  margin-top: -6px;
+  font-size: 13px;
+  color: #64748b;
+}
+.pd-cond {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  vertical-align: 2px;
+  white-space: nowrap;
+}
+.pd-ship.free {
+  color: #0b1220;
+  font-weight: 600;
+}
+.pd-ext {
+  font-size: 0.8em;
+  color: var(--pd-muted);
+}
+
+/* ───────── LB-062 상품 정보 제보 ───────── */
+.pd-report {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid #dbe3ee;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pd-sheet-dim {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(11, 18, 32, 0.45);
+}
+.pd-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 71;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  background: #fff;
+  box-shadow: 0 -20px 60px rgba(11, 18, 32, 0.25);
+  animation: pd-sheet-up 0.22s ease both;
+}
+@keyframes pd-sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+.pd-sheet-grab {
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 8px;
+  border-radius: 4px;
+  background: #e2e8f0;
+}
+.pd-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pd-sheet-head h2 {
+  font-size: 18px;
+  color: #0b1220;
+}
+.pd-sheet-close {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  font-size: 18px;
+  color: #64748b;
+  cursor: pointer;
+}
+.pd-sheet-sub {
+  margin: 2px 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #64748b;
+}
+.pd-reasons {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pd-reasons a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 14px;
+  background: #f1f5f9;
+  color: #0b1220;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* ───────── LB-044 불러오는 중: 검색어·단계 문구·스켈레톤 ───────── */
+.pd-loading {
+  padding: 8px 0;
+}
+.pd-loading-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  color: #334155;
+}
+.pd-loading-q {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0b1220;
+  overflow-wrap: anywhere;
+}
+.pd-skeleton {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pd-skeleton li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: var(--pd-radius);
+  background: var(--pd-card);
+}
+.pd-skeleton li > span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pd-sk-box,
+.pd-sk-line {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e8edf3 25%, #f4f6f9 50%, #e8edf3 75%);
+  background-size: 200% 100%;
+  animation: pd-sk 1.2s ease-in-out infinite;
+}
+.pd-sk-box {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+}
+.pd-sk-line {
+  height: 12px;
+}
+.pd-sk-line.short {
+  width: 55%;
+}
+@keyframes pd-sk {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pd-sk-box,
+  .pd-sk-line {
+    animation: none;
+  }
+}
+
+/* ───────── LB-056 결과 개수 제목 (보이는 모양은 예전 한 줄 그대로) ───────── */
+.sr-head {
+  display: block;
+}
+.sr-head .sr-count {
+  display: inline;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+.sr-head .pd-sample {
+  margin-left: 8px;
+}
+.sr-used {
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
 }

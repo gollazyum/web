@@ -13,8 +13,25 @@ const UI_PATHS = [
   "components/LinkChecker.tsx",
   "components/ShopSearch.tsx",
   "components/FamilyCards.tsx",
+  "components/PopularPlaces.tsx",
   "components/SiteFooter.tsx",
 ];
+
+// 초록이 2026-11-02에 직접 정해 준 문구. 안전 모드라도 이 문장 그대로는 허용한다 (다른 곳의 비교·최저가는 계속 잡는다)
+const APPROVED_PHRASES = [
+  "쿠팡·네이버 같은 쇼핑몰과 여러 예약 사이트의 가격을 한 화면에서 비교해요",
+  "비교하는 곳",
+  "최저가 찾기",
+  "쇼핑 가격 비교",
+  "판매 가격을 한 화면에서 비교해 보여 드려요.",
+  // 2026-11-04 초록이 정한 홈 섹션 문구
+  "비교는 Gollazyum이,",
+  "한눈에 비교",
+];
+
+function stripApproved(code: string): string {
+  return APPROVED_PHRASES.reduce((s, p) => s.split(p).join(""), code);
+}
 
 function walk(p: string): string[] {
   return statSync(p).isDirectory() ? readdirSync(p).flatMap((f) => walk(join(p, f))) : /\.tsx?$/.test(p) ? [p] : [];
@@ -36,8 +53,8 @@ describe("금지어", () => {
   });
 
   it("모드에 따라 문구가 바뀐다", () => {
-    expect(brandCopy("topBanner", true)).toBe("현재 가장 유리한 조건의 스토어 데이터예요");
-    expect(brandCopy("topBanner", false)).toBe("확인한 판매처 중 가장 저렴해요");
+    expect(brandCopy("topBanner", true)).toBe("찾은 판매처 중 가장 낮은 가격이에요");
+    expect(brandCopy("topBanner", false)).toBe("찾은 판매처 중 가장 낮은 가격이에요");
     expect(brandCopy("topTabBadge", true)).toBe("BEST");
     expect(brandCopy("topTabBadge", false)).toBe("최저");
     expect(brandCopy("topCardLabel", true)).toBe("스토어 데이터 1위");
@@ -52,7 +69,7 @@ describe("금지어", () => {
   });
 
   it.each(UI_PATHS.flatMap(walk))("%s 화면 문구에 금지어·출처가 없다 (안전 모드 기준)", (file) => {
-    expect(findBannedWords(stripComments(readFileSync(file, "utf8")), true)).toEqual([]);
+    expect(findBannedWords(stripApproved(stripComments(readFileSync(file, "utf8"))), true)).toEqual([]);
   });
 
   it("쇼핑 탭 예시 상품 이름에도 금지어가 없다", () => {

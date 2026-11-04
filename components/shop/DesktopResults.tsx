@@ -24,7 +24,7 @@ const SORTS: { key: SortKey; label: string }[] = [
 const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
 // 쇼핑 검색 결과 PC(1024px 이상) 화면: 2줄 헤더, 정렬 탭, 필터 칩, 세로형 카드 그리드
-export function DesktopResults({ query, items, sample }: { query: string; items: SearchItem[]; sample: boolean }) {
+export function DesktopResults({ query, items, sample, recentKey = "" }: { query: string; items: SearchItem[]; sample: boolean; recentKey?: string }) {
   const [sort, setSort] = useState<SortKey>("default");
   const [bands, setBands] = useState<PriceBand[]>([]);
   const [sellers, setSellers] = useState<string[]>([]);
@@ -109,7 +109,7 @@ export function DesktopResults({ query, items, sample }: { query: string; items:
         <ul className="srd-grid">
           {shown.map((item) => (
             <li key={itemKey(item)}>
-              <a className="srd-card" href={detailHref(query, item)}>
+              <a className={`srd-card${recentKey === itemKey(item) ? " sr-recent" : ""}`} href={detailHref(query, item)} data-key={itemKey(item)}>
                 <span className="srd-thumb">
                   {item.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
