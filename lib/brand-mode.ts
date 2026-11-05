@@ -100,6 +100,9 @@ export const SHOP_RESULTS_COPY = {
   // 같은 상품으로 묶인 카드: "115,000원부터 · 판매처 10곳 · 색상 4개" (모두 실제 응답 값)
   priceFrom: "부터",
   optionCount: (n: number) => `색상 ${n}개`,
+  // 본품/액세서리 나누기 (lib/shop-match.ts)
+  mainOnlyChip: "본품만",
+  accessoryGroup: "관련 액세서리",
 } as const;
 
 // 홈 쇼핑 검색창·첫 화면 문구. PC와 휴대폰(640px 이하)을 따로 둔다

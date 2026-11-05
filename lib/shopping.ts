@@ -1,5 +1,6 @@
 import { getCoupangLink, type CoupangLink } from "@/lib/coupang-links";
-import { relevanceOrder, relevantOnly } from "@/lib/shop-results";
+import { relevantOnly } from "@/lib/shop-results";
+import { matchOrder } from "@/lib/shop-match";
 import { groupItems, groupParts } from "@/lib/shop-group";
 import { isSameProduct } from "@/lib/product-match";
 import { cleanOutboundUrl, isRedirectorUrl, resolveSellerUrl, sellerInfo, shopSeller, shopSellerSearchUrl, type Seller } from "@/lib/sellers";
@@ -53,6 +54,7 @@ export type SearchItem = {
   storeCount?: number; // 같은 상품으로 묶인 검색 결과의 판매처 수 (2곳 이상일 때만 "판매처 N곳" 표시)
   optionCount?: number; // 같은 상품으로 묶인 색상 수 (2개 이상일 때만 "색상 N개")
   priceFrom?: boolean; // 묶인 상품끼리 가격이 달라 price가 그중 가장 낮은 값이면 true ("N원부터")
+  accessory?: boolean; // 케이스·필름 같은 액세서리 (lib/shop-match.ts). '본품만'을 끄면 '관련 액세서리' 묶음에 보인다
 };
 
 // 고른 상품을 가리키는 값. 토큰과 product_id 중 있는 것
@@ -280,8 +282,8 @@ export function shapeSearch(json: Record<string, unknown>, query = ""): SearchRe
       ...(new Set(g.prices).size >= 2 ? { priceFrom: true } : {}),
     };
   });
-  // 관련도순: 본품을 앞에, 케이스 같은 부속품을 뒤로 (자르기 전에)
-  return { items: relevanceOrder(cards, query).slice(0, MAX_SEARCH_ITEMS) };
+  // 관련도순: 낱말이 모두 맞는 본품 → 일부만 맞는 본품 → 액세서리(accessory 표시) (자르기 전에)
+  return { items: matchOrder(cards, query).slice(0, MAX_SEARCH_ITEMS) };
 }
 
 const isUsedResult = (r: SerpShoppingResult) => conditionOf(r.second_hand_condition ?? "", r.title) !== "new";

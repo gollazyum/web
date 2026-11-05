@@ -7,7 +7,8 @@ import type { SearchItem } from "@/lib/shopping";
 
 export type MobileFilter = { sort: SortKey; bands: PriceBand[]; sellers: string[]; main: boolean };
 // 기본 정렬은 관련도순(검색 결과 순서). '낮은 가격순'이 기본이면 '에어팟 프로 2'의 첫 10개가 모두 케이스였다
-export const DEFAULT_MOBILE_FILTER: MobileFilter = { sort: "default", bands: [], sellers: [], main: false };
+// '본품만'은 기본으로 켠다. 끄면 케이스·필름 같은 액세서리가 목록 아래 '관련 액세서리' 묶음으로 보인다
+export const DEFAULT_MOBILE_FILTER: MobileFilter = { sort: "default", bands: [], sellers: [], main: true };
 
 const SORTS: { key: SortKey; label: string }[] = [
   { key: "default", label: COPY.sortDefault },
@@ -56,10 +57,11 @@ export function MobileFilters({ items, value, onChange }: { items: SearchItem[];
           type="button"
           className={`mf-chip${value.main ? " on" : ""}`}
           aria-pressed={value.main}
-          aria-label={value.main ? "본품만 끄기" : "본품만"}
+          aria-label={value.main ? `${COPY.mainOnlyChip} 끄기` : COPY.mainOnlyChip}
           onClick={() => set({ main: !value.main })}
         >
-          본품만{value.main && <span className="mf-x" aria-hidden="true">✕</span>}
+          {COPY.mainOnlyChip}
+          {value.main && <span className="mf-x" aria-hidden="true">✕</span>}
         </button>
         {value.bands.map((b) => (
           <button key={b} type="button" className="mf-chip on" aria-label={`${bandLabel(b)} 끄기`} onClick={() => set({ bands: value.bands.filter((x) => x !== b) })}>
