@@ -5,7 +5,7 @@ import { ChatBox } from "@/components/ChatBox";
 import { FlightSearch } from "@/components/FlightSearch";
 import { HotelSearch } from "@/components/HotelSearch";
 import { ResumeBanner } from "@/components/ResumeBanner";
-import { ShopSearch } from "@/components/ShopSearch";
+import { ShopExamples, ShopSearch } from "@/components/ShopSearch";
 import { LowbotiBot } from "@/components/LowbotiBot";
 import { SCAN_FIRST_MS, SCAN_REPEAT_MS, ScanProgress } from "@/components/ScanProgress";
 import { AFFILIATE_CID, HOTEL_PROMOCODES, groupOrder, hotelNameFromUrl, parseAgodaUrl, routes, sampleLinks, withCid } from "@/lib/agoda";
@@ -22,6 +22,11 @@ export type TabId = "stay" | "ask" | "flight" | "shop";
 
 // 다른 섹션(패밀리 카드 등)에서 검색창 탭을 바꿀 때 쓰는 이벤트
 export const TAB_EVENT = "lowboti:tab";
+
+// 검색창 탭이 바뀔 때마다 알린다 (인기 여행지 칩이 휴대폰에서 숙소 탭일 때만 보이게)
+export const HOME_TAB_CHANGED = "gollazyum:tab-changed";
+// 인기 여행지 칩을 눌렀을 때: 숙소 탭에 도시를 넣고 날짜 고르기를 연다
+export const PLACE_EVENT = "gollazyum:place";
 
 // 검색창의 해당 탭으로 바꾸고 첫 화면으로 올라간다
 export function openSearchTab(tab: TabId) {
@@ -43,6 +48,8 @@ export function LinkChecker() {
   const [shopMode, setShopMode] = useState<"search" | "link">("search");
   const [url, setUrl] = useState("");
   const [result, setResult] = useState<Result | null>(null);
+  const [shopNote, setShopNote] = useState("");
+  const [place, setPlace] = useState<{ q: string; n: number } | null>(null);
   // 버튼 글자는 첫 HTML에 바로 넣고, 날짜가 들어간 주소는 누를 때 만든다
   const samples = sampleLinks();
 
@@ -51,9 +58,22 @@ export function LinkChecker() {
     const fromUrl = new URLSearchParams(window.location.search).get("tab");
     if (tabs.some((t) => t.id === fromUrl)) setTab(fromUrl as TabId);
     const onTab = (e: Event) => setTab((e as CustomEvent<TabId>).detail);
+    const onPlace = (e: Event) => {
+      setTab("stay");
+      setStayMode("search");
+      setPlace((p) => ({ q: (e as CustomEvent<string>).detail, n: (p?.n ?? 0) + 1 }));
+    };
     window.addEventListener(TAB_EVENT, onTab);
-    return () => window.removeEventListener(TAB_EVENT, onTab);
+    window.addEventListener(PLACE_EVENT, onPlace);
+    return () => {
+      window.removeEventListener(TAB_EVENT, onTab);
+      window.removeEventListener(PLACE_EVENT, onPlace);
+    };
   }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent(HOME_TAB_CHANGED, { detail: tab }));
+  }, [tab]);
 
   // 분석 중 화면을 잠깐 보여준 뒤 결과로 바꾼다
   useEffect(() => {
@@ -132,11 +152,11 @@ export function LinkChecker() {
         {tab === "ask" ? (
           <ChatBox />
         ) : tab === "shop" ? (
-          <ShopSearch key={shopMode} mode={shopMode} onUseKeyword={() => setShopMode("search")} />
+          <ShopSearch key={shopMode} mode={shopMode} onUseKeyword={() => setShopMode("search")} onNote={setShopNote} />
         ) : tab === "flight" ? (
           <FlightSearch />
         ) : tab === "stay" && stayMode === "search" ? (
-          <HotelSearch />
+          <HotelSearch preset={place} onPresetUsed={() => setPlace(null)} />
         ) : current.live ? (
           <form onSubmit={onSubmit} className="search-card stay-card">
             <label className="field field-url">
@@ -171,6 +191,8 @@ export function LinkChecker() {
         )}
         </div>
       </div>
+
+      {tab === "shop" && shopMode === "search" && <ShopExamples note={shopNote} />}
 
       {tab === "stay" && <ResumeBanner />}
 

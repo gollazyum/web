@@ -2,6 +2,7 @@ import { rateLimit, serpRaw } from "@/lib/serpapi";
 import { detailStores, findSelected, MAX_TOKEN_LENGTH, rawSellerLog, shapeDetail, shapeSearch, SHOP_CACHE_MS, shoppingResults, shoppingSearchParams } from "@/lib/shopping";
 import { SAMPLE_DETAIL_JSON, SAMPLE_SEARCH_JSON } from "@/lib/shopping-fixtures";
 import { deeplinkEnabled, toDeeplinks } from "@/lib/coupang-deeplink";
+import { applyDeeplink } from "@/lib/coupang-links";
 import type { ShoppingResponse } from "@/lib/shopping";
 
 // 쇼핑 데이터.
@@ -59,7 +60,7 @@ export async function GET(req: Request) {
     devLog(q, SAMPLE_SEARCH_JSON, detail);
     const data = shapeDetail(q, { token, pid }, SAMPLE_SEARCH_JSON, detail);
     if (data.product) data.product.sample = true;
-    return Response.json(data);
+    return Response.json(await withDeeplinks(data));
   }
 
   const limited = rateLimit(req);
@@ -98,14 +99,17 @@ export async function GET(req: Request) {
   return Response.json(await withDeeplinks(shapeDetail(q, { token, pid }, search, detailJson)));
 }
 
-// 쿠팡 판매처 링크(상품 주소·검색결과 주소)를 파트너스 딥링크로 바꾼다. 키가 없으면 그대로
+// 쿠팡 판매처 링크를 파트너스 딥링크(link.coupang.com)로 바꾼다. 키가 없거나 실패하면 기본 파트너스 링크(COUPANG_HOME).
+// 쿠팡 원래 주소(target)는 화면으로 보내지 않는다
 async function withDeeplinks(data: ShoppingResponse): Promise<ShoppingResponse> {
   const offers = data.product?.offers.filter((o) => o.coupang) ?? [];
-  if (!offers.length || !deeplinkEnabled()) return data;
-  const links = await toDeeplinks(offers.map((o) => o.link));
+  if (!offers.length) return data;
+  const targets = offers.map((o) => o.coupang!.target?.url ?? "");
+  const links = deeplinkEnabled() ? await toDeeplinks(targets) : targets.map(() => "");
   offers.forEach((o, i) => {
-    o.link = links[i];
-    if (o.coupang) o.coupang = { ...o.coupang, url: links[i] };
+    const { target: _t, ...cp } = applyDeeplink(o.coupang!, links[i]);
+    o.coupang = cp;
+    o.link = cp.url;
   });
   return data;
 }

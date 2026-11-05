@@ -7,13 +7,13 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SoonBadge } from "@/components/SoonBadge";
 import { routes } from "@/lib/agoda";
-import { HOME_SHOP_COPY } from "@/lib/brand-mode";
-import { site } from "@/lib/site";
+import { brandCopy, HOME_SHOP_COPY } from "@/lib/brand-mode";
+import { ogBase, ogImage, site } from "@/lib/site";
 
 
 const steps = [
   { title: "탐색", body: "찾고 있는 상품 키워드나 스토어 링크, 또는 여행지 숙소와 일정을 입력해요." },
-  { title: "한눈에 비교", body: "Gollazyum AI가 여러 스토어와 예약처의 가격 데이터를 모아 한 화면에 깔끔하게 정리해 드려요." },
+  { title: brandCopy("stepView"), body: "Gollazyum AI가 여러 스토어와 예약처의 가격 데이터를 모아 한 화면에 깔끔하게 정리해 드려요." },
   { title: "예약 연결", body: "궁금한 건 Gollazyum AI에게 물어보고, 마음에 드는 스토어를 눌러 바로 이동해요." },
 ];
 
@@ -40,7 +40,16 @@ const faqs = [
   },
 ];
 
-export const metadata: Metadata = { alternates: { canonical: "/" } };
+// 홈 검색·공유 미리보기 제목과 설명 (다른 페이지는 layout.tsx 의 사이트 공통 값을 쓴다)
+const HOME_TITLE = `${site.name} | ${brandCopy("homeTitle")}`;
+const HOME_DESCRIPTION = brandCopy("homeDescription");
+export const metadata: Metadata = {
+  title: { absolute: HOME_TITLE },
+  description: HOME_DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: { title: HOME_TITLE, description: HOME_DESCRIPTION, url: site.url, ...ogBase },
+  twitter: { card: "summary_large_image", title: HOME_TITLE, description: HOME_DESCRIPTION, images: [ogImage] },
+};
 
 // 검색엔진용 구조화 데이터: 사이트, 운영 주체, 자주 묻는 질문
 const jsonLd = {
@@ -51,7 +60,7 @@ const jsonLd = {
       "@id": `${site.url}/#website`,
       url: site.url,
       name: site.name,
-      description: site.description,
+      description: HOME_DESCRIPTION,
       inLanguage: "ko-KR",
       publisher: { "@id": `${site.url}/#organization` },
     },
@@ -88,11 +97,11 @@ export default function Home() {
             <span className="nobr hero-line grad-blue">Gollazyum</span>
           </h1>
           <p className="hero-sub m-only">{HOME_SHOP_COPY.heroSubM}</p>
-          <p className="hero-sub pc-only">쿠팡·네이버 같은 쇼핑몰과 여러 예약 사이트의 가격을 한 화면에서 비교해요</p>
+          <p className="hero-sub pc-only">{brandCopy("heroSubPc")}</p>
           <LinkChecker />
           <PopularPlaces />
           <div className="compared">
-            <span className="compared-label">비교하는 곳</span>
+            <span className="compared-label">{brandCopy("comparedLabel")}</span>
             <span className="compared-item">
               <strong>쿠팡 · 네이버 · G마켓 · 11번가</strong>
               <em>쇼핑몰</em>
@@ -123,7 +132,7 @@ export default function Home() {
         <section id="features" className="section wrap">
           <p className="eyebrow">주요 기능</p>
           <h2>
-            비교는 Gollazyum이,
+            {brandCopy("featuresTitle")}
             <br />
             여행 계획은 여유롭게.
           </h2>

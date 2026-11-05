@@ -2,9 +2,11 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { errorCode } from "@/lib/apiError";
-import { filterItems, itemKey, LINK_PASTE_HINT, looksLikeUrl, mainOnly, sortItems } from "@/lib/shop-results";
+import { filterItems, itemKey, LINK_PASTE_HINT, looksLikeUrl, sortItems } from "@/lib/shop-results";
+import { splitMain } from "@/lib/shop-match";
 import { detailHref, won, type SearchItem, type SearchResponse } from "@/lib/shopping";
 import { useMediaQuery } from "@/lib/useMediaQuery";
+import { SHOP_RESULTS_COPY as COPY } from "@/lib/brand-mode";
 import { DesktopResults } from "./DesktopResults";
 import { addRecent } from "@/lib/shop-recent";
 import { LinkPasteHint } from "./LinkPasteHint";
@@ -134,13 +136,46 @@ export function ProductResults({ query }: { query: string }) {
 
   const items = state.kind === "ok" ? state.items : [];
   const usePhoneFilter = phone && !desktop;
-  // '본품만'을 켜면 가격대·판매처 칩의 개수도 남은 상품 기준으로 센다
-  const base = useMemo(() => (usePhoneFilter && filter.main ? mainOnly(items, query) : items), [items, usePhoneFilter, filter.main, query]);
-  const shown = useMemo(
-    () => (usePhoneFilter ? sortItems(filterItems(base, filter.bands, filter.sellers), filter.sort) : items),
-    [items, base, usePhoneFilter, filter],
+  // 본품과 액세서리(케이스·필름 등)는 서버가 나눠 둔다 (lib/shop-match.ts). '본품만'(기본 켜짐)을 끄면 액세서리가 목록 아래 '관련 액세서리' 묶음으로 보인다
+  const { main, accessories } = useMemo(() => splitMain(items), [items]);
+  const showAcc = !usePhoneFilter || !filter.main;
+  // 가격대·판매처 칩의 개수는 지금 보이는 상품 기준으로 센다
+  const base = useMemo(() => (showAcc ? items : main), [items, main, showAcc]);
+  const arrange = (list: SearchItem[]) => (usePhoneFilter ? sortItems(filterItems(list, filter.bands, filter.sellers), filter.sort) : list);
+  const shown = useMemo(() => arrange(main), [main, usePhoneFilter, filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shownAcc = useMemo(() => (showAcc ? arrange(accessories) : []), [accessories, showAcc, usePhoneFilter, filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  const total = shown.length + shownAcc.length;
+  const filtered = usePhoneFilter && (filter.main || filter.bands.length > 0 || filter.sellers.length > 0) && total !== items.length;
+
+  const card = (item: SearchItem) => (
+    <li key={itemKey(item)}>
+      <a className={`sr-item${recent === itemKey(item) ? " sr-recent" : ""}`} href={detailHref(query, item)} data-key={itemKey(item)}>
+        <span className="sr-thumb">
+          {item.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.image} alt="" referrerPolicy="no-referrer" loading="lazy" />
+          ) : (
+            <span aria-hidden="true">🛍️</span>
+          )}
+        </span>
+        <span className="sr-body">
+          <strong>{item.title}</strong>
+          <span className="sr-meta">
+            {item.price !== null && (
+              <b>
+                {won(item.price)}
+                {item.priceFrom && COPY.priceFrom}
+              </b>
+            )}
+            {/* 여러 판매처가 묶인 카드는 판매처 수, 아니면 그 판매처 이름 */}
+            {item.storeCount ? <em className="sr-stores">{COPY.storeCount(item.storeCount)}</em> : item.seller && <em className="sr-seller">{item.seller}</em>}
+            {item.optionCount ? <em className="sr-opts">{COPY.optionCount(item.optionCount)}</em> : null}
+            {item.used && <span className="sr-used">중고</span>}
+          </span>
+        </span>
+      </a>
+    </li>
   );
-  const filtered = usePhoneFilter && (filter.main || filter.bands.length > 0 || filter.sellers.length > 0);
 
   function back() {
     if (window.history.length > 1) window.history.back();
@@ -199,12 +234,12 @@ export function ProductResults({ query }: { query: string }) {
             <div className="sr-head">
               {/* 결과 개수는 제목. 필터로 개수가 바뀌면 낭독기가 읽는다 (보이는 모양은 그대로) */}
               <h2 className="sr-count" role="status" aria-live="polite">
-                “{query}” 상품 {shown.length}개{filtered && ` (전체 ${state.items.length}개 중)`}
+                “{query}” 상품 {total}개{filtered && ` (전체 ${state.items.length}개 중)`}
               </h2>
               <span> · 상품을 누르면 스토어별 가격을 보여 드려요</span>
               {state.sample && <span className="pd-sample">개발용 예시 데이터</span>}
             </div>
-            {shown.length === 0 ? (
+            {total === 0 ? (
               <div className="srd-empty sr-empty">
                 <p>선택한 조건에 맞는 상품이 없어요</p>
                 <button type="button" className="mf-chip" onClick={() => setFilter({ ...filter, bands: [], sellers: [], main: false })}>
@@ -212,30 +247,17 @@ export function ProductResults({ query }: { query: string }) {
                 </button>
               </div>
             ) : (
-              <ul className="sr-list">
-                {shown.map((item) => (
-                  <li key={itemKey(item)}>
-                    <a className={`sr-item${recent === itemKey(item) ? " sr-recent" : ""}`} href={detailHref(query, item)} data-key={itemKey(item)}>
-                      <span className="sr-thumb">
-                        {item.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.image} alt="" referrerPolicy="no-referrer" loading="lazy" />
-                        ) : (
-                          <span aria-hidden="true">🛍️</span>
-                        )}
-                      </span>
-                      <span className="sr-body">
-                        <strong>{item.title}</strong>
-                        <span className="sr-meta">
-                          {item.price !== null && <b>{won(item.price)}</b>}
-                          {item.seller && <em>{item.seller}</em>}
-                          {item.used && <span className="sr-used">중고</span>}
-                        </span>
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
+              <>
+                {shown.length > 0 && <ul className="sr-list">{shown.map(card)}</ul>}
+                {shownAcc.length > 0 && (
+                  <section className="sr-acc" aria-labelledby="sr-acc-title">
+                    <h3 id="sr-acc-title" className="sr-acc-title">
+                      {COPY.accessoryGroup} {shownAcc.length}개
+                    </h3>
+                    <ul className="sr-list">{shownAcc.map(card)}</ul>
+                  </section>
+                )}
+              </>
             )}
           </>
         )}

@@ -1,5 +1,5 @@
 import { brandCopy } from "@/lib/brand-mode";
-import { COUPANG_LINK_ATTRS, coupangSearchLabel } from "@/lib/coupang-links";
+import { COUPANG_LINK_ATTRS, coupangLinkLabel, coupangSearchLabel } from "@/lib/coupang-links";
 import { SellerIcon } from "@/components/shop/SellerIcon";
 import { fetchedTime, won, type Offer } from "@/lib/shopping";
 
@@ -32,7 +32,7 @@ const priceText = (o: Offer) =>
 
 // 낭독기가 읽는 링크 이름: "가격 1위 폰가비 110,100원, 중고 · B+ 등급, 무료배송, 새 탭에서 열려요"
 export function rowLabel(o: Offer, rank: number | null): string {
-  if (o.placeholder && o.coupang) return `${coupangSearchLabel(o.coupang.name).replace(/ ↗$/, "")}, 새 탭에서 열려요`;
+  if (o.placeholder && o.coupang) return `${coupangLinkLabel(o.coupang).replace(/ ↗$/, "")}, 새 탭에서 열려요`;
   const parts = [`${rank !== null ? `가격 ${rank}위 ` : ""}${o.seller.key} ${priceText(o)}`];
   const cond = conditionLabel(o);
   if (cond) parts.push(cond);
@@ -67,7 +67,7 @@ export function SellerRow({ offer, rank, topPrice, fetchedAt }: { offer: Offer; 
       {!offer.placeholder && (
         <span className="pd-row-meta">
           <span className={offer.shippingFee === 0 ? "pd-ship free" : "pd-ship"}>{shippingLabel(offer)}</span>
-          <span> · {fetchedTime(fetchedAt)} 기준 · 새 탭</span>
+          <span> · {fetchedTime(fetchedAt)} 기준 · {offer.link ? "새 탭" : "가격 참고"}</span>
         </span>
       )}
       {offer.coupang?.type === "search" && (
@@ -77,6 +77,7 @@ export function SellerRow({ offer, rank, topPrice, fetchedAt }: { offer: Offer; 
   );
   const className = `pd-row${top ? " pd-row-top" : ""}`;
 
+  // 판매처 주소를 알 수 없는 줄: 링크 없이 '가격 참고'로만 보여 준다
   if (!offer.link) return <div className={className}>{body}</div>;
   // 판매처로 가는 링크는 모두 새 탭 + 제휴·광고 표시(sponsored)
   return (

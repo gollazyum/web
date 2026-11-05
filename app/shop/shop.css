@@ -1494,3 +1494,23 @@ a.pd-row-top:hover {
   font-weight: 700;
   color: #334155;
 }
+/* 제보 시트는 열릴 때 시트 자체로 초점을 옮긴다 (테두리는 그리지 않는다) */
+.pd-sheet:focus {
+  outline: none;
+}
+
+/* 2026-11-05 '본품만'을 끄면 목록 아래에 보이는 '관련 액세서리' 묶음 (색은 기존 변수) */
+.sr-acc,
+.srd-acc {
+  margin-top: 28px;
+}
+.sr-acc-title,
+.srd-acc-title {
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pd-text);
+}
+.sr-acc {
+  margin-top: 20px;
+}

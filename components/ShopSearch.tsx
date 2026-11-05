@@ -5,7 +5,30 @@ import { useRouter } from "next/navigation";
 import { LinkPasteHint } from "@/components/shop/LinkPasteHint";
 import { ShopQueryInput } from "@/components/shop/ShopQueryInput";
 import { LINK_PASTE_HINT, looksLikeUrl } from "@/lib/shop-results";
-import { HOME_SHOP_COPY as COPY } from "@/lib/brand-mode";
+import { HOME_SHOP_COPY as COPY, SHOP_EXAMPLES } from "@/lib/brand-mode";
+import Link from "next/link";
+
+// 휴대폰 홈 쇼핑 탭: 검색창 아래 안내와 상품 예시 칩 (여행지 칩은 숙소 탭에만). PC에서는 보이지 않는다.
+// 파란 테두리(.search-glow) 밖에 둔다: 그라데이션 위에서는 어떤 글자색도 대비 4.5:1이 안 나온다
+export function ShopExamples({ note = "" }: { note?: string }) {
+  return (
+    <>
+      {note !== LINK_PASTE_HINT && <LinkPasteHint className="home-link-hint" />}
+      <div className="shop-examples-m" role="group" aria-labelledby="shop-examples-label">
+        <span id="shop-examples-label" className="hot-places-label">
+          이렇게 찾아보세요
+        </span>
+        <div className="hot-places">
+          {SHOP_EXAMPLES.map((k) => (
+            <Link key={k} className="hot-chip" href={`/shop/product?q=${encodeURIComponent(k)}`}>
+              {k}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
 
 // 휴대폰에서 키보드가 올라와도 제출 버튼이 보이게, 입력칸을 누르면 버튼까지 화면 안으로 올린다
 function keepButtonVisible(btn: HTMLElement | null) {
@@ -25,10 +48,15 @@ function keepButtonVisible(btn: HTMLElement | null) {
 
 // 홈 첫 화면의 쇼핑 탭 검색창. 키워드를 넣으면 상품 데이터 상세(/shop/product?q=…)로 넘어간다
 // mode="link"는 스토어 상품 링크를 붙여 넣는 칸이다. 링크 읽기는 아직 없어서, 제출하기 전부터 '준비 중'으로 보여 준다
-export function ShopSearch({ mode, onUseKeyword }: { mode: "search" | "link"; onUseKeyword: () => void }) {
+// onNote: 안내 문구가 바뀔 때 알린다. 검색창 아래 '링크 붙여넣기는 준비 중' 안내(LinkChecker가 파란 테두리 밖에 그린다)와 겹치지 않게
+export function ShopSearch({ mode, onUseKeyword, onNote }: { mode: "search" | "link"; onUseKeyword: () => void; onNote?: (note: string) => void }) {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const [note, setNote] = useState("");
+  const [note, setNoteState] = useState("");
+  const setNote = (n: string) => {
+    setNoteState(n);
+    onNote?.(n);
+  };
   const btn = useRef<HTMLButtonElement>(null);
 
   function onSearch(e: React.FormEvent) {
@@ -87,7 +115,6 @@ export function ShopSearch({ mode, onUseKeyword }: { mode: "search" | "link"; on
           <span className="m-only">{COPY.buttonM}</span>
         </button>
       </form>
-      {note !== LINK_PASTE_HINT && <LinkPasteHint className="home-link-hint" />}
       {note && (
         <div className="search-result" role="status">
           <span>{note}</span>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { brandCopy } from "@/lib/brand-mode";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { site } from "@/lib/site";
@@ -21,7 +22,7 @@ export default function Privacy() {
           Gollazyum은 로그인 없이도 이어서 이용하실 수 있도록 최근 검색 조건(목적지·날짜·인원), 보관함, 취향 설정을 이용자의
           브라우저(로컬 저장소)에만 저장합니다. 이 저장 내용은 그 자체로 회사 서버에 올려 두지 않습니다. 다만 숙소나 항공권을 검색하면
           입력한 조건은 가격을 조회하기 위해 서버로 전송됩니다. AI에게 보낸 대화는 답변을 만들기 위해 서버와 AI 제공자에게 전송되며,
-          브라우저에 따로 저장하지 않아 화면을 닫으면 남지 않습니다. 호텔 후기 주제 숫자는 비교 화면에 다시 쓰려고 브라우저에 최대 7일
+          브라우저에 따로 저장하지 않아 화면을 닫으면 남지 않습니다. {brandCopy("privacyReviewTopics")} 브라우저에 최대 7일
           보관했다가 자동으로 지웁니다. 이용자는 언제든 홈 화면 이어서 보기 배너의 &apos;기록 지우기&apos; 버튼이나 브라우저 설정에서
           저장된 정보를 삭제할 수 있습니다.
         </p>

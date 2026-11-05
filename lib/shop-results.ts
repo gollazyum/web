@@ -1,5 +1,6 @@
 // 쇼핑 검색 결과 PC 화면의 정렬·필터. 이미 받은 목록만 다루고 API는 다시 부르지 않는다
 import type { SearchItem } from "@/lib/shopping";
+import { classifyItems, matchOrder } from "@/lib/shop-match";
 
 export type SortKey = "default" | "low" | "high";
 
@@ -52,7 +53,7 @@ export function filterItems(items: SearchItem[], bands: PriceBand[], sellers: st
   });
 }
 
-// 추천순은 받은 순서 그대로. 가격순은 가격을 모르는 상품을 맨 뒤로 보낸다
+// 관련도순은 받은 순서 그대로. 가격순은 가격을 모르는 상품을 맨 뒤로 보낸다
 export function sortItems(items: SearchItem[], sort: SortKey): SearchItem[] {
   if (sort === "default") return items;
   const dir = sort === "low" ? 1 : -1;
@@ -78,39 +79,19 @@ export function lowestItem(items: SearchItem[]): SearchItem | null {
 
 export const itemKey = (it: Pick<SearchItem, "token" | "productId" | "title">) => it.token || it.productId || it.title;
 
-// ───────── 모바일 '본품만' (수동 단어 추가 없이 자동 판별) ─────────
-// 1) 가격: 결과 전체 가격 중앙값의 25% 미만인 초저가(액세서리·부품류)는 뺀다
-// 2) 단어: 상품명에 기본 액세서리 단어가 있으면 뺀다. 단, 검색어 자체에 그 단어가 있으면 그 단어로는 빼지 않는다
-export const MAIN_ONLY_PRICE_RATIO = 0.25;
-// '하드'·'젤리'·'범퍼'는 케이스를 줄여 부르는 말 (예: "에어팟하드 …", "투명 젤리")
-export const ACCESSORY_WORDS = ["케이스", "충전기", "필름", "커버", "스트랩", "거치대", "파우치", "케이블", "어댑터", "키링", "호환", "리필", "하드", "젤리", "범퍼", "이어팁", "스킨", "보호", "박스만", "공박스"] as const;
-// 상품명이 영어로 오는 경우가 많아 같은 뜻의 영어 단어도 본다 (단어 단위로만: showcase·discover 같은 말은 빼지 않는다)
-export const ACCESSORY_WORDS_EN = ["case", "charger", "charging", "film", "cover", "strap", "stand", "pouch", "cable", "adapter", "keyring", "compatible", "refill"] as const;
+// ───────── '본품만'과 관련도순 ─────────
+// 판별 규칙(검색어 정리, 액세서리 단어, 가격 중앙값 30%)은 lib/shop-match.ts 한 곳에 둔다
+export { ACCESSORY_TERMS, MAIN_PRICE_RATIO, medianPrice } from "@/lib/shop-match";
 
-const compact = (s: string) => s.toLowerCase().replace(/\s+/g, "");
-
-export function medianPrice(items: SearchItem[]): number | null {
-  const prices = items
-    .map((it) => it.price)
-    .filter((p): p is number => p !== null && p > 0)
-    .sort((a, b) => a - b);
-  if (!prices.length) return null;
-  const mid = Math.floor(prices.length / 2);
-  return prices.length % 2 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2;
+// 관련도순(기본 정렬): 낱말이 모두 맞는 본품 → 일부만 맞는 본품 → 액세서리. 빼는 상품은 없다
+export function relevanceOrder<T extends Pick<SearchItem, "title" | "price">>(items: T[], query: string): T[] {
+  return matchOrder(items, query);
 }
 
-export function mainOnly(items: SearchItem[], query: string): SearchItem[] {
-  const median = medianPrice(items);
-  const q = compact(query);
-  const words = ACCESSORY_WORDS.filter((w) => !q.includes(w));
-  const en = ACCESSORY_WORDS_EN.filter((w) => !q.includes(w));
-  const enRe = en.length ? new RegExp(`\\b(${en.join("|")})(e?s)?\\b`, "i") : null;
-  return items.filter((it) => {
-    if (median !== null && it.price !== null && it.price > 0 && it.price < median * MAIN_ONLY_PRICE_RATIO) return false;
-    const title = compact(it.title);
-    if (words.some((w) => title.includes(w))) return false;
-    return !(enRe && enRe.test(it.title));
-  });
+// 본품만 남긴다 (액세서리 단어가 있거나 본품 가격 중앙값의 30%보다 싼 상품을 뺀다)
+export function mainOnly<T extends Pick<SearchItem, "title" | "price">>(items: T[], query: string): T[] {
+  const info = classifyItems(items, query);
+  return items.filter((_, i) => !info[i].accessory);
 }
 
 // ───────── 링크 붙여넣기 (아직 지원 전) ─────────

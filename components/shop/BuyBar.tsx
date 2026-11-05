@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CoupangLabel } from "@/components/shop/CoupangLabel";
-import { COUPANG_LINK_ATTRS, type CoupangLink } from "@/lib/coupang-links";
+import { COUPANG_LINK_ATTRS, coupangLinkLabel, type CoupangLink } from "@/lib/coupang-links";
 import type { Offer } from "@/lib/shopping";
 
 function BellIcon() {
@@ -27,7 +27,7 @@ export function BuyBar({ top, coupang }: { top: Offer | null; coupang?: CoupangL
 
   const cp = top ? top.coupang : (coupang ?? null);
   const label = cp ? <CoupangLabel link={cp} /> : `${top?.seller.key ?? "스토어"}에서 보기 ↗`;
-  const name = cp ? (cp.type === "product" ? "쿠팡에서 구매하러 가기" : `쿠팡에서 '${cp.name}' 검색결과 보기`) : `${top?.seller.key ?? "스토어"}에서 보기`;
+  const name = cp ? coupangLinkLabel(cp).replace(/ ↗$/, "") : `${top?.seller.key ?? "스토어"}에서 보기`;
   // 판매처로 가는 링크는 모두 새 탭 + sponsored
   const attrs = COUPANG_LINK_ATTRS;
   const href = top ? top.link : cp?.url;
