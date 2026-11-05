@@ -1781,3 +1781,74 @@ html.sheet-lock body {
 .hero-sub.m-only {
   white-space: pre-line;
 }
+
+/* ───────── 2026-11-05 모바일 오후 개선 (LB-066~069) ───────── */
+/* ☰ 메뉴 선은 글자색(currentColor)을 따른다: 브라우저 자동 다크 모드에서 글자색과 함께 바뀌어 늘 보인다 (모양은 그대로) */
+.mnav-toggle {
+  color: var(--ink);
+}
+.mnav-toggle span {
+  background: currentColor;
+}
+/* 브라우저 자동 다크 모드가 화면·사진을 어둡게 바꾸지 않게 */
+:root {
+  color-scheme: only light;
+}
+@media (max-width: 640px) {
+  /* LB-067 상품 사진: multiply 섞기를 끄고 사진 칸에만 흰 배경. 하얀·은색 상품이 다크 모드에서 검게 보이지 않는다 */
+  .pd-page .pd-thumb,
+  .pd-page .sr-thumb {
+    background: #fff;
+  }
+  .pd-page .pd-thumb img,
+  .pd-page .sr-thumb img,
+  .pd-page .srd-thumb img {
+    mix-blend-mode: normal;
+  }
+
+  /* LB-068 좁은 화면(320px): 쇼핑 목록 한 줄이 넘치지 않게. 가격·판매처 수·색상은 줄을 바꾸고, 판매처 이름은 말줄임 */
+  .pd-page .sr-item {
+    min-width: 0;
+  }
+  .pd-page .sr-body {
+    flex: 1;
+  }
+  .pd-page .sr-body strong {
+    overflow-wrap: anywhere;
+  }
+  .pd-page .sr-meta {
+    flex-wrap: wrap;
+    row-gap: 2px;
+    min-width: 0;
+  }
+  .pd-page .sr-meta em {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* 상품 화면 판매처 줄: 긴 판매처 이름은 말줄임 (가격 칸은 그대로) */
+  .pd-page .pd-row-name strong {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* LB-066 쇼핑 탭(/shop) 상품 예시 칩도 44px 이상 눌리게 */
+  .shop-examples .shop-chip {
+    height: auto;
+    min-height: 44px;
+  }
+
+  /* LB-068 숙소 카드 '후기 N개'는 자리가 모자라면 다음 줄로 */
+  .hcard-rating p {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+  .hcard-rating p em {
+    white-space: nowrap;
+  }
+}

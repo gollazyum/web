@@ -5,6 +5,7 @@ import { errorCode } from "@/lib/apiError";
 import { filterItems, itemKey, LINK_PASTE_HINT, looksLikeUrl, mainOnly, sortItems } from "@/lib/shop-results";
 import { detailHref, won, type SearchItem, type SearchResponse } from "@/lib/shopping";
 import { useMediaQuery } from "@/lib/useMediaQuery";
+import { SHOP_RESULTS_COPY as COPY } from "@/lib/brand-mode";
 import { DesktopResults } from "./DesktopResults";
 import { addRecent } from "@/lib/shop-recent";
 import { LinkPasteHint } from "./LinkPasteHint";
@@ -227,8 +228,15 @@ export function ProductResults({ query }: { query: string }) {
                       <span className="sr-body">
                         <strong>{item.title}</strong>
                         <span className="sr-meta">
-                          {item.price !== null && <b>{won(item.price)}</b>}
-                          {item.seller && <em>{item.seller}</em>}
+                          {item.price !== null && (
+                            <b>
+                              {won(item.price)}
+                              {item.priceFrom && COPY.priceFrom}
+                            </b>
+                          )}
+                          {/* 여러 판매처가 묶인 카드는 판매처 수, 아니면 그 판매처 이름 */}
+                          {item.storeCount ? <em className="sr-stores">{COPY.storeCount(item.storeCount)}</em> : item.seller && <em className="sr-seller">{item.seller}</em>}
+                          {item.optionCount ? <em className="sr-opts">{COPY.optionCount(item.optionCount)}</em> : null}
                           {item.used && <span className="sr-used">중고</span>}
                         </span>
                       </span>

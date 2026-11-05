@@ -47,7 +47,8 @@ export const metadata: Metadata = {
 };
 
 // viewport-fit=cover: 아이폰 홈 인디케이터 여백(safe-area)을 쓸 수 있게
-export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
+// colorScheme 'only light': 브라우저 자동 다크 모드가 화면과 상품 사진을 어둡게 바꾸지 않게 (LB-067)
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", colorScheme: "only light" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

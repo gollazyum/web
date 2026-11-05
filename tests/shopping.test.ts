@@ -11,10 +11,14 @@ const item = (over: Record<string, unknown> = {}) => ({ title: "Apple 아이폰 
 
 describe("shapeSearch", () => {
   it("검색 목록만 만들고, 주요 4곳은 표준 이름, 그 밖은 판매처 이름 그대로", () => {
-    const { items } = shapeSearch(SAMPLE_SEARCH_JSON);
-    expect(items[0]).toMatchObject({ token: TOKEN, seller: "11번가", price: 1290000 });
+    const { items } = shapeSearch(search([
+      item({ source: "11번가", immersive_product_page_token: "a", extracted_price: 1000 }),
+      item({ title: "Apple 아이폰 17 Pro 256GB", source: "애플 공식 판매처", link: "https://smartstore.naver.com/s/1", immersive_product_page_token: "b" }),
+      item({ title: "Apple 아이폰 17 512GB", source: "SSG.COM", immersive_product_page_token: "c" }),
+    ]));
+    expect(items[0]).toMatchObject({ token: "a", seller: "11번가", price: 1000 });
     expect(items[1].seller).toBe("네이버"); // 판매처 이름은 상점명이지만 실제 주소가 스마트스토어
-    expect(items.find((i) => i.token === "sample-8")!.seller).toBe("SSG");
+    expect(items.find((i) => i.token === "c")!.seller).toBe("SSG");
   });
 });
 
@@ -23,8 +27,9 @@ describe("shapeDetail (아이폰 17: 스토어 목록에 11번가만 오는 경�
   const names = product!.offers.map((o) => o.seller.key);
 
   it("같은 상품이 확실한 검색 결과에서 네이버·G마켓을 보태고, 중고·Pro·다른 용량·케이스는 합치지 않는다", () => {
-    expect(names).toEqual(["11번가", "하이마트", "네이버", "G마켓", "쿠팡"]);
-    expect(product!.offers.map((o) => o.price)).toEqual([1290000, 1300000, 1310000, 1335000, null]);
+    // 목록에서 같은 카드로 묶인 SSG(같은 이름)·KREAM(화이트)도 들어온다. 1원(KT모바일샵)은 빠진다
+    expect(names).toEqual(["SSG", "11번가", "하이마트", "네이버", "KREAM", "G마켓", "쿠팡"]);
+    expect(product!.offers.map((o) => o.price)).toEqual([1280000, 1290000, 1300000, 1310000, 1310000, 1335000, null]);
   });
 
   it("쿠팡이 없으면 맨 아래 덧붙임 행: 가격 없음, 순위·대표 가격 계산에서 빠짐, 파트너스 링크 (딥링크 대상은 상품명 검색결과)", () => {
@@ -32,14 +37,15 @@ describe("shapeDetail (아이폰 17: 스토어 목록에 11번가만 오는 경�
     const url = coupangSearchUrl(product!.title);
     expect(cp).toMatchObject({ placeholder: true, price: null, link: COUPANG_HOME, coupang: { url: COUPANG_HOME, type: "home", name: product!.title, target: { url, type: "search" } } });
     expect(rankable(cp)).toBe(false);
-    expect(product!.price).toBe(1290000);
-    expect(product!.changePct).toBe(8);
+    expect(product!.price).toBe(1280000);
+    expect(product!.changePct).toBeNull();
   });
 
   it("다른 판매처 링크는 중간 이동 주소를 푼 실제 판매처 주소", () => {
-    expect(product!.offers[0].link).toBe("https://www.11st.co.kr/products/1001");
-    expect(product!.offers[1].link).toBe("https://www.e-himart.co.kr/x");
-    expect(product!.offers[3].link).toBe("https://item.gmarket.co.kr/Item?goodscode=3003");
+    const link = (k: string) => product!.offers.find((o) => o.seller.key === k)!.link;
+    expect(link("11번가")).toBe("https://www.11st.co.kr/products/1001");
+    expect(link("하이마트")).toBe("https://www.e-himart.co.kr/x");
+    expect(link("G마켓")).toBe("https://item.gmarket.co.kr/Item?goodscode=3003");
   });
 
   it("화면에 나갈 값에 금지어·출처가 없다", () => {
@@ -140,11 +146,11 @@ describe("개발용 원본 로그", () => {
 describe("이상한 가격", () => {
   it("100원 이하(0원·1원 등)는 검색 목록에서 뺀다", () => {
     const { items } = shapeSearch(search([
-      item({ immersive_product_page_token: "a", extracted_price: 1 }),
-      item({ immersive_product_page_token: "b", extracted_price: 0 }),
-      item({ immersive_product_page_token: "c", extracted_price: 100 }),
-      item({ immersive_product_page_token: "d", extracted_price: 101 }),
-      item({ immersive_product_page_token: "e" }),
+      item({ title: "상품 A1", immersive_product_page_token: "a", extracted_price: 1 }),
+      item({ title: "상품 B2", immersive_product_page_token: "b", extracted_price: 0 }),
+      item({ title: "상품 C3", immersive_product_page_token: "c", extracted_price: 100 }),
+      item({ title: "상품 D4", immersive_product_page_token: "d", extracted_price: 101 }),
+      item({ title: "상품 E5", immersive_product_page_token: "e" }),
     ]));
     expect(items.map((i) => [i.token, i.price])).toEqual([["d", 101], ["e", null]]);
   });

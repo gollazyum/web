@@ -120,9 +120,15 @@ export function DesktopResults({ query, items, sample, recentKey = "" }: { query
                   {lowest === item && <span className="srd-badge">{COPY.lowestBadge}</span>}
                 </span>
                 <strong className="srd-name">{item.title}</strong>
-                {item.price !== null && <b className="srd-price">{won(item.price)}</b>}
-                {item.seller && <span className="srd-seller">{item.seller}</span>}
+                {item.price !== null && (
+                  <b className="srd-price">
+                    {won(item.price)}
+                    {item.priceFrom && COPY.priceFrom}
+                  </b>
+                )}
+                {!item.storeCount && item.seller && <span className="srd-seller">{item.seller}</span>}
                 <StoreCount count={item.storeCount} />
+                {item.optionCount ? <span className="srd-stores">{COPY.optionCount(item.optionCount)}</span> : null}
                 <span className="srd-cta">{COPY.cardCta}</span>
               </a>
             </li>
@@ -133,7 +139,7 @@ export function DesktopResults({ query, items, sample, recentKey = "" }: { query
   );
 }
 
-// 판매처 수 데이터가 있을 때만 보여 준다. 지금은 받는 데이터가 없어 그려지지 않는다
+// 판매처 수: 같은 상품으로 묶인 카드에 판매처가 2곳 이상일 때만 보여 준다
 export function StoreCount({ count }: { count?: number | null }) {
   if (typeof count !== "number" || !Number.isFinite(count) || count < 1) return null;
   return <span className="srd-stores">{COPY.storeCount(Math.floor(count))}</span>;

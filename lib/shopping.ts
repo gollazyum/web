@@ -1,7 +1,8 @@
 import { getCoupangLink, type CoupangLink } from "@/lib/coupang-links";
-import { relevantOnly } from "@/lib/shop-results";
+import { relevanceOrder, relevantOnly } from "@/lib/shop-results";
+import { groupItems, groupParts } from "@/lib/shop-group";
 import { isSameProduct } from "@/lib/product-match";
-import { isRedirectorUrl, resolveSellerUrl, sellerInfo, shopSeller, shopSellerSearchUrl, type Seller } from "@/lib/sellers";
+import { cleanOutboundUrl, isRedirectorUrl, resolveSellerUrl, sellerInfo, shopSeller, shopSellerSearchUrl, type Seller } from "@/lib/sellers";
 
 // 쇼핑 데이터. SerpApi 결과를 화면용으로 줄인다. (출처는 화면에 표시하지 않는다)
 // 1) 검색 목록: google_shopping 결과 → 상품 카드 목록 (판매처별 가격은 아직 부르지 않음)
@@ -49,7 +50,9 @@ export type SearchItem = {
   price: number | null;
   seller: string | null; // 검색 결과의 판매처 이름
   used?: boolean; // 중고·리퍼 상품
-  storeCount?: number; // 판매처 수. 아직 받는 데이터가 없어 비워 둔다 (있을 때만 "판매처 N곳" 표시)
+  storeCount?: number; // 같은 상품으로 묶인 검색 결과의 판매처 수 (2곳 이상일 때만 "판매처 N곳" 표시)
+  optionCount?: number; // 같은 상품으로 묶인 색상 수 (2개 이상일 때만 "색상 N개")
+  priceFrom?: boolean; // 묶인 상품끼리 가격이 달라 price가 그중 가장 낮은 값이면 true ("N원부터")
 };
 
 // 고른 상품을 가리키는 값. 토큰과 product_id 중 있는 것
@@ -259,19 +262,48 @@ export function shapeSearch(json: Record<string, unknown>, query = ""): SearchRe
   // 검색어와 관계가 약한 상품은 빼고(자르기 전에), 하나도 맞지 않으면 "비슷한 상품을 못 찾았어요"
   const { items: kept, unrelated } = query ? relevantOnly(found.map((r) => ({ r, title: r.title! })), query) : { items: found.map((r) => ({ r, title: r.title! })), unrelated: false };
   if (unrelated) return { items: [], unrelated };
-  const items = kept
-    .map((x) => x.r)
-    .slice(0, MAX_SEARCH_ITEMS)
-    .map((r) => ({
+  // 같은 상품(색상·옵션만 다른 것, 판매처만 다른 것)은 카드 하나로 묶는다. 카드를 누르면 묶인 판매처가 모두 나온다 (shapeDetail)
+  const groups = groupItems(kept.map((x) => x.r), resultView(query), query);
+  const cards = groups.map((g) => {
+    const r = g.lead;
+    const price = g.prices.length ? Math.min(...g.prices) : null;
+    return {
       token: r.immersive_product_page_token ?? "",
       productId: productIdOf(r),
       title: r.title!.trim(),
       image: r.thumbnail ?? "",
-      price: realPrice(r.extracted_price),
+      price,
       seller: shopSeller(stripLocation(r.source ?? ""), resultLink(r))?.key ?? null,
-      ...(conditionOf(r.second_hand_condition ?? "", r.title) !== "new" ? { used: true } : {}),
-    }));
-  return { items };
+      ...(isUsedResult(r) ? { used: true } : {}),
+      ...(g.sellers.length >= 2 ? { storeCount: g.sellers.length } : {}),
+      ...(g.options >= 2 ? { optionCount: g.options } : {}),
+      ...(new Set(g.prices).size >= 2 ? { priceFrom: true } : {}),
+    };
+  });
+  // 관련도순: 본품을 앞에, 케이스 같은 부속품을 뒤로 (자르기 전에)
+  return { items: relevanceOrder(cards, query).slice(0, MAX_SEARCH_ITEMS) };
+}
+
+const isUsedResult = (r: SerpShoppingResult) => conditionOf(r.second_hand_condition ?? "", r.title) !== "new";
+
+// 묶기에 쓰는 검색 결과 한 줄의 모양
+const resultView = (query: string) => (r: SerpShoppingResult) => ({
+  title: r.title ?? "",
+  source: stripLocation(r.source ?? ""),
+  seller: shopSeller(stripLocation(r.source ?? ""), resultLink(r))?.key ?? null,
+  price: realPrice(r.extracted_price),
+  used: isUsedResult(r),
+});
+
+// 고른 상품과 같은 카드로 묶인 다른 검색 결과
+function groupMates(results: SerpShoppingResult[], selected: SerpShoppingResult, query: string): SerpShoppingResult[] {
+  const view = resultView(query);
+  const keyOf = (r: SerpShoppingResult) => {
+    const v = view(r);
+    return groupParts(v.title, v.source, query, v.used).key;
+  };
+  const key = keyOf(selected);
+  return results.filter((r) => r !== selected && !(typeof r.extracted_price === "number" && r.extracted_price <= MAX_FAKE_PRICE) && keyOf(r) === key);
 }
 
 type RawOffer = {
@@ -288,7 +320,8 @@ type RawOffer = {
 function toOffer(r: RawOffer, query: string, title: string): Offer | null {
   const seller = shopSeller(r.name, r.link);
   if (!seller) return null;
-  const resolved = resolveSellerUrl(r.link);
+  const resolved = cleanOutboundUrl(resolveSellerUrl(r.link));
+  // srsltid·utm_*·gclid 같은 추적·출처 파라미터는 빼고 내보낸다 (데이터 출처가 주소에 드러나지 않게)
   // 쿠팡: 중간 이동을 푼 주소가 쿠팡 상품 상세 주소면 그 주소, 아니면 쿠팡 안 상품명 검색결과 (쿠팡 홈 고정 링크는 쓰지 않는다)
   // 다른 곳은 중간 이동을 푼 판매처 주소. 구글을 거쳐 가는 주소만 남으면(google.com/search?ibp=oshop…, /goto?…)
   // 그 판매처의 검색 페이지로 바꾸고, 검색 페이지를 모르는 판매처는 링크 없이 '가격 참고' 줄로 둔다 (google.com 링크는 내보내지 않는다)
@@ -357,6 +390,11 @@ export function shapeDetail(
   if (selected) {
     const own = toOffer(fromResult(selected), query, title);
     if (own) collected.push({ offer: own, original: selected.extracted_old_price ?? null });
+    // 목록에서 같은 카드로 묶인 상품(색상만 다르거나 다른 판매처)의 판매처·가격·링크도 넣는다 (판매처마다 가장 싼 1줄)
+    for (const r of groupMates(results, selected, query)) {
+      const mate = toOffer(fromResult(r), query, title);
+      if (mate) collected.push({ offer: mate, original: r.extracted_old_price ?? null });
+    }
   }
   const best = pickBest(collected);
 

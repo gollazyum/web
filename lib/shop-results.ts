@@ -89,7 +89,7 @@ export const ACCESSORY_WORDS_EN = ["case", "charger", "charging", "film", "cover
 
 const compact = (s: string) => s.toLowerCase().replace(/\s+/g, "");
 
-export function medianPrice(items: SearchItem[]): number | null {
+export function medianPrice(items: Pick<SearchItem, "price">[]): number | null {
   const prices = items
     .map((it) => it.price)
     .filter((p): p is number => p !== null && p > 0)
@@ -97,6 +97,32 @@ export function medianPrice(items: SearchItem[]): number | null {
   if (!prices.length) return null;
   const mid = Math.floor(prices.length / 2);
   return prices.length % 2 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2;
+}
+
+// 관련도순(기본 정렬): 본품을 앞에, 케이스·충전기 같은 부속품과 본품 가격보다 터무니없이 싼 상품을 뒤로 보낸다.
+// 같은 무리 안에서는 검색어와 맞는 정도(relevance)가 높은 순, 같으면 받은 순서. 빼는 상품은 없다
+export function relevanceOrder<T extends Pick<SearchItem, "title" | "price">>(items: T[], query: string): T[] {
+  const accessory = accessoryTest(query);
+  const wordAcc = items.map((it) => accessory(it.title));
+  // 부속품 단어가 없는 상품들의 가운데 가격. 이것의 25% 미만이면 부속품으로 본다 (케이스 이름에 '케이스'가 없을 때)
+  const median = medianPrice(items.filter((_, i) => !wordAcc[i]));
+  // 단어로 걸려도 본품 가격대(가운데 가격의 절반 이상)면 본품으로 본다 ('본체 + 충전케이스' 같은 본품 상품명)
+  const priced = (it: T) => median !== null && it.price !== null && it.price > 0;
+  const isAcc = (it: T, i: number) =>
+    wordAcc[i] ? !(priced(it) && it.price! >= median! * 0.5) : priced(it) && it.price! < median! * MAIN_ONLY_PRICE_RATIO;
+  return items
+    .map((it, i) => ({ it, i, acc: isAcc(it, i), rel: Math.round(relevance(query, it.title) * 4) / 4 }))
+    .sort((a, b) => Number(a.acc) - Number(b.acc) || b.rel - a.rel || a.i - b.i)
+    .map((x) => x.it);
+}
+
+// 상품명에 부속품 단어가 있는지. 검색어 자체에 있는 단어로는 판단하지 않는다
+function accessoryTest(query: string): (title: string) => boolean {
+  const q = compact(query);
+  const words = ACCESSORY_WORDS.filter((w) => !q.includes(w));
+  const en = ACCESSORY_WORDS_EN.filter((w) => !q.includes(w));
+  const enRe = en.length ? new RegExp(`\\b(${en.join("|")})(e?s)?\\b`, "i") : null;
+  return (title) => words.some((w) => compact(title).includes(w)) || !!(enRe && enRe.test(title));
 }
 
 export function mainOnly(items: SearchItem[], query: string): SearchItem[] {

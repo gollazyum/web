@@ -158,3 +158,15 @@ export function isRedirectorUrl(link: string | null | undefined): boolean {
   const url = parseUrl(link);
   return !!url && isRedirector(url.hostname.toLowerCase());
 }
+
+// 밖으로 나가는 판매처 주소에서 추적·출처 파라미터를 뺀다 (srsltid, gclid, utm_* 등). 데이터 출처가 주소에 드러나지 않게.
+// 판매처가 상품을 찾는 데 쓰는 값(상품 번호·옵션)은 그대로 둔다. 주소가 아니면 그대로 돌려준다
+const TRACKING_PARAM = /^(utm_[a-z_]+|srsltid|gclid|gclsrc|gbraid|wbraid|dclid|_gl|ved|ei)$/i;
+export function cleanOutboundUrl(link: string): string {
+  const url = parseUrl(link);
+  if (!url) return link;
+  const drop = [...url.searchParams.keys()].filter((k) => TRACKING_PARAM.test(k));
+  if (!drop.length) return link;
+  for (const k of drop) url.searchParams.delete(k);
+  return url.toString();
+}
