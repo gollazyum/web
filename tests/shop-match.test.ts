@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { findBannedWords, SHOP_RESULTS_COPY } from "@/lib/brand-mode";
 import { accessoryTest, classifyItems, matchOrder, matchTerms, normalizeText, splitMain } from "@/lib/shop-match";
@@ -159,5 +160,13 @@ describe("검색 결과 응답과 화면", () => {
   it("'본품만'·'관련 액세서리' 문구에 금지어가 없다", () => {
     expect(findBannedWords(SHOP_RESULTS_COPY.mainOnlyChip, true)).toEqual([]);
     expect(findBannedWords(SHOP_RESULTS_COPY.accessoryGroup, true)).toEqual([]);
+  });
+
+  it("태블릿(641~1023px)에도 '본품만' 칩이 있고 기본으로 켜져 있다 (모바일은 칩 줄, PC는 '보기' 칩)", () => {
+    const src = readFileSync("components/shop/ProductResults.tsx", "utf8");
+    expect(src).toMatch(/const showAcc = !filter\.main;/);
+    expect(src).toMatch(/tablet && accessories\.length > 0/);
+    expect(readFileSync("components/shop/MobileFilters.tsx", "utf8")).toMatch(/DEFAULT_MOBILE_FILTER[^=]*=\s*\{[^}]*main: true/);
+    expect(readFileSync("components/shop/DesktopResults.tsx", "utf8")).toMatch(/useState\(true\)/);
   });
 });

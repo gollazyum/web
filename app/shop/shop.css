@@ -1244,6 +1244,18 @@ a.pd-row-top:hover {
   }
 }
 
+/* 태블릿(641~1023px) '본품만' 칩 (모바일 칩 줄과 PC '보기' 칩 사이의 빈 구간) */
+.sr-tab-filter {
+  display: none;
+}
+@media (min-width: 641px) and (max-width: 1023px) {
+  .sr-tab-filter {
+    display: flex;
+    gap: 8px;
+    padding: 4px 20px 8px;
+  }
+}
+
 /* ───────── LB-054 상품 상태·배송비, 보기 조건 칩 ───────── */
 .pd-view {
   display: flex;

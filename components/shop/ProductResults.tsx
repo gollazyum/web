@@ -138,14 +138,16 @@ export function ProductResults({ query }: { query: string }) {
   const usePhoneFilter = phone && !desktop;
   // 본품과 액세서리(케이스·필름 등)는 서버가 나눠 둔다 (lib/shop-match.ts). '본품만'(기본 켜짐)을 끄면 액세서리가 목록 아래 '관련 액세서리' 묶음으로 보인다
   const { main, accessories } = useMemo(() => splitMain(items), [items]);
-  const showAcc = !usePhoneFilter || !filter.main;
+  // 태블릿(641~1023px)도 '본품만'을 기본으로 켠다. 모바일은 정렬·필터 칩 줄, 태블릿은 '본품만' 칩 하나만 보인다
+  const tablet = !desktop && !usePhoneFilter;
+  const showAcc = !filter.main;
   // 가격대·판매처 칩의 개수는 지금 보이는 상품 기준으로 센다
   const base = useMemo(() => (showAcc ? items : main), [items, main, showAcc]);
   const arrange = (list: SearchItem[]) => (usePhoneFilter ? sortItems(filterItems(list, filter.bands, filter.sellers), filter.sort) : list);
   const shown = useMemo(() => arrange(main), [main, usePhoneFilter, filter]); // eslint-disable-line react-hooks/exhaustive-deps
   const shownAcc = useMemo(() => (showAcc ? arrange(accessories) : []), [accessories, showAcc, usePhoneFilter, filter]); // eslint-disable-line react-hooks/exhaustive-deps
   const total = shown.length + shownAcc.length;
-  const filtered = usePhoneFilter && (filter.main || filter.bands.length > 0 || filter.sellers.length > 0) && total !== items.length;
+  const filtered = (usePhoneFilter || tablet) && (filter.main || filter.bands.length > 0 || filter.sellers.length > 0) && total !== items.length;
 
   const card = (item: SearchItem) => (
     <li key={itemKey(item)}>
@@ -196,6 +198,20 @@ export function ProductResults({ query }: { query: string }) {
       </header>
       <LinkPasteHint className="sr-link-hint" />
       {state.kind === "ok" && state.items.length > 0 && usePhoneFilter && <MobileFilters items={base} value={filter} onChange={setFilter} />}
+      {state.kind === "ok" && state.items.length > 0 && tablet && accessories.length > 0 && (
+        <div className="sr-tab-filter" role="toolbar" aria-label="보기 조건">
+          <button
+            type="button"
+            className={`mf-chip${filter.main ? " on" : ""}`}
+            aria-pressed={filter.main}
+            aria-label={filter.main ? `${COPY.mainOnlyChip} 끄기` : COPY.mainOnlyChip}
+            onClick={() => setFilter({ ...filter, main: !filter.main })}
+          >
+            {COPY.mainOnlyChip}
+            {filter.main && <span className="mf-x" aria-hidden="true">✕</span>}
+          </button>
+        </div>
+      )}
 
       <main className="pd-main" onClick={onPick}>
         {state.kind === "loading" && <ShopLoading query={query} steps={["상품을 찾고 있어요", "비슷한 상품을 모으고 있어요"]} rows={5} />}
