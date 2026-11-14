@@ -50,3 +50,9 @@ export const IconList = ({ size }: P) => (
 export const IconMap = ({ size }: P) => (
   <svg {...base(size)}><path d="M9 4 3 6.5v13.5L9 17.5l6 2.5 6-2.5V4l-6 2.5zM9 4v13.5M15 6.5V20" /></svg>
 );
+export const IconChat = ({ size }: P) => (
+  <svg {...base(size)}><path d="M12 4a8 8 0 0 0-7 11.8L4 20l4.4-1.1A8 8 0 1 0 12 4z" /></svg>
+);
+export const IconHome = ({ size }: P) => (
+  <svg {...base(size)}><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" /></svg>
+);

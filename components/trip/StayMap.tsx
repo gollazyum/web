@@ -9,13 +9,16 @@ import { man, stayTotal } from "@/lib/trip";
 type Props = {
   hotels: HotelOption[];
   nights: number;
-  picked: Set<string>; // AI가 먼저 보여 준 곳 (민트 핀)
+  picked: Set<string>; // AI가 먼저 보여 준 곳 (테두리 핀)
+  saved: Set<string>; // 담은 곳 (하트 표시)
   active: string | null;
   onPick: (token: string) => void;
 };
 
-// v4 07번 전체 지도: 숙소 위치에 '2박 총액' 핀. 지도 그림은 OpenStreetMap (화면 구석에 표기)
-export function StayMap({ hotels, nights, picked, active, onPick }: Props) {
+// 전체 지도 (v5 04): 숙소 위치에 사진 + '2박 총액' 핀. 지도 그림은 OpenStreetMap (화면 구석에 표기)
+const attr = (v: string) => v.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+
+export function StayMap({ hotels, nights, picked, saved, active, onPick }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<LMap | null>(null);
   const layer = useRef<LayerGroup | null>(null);
@@ -57,7 +60,9 @@ export function StayMap({ hotels, nights, picked, active, onPick }: Props) {
       if (!h.gps) continue;
       const t = stayTotal(h, nights);
       const cls = `tb-pin${picked.has(h.token) ? " pick" : ""}${active === h.token ? " on" : ""}`;
-      const icon = mod.divIcon({ className: "tb-pin-wrap", html: `<span class="${cls}">${t ? man(t.value) : "가격 확인"}</span>`, iconSize: [0, 0] });
+      const img = h.image ? `<img src="${attr(h.image)}" alt="" loading="lazy" onerror="this.remove()">` : "";
+      const heart = saved.has(h.token) ? `<i class="tb-pin-love">♥</i>` : "";
+      const icon = mod.divIcon({ className: "tb-pin-wrap", html: `<span class="${cls}">${img}${t ? man(t.value) : "가격 확인"}${heart}</span>`, iconSize: [0, 0] });
       const mk = mod.marker(h.gps, { icon, zIndexOffset: active === h.token ? 1000 : picked.has(h.token) ? 500 : 0, keyboard: true, title: h.name });
       mk.on("click", () => onPickRef.current(h.token));
       mk.addTo(layer.current);
@@ -76,7 +81,7 @@ export function StayMap({ hotels, nights, picked, active, onPick }: Props) {
     const h = hotels.find((x) => x.token === active);
     if (h?.gps && map.current) map.current.panTo(h.gps);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, picked]);
+  }, [active, picked, saved]);
 
   // 패널 크기가 바뀌면 (시트가 열릴 때 등) 지도 크기를 다시 잰다
   useEffect(() => {

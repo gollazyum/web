@@ -8,21 +8,25 @@ export const brand = {
   tentative: true,
   aiName: "여행친구 AI",
   legalName: "Gollazyum",
+  // 첫 화면에서 캐릭터가 건네는 인사 (Jua 글꼴로, 이 글자만 받아 온다)
+  greeting: ["안녕하세요!", "어디 가고 싶어요?"],
   colors: {
-    bg: "#F7F4EF", // 따뜻한 모래색 바탕
+    bg: "#FFF7EE", // 따뜻한 크림 바탕
     card: "#FFFFFF",
-    ink: "#18202B", // 차콜 네이비 (글자·진한 버튼·탭바)
-    sub: "#6B7280",
-    mute: "#A3A8B0",
-    line: "#ECE7E0",
-    soft: "#EFEBE5", // 칩·입력칸 바탕
-    accent: "#12B3A8", // 민트 티얼 (주 강조)
-    accentDark: "#0B8F87",
-    accentSoft: "#DDF5F2",
-    ai: "#6E5CE6", // AI 표시 보라
-    aiSoft: "#F1EEFF",
-    warm: "#FF8C5A", // 알림·안내 주황
-    warmSoft: "#FFEDE3",
+    ink: "#2A211C", // 따뜻한 먹색 (글자·진한 버튼·내 말풍선)
+    sub: "#7A6F66",
+    mute: "#B3A79C",
+    line: "#F0E4D6",
+    soft: "#F6ECE2", // 칩·보조 버튼 바탕
+    accent: "#FF7A59", // 코랄 (주 강조: 보내기·담기·선택된 핀)
+    accentDark: "#E85C3A",
+    accentSoft: "#FFE6D6", // 피치 (빠른 답 말풍선)
+    mint: "#3CC7B4", // 완료 표시
+    mintSoft: "#DDF6F1",
+    ai: "#6B5BE0", // AI 표시 보라
+    aiSoft: "#F0EDFF",
+    butter: "#FFEDB0", // '곧 열려요' 배지
+    butterInk: "#7A5A00",
   },
 } as const;
 
@@ -38,4 +42,10 @@ export function brandCssVars(): string {
   return Object.entries(brand.colors)
     .map(([k, v]) => `${cssVarName(k)}:${v};`)
     .join("");
+}
+
+// 인사말 글꼴 Jua: 인사 글자만 담은 작은 파일을 받는다 (안 오면 본문 글꼴로 보인다)
+export function greetingFontUrl(): string {
+  const chars = Array.from(new Set(brand.greeting.join(""))).join("");
+  return `https://fonts.googleapis.com/css2?family=Jua&display=swap&text=${encodeURIComponent(chars)}`;
 }
