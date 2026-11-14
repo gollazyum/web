@@ -8,7 +8,7 @@ import { ResultsMessage, ResultsShell } from "./ResultsShell";
 import { ScanProgress } from "./ScanProgress";
 import { SortMenu } from "./SortMenu";
 import { airportsFor } from "@/lib/airports";
-import { errorCode } from "@/lib/apiError";
+import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
 import { shortLabel, today } from "@/lib/dates";
 import { tripUrl, type FlightOption, type FlightQuery, type FlightResults } from "@/lib/flights";
 import { isPhone, useSheet } from "@/lib/useSheet";
@@ -17,7 +17,7 @@ import { isPhone, useSheet } from "@/lib/useSheet";
 // 예약은 Trip.com 한국 사이트 검색 결과로 넘긴다
 const SCAN_MS = 4500;
 
-type State = { kind: "loading" } | { kind: "ok"; data: FlightResults; request: FlightQuery } | { kind: "error"; message: string };
+type State = { kind: "loading" } | { kind: "ok"; data: FlightResults; request: FlightQuery } | { kind: "error"; message: string; retry?: boolean };
 // 오는 편 (왕복 카드의 '상세 보기'를 누를 때 불러온다)
 type ReturnState = { kind: "loading" } | { kind: "ok"; options: FlightOption[] } | { kind: "error" };
 type Sort = "price" | "duration" | "early";
@@ -54,6 +54,7 @@ const TIMES = [
 export function FlightResultsView({ query }: { query: FlightQuery | null }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [revealed, setRevealed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!query) return;
@@ -69,24 +70,22 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
         });
         const next: State = res.ok
           ? { kind: "ok", data: (await res.json()) as FlightResults, request }
-          : {
-              kind: "error",
-              message:
-                res.status === 429
-                  ? "검색이 너무 잦아서 잠깐 쉬고 있어요. 트립닷컴에서 바로 확인해 보세요."
-                  : res.status === 503
-                    ? "항공권 가격 기능을 준비하고 있어요. 트립닷컴에서 바로 확인해 보세요."
-                    : `지금은 사이트 안에서 가격을 불러오지 못했어요. 트립닷컴에서 바로 확인해 보세요. (오류 ${await errorCode(res)})`,
-            };
+          : { kind: "error", message: searchErrorMessage(res.status), retry: true };
         if (!cancelled) setState(next);
       } catch {
-        if (!cancelled) setState({ kind: "error", message: "연결이 불안정해요. 트립닷컴에서 바로 확인해 보세요." });
+        if (!cancelled) setState({ kind: "error", message: searchErrorMessage(null), retry: true });
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [query]);
+  }, [query, attempt]);
+
+  function retry() {
+    setState({ kind: "loading" });
+    setRevealed(false);
+    setAttempt((n) => n + 1);
+  }
 
   const link = query ? tripUrl(query.from, query.to, query.depart, query.ret, query.adults) : "";
   return (
@@ -133,9 +132,16 @@ export function FlightResultsView({ query }: { query: FlightQuery | null }) {
       ) : (
         <ResultsMessage
           action={
-            <a className="results-out" href={link} target="_blank" rel="noopener noreferrer">
-              트립닷컴에서 항공권 보기 ↗
-            </a>
+            <>
+              {state.kind === "error" && state.retry && (
+                <button type="button" className="results-out" onClick={retry}>
+                  {SEARCH_RETRY_LABEL}
+                </button>
+              )}
+              <a className="results-out" href={link} target="_blank" rel="noopener noreferrer">
+                트립닷컴에서 항공권 보기 ↗
+              </a>
+            </>
           }
         >
           {state.kind === "error" ? state.message : ""}

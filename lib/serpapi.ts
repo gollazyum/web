@@ -1,13 +1,19 @@
-// SerpApi 공통 호출. 서버에서만 쓴다. API 키는 Vercel 환경변수 SERPAPI_API_KEY 에만 둔다.
-// 검색 1번마다 SerpApi 요금이 나가서 같은 조건은 잠깐 저장해 두고 다시 쓰고,
-// 한 사람이 너무 자주 찾지 못하게 막는다. 저장소와 횟수는 서버 인스턴스마다 따로 센다.
+import { cached, cacheKey, NoStore } from "./search-cache";
 
-const CACHE_MS = 30 * 60 * 1000;
-const CACHE_MAX = 500;
+// 검색 API 공통 호출. 서버에서만 쓴다. API 키는 Vercel 환경변수 SERPAPI_API_KEY 에만 둔다.
+// 검색 1번마다 요금이 나가서 같은 조건의 성공 응답은 서버 캐시(lib/search-cache.ts)에 저장해 두고 다시 쓰고,
+// 한 사람이 너무 자주 찾지 못하게 막는다. 횟수는 서버 인스턴스마다 따로 센다.
+//
+// 외부 오류는 화면에 원문을 보내지 않는다.
+// - 사용량 소진(429 또는 본문에 'run out of searches') → 503 {"error":"quota"}
+// - 그 밖의 외부 오류 → 502 {"error":"upstream"}
+// 서버 로그에는 원문을 남기되 API 키 값은 지운다.
+
+// 숙소·항공 30분
+export const TRAVEL_CACHE_SEC = 30 * 60;
 const LIMIT_PER_WINDOW = 20;
 const WINDOW_MS = 10 * 60 * 1000;
 
-const cache = new Map<string, { at: number; data: unknown }>();
 const hits = new Map<string, { count: number; reset: number }>();
 
 function rateLimited(ip: string): boolean {
@@ -27,32 +33,81 @@ export function today(): string {
 
 export const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-// SerpApi 한 번 부르기. 실패하면 화면에 돌려줄 오류 응답을 준다.
-// 결과가 없는 검색도 error 문구로 오므로 실패로 보지 않고 그대로 넘겨 빈 결과를 만든다
-async function call(params: Record<string, string>, key: string): Promise<Record<string, unknown> | Response> {
-  try {
-    const res = await fetch(`https://serpapi.com/search.json?${new URLSearchParams({ ...params, api_key: key })}`, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(25_000),
-    });
-    const json = (await res.json()) as Record<string, unknown>;
-    const error = typeof json.error === "string" ? json.error : "";
-    if (!res.ok && !error.includes("hasn't returned any results")) {
-      console.error("serpapi", params.engine, res.status, error);
-      return Response.json({ error: "upstream", detail: `${res.status} ${error}`.slice(0, 120) }, { status: 502 });
-    }
-    return json;
-  } catch (e) {
-    console.error("serpapi", params.engine, e);
-    const detail = e instanceof Error ? e.name : "fetch failed";
-    return Response.json({ error: "upstream", detail }, { status: 502 });
+export type SearchFailKind = "quota" | "upstream" | "rate_limited";
+
+// 외부 검색 실패. 화면에는 kind만 간다
+export class SearchFail extends Error {
+  constructor(readonly kind: SearchFailKind) {
+    super(kind);
   }
 }
 
-// params로 SerpApi를 부르고 shape로 화면용 데이터를 만들어 응답한다.
+export function failResponse(kind: SearchFailKind): Response {
+  if (kind === "quota") return Response.json({ error: "quota" }, { status: 503 });
+  if (kind === "rate_limited") return Response.json({ error: "rate_limited" }, { status: 429 });
+  return Response.json({ error: "upstream" }, { status: 502 });
+}
+
+// 로그에 남기기 전에 키 값을 지운다
+export function scrubKey(text: string): string {
+  const key = process.env.SERPAPI_API_KEY;
+  let out = text.replace(/api_key=[^&\s"']+/gi, "api_key=***");
+  if (key) out = out.split(key).join("***");
+  return out;
+}
+
+const QUOTA_TEXT = /run out of searches/i;
+
+// 외부 응답이 사용량 소진인지
+export function isQuota(status: number, body: string): boolean {
+  return status === 429 || QUOTA_TEXT.test(body);
+}
+
+// 결과가 없는 검색도 error 문구로 오므로 실패로 보지 않고 그대로 넘겨 빈 결과를 만든다
+const NO_RESULTS = "hasn't returned any results";
+
+// 검색 한 번. 실패하면 SearchFail을 던진다
+async function call(params: Record<string, string>, key: string): Promise<Record<string, unknown>> {
+  const engine = params.engine ?? "";
+  let res: Response;
+  let text: string;
+  try {
+    res = await fetch(`https://serpapi.com/search.json?${new URLSearchParams({ ...params, api_key: key })}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(25_000),
+    });
+    text = await res.text();
+  } catch (e) {
+    console.error("[search] fetch", engine, scrubKey(e instanceof Error ? `${e.name}: ${e.message}` : String(e)));
+    throw new SearchFail("upstream");
+  }
+  let json: Record<string, unknown> | null = null;
+  try {
+    json = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    json = null;
+  }
+  const error = typeof json?.error === "string" ? json.error : "";
+  if (isQuota(res.status, error || (json ? "" : text))) {
+    console.error("[search] quota", engine, res.status, scrubKey(error || text.slice(0, 300)));
+    throw new SearchFail("quota");
+  }
+  if (!json || (!res.ok && !error.includes(NO_RESULTS))) {
+    console.error("[search] upstream", engine, res.status, scrubKey(error || text.slice(0, 300)));
+    throw new SearchFail("upstream");
+  }
+  return json;
+}
+
+function ipOf(req: Request): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+}
+
+// params로 검색하고 shape로 화면용 데이터를 만들어 응답한다.
 // extra를 주면 같은 검색을 조건을 바꿔 한 번 더 불러(검색 1번 요금 추가) shape에 같이 넘긴다.
 // extra에 함수를 주면 첫 결과를 받은 뒤 그 결과로 다음 검색 조건을 만들어 이어서 부른다 (null이면 안 부름).
-// extra 쪽이 실패하면 null로 넘겨 기본 결과만으로 만든다. 횟수 제한은 검색 한 번으로 센다
+// extra 쪽이 실패하면 null로 넘겨 기본 결과만으로 만들고, 이때는 저장하지 않는다.
+// 같은 조건의 성공 응답은 30분 동안 저장해 두고 다시 쓴다. 횟수 제한은 실제로 검색할 때만 센다
 export async function serpSearch<T>(
   req: Request,
   params: Record<string, string>,
@@ -62,65 +117,50 @@ export async function serpSearch<T>(
   const key = process.env.SERPAPI_API_KEY;
   if (!key) return Response.json({ error: "not_configured" }, { status: 503 });
 
-  const cacheKey = JSON.stringify(typeof extra === "function" ? [params, "chain"] : extra ? [params, extra] : params);
-  const saved = cache.get(cacheKey);
-  if (saved && Date.now() - saved.at < CACHE_MS) return Response.json(saved.data);
-
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
-  if (rateLimited(ip)) return Response.json({ error: "rate_limited" }, { status: 429 });
-
-  let json: Record<string, unknown> | Response;
-  let more: Record<string, unknown> | Response | null;
-  if (typeof extra === "function") {
-    json = await call(params, key);
-    if (json instanceof Response) return json;
-    const next = extra(json);
-    more = next ? await call(next, key) : null;
-  } else {
-    [json, more] = await Promise.all([call(params, key), extra ? call(extra, key) : null]);
+  const ck = cacheKey("travel", params, typeof extra === "function" ? "chain" : (extra ?? null));
+  // 요청 헤더는 캐시 함수 밖에서 읽는다 (Next 캐시 안에서는 요청 데이터를 못 쓴다)
+  const ip = ipOf(req);
+  try {
+    const { data, hit } = await cached<T>(ck, TRAVEL_CACHE_SEC, async () => {
+      if (rateLimited(ip)) throw new SearchFail("rate_limited");
+      const json = await call(params, key);
+      let more: Record<string, unknown> | null = null;
+      let partial = false;
+      const next = typeof extra === "function" ? extra(json) : (extra ?? null);
+      if (next) {
+        try {
+          more = await call(next, key);
+        } catch {
+          partial = true;
+        }
+      }
+      const data = shape(json, more);
+      return partial ? new NoStore(data) : data;
+    });
+    return Response.json(data, { headers: { "x-cache": hit ? "HIT" : "MISS" } });
+  } catch (e) {
+    if (e instanceof SearchFail) return failResponse(e.kind);
+    console.error("[search] unexpected", scrubKey(e instanceof Error ? `${e.name}: ${e.message}` : String(e)));
+    return failResponse("upstream");
   }
-  if (json instanceof Response) return json;
-
-  const data = shape(json, more instanceof Response ? null : more);
-  if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
-  cache.set(cacheKey, { at: Date.now(), data });
-  return Response.json(data);
 }
 
-// SerpApi 원본 응답을 그대로 받아 오고, 같은 조건은 cacheMs 동안 저장해 두고 다시 쓴다.
-// 서버 인스턴스 메모리와 Next 데이터 캐시(revalidate) 둘 다 써서, 인스턴스가 바뀌어도 같은 검색을 다시 부르지 않게 한다.
-// 실패 응답은 저장하지 않는다. 키는 저장 키에 넣지 않는다
-const rawCache = new Map<string, { at: number; data: Record<string, unknown> }>();
-
+// 검색 원본 응답을 그대로 받아 오고, 같은 조건의 성공 응답은 cacheMs 동안 저장해 두고 다시 쓴다.
+// 실패하면 화면에 돌려줄 오류 응답(Response)을 준다
 export async function serpRaw(params: Record<string, string>, cacheMs: number): Promise<Record<string, unknown> | Response> {
   const key = process.env.SERPAPI_API_KEY;
   if (!key) return Response.json({ error: "not_configured" }, { status: 503 });
-  const cacheKey = JSON.stringify(params);
-  const saved = rawCache.get(cacheKey);
-  if (saved && Date.now() - saved.at < cacheMs) return saved.data;
-
   try {
-    const res = await fetch(`https://serpapi.com/search.json?${new URLSearchParams({ ...params, api_key: key })}`, {
-      next: { revalidate: Math.floor(cacheMs / 1000) },
-      signal: AbortSignal.timeout(25_000),
-    });
-    const json = (await res.json()) as Record<string, unknown>;
-    const error = typeof json.error === "string" ? json.error : "";
-    if (!res.ok && !error.includes("hasn't returned any results")) {
-      console.error("serpapi", params.engine, res.status, error);
-      return Response.json({ error: "upstream", detail: `${res.status} ${error}`.slice(0, 120) }, { status: 502 });
-    }
-    if (rawCache.size >= CACHE_MAX) rawCache.delete(rawCache.keys().next().value!);
-    rawCache.set(cacheKey, { at: Date.now(), data: json });
-    return json;
+    const { data } = await cached(cacheKey("raw", params), Math.floor(cacheMs / 1000), () => call(params, key));
+    return data;
   } catch (e) {
-    console.error("serpapi", params.engine, e);
-    return Response.json({ error: "upstream", detail: e instanceof Error ? e.name : "fetch failed" }, { status: 502 });
+    if (e instanceof SearchFail) return failResponse(e.kind);
+    console.error("[search] unexpected", scrubKey(e instanceof Error ? `${e.name}: ${e.message}` : String(e)));
+    return failResponse("upstream");
   }
 }
 
 // 한 사람이 너무 자주 찾지 못하게 막는다. 막혔으면 돌려줄 응답, 아니면 null
 export function rateLimit(req: Request): Response | null {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
-  return rateLimited(ip) ? Response.json({ error: "rate_limited" }, { status: 429 }) : null;
+  return rateLimited(ipOf(req)) ? failResponse("rate_limited") : null;
 }

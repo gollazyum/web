@@ -1,5 +1,6 @@
 import { lowestNightly, type HotelOption, type HotelPrices, type HotelResults, type HotelSource, type ReviewTopic } from "@/lib/hotels";
 import { DATE, serpSearch, today } from "@/lib/serpapi";
+import { normalizeText } from "@/lib/search-cache";
 import { amenityKo, dealKo, kindKo } from "@/lib/hotelText";
 import { allowedSellers } from "@/lib/hotel-sellers";
 
@@ -23,7 +24,7 @@ function parseQuery(body: unknown) {
   if (typeof adults !== "number" || !Number.isInteger(adults) || adults < 1 || adults > 9) return null;
   if (token !== undefined && (typeof token !== "string" || !token || token.length > 500)) return null;
   if (page !== undefined && (typeof page !== "string" || !page || page.length > 500)) return null;
-  return { q: q.trim(), checkIn, checkOut, adults, token: token as string | undefined, page: page as string | undefined };
+  return { q: normalizeText(q), checkIn, checkOut, adults, token: token as string | undefined, page: page as string | undefined };
 }
 
 type Rate = { extracted_lowest?: number };

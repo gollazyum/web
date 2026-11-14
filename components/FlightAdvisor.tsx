@@ -202,7 +202,11 @@ export function FlightAdvisor({ flights, query, open, onClose, onPick }: Props) 
           ↑
         </button>
       </form>
-      <p className="chat-note">AI 답변은 참고용이에요. 가격과 수하물 조건은 예약 사이트에서 꼭 확인해 주세요.</p>
+      <p className="chat-note">
+        AI 답변은 참고용이에요. 가격과 수하물 조건은 예약 사이트에서 꼭 확인해 주세요.
+        <br />
+        대화 내용은 답변 생성을 위해 외부 AI 서비스로 전송돼요. 이름·연락처 같은 개인정보는 입력하지 마세요.
+      </p>
     </aside>
   );
 }

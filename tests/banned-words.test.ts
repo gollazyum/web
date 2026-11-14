@@ -24,6 +24,10 @@ const UI_PATHS = [
   "components/HotelResults.tsx",
   "components/HotelPriceSheet.tsx",
   "components/FlightResults.tsx",
+  "components/ChatBox.tsx",
+  "components/HotelAdvisor.tsx",
+  "components/FlightAdvisor.tsx",
+  "lib/search-error.ts",
 ];
 
 // 2026-11-04 초록 요청으로 예외 문구는 모두 없앴다. 상표 심사 중에는 화면·메타에 '비교'·'최저가'를 쓰지 않는다

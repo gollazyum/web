@@ -388,6 +388,15 @@ a.pd-row-top:hover {
   color: var(--pd-blue-dark);
   font-weight: 700;
 }
+/* '다시 시도' 버튼도 링크와 같은 글자 모양 */
+button.pd-state-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
 .pd-spinner {
   width: 32px;
   height: 32px;
