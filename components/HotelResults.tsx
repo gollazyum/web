@@ -11,7 +11,7 @@ import { PriceRange } from "./PriceRange";
 import { ResultsMessage, ResultsShell } from "./ResultsShell";
 import { ScanProgress } from "./ScanProgress";
 import { SortMenu } from "./SortMenu";
-import { errorCode } from "@/lib/apiError";
+import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
 import { addDays, daysBetween, shortLabel, today } from "@/lib/dates";
 import { agodaSearchUrl, bookingLink, canTakeLowestBadge, firstSites, isAgoda, hotelsPath, lowestNightly, roboPick, roboReason, type HotelOption, type HotelPrices, type HotelQuery, type HotelResults } from "@/lib/hotels";
 import { cardAmenities, hotelNameKo, stayLimitLabel, stayLimits } from "@/lib/hotelText";
@@ -20,7 +20,7 @@ import { resized } from "@/lib/hotel-photo";
 import { MAX_COMPARE, compareItem, saveTopics, toSearchParams, updateStore, useLowbotiStore } from "@/lib/lowbotiStore";
 import { isPhone, useSheet } from "@/lib/useSheet";
 import { agodaAffiliateOn } from "@/lib/affiliate";
-import { allowedSellers, hotelSellerKey, linkRel } from "@/lib/hotel-sellers";
+import { allowedSellers, hotelSellerKey, linkRel, sellerSearchUrl } from "@/lib/hotel-sellers";
 import { CompareBar } from "./CompareBar";
 import { CompareModal } from "./CompareModal";
 
@@ -28,15 +28,14 @@ import { CompareModal } from "./CompareModal";
 // 필터와 정렬은 받아 온 목록 안에서만 하므로 SerpApi를 더 부르지 않는다
 const SCAN_MS = 4500;
 
-type State = { kind: "loading" } | { kind: "ok"; data: HotelResults } | { kind: "error"; message: string };
+type State = { kind: "loading" } | { kind: "ok"; data: HotelResults } | { kind: "error"; message: string; retry?: boolean };
 type Sort = "recommended" | "price" | "rating" | "reviews";
 
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
-async function failMessage(res: Response): Promise<string> {
-  if (res.status === 429) return "검색이 너무 잦아서 잠깐 쉬고 있어요. 잠시 뒤에 다시 찾아 주세요.";
-  if (res.status === 503) return "호텔 가격 기능을 준비하고 있어요. 아고다에서 먼저 찾아보세요.";
-  return `지금은 호텔 가격을 불러오지 못했어요. 잠시 뒤에 다시 찾아 주세요. (오류 ${await errorCode(res)})`;
+// 상태 코드만 보고 안내한다 (서버 메시지는 붙이지 않는다)
+function failMessage(res: Response): string {
+  return searchErrorMessage(res.status);
 }
 
 async function postHotels(body: HotelQuery & { token?: string; page?: string }): Promise<Response> {
@@ -47,6 +46,7 @@ async function postHotels(body: HotelQuery & { token?: string; page?: string }):
 export function HotelResultsView({ query }: { query: HotelQuery | null }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [revealed, setRevealed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!query) return;
@@ -54,14 +54,20 @@ export function HotelResultsView({ query }: { query: HotelQuery | null }) {
     let cancelled = false;
     postHotels(query)
       .then(async (res) => {
-        const next: State = res.ok ? { kind: "ok", data: (await res.json()) as HotelResults } : { kind: "error", message: await failMessage(res) };
+        const next: State = res.ok ? { kind: "ok", data: (await res.json()) as HotelResults } : { kind: "error", message: failMessage(res), retry: true };
         if (!cancelled) setState(next);
       })
-      .catch(() => !cancelled && setState({ kind: "error", message: "연결이 불안정해요. 잠시 뒤에 다시 찾아 주세요." }));
+      .catch(() => !cancelled && setState({ kind: "error", message: searchErrorMessage(null), retry: true }));
     return () => {
       cancelled = true;
     };
-  }, [query]);
+  }, [query, attempt]);
+
+  function retry() {
+    setState({ kind: "loading" });
+    setRevealed(false);
+    setAttempt((n) => n + 1);
+  }
 
   return (
     <ResultsShell
@@ -104,9 +110,16 @@ export function HotelResultsView({ query }: { query: HotelQuery | null }) {
       ) : (
         <ResultsMessage
           action={
-            <a className="results-out" href={agodaSearchUrl(query.q, query)} target="_blank" rel={linkRel("agoda")}>
-              아고다에서 바로 찾아보기 ↗
-            </a>
+            <>
+              {state.kind === "error" && state.retry && (
+                <button type="button" className="results-out" onClick={retry}>
+                  {SEARCH_RETRY_LABEL}
+                </button>
+              )}
+              <a className="results-out" href={sellerSearchUrl("trip", query.q, query)} target="_blank" rel={linkRel("trip")}>
+                트립닷컴에서 숙소 보기 ↗
+              </a>
+            </>
           }
         >
           {state.kind === "error" ? state.message : ""}
@@ -229,7 +242,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
     put({ kind: "loading" });
     try {
       const res = await postHotels({ ...query, q: hotel.q ?? query.q, token: hotel.token });
-      if (!res.ok) return put({ kind: "error", message: await failMessage(res) });
+      if (!res.ok) return put({ kind: "error", message: failMessage(res) });
       const prices = (await res.json()) as HotelPrices;
       const topics = prices.topics ?? null;
       saveTopics(hotel.token, topics);
@@ -246,7 +259,7 @@ function HotelBoard({ data: first, query }: { data: HotelResults; query: HotelQu
         }));
       }
     } catch {
-      put({ kind: "error", message: "연결이 불안정해요. 잠시 뒤에 다시 눌러 주세요." });
+      put({ kind: "error", message: searchErrorMessage(null) });
     }
   }
 

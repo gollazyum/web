@@ -2796,6 +2796,12 @@ a {
   font-weight: 700;
   text-decoration: none;
 }
+/* '다시 시도' 버튼도 링크와 같은 모양 */
+button.results-out {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
 .results-out.small {
   margin-top: 10px;
   padding: 6px 14px;

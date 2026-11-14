@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { errorCode } from "@/lib/apiError";
 import { filterItems, itemKey, LINK_PASTE_HINT, looksLikeUrl, sortItems } from "@/lib/shop-results";
 import { splitMain } from "@/lib/shop-match";
 import { detailHref, won, type SearchItem, type SearchResponse } from "@/lib/shopping";
@@ -11,13 +10,14 @@ import { DesktopResults } from "./DesktopResults";
 import { addRecent } from "@/lib/shop-recent";
 import { LinkPasteHint } from "./LinkPasteHint";
 import { ShopLoading } from "./ShopLoading";
+import { ShopSearchError } from "./ShopSearchError";
 import { ShopQueryInput } from "./ShopQueryInput";
 import { DEFAULT_MOBILE_FILTER, MobileFilters, type MobileFilter } from "./MobileFilters";
 
 type State =
   | { kind: "loading" }
   | { kind: "link" }
-  | { kind: "error"; code: string }
+  | { kind: "error"; status: number | null }
   | { kind: "unrelated" }
   | { kind: "ok"; items: SearchItem[]; sample: boolean };
 
@@ -66,6 +66,7 @@ export function ProductResults({ query }: { query: string }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [filter, setFilter] = useState<MobileFilter>(DEFAULT_MOBILE_FILTER);
   const [recent, setRecent] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const restore = useRef<View | null>(null);
   // PC(1024px 이상)만 그리드 화면. 모바일·태블릿은 아래 목록. 정렬·필터 칩은 640px 이하에서만
   const desktop = useMediaQuery("(min-width: 1024px)");
@@ -86,7 +87,7 @@ export function ProductResults({ query }: { query: string }) {
     const ctrl = new AbortController();
     fetch(`/api/shopping?q=${encodeURIComponent(query)}`, { signal: ctrl.signal })
       .then(async (res) => {
-        if (!res.ok) return setState({ kind: "error", code: await errorCode(res) });
+        if (!res.ok) return setState({ kind: "error", status: res.status });
         const data = (await res.json()) as SearchResponse;
         if (data.unrelated) return setState({ kind: "unrelated" });
         const entry = { items: data.items ?? [], sample: !!data.sample, at: Date.now() };
@@ -96,9 +97,9 @@ export function ProductResults({ query }: { query: string }) {
         }
         setState({ kind: "ok", items: entry.items, sample: entry.sample });
       })
-      .catch((e) => e.name !== "AbortError" && setState({ kind: "error", code: "network" }));
+      .catch((e) => e.name !== "AbortError" && setState({ kind: "error", status: null }));
     return () => ctrl.abort();
-  }, [query]);
+  }, [query, attempt]);
 
   // 목록이 그려진 뒤 보던 위치로 스크롤하고, 방금 본 상품 카드를 잠깐 표시한다
   useLayoutEffect(() => {
@@ -208,10 +209,13 @@ export function ProductResults({ query }: { query: string }) {
           </div>
         )}
         {state.kind === "error" && (
-          <div className="pd-state">
-            <p>지금은 상품 데이터를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.</p>
-            <small>오류 {state.code}</small>
-          </div>
+          <ShopSearchError
+            status={state.status}
+            onRetry={() => {
+              setState({ kind: "loading" });
+              setAttempt((n) => n + 1);
+            }}
+          />
         )}
         {state.kind === "ok" && !state.items.length && (
           <div className="pd-state" role="status">

@@ -8,12 +8,12 @@ import { LinkPasteHint } from "@/components/shop/LinkPasteHint";
 import { PriceCompareList } from "@/components/shop/PriceCompareList";
 import { ReportSheet, type ReportContext } from "@/components/shop/ReportSheet";
 import { ShopLoading } from "@/components/shop/ShopLoading";
-import { errorCode } from "@/lib/apiError";
+import { ShopSearchError } from "@/components/shop/ShopSearchError";
 import { COUPANG_LINK_ATTRS, coupangLinkLabel, getCoupangLink, type CoupangLink } from "@/lib/coupang-links";
 import { favId, isFav, toggleFavId } from "@/lib/shop-favs";
 import { DEFAULT_OFFER_VIEW, isNew, rankable, rankOffers, won, type OfferView, type ShoppingProduct, type ShoppingResponse } from "@/lib/shopping";
 
-type State = { kind: "loading" } | { kind: "empty" } | { kind: "error"; code: string } | { kind: "ok"; product: ShoppingProduct };
+type State = { kind: "loading" } | { kind: "empty" } | { kind: "error"; status: number | null } | { kind: "ok"; product: ShoppingProduct };
 
 function Icon({ d, label, onClick, active }: { d: string; label: string; onClick: () => void; active?: boolean }) {
   return (
@@ -42,12 +42,13 @@ export function ProductDetail({ query, token, pid = "" }: { query: string; token
   const [toast, setToast] = useState("");
   const [view, setView] = useState<OfferView>(DEFAULT_OFFER_VIEW);
   const [report, setReport] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const ctrl = new AbortController();
     fetch(`/api/shopping?${new URLSearchParams({ q: query, token, pid })}`, { signal: ctrl.signal })
       .then(async (res) => {
-        if (!res.ok) return setState({ kind: "error", code: await errorCode(res) });
+        if (!res.ok) return setState({ kind: "error", status: res.status });
         const data = (await res.json()) as ShoppingResponse;
         if (!data.product) return setState({ kind: "empty" });
         // 새 상품이 하나도 없으면(중고 상품 화면) 처음부터 '중고 포함'으로 보여 준다
@@ -55,9 +56,9 @@ export function ProductDetail({ query, token, pid = "" }: { query: string; token
         if (offers.length && !offers.some(isNew)) setView((v) => ({ ...v, includeUsed: true }));
         setState({ kind: "ok", product: data.product });
       })
-      .catch((e) => e.name !== "AbortError" && setState({ kind: "error", code: "network" }));
+      .catch((e) => e.name !== "AbortError" && setState({ kind: "error", status: null }));
     return () => ctrl.abort();
-  }, [query, token, pid]);
+  }, [query, token, pid, attempt]);
 
   // 찜(★)은 상품 ID 단위. 응답을 받기 전에는 주소의 pid로 먼저 확인한다
   const id = favId(state.kind === "ok" ? state.product.productId || pid : pid, token);
@@ -148,10 +149,13 @@ export function ProductDetail({ query, token, pid = "" }: { query: string; token
         </main>
       )}
       {state.kind === "error" && (
-        <div className="pd-state" role="status">
-          <p>지금은 상품 데이터를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.</p>
-          <small>오류 {state.code}</small>
-        </div>
+        <ShopSearchError
+          status={state.status}
+          onRetry={() => {
+            setState({ kind: "loading" });
+            setAttempt((n) => n + 1);
+          }}
+        />
       )}
 
       {product && (
