@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
     // 옛 주소(lowboti.com, lowboti.kr), www 없는 gollazyum.com, http:// 접속은 모두 https://www.gollazyum.com 으로 보낸다.
     // Vercel 도메인 설정에서도 처리하지만, 요청이 앱까지 들어온 경우를 위해 여기서도 막는다
     return [
+      // 1차 여행 앱 오픈 동안 쇼핑 화면은 숨긴다 (서버 API /api/shopping 과 코드는 그대로 둔다). 다시 열려면 이 두 줄을 지운다
+      { source: "/shop", destination: "/", permanent: false },
+      { source: "/shop/:path*", destination: "/", permanent: false },
       {
         source: "/:path*",
         has: [{ type: "host", value: "(www\\.)?lowboti\\.(com|kr)" }],
