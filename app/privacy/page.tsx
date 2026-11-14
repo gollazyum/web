@@ -70,7 +70,7 @@ export default function Privacy() {
             "문의처는 서비스 오픈 시 안내됩니다."
           )}
         </p>
-        <p className="muted">시행일: 2026년 10월 31일</p>
+        <p className="muted">시행일: 2026년 11월 14일</p>
       </main>
       <SiteFooter />
     </>
