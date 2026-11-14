@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { brand } from "@/lib/brand";
-import { site } from "@/lib/site";
 import { today as localToday } from "@/lib/dates";
 import { sellerSearchUrl } from "@/lib/hotel-sellers";
 import type { HotelOption } from "@/lib/hotels";
@@ -540,11 +539,6 @@ export function TripApp() {
                 <IconUp size={22} />
               </button>
             </form>
-            {home && (
-              <p className="tb-privacy">
-                AI 대화 내용은 답변을 만들기 위해 외부 AI 서비스로 전송돼요. 이름·연락처 같은 개인정보는 넣지 마세요. <Link href="/privacy">개인정보처리방침</Link>
-              </p>
-            )}
           </div>
         )}
 
@@ -662,18 +656,6 @@ function Home({ onSay, onStay, onFlight }: { onSay: (t: string) => void; onStay:
           <IconPlane size={18} /> 항공편
         </button>
       </div>
-      <footer className="tb-foot">
-        <p>
-          {brand.appName}
-          {brand.tentative ? "(가칭)" : ""} · 예약과 결제는 이동한 예약 사이트에서 진행돼요. 가격은 찾은 시점 기준이며 바뀔 수 있어요. 예약 링크로 이동하면 {site.name}이 제휴 수수료를 받을 수 있어요.
-        </p>
-        <p>
-          <Link href="/terms">이용약관</Link> · <Link href="/privacy">개인정보처리방침</Link> · 문의 <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
-        </p>
-        <p>
-          상호 {site.business.name} · 대표자 {site.business.ceo} · 사업자등록번호 {site.business.registrationNo}
-        </p>
-      </footer>
     </div>
   );
 }
@@ -991,3 +973,4 @@ function Trips({ saved, onOpen, onExplore }: { saved: Saved[]; onOpen: (s: Saved
     </main>
   );
 }
+

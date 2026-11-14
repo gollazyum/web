@@ -277,17 +277,6 @@
   background: var(--tb-butter);
   color: var(--tb-butter-ink);
 }
-.tb-privacy {
-  margin: 8px 8px 0;
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--tb-sub);
-  text-align: center;
-}
-.tb-privacy a {
-  text-decoration: underline !important;
-}
-
 /* ---------- 첫 화면: 캐릭터 인사 + 빠른 답 (v5 01) ---------- */
 .tb-chat {
   flex: 1;
@@ -352,18 +341,6 @@
   font-weight: 700;
   color: var(--tb-ink) !important;
 }
-.tb-foot {
-  margin-top: 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 11.5px;
-  color: var(--tb-mute);
-}
-.tb-foot a {
-  text-decoration: underline !important;
-}
-
 /* ---------- 대화 ---------- */
 .tb-msgs {
   display: flex;
