@@ -65,8 +65,8 @@
 
 /* 공통 */
 .tb-ib {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--tb-soft) !important;
   display: grid;
@@ -102,8 +102,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 40px;
-  padding: 0 15px;
+  height: 44px;
+  padding: 0 16px;
   border-radius: 999px;
   background: var(--tb-soft) !important;
   font-size: 14.5px;
@@ -124,7 +124,7 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
-  height: 40px;
+  height: 44px;
   padding: 0 16px;
   border-radius: 12px;
   font-weight: 700;
@@ -152,15 +152,26 @@
 }
 .tb-love {
   position: absolute !important;
-  top: 8px;
-  right: 8px;
-  width: 36px;
-  height: 36px;
+  top: 4px;
+  right: 4px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.92) !important;
+  background: none !important;
   color: var(--tb-ink) !important;
+}
+/* 눈에 보이는 동그라미는 36px, 누르는 곳은 44px */
+.tb-love::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+}
+.tb-love svg {
+  position: relative;
 }
 .tb-love.on {
   color: var(--tb-warn) !important;
@@ -322,6 +333,10 @@
   font-size: 17px;
   font-weight: 700;
 }
+.tb-sf select {
+  height: 44px;
+  margin: -9px 0;
+}
 .tb-sf input::placeholder {
   color: var(--tb-mute);
   font-weight: 600;
@@ -367,7 +382,7 @@
   padding: 10px 10px 2px;
 }
 .tb-sf-trip button {
-  height: 32px;
+  height: 44px;
   padding: 0 14px;
   border-radius: 999px;
   font-size: 14px;
@@ -551,10 +566,11 @@
 }
 .tb-srow-img .tb-love {
   top: auto;
-  bottom: 6px;
-  right: 6px;
-  width: 32px;
-  height: 32px;
+  bottom: 0;
+  right: 0;
+}
+.tb-srow-img .tb-love::before {
+  inset: 6px;
 }
 .tb-srow-body {
   flex: 1;
@@ -805,10 +821,13 @@
 }
 .tb-hcard-body {
   flex: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 12px 14px 14px;
+  text-align: left;
+  cursor: pointer;
 }
 .tb-hcard-body > strong {
   font-size: 16.5px;
@@ -887,8 +906,8 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 38px;
-  padding: 0 14px;
+  height: 44px;
+  padding: 0 16px;
   border-radius: 999px;
   border: 1px solid var(--tb-line) !important;
   font-weight: 600;
@@ -1062,7 +1081,8 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  margin-top: 4px;
+  min-height: 44px;
+  margin: -6px 0 -10px;
   font-size: 13.5px;
   font-weight: 600;
   color: var(--tb-accent) !important;
@@ -1180,6 +1200,7 @@
   align-items: center;
   gap: 4px;
   padding: 11px;
+  min-height: 44px;
   background: var(--tb-soft);
   font-weight: 700;
   font-size: 14px;
@@ -1229,8 +1250,12 @@
 }
 .tb-sheet-x {
   position: absolute !important;
-  top: 16px;
-  right: 16px;
+  top: 6px;
+  right: 6px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
 }
 
 /* 입력 시트 (v4 03·04) */
@@ -1301,6 +1326,7 @@
   font-weight: 700;
   font-size: 16px;
   padding: 10px 0;
+  min-height: 44px;
 }
 .tb-field select {
   text-align-last: right;
@@ -1327,8 +1353,8 @@
   gap: 12px;
 }
 .tb-stepper button {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--tb-soft) !important;
   font-size: 18px;
@@ -1474,6 +1500,26 @@
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
+}
+.tb-book {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 64px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 700;
+  background: var(--tb-soft);
+  color: var(--tb-ink) !important;
+  text-decoration: none;
+}
+.tb-book.dark {
+  background: var(--tb-ink);
+  color: #fff !important;
 }
 .tb-row + .tb-row {
   border-top: 1px solid var(--tb-line);

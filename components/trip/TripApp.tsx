@@ -743,7 +743,7 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRetry, onSay, onPr
                   <IconHeart size={18} on={on} />
                 </button>
               </div>
-              <div className="tb-hcard-body">
+              <button type="button" className="tb-hcard-body" onClick={() => onOpenHotel(p.h)} aria-label={`${p.h.name} 예약처별 총액 보기`}>
                 <strong>{p.h.name}</strong>
                 <span className="tb-hcard-meta">{[p.h.rating ? `★ ${p.h.rating.toFixed(1)}` : "", p.h.stars ? `${p.h.stars}성급` : p.h.kind].filter(Boolean).join(" · ")}</span>
                 <span className="tb-why">
@@ -753,11 +753,9 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRetry, onSay, onPr
                   <span>
                     <b>{t ? won(t.value) : "가격 확인"}</b> <small>{nights}박</small>
                   </span>
-                  <button type="button" className="tb-btn dark" onClick={() => onOpenHotel(p.h)}>
-                    예약
-                  </button>
+                  <span className="tb-btn dark">예약</span>
                 </div>
-              </div>
+              </button>
             </article>
           );
         })}
