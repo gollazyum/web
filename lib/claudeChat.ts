@@ -97,3 +97,29 @@ export function streamReply(system: string, messages: Anthropic.Beta.BetaMessage
     headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
   });
 }
+
+// 정해진 JSON 모양으로 한 번 답을 받는다 (스트리밍 없음). 실패·거절이면 null
+export async function jsonReply<T>(system: string, user: string, schema: Record<string, unknown>, maxTokens = 4000): Promise<T | null> {
+  client ??= new Anthropic();
+  try {
+    const res = await client.beta.messages.create(
+      {
+        model: MODEL,
+        max_tokens: maxTokens,
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        output_config: { effort: "low", format: { type: "json_schema", schema } },
+        system,
+        messages: [{ role: "user", content: user }],
+      },
+      { timeout: 45_000 },
+    );
+    if (res.stop_reason === "refusal" || res.stop_reason === "max_tokens") return null;
+    const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("");
+    return JSON.parse(text) as T;
+  } catch (error) {
+    if (error instanceof Anthropic.APIError) console.error(`trip ai api error ${error.status}:`, error.message);
+    else console.error("trip ai error:", error instanceof Error ? error.name : "unknown");
+    return null;
+  }
+}

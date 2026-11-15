@@ -1,7 +1,9 @@
-// 사이트 전역 설정. 인스타그램 주소 등은 여기서만 바꾸면 된다.
+import { brand } from "./brand";
+
+// 사이트 전역 설정. 인스타그램 주소 등은 여기서만 바꾸면 된다. 운영 이름은 lib/brand.ts 의 legalName
 export const site = {
-  name: "Gollazyum",
-  nameKo: "Gollazyum",
+  name: brand.legalName,
+  nameKo: brand.legalName,
   url: "https://www.gollazyum.com",
   tagline: "AI Travel & Lifestyle Platform",
   description:

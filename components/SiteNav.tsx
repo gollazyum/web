@@ -8,7 +8,7 @@ import { useSheet } from "@/lib/useSheet";
 // 헤더 메뉴. 데스크톱 가로 메뉴와 폰 햄버거 메뉴가 같은 목록을 쓴다
 type Item = { label: string; ko: string; review?: boolean } & ({ tab: TabId } | { href: string });
 const items: Item[] = [
-  { href: "/shop", label: "Shopping", ko: "쇼핑" },
+  // 쇼핑(/shop)은 1차 여행 앱 오픈 동안 숨긴다 (next.config.ts 에서 첫 화면으로 보낸다)
   { tab: "stay", label: "Stays", ko: "숙소" },
   { tab: "flight", label: "Flights", ko: "항공" },
   { href: "/#top", label: "Gollazyum App", ko: "앱 다운로드", review: true },
