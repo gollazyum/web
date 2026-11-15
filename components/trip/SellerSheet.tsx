@@ -18,14 +18,7 @@ type Props = {
 };
 
 // 판매처 표시용 색 (첫 글자 배지). 로고 이미지는 쓰지 않는다
-const TONE: Record<string, string> = {
-  agoda: "#5B4BDB",
-  trip: "#287DFA",
-  expedia: "#1B2E5A",
-  hotels: "#D32F2F",
-  yanolja: "#FF3478",
-  yeogi: "#E6007E",
-};
+const TONE: Record<string, string> = { agoda: "#5B4BDB", trip: "#287DFA", expedia: "#1B2E5A", hotels: "#D32F2F", yanolja: "#FF3478", yeogi: "#E6007E" };
 
 type Row = HotelSource & { cost: number; approx: boolean };
 
@@ -43,25 +36,14 @@ function rowsOf(sources: HotelSource[], nights: number): Row[] {
 export function SellerSheet({ hotel, query, saved, onSave, onClose }: Props) {
   return (
     <Sheet open={!!hotel} onClose={onClose} label="예약처별 결제 총액">
-      {hotel && (
-        <SellerBody hotel={hotel} query={query} saved={saved} onSave={onSave} />
-      )}
+      {hotel && <SellerBody hotel={hotel} query={query} saved={saved} onSave={onSave} />}
     </Sheet>
   );
 }
 
 // 시트(휴대폰)와 오른쪽 고정 패널(PC)이 같이 쓰는 본문
-export function SellerBody({
-  hotel,
-  query,
-  saved,
-  onSave,
-}: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
-  const [state, setState] = useState<{
-    token: string;
-    rows: Row[] | null;
-    status: number | null | "ok";
-  } | null>(null);
+export function SellerBody({ hotel, query, saved, onSave }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
+  const [state, setState] = useState<{ token: string; rows: Row[] | null; status: number | null | "ok" } | null>(null);
   const nights = nightsOf(query);
 
   useEffect(() => {
@@ -69,19 +51,9 @@ export function SellerBody({
     setState({ token: hotel.token, rows: null, status: "ok" });
     stayPrices(hotel.token, query, hotel.name).then((r) => {
       if (!live) return;
-      if (r.ok)
-        setState({
-          token: hotel.token,
-          rows: rowsOf(r.data.sources, nights),
-          status: "ok",
-        });
+      if (r.ok) setState({ token: hotel.token, rows: rowsOf(r.data.sources, nights), status: "ok" });
       // 실패하면 목록에 같이 온 몇 곳이라도 보여 준다
-      else
-        setState({
-          token: hotel.token,
-          rows: rowsOf(hotel.sources, nights),
-          status: r.status,
-        });
+      else setState({ token: hotel.token, rows: rowsOf(hotel.sources, nights), status: r.status });
     });
     return () => {
       live = false;
@@ -91,47 +63,20 @@ export function SellerBody({
   const rows = state?.token === hotel.token ? state?.rows : null;
   const failed = state && state.status !== "ok";
   const lowest = rows?.[0]?.cost ?? 0;
-  const hq = {
-    q: query.place,
-    checkIn: query.checkIn,
-    checkOut: query.checkOut,
-    adults: query.adults,
-  };
+  const hq = { q: query.place, checkIn: query.checkIn, checkOut: query.checkOut, adults: query.adults };
 
   return (
     <div className="tb-seller">
       <div className="tb-seller-head">
-        {hotel.image ? (
-          <img src={hotel.image} alt="" className="tb-seller-img" />
-        ) : (
-          <div className="tb-seller-img" />
-        )}
+        {hotel.image ? <img src={hotel.image} alt="" className="tb-seller-img" /> : <div className="tb-seller-img" />}
         <div>
           <h2>{hotel.name}</h2>
           <p>
-            {[
-              hotel.stars ? `${hotel.stars}성급` : hotel.kind,
-              `${nights}박`,
-              `${query.adults}명`,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
+            {[hotel.stars ? `${hotel.stars}성급` : hotel.kind, `${nights}박`, `${query.adults}명`].filter(Boolean).join(" · ")}
           </p>
-          {hotel.rating ? (
-            <p className="tb-mute">
-              후기 {hotel.rating.toFixed(1)}점
-              {hotel.reviews
-                ? ` (${hotel.reviews.toLocaleString("ko-KR")})`
-                : ""}
-            </p>
-          ) : null}
+          {hotel.rating ? <p className="tb-mute">후기 {hotel.rating.toFixed(1)}점{hotel.reviews ? ` (${hotel.reviews.toLocaleString("ko-KR")})` : ""}</p> : null}
           {hotel.gps && (
-            <a
-              className="tb-maplink"
-              href={`https://maps.google.com/?q=${hotel.gps[0]},${hotel.gps[1]}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a className="tb-maplink" href={`https://maps.google.com/?q=${hotel.gps[0]},${hotel.gps[1]}`} target="_blank" rel="noopener noreferrer">
               지도 앱에서 위치 보기 <IconOut />
             </a>
           )}
@@ -156,11 +101,7 @@ export function SellerBody({
             const ko = key ? sellerDef(key).ko : s.name;
             return (
               <div key={s.name} className="tb-row">
-                <span
-                  className="tb-seller-badge"
-                  style={{ background: (key && TONE[key]) || "#18202B" }}
-                  aria-hidden
-                >
+                <span className="tb-seller-badge" style={{ background: (key && TONE[key]) || "#18202B" }} aria-hidden>
                   {ko.slice(0, 1)}
                 </span>
                 <div className="tb-row-name">
@@ -168,22 +109,11 @@ export function SellerBody({
                   {s.approx && <small>1박 요금 × {nights}박</small>}
                 </div>
                 <div className="tb-row-price">
-                  {i === 0 && rows.length > 1 && (
-                    <em className="tb-low">가장 낮아요</em>
-                  )}
+                  {i === 0 && rows.length > 1 && <em className="tb-low">가장 낮아요</em>}
                   <strong>{won(s.cost)}</strong>
-                  {i > 0 && s.cost > lowest && (
-                    <small>
-                      +{Math.round(s.cost - lowest).toLocaleString("ko-KR")}
-                    </small>
-                  )}
+                  {i > 0 && s.cost > lowest && <small>+{Math.round(s.cost - lowest).toLocaleString("ko-KR")}</small>}
                 </div>
-                <a
-                  className={`tb-book${i === 0 ? " dark" : ""}`}
-                  href={href}
-                  target="_blank"
-                  rel={linkRel(key)}
-                >
+                <a className={`tb-book${i === 0 ? " dark" : ""}`} href={href} target="_blank" rel={linkRel(key)}>
                   예약 <IconOut />
                 </a>
               </div>
@@ -191,29 +121,14 @@ export function SellerBody({
           })}
         </div>
       ) : (
-        <p className="tb-note">
-          이 날짜에 가격을 보여 주는 예약처가 없어요. 날짜를 바꿔 다시 찾아봐
-          주세요.
-        </p>
+        <p className="tb-note">이 날짜에 가격을 보여 주는 예약처가 없어요. 날짜를 바꿔 다시 찾아봐 주세요.</p>
       )}
-      {failed && (
-        <p className="tb-note">
-          {searchErrorMessage(state.status === "ok" ? null : state.status)}
-        </p>
-      )}
+      {failed && <p className="tb-note">{searchErrorMessage(state.status === "ok" ? null : state.status)}</p>}
       <p className="tb-note">
-        <strong>예약 ↗</strong>을 누르면 그 사이트로 이동해 결제해요. {` `}이
-        앱은 제휴 수수료를 받을 수 있지만, 내는 금액은 같아요. 가격은 찾은 시점
-        기준이라 결제 화면에서 꼭 다시 확인해 주세요.
+        <strong>예약 ↗</strong>을 누르면 그 사이트로 이동해 결제해요. {` `}이 앱은 제휴 수수료를 받을 수 있지만, 내는 금액은 같아요. 가격은 찾은 시점 기준이라 결제 화면에서 꼭 다시 확인해 주세요.
       </p>
-      <button
-        type="button"
-        className="tb-save"
-        onClick={onSave}
-        aria-pressed={saved}
-      >
-        <IconHeart size={18} on={saved} />{" "}
-        {saved ? "내 여행에 담았어요" : "내 여행에 담기"}
+      <button type="button" className="tb-save" onClick={onSave} aria-pressed={saved}>
+        <IconHeart size={18} on={saved} /> {saved ? "내 여행에 담았어요" : "내 여행에 담기"}
       </button>
     </div>
   );

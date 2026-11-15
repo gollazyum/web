@@ -21,15 +21,9 @@ type Props = {
 
 const FILTERS: { label: string; test: (h: HotelOption) => boolean }[] = [
   { label: "조식", test: (h) => h.amenities.some((a) => /조식|아침/.test(a)) },
-  {
-    label: "온천·대욕장",
-    test: (h) => h.amenities.some((a) => /온천|대욕장|사우나/.test(a)),
-  },
+  { label: "온천·대욕장", test: (h) => h.amenities.some((a) => /온천|대욕장|사우나/.test(a)) },
   { label: "수영장", test: (h) => h.amenities.some((a) => /수영장/.test(a)) },
-  {
-    label: "무료 취소",
-    test: (h) => h.amenities.some((a) => /무료 취소/.test(a)),
-  },
+  { label: "무료 취소", test: (h) => h.amenities.some((a) => /무료 취소/.test(a)) },
   { label: "평점 4.0+", test: (h) => (h.rating ?? 0) >= 4 },
 ];
 
@@ -40,50 +34,25 @@ const SORTS: { id: Sort; label: string }[] = [
   { id: "rating", label: "평점순" },
 ];
 
-const md = (iso: string) =>
-  `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
+const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
 
 // 평점(5점 만점) 한 단어
-const ratingWord = (r: number) =>
-  r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋음" : r >= 3.8 ? "좋음" : "보통";
+const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋음" : r >= 3.8 ? "좋음" : "보통");
 
 // v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다
-export function StayList({
-  query,
-  options,
-  picks,
-  aiPending,
-  saved,
-  onSave,
-  onOpen,
-  onBack,
-  active,
-}: Props) {
+export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active }: Props) {
   const nights = nightsOf(query);
   const [sort, setSort] = useState<Sort>("ai");
   const [on, setOn] = useState<Set<string>>(new Set());
-  const reasons = useMemo(
-    () => new Map(picks.map((p) => [p.token, p.reason])),
-    [picks],
-  );
+  const reasons = useMemo(() => new Map(picks.map((p) => [p.token, p.reason])), [picks]);
   const filters = FILTERS.filter((f) => options.some(f.test));
   const cost = (h: HotelOption) => stayTotal(h, nights)?.value ?? Infinity;
-  const cheapest = useMemo(
-    () =>
-      options.reduce<HotelOption | null>(
-        (m, h) => (cost(h) < (m ? cost(m) : Infinity) ? h : m),
-        null,
-      ),
-    [options],
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  const cheapest = useMemo(() => options.reduce<HotelOption | null>((m, h) => (cost(h) < (m ? cost(m) : Infinity) ? h : m), null), [options]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shown = useMemo(() => {
-    let list = options.filter((h) =>
-      filters.every((f) => !on.has(f.label) || f.test(h)),
-    );
+    let list = options.filter((h) => filters.every((f) => !on.has(f.label) || f.test(h)));
     if (sort === "price") list = [...list].sort((a, b) => cost(a) - cost(b));
-    else if (sort === "rating")
-      list = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    else if (sort === "rating") list = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     else {
       const rank = (h: HotelOption) => {
         const i = picks.findIndex((p) => p.token === h.token);
@@ -105,12 +74,7 @@ export function StayList({
   return (
     <div className="tb-results">
       <div className="tb-results-top">
-        <button
-          type="button"
-          className="tb-ib"
-          onClick={onBack}
-          aria-label="검색으로 돌아가기"
-        >
+        <button type="button" className="tb-ib" onClick={onBack} aria-label="검색으로 돌아가기">
           <IconBack size={20} />
         </button>
         <button type="button" className="tb-qpill" onClick={onBack}>
@@ -122,39 +86,19 @@ export function StayList({
       </div>
       <div className="tb-chiprow">
         {SORTS.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            className="tb-chip"
-            aria-pressed={sort === s.id}
-            onClick={() => setSort(s.id)}
-          >
-            {s.id === "ai" ? (
-              <IconSpark size={16} />
-            ) : s.id === "price" ? (
-              <IconSort size={16} />
-            ) : null}
+          <button key={s.id} type="button" className="tb-chip" aria-pressed={sort === s.id} onClick={() => setSort(s.id)}>
+            {s.id === "ai" ? <IconSpark size={16} /> : s.id === "price" ? <IconSort size={16} /> : null}
             {s.label}
           </button>
         ))}
         {filters.map((f) => (
-          <button
-            key={f.label}
-            type="button"
-            className="tb-chip"
-            aria-pressed={on.has(f.label)}
-            onClick={() => toggle(f.label)}
-          >
+          <button key={f.label} type="button" className="tb-chip" aria-pressed={on.has(f.label)} onClick={() => toggle(f.label)}>
             {f.label}
           </button>
         ))}
       </div>
       <p className="tb-results-note">
-        숙소 {shown.length}곳 ·{" "}
-        {aiPending
-          ? "AI가 취향에 맞는 곳을 살펴보는 중이에요"
-          : `AI가 고른 ${Math.min(3, picks.length)}곳을 먼저 보여드려요`}{" "}
-        · {nights}박 총액
+        숙소 {shown.length}곳 · {aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : `AI가 고른 ${Math.min(3, picks.length)}곳을 먼저 보여드려요`} · {nights}박 총액
       </p>
       <div className="tb-rlist">
         {shown.map((h) => (
@@ -170,60 +114,21 @@ export function StayList({
             onOpen={() => onOpen(h)}
           />
         ))}
-        {!shown.length && (
-          <p className="tb-note">
-            조건에 맞는 숙소가 없어요. 위의 조건을 하나 풀어 보세요.
-          </p>
-        )}
+        {!shown.length && <p className="tb-note">조건에 맞는 숙소가 없어요. 위의 조건을 하나 풀어 보세요.</p>}
       </div>
     </div>
   );
 }
 
-export function StayRow({
-  h,
-  nights,
-  reason,
-  cheapest,
-  saved,
-  active,
-  onSave,
-  onOpen,
-}: {
-  h: HotelOption;
-  nights: number;
-  reason?: string;
-  cheapest?: boolean;
-  saved: boolean;
-  active?: boolean;
-  onSave?: () => void;
-  onOpen: () => void;
-}) {
+export function StayRow({ h, nights, reason, cheapest, saved, active, onSave, onOpen }: { h: HotelOption; nights: number; reason?: string; cheapest?: boolean; saved: boolean; active?: boolean; onSave?: () => void; onOpen: () => void }) {
   const t = stayTotal(h, nights);
   return (
     <article className={`tb-srow${active ? " on" : ""}`}>
       <div className="tb-srow-img">
-        {h.image ? (
-          <img
-            src={h.image}
-            alt=""
-            loading="lazy"
-            onError={(e) => (e.currentTarget.style.visibility = "hidden")}
-          />
-        ) : null}
-        {reason ? (
-          <em className="tb-tag ac">AI 추천</em>
-        ) : cheapest ? (
-          <em className="tb-tag red">최저가</em>
-        ) : null}
+        {h.image ? <img src={h.image} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : null}
+        {reason ? <em className="tb-tag ac">AI 추천</em> : cheapest ? <em className="tb-tag red">최저가</em> : null}
         {onSave && (
-          <button
-            type="button"
-            className={`tb-love${saved ? " on" : ""}`}
-            aria-pressed={saved}
-            aria-label={saved ? "내 여행에서 빼기" : "내 여행에 담기"}
-            onClick={onSave}
-          >
+          <button type="button" className={`tb-love${saved ? " on" : ""}`} aria-pressed={saved} aria-label={saved ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={onSave}>
             <IconHeart size={18} on={saved} />
           </button>
         )}
@@ -235,16 +140,12 @@ export function StayRow({
             {"★".repeat(Math.min(5, Math.round(h.stars)))}
           </span>
         ) : null}
-        <span className="tb-srow-meta">
-          {[h.kind, ...h.amenities.slice(0, 2)].filter(Boolean).join(" · ")}
-        </span>
+        <span className="tb-srow-meta">{[h.kind, ...h.amenities.slice(0, 2)].filter(Boolean).join(" · ")}</span>
         {h.rating ? (
           <span className="tb-score">
             <b>{h.rating.toFixed(1)}</b>
             <strong>{ratingWord(h.rating)}</strong>
-            {h.reviews ? (
-              <span>리뷰 {h.reviews.toLocaleString("ko-KR")}</span>
-            ) : null}
+            {h.reviews ? <span>리뷰 {h.reviews.toLocaleString("ko-KR")}</span> : null}
           </span>
         ) : null}
         {reason && (
