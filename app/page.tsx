@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { TripApp } from "@/components/trip/TripApp";
-import { brandCssVars, greetingFontUrl } from "@/lib/brand";
+import { brandCssVars } from "@/lib/brand";
 import { ogBase, ogImage, site } from "@/lib/site";
 import "./trip.css";
 
@@ -37,8 +37,6 @@ export default function Home() {
     <>
       {/* 브랜드 색은 lib/brand.ts 에서만 정한다 */}
       <style>{`:root{${brandCssVars()}}`}</style>
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link rel="stylesheet" href={greetingFontUrl()} precedence="default" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <TripApp />
     </>

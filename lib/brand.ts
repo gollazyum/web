@@ -4,29 +4,27 @@
 // - colors: 앱 화면(components/trip, app/trip.css)의 색. CSS 변수(--tb-*)로 내려간다
 
 export const brand = {
-  appName: "여행친구",
+  appName: "여행비서",
   tentative: true,
-  aiName: "여행친구 AI",
+  aiName: "여행비서 AI",
   legalName: "Gollazyum",
-  // 첫 화면에서 캐릭터가 건네는 인사 (Jua 글꼴로, 이 글자만 받아 온다)
-  greeting: ["안녕하세요!", "어디 가고 싶어요?"],
   colors: {
-    bg: "#FFF7EE", // 따뜻한 크림 바탕
+    bg: "#FFFFFF",
     card: "#FFFFFF",
-    ink: "#2A211C", // 따뜻한 먹색 (글자·진한 버튼·내 말풍선)
-    sub: "#7A6F66",
-    mute: "#B3A79C",
-    line: "#F0E4D6",
-    soft: "#F6ECE2", // 칩·보조 버튼 바탕
-    accent: "#FF7A59", // 코랄 (주 강조: 보내기·담기·선택된 핀)
-    accentDark: "#E85C3A",
-    accentSoft: "#FFE6D6", // 피치 (빠른 답 말풍선)
-    mint: "#3CC7B4", // 완료 표시
-    mintSoft: "#DDF6F1",
-    ai: "#6B5BE0", // AI 표시 보라
-    aiSoft: "#F0EDFF",
-    butter: "#FFEDB0", // '곧 열려요' 배지
-    butterInk: "#7A5A00",
+    soft: "#F4F4F6", // 칩·입력칸·보조 버튼 바탕
+    soft2: "#EBEBEF",
+    ink: "#0B0B0F", // 글자·검정 버튼
+    sub: "#6B6B73",
+    mute: "#A1A1AA",
+    line: "#E7E7EC",
+    accent: "#3A5BFF", // 하나뿐인 강조색 (AI 표시·선택)
+    accentDark: "#2742D9",
+    accentSoft: "#ECF0FF",
+    good: "#0E9F6E",
+    goodSoft: "#E3F7EE",
+    warn: "#E5484D",
+    warnSoft: "#FDECEC",
+    star: "#F5A524",
   },
 } as const;
 
@@ -44,8 +42,3 @@ export function brandCssVars(): string {
     .join("");
 }
 
-// 인사말 글꼴 Jua: 인사 글자만 담은 작은 파일을 받는다 (안 오면 본문 글꼴로 보인다)
-export function greetingFontUrl(): string {
-  const chars = Array.from(new Set(brand.greeting.join(""))).join("");
-  return `https://fonts.googleapis.com/css2?family=Jua&display=swap&text=${encodeURIComponent(chars)}`;
-}

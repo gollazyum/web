@@ -56,3 +56,21 @@ export const IconChat = ({ size }: P) => (
 export const IconHome = ({ size }: P) => (
   <svg {...base(size)}><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" /></svg>
 );
+export const IconSearch = ({ size }: P) => (
+  <svg {...base(size)}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+);
+export const IconCalendar = ({ size }: P) => (
+  <svg {...base(size)}><rect x="3.5" y="5" width="17" height="15" rx="3" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>
+);
+export const IconUsers = ({ size }: P) => (
+  <svg {...base(size)}><circle cx="9" cy="8.5" r="3.5" /><path d="M2.5 19.5a6.5 6.5 0 0 1 13 0M16 5.2a3.5 3.5 0 0 1 0 6.6M18 14a6 6 0 0 1 3.5 5.5" /></svg>
+);
+export const IconUser = ({ size }: P) => (
+  <svg {...base(size)}><circle cx="12" cy="8" r="4" /><path d="M4 20.5a8 8 0 0 1 16 0" /></svg>
+);
+export const IconChatStar = ({ size }: P) => (
+  <svg {...base(size)}><path d="M12 3.5a8.5 8.5 0 0 0-7.4 12.7L3.5 20.5l4.4-1.1A8.5 8.5 0 1 0 12 3.5z" /><path d="m12 8 1.2 2.5 2.7.3-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.3z" fill="currentColor" stroke="none" /></svg>
+);
+export const IconSort = ({ size }: P) => (
+  <svg {...base(size)}><path d="M7 4v16M3.5 7.5 7 4l3.5 3.5M17 20V4M13.5 16.5 17 20l3.5-3.5" /></svg>
+);

@@ -9,7 +9,6 @@ const UI_PATHS = [
   "components/shop",
   "app/shop",
   "app/page.tsx",
-  "components/trip",
   "app/privacy",
   "app/hotels",
   "app/flights",

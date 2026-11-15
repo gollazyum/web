@@ -69,6 +69,11 @@ export function SellerSheet({ hotel, query, saved, onSave, onClose }: Props) {
                 {[hotel.stars ? `${hotel.stars}성급` : hotel.kind, `${nights}박`, `${query.adults}명`].filter(Boolean).join(" · ")}
               </p>
               {hotel.rating ? <p className="tb-mute">후기 {hotel.rating.toFixed(1)}점{hotel.reviews ? ` (${hotel.reviews.toLocaleString("ko-KR")})` : ""}</p> : null}
+              {hotel.gps && (
+                <a className="tb-maplink" href={`https://maps.google.com/?q=${hotel.gps[0]},${hotel.gps[1]}`} target="_blank" rel="noopener noreferrer">
+                  지도 앱에서 위치 보기 <IconOut />
+                </a>
+              )}
             </div>
           </div>
           <div className="tb-seller-title">
