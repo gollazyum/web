@@ -474,6 +474,26 @@
   font-size: 15px;
 }
 
+/* 결과 위 가격대 칩: 누르면 아래 줄에 가격대가 열린다 */
+.tb-caret {
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+.tb-caret.up {
+  transform: translateY(2px) rotate(-135deg);
+}
+.tb-bandrow {
+  padding-top: 12px;
+}
+.tb-chip small {
+  font-size: 13px;
+  opacity: 0.7;
+  font-weight: 500;
+}
+
 /* ---------- 결과 목록 (v7 05) ---------- */
 .tb-results-top {
   position: sticky;
