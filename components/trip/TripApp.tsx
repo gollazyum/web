@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { labelForCode, loadAirports } from "@/lib/airports";
 import { brand, BRAND_AI_NAME, BRAND_NAME } from "@/lib/brand";
 import { today as localToday } from "@/lib/dates";
 import { sellerSearchUrl } from "@/lib/hotel-sellers";
@@ -10,6 +12,7 @@ import { criteriaWeights, EMPTY_PROFILE, profileLines, readSaved, TASTE_KEY, wit
 import { site } from "@/lib/site";
 import type { FlightOption } from "@/lib/flights";
 import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
+import { flightHref, parseHomeSearch, stayHref, TAB_PATH, tabOf, type Tab } from "@/lib/trip-url";
 import {
   fallbackFlightPicks,
   fallbackStayPicks,
@@ -67,7 +70,6 @@ type Msg =
 type StayMsg = Extract<Msg, { t: "stay" }>;
 type FlightMsg = Extract<Msg, { t: "flight" }>;
 type AskMsg = Extract<Msg, { t: "ask" }>;
-type Tab = "home" | "chat" | "now" | "my";
 type Saved = { hotel: HotelOption; query: StayQuery };
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -161,13 +163,37 @@ function joinTaste(a: string, b: string): string {
   return `${a}, ${b}`.slice(0, 200);
 }
 
+// 홈 결과 하나의 주소 (공유·뒤로 가기용)
+const homeHrefOf = (m: { t: "stay"; query: StayQuery } | { t: "flight"; query: FlightQuery }) => (m.t === "stay" ? stayHref(m.query) : flightHref(m.query));
+
 const cityOf = (label: string) => label.replace(/\s*\([A-Z]{3}\)\s*$/, "");
 
 // AI 표시: 유리 구슬 (v7)
 const Orb = ({ size = 32 }: { size?: number }) => <span className="tb-orb" style={{ width: size, height: size }} aria-hidden />;
 
 export function TripApp() {
-  const [tab, setTab] = useState<Tab>("home");
+  // 탭은 주소가 정한다 (/ 홈, /chat AI 채팅, /now 지금, /my 마이). 뒤로 가기·새로 고침·공유가 그대로 된다
+  const pathname = usePathname();
+  const router = useRouter();
+  const tab = tabOf(pathname);
+  // 홈 주소 뒤의 검색 조건 (?q=…). 홈에서 찾으면 주소에 담고, 뒤로 가기로 빼면 검색 화면으로 돌아간다
+  const [search, setSearch] = useState("");
+  const setTab = useCallback(
+    (t: Exclude<Tab, "home">) => {
+      if (tabOf(window.location.pathname) !== t) router.push(TAB_PATH[t], { scroll: false });
+    },
+    [router],
+  );
+  // 홈으로 (href: "/" 또는 검색 조건이 붙은 홈 주소). 이미 홈이면 화면을 다시 받지 않고 주소만 바꾼다
+  const goHome = useCallback(
+    (href: string) => {
+      if (window.location.pathname !== "/") return router.push(href, { scroll: false });
+      if (window.location.pathname + window.location.search === href) return;
+      window.history.pushState(null, "", href);
+      setSearch(new URL(href, window.location.origin).search);
+    },
+    [router],
+  );
   const [kind, setKind] = useState<SearchKind>("stay");
   const [prefStay, setPrefStay] = useState<Partial<StayQuery>>({});
   const [prefFlight, setPrefFlight] = useState<Partial<FlightQuery>>({});
@@ -203,6 +229,12 @@ export function TripApp() {
     const t = new URLSearchParams(window.location.search).get("tab");
     if (t === "flight") setKind("flight");
   }, []);
+  useEffect(() => {
+    const on = () => setSearch(window.location.pathname === "/" ? window.location.search : "");
+    on();
+    window.addEventListener("popstate", on);
+    return () => window.removeEventListener("popstate", on);
+  }, [pathname]);
 
   const chatLen = msgs.filter((m) => !("home" in m && m.home)).length;
   useEffect(() => {
@@ -347,6 +379,37 @@ export function TripApp() {
     [runStay],
   );
 
+  // 주소의 검색 조건 → 홈 결과. 같은 조건의 결과가 이미 있으면 그걸 다시 보여 주고(검색 없음),
+  // 없으면 그때 찾는다 (공유 링크·새로 고침·옛 /hotels·/flights 링크). 지난 날짜면 검색 칸만 채운다
+  useEffect(() => {
+    if (tab !== "home" || window.location.pathname !== "/") return;
+    const hs = parseHomeSearch(window.location.search); // search 상태는 바뀐 걸 알리는 용도 (탭을 옮긴 직후엔 한 박자 늦다)
+    if (!hs) return setHomeId(null);
+    const key = hs.kind === "stay" ? stayHref(hs.query) : flightHref({ ...hs.query, fromLabel: "", toLabel: "" });
+    const have = [...msgsRef.current].reverse().find((m) => (m.t === "stay" || m.t === "flight") && m.home && homeHrefOf(m) === key);
+    if (have) return setHomeId(have.id);
+    const past = (hs.kind === "stay" ? hs.query.checkIn : hs.query.depart) < localToday();
+    if (hs.kind === "stay") {
+      setKind("stay");
+      setPrefStay(hs.query);
+      if (!past) runStay(hs.query, { home: true });
+    } else {
+      setKind("flight");
+      const q = hs.query;
+      loadAirports()
+        .then((d) => ({ fromLabel: labelForCode(d, q.from), toLabel: labelForCode(d, q.to) }))
+        .catch(() => ({ fromLabel: q.from, toLabel: q.to }))
+        .then((labels) => {
+          setPrefFlight({ ...q, ...labels });
+          if (!past) runFlight({ ...q, ...labels }, { home: true });
+        });
+    }
+    if (past) {
+      window.history.replaceState(null, "", "/");
+      setSearch("");
+    }
+  }, [tab, search, runStay, runFlight]);
+
   const goFlight = useCallback(
     (q: Partial<FlightQuery>, base?: FlightMsg) => {
       if (!flightReady(q, localToday())) return setFlightSheet(q);
@@ -468,9 +531,13 @@ export function TripApp() {
   // AI 채팅으로 가기. 취향 기록이 없으면 이때 한 번만 설문을 띄운다
   function openChat(focus = false) {
     setTab("chat");
-    if (taste.need) setOnb(true);
-    else if (focus) setTimeout(() => inputRef.current?.focus(), 50);
+    if (focus && !taste.need) setTimeout(() => inputRef.current?.focus(), 50);
   }
+  // 취향 기록이 없으면 AI 채팅(/chat)에 처음 들어왔을 때 한 번만 설문을 띄운다.
+  // 주소가 /chat 으로 바뀐 뒤에 띄워야 뒤로 가기가 설문만 닫고 이전 탭으로 돌아간다
+  useEffect(() => {
+    if (tab === "chat" && taste.need) setOnb(true);
+  }, [tab, taste.need]);
 
   function save(hotel: HotelOption, query: StayQuery) {
     const was = savedSet.has(hotel.token);
@@ -483,12 +550,12 @@ export function TripApp() {
     setKind(k);
     if (k === "stay") setPrefStay({ ...(q as Partial<StayQuery>) });
     else setPrefFlight({ ...(q as Partial<FlightQuery>) });
-    setHomeId(null);
-    setTab("home");
+    goHome("/");
   }
 
   const homeMsg = msgs.find((m) => m.id === homeId) as StayMsg | FlightMsg | undefined;
   const chatMsgs = msgs.filter((m) => !("home" in m && m.home));
+  const homeHref = homeMsg ? homeHrefOf(homeMsg) : "/";
   // PC 2열: 홈 숙소 결과와 AI 채팅은 왼쪽 목록 + 오른쪽 예약처 패널
   const split = wide && ((tab === "home" && homeMsg?.t === "stay") || tab === "chat");
   const activeToken = seller?.hotel.token;
@@ -509,7 +576,7 @@ export function TripApp() {
             <HomeResult
               m={homeMsg}
               saved={savedSet}
-              onBack={() => setHomeId(null)}
+              onBack={() => goHome("/")}
               onSave={(h) => homeMsg.t === "stay" && save(h, homeMsg.query)}
               onOpen={(h) => homeMsg.t === "stay" && setSeller({ hotel: h, query: homeMsg.query })}
               active={activeToken}
@@ -532,8 +599,14 @@ export function TripApp() {
                 onKind={setKind}
                 stay={prefStay}
                 flight={prefFlight}
-                onStay={(q) => runStay(q, { home: true })}
-                onFlight={(q) => runFlight(q, { home: true })}
+                onStay={(q) => {
+                  runStay(q, { home: true });
+                  goHome(stayHref(q));
+                }}
+                onFlight={(q) => {
+                  runFlight(q, { home: true });
+                  goHome(flightHref(q));
+                }}
               />
               <button
                 type="button"
@@ -660,7 +733,7 @@ export function TripApp() {
             items={["오늘 날씨와 다음 일정을 한눈에", "메뉴판을 찍으면 우리말로 풀어 보기", "현지 가격을 원화로 바로 보기"]}
           />
         )}
-        {tab === "my" && <My saved={saved} profile={taste.profile} onTaste={() => setOnb(true)} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => setTab("home")} />}
+        {tab === "my" && <My saved={saved} profile={taste.profile} onTaste={() => setOnb(true)} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => goHome("/")} />}
 
         {split && (
           <aside className="tb-panel" aria-label="숙소 상세">
@@ -692,21 +765,24 @@ export function TripApp() {
               { id: "my", label: "마이", icon: <IconUser size={24} /> },
             ] as { id: Tab; label: string; icon: React.ReactNode; soon?: boolean }[]
           ).map((it) => (
-            <button
+            <Link
               key={it.id}
-              type="button"
+              href={it.id === "home" ? (tab === "home" ? "/" : homeHref) : TAB_PATH[it.id]}
+              scroll={false}
               className={`tb-tab${it.id === "chat" ? " ai" : ""}`}
               aria-current={tab === it.id ? "page" : undefined}
-              onClick={() => {
-                if (it.id === "home" && tab === "home") setHomeId(null);
-                if (it.id === "chat") openChat();
-                else setTab(it.id);
+              onClick={(e) => {
+                // 홈에서 홈을 누르면 검색 화면으로 (화면을 다시 받지 않고 주소만 바꾼다)
+                if (it.id === "home" && tab === "home") {
+                  e.preventDefault();
+                  goHome("/");
+                }
               }}
             >
               {it.icon}
               <span>{it.label}</span>
               {it.soon && <em className="tb-soon-dot">곧</em>}
-            </button>
+            </Link>
           ))}
         </nav>
       </div>

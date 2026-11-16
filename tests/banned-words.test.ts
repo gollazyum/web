@@ -8,10 +8,8 @@ import { COUPANG_SAMPLE_PRODUCTS } from "@/lib/coupang-links";
 const UI_PATHS = [
   "components/shop",
   "app/shop",
-  "app/page.tsx",
+  "app/(trip)",
   "app/privacy",
-  "app/hotels",
-  "app/flights",
   "components/SiteNav.tsx",
   "components/LinkChecker.tsx",
   "components/ShopSearch.tsx",
@@ -89,7 +87,7 @@ describe("금지어", () => {
   });
 
   // 여행 앱 화면(2026-11-16 지시서): 금지어·출처 0건, '고르다'의 어떤 꼴도 쓰지 않는다
-  const TRIP_PATHS = ["components/trip", "lib/taste.ts", "lib/site.ts", "app/shop/product"].flatMap(walk);
+  const TRIP_PATHS = ["components/trip", "lib/taste.ts", "lib/site.ts", "lib/trip-url.ts", "app/shop/product"].flatMap(walk);
 
   it.each(TRIP_PATHS)("%s 여행 앱 문구에 금지어·출처가 없다", (file) => {
     const code = stripComments(readFileSync(file, "utf8"));

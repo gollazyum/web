@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
       // 1차 여행 앱 오픈 동안 쇼핑 화면은 숨긴다 (서버 API /api/shopping 과 코드는 그대로 둔다). 다시 열려면 이 두 줄을 지운다
       { source: "/shop", destination: "/", permanent: false },
       { source: "/shop/:path*", destination: "/", permanent: false },
+      // 예전 결과 페이지는 새 앱 홈으로 보낸다. 검색 조건(?q=&checkin=…, ?from=&to=…)은 그대로 따라가서 같은 검색이 열린다
+      { source: "/hotels", destination: "/", permanent: true },
+      { source: "/flights", destination: "/?tab=flight", permanent: true },
       {
         source: "/:path*",
         has: [{ type: "host", value: "(www\\.)?lowboti\\.(com|kr)" }],
