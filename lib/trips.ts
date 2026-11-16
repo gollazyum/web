@@ -36,8 +36,7 @@ export function daysUntil(iso: string, today: string): number {
 // "빠진 건 없나요?" 항목. 숙소는 담은 숙소가 있으면 저절로 체크, 나머지는 직접 체크해 이 기기에 남긴다
 export const TRIP_CHECKS = [
   { id: "flight", label: "항공편", hint: "같은 날짜로 항공편 찾기" },
-  { id: "data", label: "eSIM·로밍", hint: "현지에서 쓸 데이터" },
-  { id: "transport", label: "공항 이동", hint: "공항 ↔ 숙소 교통편" },
+  // eSIM·로밍, 공항 이동은 제휴 링크가 생기면 다시 넣는다 (2026-11-17 초록: 우선 빼 두기)
 ] as const;
 export type TripCheckId = (typeof TRIP_CHECKS)[number]["id"];
 export type TripChecks = Record<string, Partial<Record<TripCheckId, boolean>>>;
