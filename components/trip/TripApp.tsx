@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { labelForCode, loadAirports } from "@/lib/airports";
+import { labelForCode, loadAirports, searchPlaces } from "@/lib/airports";
 import { brand, BRAND_AI_NAME, BRAND_NAME } from "@/lib/brand";
 import { today as localToday } from "@/lib/dates";
 import { sellerSearchUrl } from "@/lib/hotel-sellers";
@@ -45,6 +45,8 @@ import { Onboarding } from "./Onboarding";
 import { PriceBlock, StayList, StayRow, type StayPick } from "./StayList";
 import { getVerified, prefetchPrices, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
 import { setSavedList, type SavedBase } from "./saved-price";
+import { MyTrips } from "./MyTrips";
+import type { Trip } from "@/lib/trips";
 import { IconBack, IconBed, IconChatStar, IconClose, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
 
 type Status = "loading" | "done" | "error";
@@ -576,6 +578,15 @@ export function TripApp() {
     goHome("/");
   }
 
+  // 마이 여행의 '항공편 찾기': 같은 날짜·인원으로 홈 항공 검색 칸을 채운다 (도착지는 도시 이름으로 공항 코드를 찾고, 못 찾으면 비워 둔다)
+  function tripFlight(t: Trip) {
+    const base = { depart: t.checkIn, ret: t.checkOut, adults: t.adults };
+    loadAirports()
+      .then((d) => searchPlaces(d, t.city, 1)[0])
+      .catch(() => undefined)
+      .then((p) => prefill("flight", p ? { ...base, to: p.code, toLabel: p.label } : base));
+  }
+
   const homeMsg = msgs.find((m) => m.id === homeId) as StayMsg | FlightMsg | undefined;
   const chatMsgs = msgs.filter((m) => !("home" in m && m.home));
   const homeHref = homeMsg ? homeHrefOf(homeMsg) : "/";
@@ -756,7 +767,7 @@ export function TripApp() {
             items={["오늘 날씨와 다음 일정을 한눈에", "메뉴판을 찍으면 우리말로 풀어 보기", "현지 가격을 원화로 바로 보기"]}
           />
         )}
-        {tab === "my" && <My saved={saved} profile={taste.profile} onTaste={() => setOnb(true)} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => goHome("/")} />}
+        {tab === "my" && <My saved={saved} profile={taste.profile} onTaste={() => setOnb(true)} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => goHome("/")} onFlight={tripFlight} onMoreStays={(t) => goHome(stayHref({ place: t.city, checkIn: t.checkIn, checkOut: t.checkOut, adults: t.adults, budget: 0, taste: "" }))} />}
 
         {split && (
           <aside className="tb-panel" aria-label="숙소 상세">
@@ -1210,7 +1221,7 @@ function Soon({ title, lead, items }: { title: string; lead: string; items: stri
   );
 }
 
-function My({ saved, profile, onTaste, onOpen, onSave, onHome }: { saved: Saved[]; profile: TasteProfile | null; onTaste: () => void; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void }) {
+function My({ saved, profile, onTaste, onOpen, onSave, onHome, onFlight, onMoreStays }: { saved: Saved[]; profile: TasteProfile | null; onTaste: () => void; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void; onFlight: (t: Trip) => void; onMoreStays: (t: Trip) => void }) {
   const summary = profileLines(profile).join("\n");
   return (
     <main className="tb-page">
@@ -1222,29 +1233,10 @@ function My({ saved, profile, onTaste, onOpen, onSave, onHome }: { saved: Saved[
           {summary ? "취향 다시 설정하기" : "취향 설정하기"}
         </button>
       </section>
-      <h2 className="tb-h2">담아 둔 숙소</h2>
-      {saved.length ? (
-        <div className="tb-rlist flat">
-          {saved.map((s) => (
-            <div key={s.hotel.token}>
-              <StayRow h={s.hotel} query={s.query} saved onSave={() => onSave(s)} onOpen={() => onOpen(s)} />
-              <p className="tb-saved-q">
-                {s.query.place} · {md(s.query.checkIn)}–{md(s.query.checkOut)} · 성인 {s.query.adults}
-              </p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="tb-empty">
-          <p>마음에 드는 숙소의 ♡를 누르면 여기에 모여요.</p>
-          <button type="button" className="tb-cta small" onClick={onHome}>
-            숙소 찾으러 가기
-          </button>
-        </div>
-      )}
+      <MyTrips saved={saved} onOpen={onOpen} onSave={onSave} onHome={onHome} onFlight={onFlight} onMoreStays={onMoreStays} />
       <div className="tb-soon-box">
         <span className="tb-tag ac">곧 열려요</span>
-        <p>다가오는 여행 일정, 지난 여행 사진 모아 보기를 준비하고 있어요.</p>
+        <p>지난 여행 사진 모아 보기를 준비하고 있어요.</p>
       </div>
     </main>
   );
