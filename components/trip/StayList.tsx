@@ -17,6 +17,7 @@ type Props = {
   onOpen: (h: HotelOption) => void; // 예약처별 총액 시트
   onBack: () => void;
   active?: string; // PC 패널에 열려 있는 숙소
+  bare?: boolean; // 바텀시트 안: 위쪽 검색 줄 대신 제목만
 };
 
 const FILTERS: { label: string; test: (h: HotelOption) => boolean }[] = [
@@ -40,7 +41,7 @@ const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8,
 const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋음" : r >= 3.8 ? "좋음" : "보통");
 
 // v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다
-export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active }: Props) {
+export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare }: Props) {
   const nights = nightsOf(query);
   const [sort, setSort] = useState<Sort>("ai");
   const [on, setOn] = useState<Set<string>>(new Set());
@@ -73,6 +74,11 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
 
   return (
     <div className="tb-results">
+      {bare ? (
+        <h2 className="tb-list-title">
+          {query.place} 전체 {options.length}곳
+        </h2>
+      ) : (
       <div className="tb-results-top">
         <button type="button" className="tb-ib" onClick={onBack} aria-label="검색으로 돌아가기">
           <IconBack size={20} />
@@ -84,6 +90,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
           </span>
         </button>
       </div>
+      )}
       <div className="tb-chiprow">
         {SORTS.map((s) => (
           <button key={s.id} type="button" className="tb-chip" aria-pressed={sort === s.id} onClick={() => setSort(s.id)}>
@@ -98,7 +105,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
         ))}
       </div>
       <p className="tb-results-note">
-        숙소 {shown.length}곳 · {aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : `AI가 고른 ${Math.min(3, picks.length)}곳을 먼저 보여드려요`} · {nights}박 총액
+        숙소 {shown.length}곳 · {aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}곳을 먼저 보여드려요`} · {nights}박 총액
       </p>
       <div className="tb-rlist">
         {shown.map((h) => (

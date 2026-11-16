@@ -87,4 +87,14 @@ describe("금지어", () => {
   it("항상 금지 목록에 '골라'가 들어 있다", () => {
     expect(ALWAYS_BANNED_WORDS).toContain("골라");
   });
+
+  // 여행 앱 화면(2026-11-16 지시서): 금지어·출처 0건, '고르다'의 어떤 꼴도 쓰지 않는다
+  const TRIP_PATHS = ["components/trip", "lib/taste.ts", "lib/site.ts", "app/shop/product"].flatMap(walk);
+
+  it.each(TRIP_PATHS)("%s 여행 앱 문구에 금지어·출처가 없다", (file) => {
+    const code = stripComments(readFileSync(file, "utf8"));
+    expect(findBannedWords(code, false)).toEqual([]);
+    expect(code.match(/고르|고른|고를|골라|골랐|로보티/g) ?? []).toEqual([]);
+    expect(code).not.toMatch(/https?:\/\/(www\.|maps\.)?google\./);
+  });
 });

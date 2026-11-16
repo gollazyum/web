@@ -230,3 +230,46 @@ export function mergePicks(ai: Pick[], fallback: Pick[], size: number, factReaso
   }
   return out;
 }
+
+// ---------- 후속 조건: 이미 받은 목록 안에서만 거른다 (검색·AI를 다시 부르지 않는다) ----------
+
+export type StayRefineId = "breakfast" | "bath" | "cancel" | "cheap" | "rating";
+export type FlightRefineId = "direct" | "morning" | "morningDirect" | "cheap";
+
+export const STAY_REFINES: { id: StayRefineId; label: string }[] = [
+  { id: "breakfast", label: "조식 포함" },
+  { id: "bath", label: "대욕장·수영장" },
+  { id: "cancel", label: "무료 취소" },
+  { id: "cheap", label: "낮은 가격순" },
+  { id: "rating", label: "평점 높은 순" },
+];
+
+export const FLIGHT_REFINES: { id: FlightRefineId; label: string }[] = [
+  { id: "morningDirect", label: "오전 직항" },
+  { id: "direct", label: "직항만" },
+  { id: "morning", label: "오전 출발" },
+  { id: "cheap", label: "낮은 가격순" },
+];
+
+const STAY_HAS: Partial<Record<StayRefineId, RegExp>> = {
+  breakfast: /조식|아침|breakfast/i,
+  bath: /온천|대욕장|노천탕|사우나|스파|수영장|pool/i,
+  cancel: /무료\s*취소|free cancellation/i,
+};
+
+// 편의시설에 그 말이 있는 곳만, 또는 가격·평점 순으로. 값이 없는 곳은 뒤로 보낸다
+export function refineStays(list: HotelOption[], id: StayRefineId, nights: number): HotelOption[] {
+  const re = STAY_HAS[id];
+  if (re) return list.filter((h) => h.amenities.some((a) => re.test(a)));
+  const val = (h: HotelOption) => (id === "cheap" ? (stayTotal(h, nights)?.value ?? Infinity) : -(h.rating ?? -Infinity));
+  return [...list].sort((a, b) => val(a) - val(b));
+}
+
+export function refineFlights(list: FlightOption[], id: FlightRefineId): FlightOption[] {
+  const direct = (o: FlightOption) => o.stops.length === 0;
+  const morning = (o: FlightOption) => hourOf(o.departTime) >= 6 && hourOf(o.departTime) < 12;
+  if (id === "direct") return list.filter(direct);
+  if (id === "morning") return list.filter(morning);
+  if (id === "morningDirect") return list.filter((o) => direct(o) && morning(o));
+  return [...list].sort((a, b) => a.price - b.price);
+}

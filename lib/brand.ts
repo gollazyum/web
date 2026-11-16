@@ -28,6 +28,11 @@ export const brand = {
   },
 } as const;
 
+// 가칭 서비스명·상단 아이콘. 이름이 정해지면 여기 두 줄만 바꾼다
+export const BRAND_NAME: string = brand.appName;
+export const BRAND_AI_NAME: string = brand.aiName;
+export const BRAND_ICON = "orb" as const; // 파란 구체 (components/trip의 .tb-orb)
+
 export type BrandColorKey = keyof typeof brand.colors;
 
 // "accentDark" → "--tb-accent-dark"
@@ -35,10 +40,13 @@ export function cssVarName(key: string): string {
   return `--tb-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
 }
 
+// 일괄 교체용 대표 색 3개. --tb-bg·--tb-ink·--tb-accent는 이 셋을 따라간다
+const CORE_VARS: Partial<Record<BrandColorKey, string>> = { bg: "--bg", ink: "--primary", accent: "--accent" };
+
 // :root에 넣을 CSS 변수 묶음
 export function brandCssVars(): string {
-  return Object.entries(brand.colors)
-    .map(([k, v]) => `${cssVarName(k)}:${v};`)
-    .join("");
+  const core = Object.entries(CORE_VARS).map(([k, v]) => `${v}:${brand.colors[k as BrandColorKey]};`);
+  const rest = Object.entries(brand.colors).map(([k, v]) => `${cssVarName(k)}:${CORE_VARS[k as BrandColorKey] ? `var(${CORE_VARS[k as BrandColorKey]})` : v};`);
+  return [...core, ...rest].join("");
 }
 

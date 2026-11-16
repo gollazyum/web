@@ -1,5 +1,5 @@
 import { AGODA_CID, agodaAffiliateOn } from "./affiliate";
-import { agodaSearch, hotelSellerKey, isGoogleLink, sellerSearchUrl } from "./hotel-sellers";
+import { agodaSearch, allowedSellers, hotelSellerKey, isGoogleLink, sellerSearchUrl, type HotelSellerKey } from "./hotel-sellers";
 import { stayLimits } from "./hotelText";
 
 // 호텔 검색 결과 모양과 링크. 서버(app/api/hotels)와 화면(HotelSearch)이 같이 쓴다.
@@ -112,6 +112,8 @@ export function roboReason(sources: HotelSource[], pick: string): string {
 export function bookingLink(s: HotelSource, hotelName: string, query: HotelQuery): string {
   const key = hotelSellerKey(s.name, s.official, s.link);
   if (!key) return "";
+  // 공식 사이트는 날짜를 넣어 열 검색 주소가 없으니 직링크가 없으면 보여 주지 않는다
+  if (key === "official" && (!s.link || isGoogleLink(s.link))) return "";
   if (!s.link || isGoogleLink(s.link)) return sellerSearchUrl(key, hotelName, query);
   let url: URL;
   try {
@@ -162,4 +164,20 @@ export function firstSites(rows: HotelSource[], pick: string | null): Set<string
   for (const s of rows) if (keep.size < FIRST_SITES && KOREAN_OK.test(s.name)) keep.add(s.name);
   for (const s of rows) if (keep.size < FIRST_SITES) keep.add(s.name);
   return keep;
+}
+
+// 예약처 시트의 줄. 허용 목록 밖·링크를 못 만드는 곳을 먼저 빼고 나서 총액 순으로 줄 세운다.
+// '가장 낮아요' 꼬리표와 차액은 이렇게 거른 목록의 첫 줄 기준이다
+export type SellerRow = HotelSource & { key: HotelSellerKey; href: string; cost: number; approx: boolean };
+
+export function sellerRows(sources: HotelSource[], nights: number, hotelName: string, query: HotelQuery): SellerRow[] {
+  const out: SellerRow[] = [];
+  for (const s of allowedSellers(sources)) {
+    const key = hotelSellerKey(s.name, s.official, s.link);
+    const href = key ? bookingLink(s, hotelName, query) : "";
+    const cost = s.total ?? (s.perNight ? s.perNight * nights : null);
+    if (!key || !href || !cost) continue;
+    out.push({ ...s, key, href, cost, approx: s.total === null });
+  }
+  return out.sort((a, b) => a.cost - b.cost);
 }

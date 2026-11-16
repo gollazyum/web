@@ -57,7 +57,8 @@ describe("브랜드 설정", () => {
   });
   it("색을 CSS 변수로 내린다", () => {
     expect(cssVarName("accentDark")).toBe("--tb-accent-dark");
-    expect(brandCssVars()).toContain(`--tb-accent:${brand.colors.accent};`);
+    expect(brandCssVars()).toContain(`--accent:${brand.colors.accent};`);
+    expect(brandCssVars()).toContain("--tb-accent:var(--accent);");
   });
 });
 

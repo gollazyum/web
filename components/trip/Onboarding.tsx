@@ -2,52 +2,93 @@
 
 import { useState } from "react";
 import { useSheet } from "@/lib/useSheet";
-import { CRITERIA, FLIGHT_PREFS, TASTES, type CriterionId, type FlightPrefId, type TasteId, type TasteProfile } from "@/lib/taste";
+import { BUDGETS, CRITERIA, FLIGHT_PREFS, PACES, STAYS, TASTES, WHO, type TasteProfile } from "@/lib/taste";
+import { IconBack } from "./icons";
 
 type Props = {
   init: TasteProfile;
-  onDone: (p: TasteProfile) => void;
-  onSkip: () => void;
+  onDone: (p: TasteProfile) => void; // 끝까지 답함
+  onSkip: (p: TasteProfile) => void; // '나중에 하기'나 휴대폰 뒤로가기: 그때까지 선택한 것만 저장하고 다시 묻지 않는다
 };
+
+type Opt = { id: string; label: string; icon?: string };
 
 const flip = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
-// v7 01·02: 취향 사진 고르기 → 숙소 기준 순서 정하기. 어느 단계든 건너뛸 수 있다
+// 숙소 유형 칩 앞의 작은 선 아이콘 (24 기준)
+const ICON: Record<string, string> = {
+  bell: "M4 18h16M6 18a6 6 0 0 1 12 0M12 9V7m-2 0h4",
+  star: "m12 4 2.4 5 5.4.6-4 3.7 1.1 5.4L12 16l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z",
+  steam: "M4 15h16a8 4 0 0 1-16 0zM9 11c-1-1 1-2 0-4m3 4c-1-1 1-2 0-4m3 4c-1-1 1-2 0-4",
+  coin: "M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-2-11h3a1.5 1.5 0 0 1 0 3h-2a1.5 1.5 0 0 0 0 3h3m-1-8v1m0 8v1",
+  bunk: "M5 4v16m14-16v16M5 9h14M5 15h14M8 9V7h4v2m-4 6v-2h4v2",
+  key: "M15 9a4 4 0 1 1-4 4l-7 7m3-3 2 2m1-4 2 2",
+};
+
+function Chips({ opts, picked, onPick }: { opts: Opt[]; picked: string[]; onPick: (id: string) => void }) {
+  return (
+    <div className="tb-q-chips">
+      {opts.map((o) => (
+        <button key={o.id} type="button" className="tb-q-chip" aria-pressed={picked.includes(o.id)} onClick={() => onPick(o.id)}>
+          {o.icon && ICON[o.icon] && (
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d={ICON[o.icon]} />
+            </svg>
+          )}
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const STEPS = ["여행 스타일", "좋아하는 여행", "숙소·항공"];
+
+// AI 채팅에 처음 들어갈 때 한 번만 띄운다. 무엇이든 하나 선택하면 '다음'이 켜진다
 export function Onboarding({ init, onDone, onSkip }: Props) {
   const [step, setStep] = useState(0);
-  const [tastes, setTastes] = useState<TasteId[]>(init.tastes);
-  const [criteria, setCriteria] = useState<CriterionId[]>(init.criteria);
-  const [flight, setFlight] = useState<FlightPrefId[]>(init.flight);
-  const done = () => onDone({ tastes, criteria, flight });
-  useSheet(true, onSkip); // 휴대폰 뒤로가기 = 건너뛰기, 뒤 화면 스크롤 잠금
+  const [p, setP] = useState<TasteProfile>(init);
+  useSheet(true, () => onSkip(p)); // 휴대폰 뒤로가기 = 나중에 하기, 뒤 화면 스크롤 잠금
+
+  const one = (k: "budget" | "pace", id: string) => setP((x) => ({ ...x, [k]: x[k] === id ? "" : id }));
+  const tog = (k: "who" | "tastes" | "stays" | "criteria" | "flight", id: string) => setP((x) => ({ ...x, [k]: flip(x[k] as string[], id) }));
+
+  const ready = [p.who.length > 0 || !!p.budget || !!p.pace, p.tastes.length > 0, p.stays.length + p.criteria.length + p.flight.length > 0][step];
+  const last = step === STEPS.length - 1;
 
   return (
-    <div className="tb-onb" role="dialog" aria-modal="true" aria-label="취향 고르기">
+    <div className="tb-onb" role="dialog" aria-modal="true" aria-label="여행 취향 설문">
       <div className="tb-onb-in">
         <div className="tb-onb-top">
-          <div className="tb-onb-bar" aria-label={`${step + 1} / 2단계`}>
-            <i className="on" />
-            <i className={step > 0 ? "on" : undefined} />
-          </div>
-          <button type="button" className="tb-onb-skip" onClick={onSkip}>
-            건너뛰기
+          <span className="tb-orb" style={{ width: 40, height: 40 }} aria-hidden />
+          <button type="button" className="tb-onb-skip" onClick={() => onSkip(p)}>
+            나중에 하기
           </button>
         </div>
 
-        {step === 0 ? (
-          <>
-            <h1>
-              어떤 여행을
-              <br />
-              좋아하세요?
-            </h1>
-            <p className="tb-onb-lead">고른 취향으로 숙소 추천을 맞춰 드려요. 여러 개 골라도 돼요.</p>
+        {step === 0 && (
+          <section>
+            <h1>어떤 여행을 다니는지 알려 주세요</h1>
+            <p className="tb-onb-lead">알려 주시면 AI 추천을 취향에 맞춰 드려요.</p>
+            <h2 className="tb-q">주로 누구와 여행하세요?</h2>
+            <Chips opts={WHO} picked={p.who} onPick={(id) => tog("who", id)} />
+            <h2 className="tb-q">여행 예산은 보통 어느 정도예요?</h2>
+            <Chips opts={BUDGETS} picked={p.budget ? [p.budget] : []} onPick={(id) => one("budget", id)} />
+            <h2 className="tb-q">하루 이동은 어느 정도가 편하세요?</h2>
+            <Chips opts={PACES} picked={p.pace ? [p.pace] : []} onPick={(id) => one("pace", id)} />
+          </section>
+        )}
+
+        {step === 1 && (
+          <section>
+            <h1>어떤 여행을 좋아하세요?</h1>
+            <p className="tb-onb-lead">끌리는 여행을 선택해 주세요. 여러 개 선택해도 돼요.</p>
             <div className="tb-onb-tiles">
               {TASTES.map((t) => {
-                const on = tastes.includes(t.id);
+                const on = p.tastes.includes(t.id);
                 return (
-                  <button key={t.id} type="button" className={`tb-onb-tile${on ? " on" : ""}`} aria-pressed={on} onClick={() => setTastes((l) => flip(l, t.id))}>
-                    <img src={`/taste/${t.id}.svg`} alt="" />
+                  <button key={t.id} type="button" className={`tb-onb-tile${on ? " on" : ""}`} aria-pressed={on} onClick={() => tog("tastes", t.id)}>
+                    <img src={`/taste/${t.id}.svg?v=2`} alt="" />
                     <span className="tb-onb-lb">{t.label}</span>
                     <span className="tb-onb-ck" aria-hidden>
                       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
@@ -58,65 +99,50 @@ export function Onboarding({ init, onDone, onSkip }: Props) {
                 );
               })}
             </div>
-            <div className="tb-onb-foot">
-              <button type="button" className="tb-cta" onClick={() => setStep(1)}>
-                {tastes.length ? `다음 · ${tastes.length}개 선택` : "다음"}
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <h1>
-              숙소를 고를 때
-              <br />
-              무엇이 가장 중요한가요?
-            </h1>
-            <p className="tb-onb-lead">중요한 순서대로 눌러 주세요. 추천 순서에 그대로 반영돼요. 다시 누르면 빠져요.</p>
+          </section>
+        )}
+
+        {step === 2 && (
+          <section>
+            <h1>숙소와 항공권 기준을 알려 주세요</h1>
+            <h2 className="tb-q">주로 묵는 숙소는요?</h2>
+            <Chips opts={STAYS} picked={p.stays} onPick={(id) => tog("stays", id)} />
+            <h2 className="tb-q">숙소를 정할 때 중요한 순서대로 선택해 주세요</h2>
             <div className="tb-onb-rank">
               {CRITERIA.map((c) => {
-                const i = criteria.indexOf(c.id);
+                const i = p.criteria.indexOf(c.id);
                 return (
-                  <button key={c.id} type="button" className={i >= 0 ? "on" : undefined} aria-pressed={i >= 0} aria-label={i >= 0 ? `${i + 1}순위 ${c.label}` : c.label} onClick={() => setCriteria((l) => flip(l, c.id))}>
+                  <button key={c.id} type="button" className={i >= 0 ? "on" : undefined} aria-pressed={i >= 0} aria-label={i >= 0 ? `${i + 1}순위 ${c.label}` : c.label} onClick={() => tog("criteria", c.id)}>
                     <b aria-hidden>{i >= 0 ? i + 1 : "–"}</b>
                     <span>{c.label}</span>
                   </button>
                 );
               })}
             </div>
-            <h2 className="tb-onb-h2">항공권은요?</h2>
-            <div className="tb-onb-chips">
-              {FLIGHT_PREFS.map((f) => {
-                const on = flight.includes(f.id);
-                return (
-                  <button key={f.id} type="button" className="tb-chip" aria-pressed={on} onClick={() => setFlight((l) => flip(l, f.id))}>
-                    {f.label}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="tb-onb-foot two">
-              <button type="button" className="tb-btn" onClick={() => setStep(0)}>
-                이전
-              </button>
-              <button type="button" className="tb-cta" onClick={done}>
-                시작하기
-              </button>
-            </div>
-          </>
+            <h2 className="tb-q">항공권은 어떤 조건이 좋으세요?</h2>
+            <Chips opts={FLIGHT_PREFS} picked={p.flight} onPick={(id) => tog("flight", id)} />
+          </section>
         )}
+
+        <div className="tb-onb-foot">
+          <div className="tb-onb-bar" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS.length} aria-valuenow={step + 1} aria-label="설문 진행">
+            <i style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+          </div>
+          <div className="tb-onb-nav">
+            {step > 0 && (
+              <button type="button" className="tb-onb-back" onClick={() => setStep(step - 1)} aria-label="이전">
+                <IconBack size={20} />
+              </button>
+            )}
+            <span className="tb-onb-step">
+              {step + 1}/{STEPS.length} {STEPS[step]}
+            </span>
+            <button type="button" className={`tb-onb-next${last ? " go" : ""}`} disabled={!ready} onClick={() => (last ? onDone(p) : setStep(step + 1))}>
+              {last ? "내 맞춤 여행 보러 가기" : "다음"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
-
-// 마이 탭에 보여 주는 지금 고른 취향 한 줄
-export function profileSummary(p: TasteProfile | null): string {
-  if (!p || (!p.tastes.length && !p.criteria.length && !p.flight.length)) return "";
-  return [
-    p.tastes.map((id) => TASTES.find((t) => t.id === id)?.label).join(", "),
-    p.criteria.length ? `중요한 순서: ${p.criteria.map((id) => CRITERIA.find((c) => c.id === id)?.label).join(" > ")}` : "",
-    p.flight.map((id) => FLIGHT_PREFS.find((f) => f.id === id)?.label).join(", "),
-  ]
-    .filter(Boolean)
-    .join("\n");
 }
