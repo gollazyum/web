@@ -28,9 +28,9 @@ import { parseText, pickFlights, pickStays, searchFlights, searchStays } from ".
 import { FlightBrowser, FlightCard, flightLink } from "./Flights";
 import { FlightSheet, StaySheet } from "./InputSheets";
 import { SearchCard, type SearchKind } from "./SearchCard";
-import { SellerSheet } from "./SellerSheet";
+import { SellerBody, SellerSheet } from "./SellerSheet";
 import { StayList, StayRow, type StayPick } from "./StayList";
-import { IconBack, IconBed, IconChatStar, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
+import { IconBack, IconBed, IconChatStar, IconClose, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
 
 type Status = "loading" | "done" | "error";
 
@@ -66,6 +66,19 @@ const EXAMPLES = ["부모님이랑 조용한 온천 숙소", "12월 오사카 2�
 const md = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`;
 const DOW = ["일", "월", "화", "수", "목", "금", "토"];
 const mdw = (iso: string) => `${md(iso)}(${DOW[new Date(`${iso}T00:00:00`).getDay()]})`;
+
+// PC(1024px 이상)에서는 결과 옆에 예약처 패널을 고정해 둔다
+function useWide() {
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const on = () => setWide(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return wide;
+}
 
 function useSaved() {
   const [saved, setSaved] = useState<Saved[]>([]);
@@ -127,6 +140,7 @@ export function TripApp() {
   const [staySheet, setStaySheet] = useState<Partial<StayQuery> | null>(null);
   const [flightSheet, setFlightSheet] = useState<Partial<FlightQuery> | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const wide = useWide();
   const [seller, setSeller] = useState<{ hotel: HotelOption; query: StayQuery } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const { saved, toggle } = useSaved();
@@ -152,6 +166,7 @@ export function TripApp() {
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
+    setSeller(null); // 다른 화면으로 가면 열려 있던 예약처 패널도 닫는다
   }, [tab, homeId]);
 
   useEffect(() => {
@@ -348,10 +363,13 @@ export function TripApp() {
 
   const homeMsg = msgs.find((m) => m.id === homeId) as StayMsg | FlightMsg | undefined;
   const chatMsgs = msgs.filter((m) => !("home" in m && m.home));
+  // PC 2열: 홈 숙소 결과와 AI 채팅은 왼쪽 목록 + 오른쪽 예약처 패널
+  const split = wide && ((tab === "home" && homeMsg?.t === "stay") || tab === "chat");
+  const activeToken = seller?.hotel.token;
 
   return (
     <div className="tb-app">
-      <div className="tb-main">
+      <div className={`tb-main${split ? " split" : ""}`}>
         {tab === "home" &&
           (homeMsg ? (
             <HomeResult
@@ -360,6 +378,7 @@ export function TripApp() {
               onBack={() => setHomeId(null)}
               onSave={(h) => homeMsg.t === "stay" && save(h, homeMsg.query)}
               onOpen={(h) => homeMsg.t === "stay" && setSeller({ hotel: h, query: homeMsg.query })}
+              active={activeToken}
               onRetry={() => (homeMsg.t === "stay" ? runStay(homeMsg.query, { home: true }) : runFlight(homeMsg.query, { home: true }))}
             />
           ) : (
@@ -454,6 +473,7 @@ export function TripApp() {
                     onAnswer={(i, a) => m.t === "ask" && patch(m.id, { answers: { ...m.answers, [i]: a } })}
                     onApply={(edit) => m.t === "ask" && applyAsk(m, edit)}
                     onOpenHotel={(hotel) => m.t === "stay" && setSeller({ hotel, query: m.query })}
+                    active={activeToken}
                     onSave={(hotel) => m.t === "stay" && save(hotel, m.query)}
                     onAll={() => openAll(m.id)}
                     onRetry={() => (m.t === "stay" ? runStay(m.query) : m.t === "flight" ? runFlight(m.query) : undefined)}
@@ -491,7 +511,31 @@ export function TripApp() {
         )}
         {tab === "my" && <My saved={saved} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => setTab("home")} />}
 
+        {split && (
+          <aside className="tb-panel" aria-label="예약처별 결제 총액">
+            {seller ? (
+              <>
+                <button type="button" className="tb-round tb-panel-x" onClick={() => setSeller(null)} aria-label="닫기">
+                  <IconClose size={20} />
+                </button>
+                <SellerBody hotel={seller.hotel} query={seller.query} saved={savedSet.has(seller.hotel.token)} onSave={() => save(seller.hotel, seller.query)} />
+              </>
+            ) : (
+              <div className="tb-panel-empty">
+                <IconBed size={28} />
+                <strong>숙소를 고르면 여기에 예약처별 총액이 보여요</strong>
+                <p>세금·수수료까지 더한 금액을 예약처마다 나란히 보여드려요.</p>
+              </div>
+            )}
+          </aside>
+        )}
+
         <nav className="tb-tabbar" aria-label="메뉴">
+          <span className="tb-logo tb-tabbar-logo">
+            <Orb size={28} />
+            <strong>{brand.appName}</strong>
+            {brand.tentative && <em>가칭</em>}
+          </span>
           {(
             [
               { id: "home", label: "홈", icon: <IconHome size={24} /> },
@@ -537,7 +581,7 @@ export function TripApp() {
       <StaySheet open={!!staySheet} init={staySheet ?? {}} onClose={() => setStaySheet(null)} onSubmit={submitStay} />
       <FlightSheet open={!!flightSheet} init={flightSheet ?? {}} onClose={() => setFlightSheet(null)} onSubmit={submitFlight} />
       <SellerSheet
-        hotel={seller?.hotel ?? null}
+        hotel={split ? null : (seller?.hotel ?? null)}
         query={seller?.query ?? EMPTY_QUERY}
         saved={!!seller && savedSet.has(seller.hotel.token)}
         onSave={() => seller && save(seller.hotel, seller.query)}
@@ -550,7 +594,7 @@ export function TripApp() {
 const EMPTY_QUERY: StayQuery = { place: "", checkIn: "2000-01-01", checkOut: "2000-01-02", adults: 2, budget: 0, taste: "" };
 
 // ---------- 홈 검색 결과 ----------
-function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry }: { m: StayMsg | FlightMsg; saved: Set<string>; onBack: () => void; onSave: (h: HotelOption) => void; onOpen: (h: HotelOption) => void; onRetry: () => void }) {
+function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, active }: { m: StayMsg | FlightMsg; saved: Set<string>; onBack: () => void; onSave: (h: HotelOption) => void; onOpen: (h: HotelOption) => void; onRetry: () => void; active?: string }) {
   const title = m.t === "stay" ? m.query.place : `${cityOf(m.query.fromLabel || m.query.from)} → ${cityOf(m.query.toLabel || m.query.to)}`;
   if (m.status !== "done" || !m.options?.length)
     return (
@@ -590,7 +634,7 @@ function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry }: { m: StayMsg 
   if (m.t === "stay")
     return (
       <main>
-        <StayList query={m.query} options={m.options} picks={m.picks ?? []} aiPending={!!m.aiPending} saved={saved} onSave={onSave} onOpen={onOpen} onBack={onBack} />
+        <StayList query={m.query} options={m.options} picks={m.picks ?? []} aiPending={!!m.aiPending} saved={saved} onSave={onSave} onOpen={onOpen} onBack={onBack} active={active} />
       </main>
     );
   return (
@@ -636,6 +680,7 @@ type MsgProps = {
   onRetry: () => void;
   onSay: (t: string) => void;
   onPrefill: (k: SearchKind, q: Partial<StayQuery> | Partial<FlightQuery>) => void;
+  active?: string; // PC 패널에 열려 있는 숙소
 };
 
 function MsgView(props: MsgProps) {
@@ -712,7 +757,7 @@ function ErrorBox({ status, onRetry, fallbackHref }: { status: number | null | u
   );
 }
 
-function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRetry, onSay, onPrefill }: MsgProps & { m: StayMsg }) {
+function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRetry, onSay, onPrefill, active }: MsgProps & { m: StayMsg }) {
   const q = m.query;
   if (m.status === "loading") return <Searching text={`${q.place} 숙소를 찾고 있어요`} />;
   if (m.status === "error") return <ErrorBox status={m.err} onRetry={onRetry} fallbackHref={sellerSearchUrl("trip", q.place, q)} />;
@@ -735,7 +780,7 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRetry, onSay, onPr
           const t = stayTotal(p.h, nights);
           const on = saved.has(p.token);
           return (
-            <article key={p.token} className="tb-hcard">
+            <article key={p.token} className={`tb-hcard${active === p.token ? " on" : ""}`}>
               <div className="tb-hcard-img">
                 {p.h.image ? <img src={p.h.image} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : null}
                 <em className="tb-tag wt">{totals[i] === low ? `최저가 ${t ? won(t.value) : ""}` : `${i + 1}`}</em>

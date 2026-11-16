@@ -214,6 +214,10 @@
   font-size: 11.5px;
   font-weight: 600;
 }
+.tb-tabbar-logo,
+.tb-panel {
+  display: none;
+}
 .tb-tab.ai svg {
   color: var(--tb-accent);
 }
@@ -1590,27 +1594,156 @@
 
 /* ---------- PC: 가운데 기둥 + 넓은 검색 카드 ---------- */
 @media (min-width: 1024px) {
+  /* 위쪽 머리글: 왼쪽 로고, 오른쪽 메뉴 */
   .tb-main {
     max-width: 760px;
+    padding-top: 64px;
+    padding-bottom: 0;
   }
   .tb-tabbar {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    bottom: 16px;
-    width: 420px;
-    border: 1px solid var(--tb-line);
-    border-radius: 24px;
-    box-shadow: var(--tb-shadow);
-    padding: 8px;
+    top: 0;
+    bottom: auto;
+    height: 64px;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 0 max(24px, calc(50% - 600px));
+    border-top: 0;
+    border-bottom: 1px solid var(--tb-line);
+  }
+  .tb-tabbar-logo {
+    display: inline-flex;
+    margin-right: auto;
+  }
+  .tb-tabbar-logo strong {
+    font-size: 20px;
+  }
+  .tb-tab {
+    width: auto;
+    height: 44px;
+    flex-direction: row;
+    gap: 8px;
+    padding: 0 16px;
+    border-radius: 999px;
+    font-size: 15px;
+  }
+  .tb-tab svg {
+    width: 20px;
+    height: 20px;
+  }
+  .tb-tab[aria-current="page"] {
+    background: var(--tb-soft);
+  }
+  .tb-soon-dot {
+    position: static;
+  }
+  .tb-home .tb-top {
+    display: none;
+  }
+  .tb-home {
+    padding-top: 40px;
+  }
+  .tb-results-top,
+  .tb-chat-top {
+    top: 64px;
+  }
+  .tb-chat {
+    min-height: calc(100dvh - 64px);
+  }
+  .tb-msgs {
+    padding-bottom: 24px;
   }
   .tb-dock {
-    bottom: 92px;
-    width: 728px;
+    position: sticky;
+    left: auto;
+    transform: none;
+    bottom: 0;
+    width: auto;
+    padding: 12px 20px 20px;
+  }
+  .tb-toast {
+    bottom: 24px;
   }
   .tb-places {
     grid-template-columns: repeat(8, 1fr);
   }
+
+  /* 2열: 왼쪽 목록, 오른쪽 예약처 총액 패널 (스크롤해도 제자리) */
+  .tb-main.split {
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    gap: 32px;
+    align-items: start;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .tb-main.split > main {
+    min-width: 0;
+  }
+  .tb-panel {
+    display: block;
+    position: sticky;
+    top: 88px;
+    max-height: calc(100dvh - 112px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin-top: 24px;
+    padding: 20px;
+    border: 1px solid var(--tb-line);
+    border-radius: 24px;
+    background: var(--tb-card);
+    box-shadow: var(--tb-shadow);
+  }
+  .tb-panel-x {
+    position: absolute !important;
+    top: 8px;
+    right: 8px;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    z-index: 1;
+  }
+  .tb-panel .tb-seller-head {
+    padding-right: 36px;
+  }
+  .tb-panel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 48px 12px;
+    text-align: center;
+    color: var(--tb-sub);
+  }
+  .tb-panel-empty strong {
+    color: var(--tb-ink);
+    font-size: 17px;
+  }
+  .tb-panel-empty p {
+    margin: 0;
+    font-size: 14.5px;
+  }
+  .tb-main.split .tb-hcards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    overflow: visible;
+    margin: 0;
+    padding: 2px 0 4px;
+  }
+  .tb-main.split .tb-hcard {
+    width: auto;
+  }
+  .tb-srow.on,
+  .tb-hcard.on {
+    box-shadow: inset 0 0 0 2px var(--tb-accent);
+  }
+  .tb-srow.on {
+    border-radius: 16px;
+  }
+
+  /* 입력 시트·마이에서 여는 예약처 시트는 가운데 창 */
   .tb-sheet {
     left: 50%;
     right: auto;

@@ -16,6 +16,7 @@ type Props = {
   onSave: (h: HotelOption) => void;
   onOpen: (h: HotelOption) => void; // 예약처별 총액 시트
   onBack: () => void;
+  active?: string; // PC 패널에 열려 있는 숙소
 };
 
 const FILTERS: { label: string; test: (h: HotelOption) => boolean }[] = [
@@ -39,7 +40,7 @@ const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8,
 const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋음" : r >= 3.8 ? "좋음" : "보통");
 
 // v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다
-export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack }: Props) {
+export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active }: Props) {
   const nights = nightsOf(query);
   const [sort, setSort] = useState<Sort>("ai");
   const [on, setOn] = useState<Set<string>>(new Set());
@@ -108,6 +109,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
             reason={reasons.get(h.token)}
             cheapest={cheapest?.token === h.token}
             saved={saved.has(h.token)}
+            active={active === h.token}
             onSave={() => onSave(h)}
             onOpen={() => onOpen(h)}
           />
@@ -118,10 +120,10 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   );
 }
 
-export function StayRow({ h, nights, reason, cheapest, saved, onSave, onOpen }: { h: HotelOption; nights: number; reason?: string; cheapest?: boolean; saved: boolean; onSave?: () => void; onOpen: () => void }) {
+export function StayRow({ h, nights, reason, cheapest, saved, active, onSave, onOpen }: { h: HotelOption; nights: number; reason?: string; cheapest?: boolean; saved: boolean; active?: boolean; onSave?: () => void; onOpen: () => void }) {
   const t = stayTotal(h, nights);
   return (
-    <article className="tb-srow">
+    <article className={`tb-srow${active ? " on" : ""}`}>
       <div className="tb-srow-img">
         {h.image ? <img src={h.image} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : null}
         {reason ? <em className="tb-tag ac">AI 추천</em> : cheapest ? <em className="tb-tag red">최저가</em> : null}
