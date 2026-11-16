@@ -10,6 +10,8 @@ import { nightsOf, won, type StayQuery } from "@/lib/trip";
 import { searchErrorMessage } from "@/lib/search-error";
 import { askHotel, stayPrices } from "./api";
 import { setVerified } from "./prices";
+import { priceChange, savedBaseFor } from "./saved-price";
+import { PriceChange } from "./StayList";
 import { Sheet } from "./Sheet";
 import { IconHeart, IconOut, IconSpark, IconUp } from "./icons";
 
@@ -74,6 +76,9 @@ function factsOf(h: HotelOption, q: StayQuery, nights: number, rows: SellerRow[]
 }
 
 // 시트(휴대폰)와 오른쪽 고정 패널(PC)이 같이 쓰는 숙소 상세: 사진 → 이유 → 예약처별 총액 → 후기 → 주변 장소 → AI에게 물어보기
+// 담아 둔 숙소: 지금 예약처 1위 총액과 담을 때 금액의 차이 (확인 총액끼리만)
+const sellerDiff = (token: string, q: StayQuery, cost: number) => priceChange(savedBaseFor(token, q), { value: cost, verified: true, none: false });
+
 export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
   const [state, setState] = useState<{ token: string; rows: SellerRow[] | null; status: number | null | "ok"; at: number; topics?: ReviewTopic[] | null } | null>(null);
   const [qa, setQa] = useState<{ token: string; list: { q: string; a: string | null }[] }>({ token: hotel.token, list: [] });
@@ -161,6 +166,9 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
         <h3>예약처별 결제 총액</h3>
         {state?.at ? <span>{hm(state.at)} 확인</span> : null}
       </div>
+      {saved && rows?.length && state?.status === "ok" && sellerDiff(hotel.token, query, rows[0].cost) !== null ? (
+        <PriceChange diff={sellerDiff(hotel.token, query, rows[0].cost)!} />
+      ) : null}
       <ul className="tb-seller-info">
         <li>세금·수수료를 포함한 {nights}박 총액이에요. 현지에서 내는 숙박세는 포함되지 않아 따로 낼 수 있어요.</li>
         <li>결제는 이동한 예약 사이트에서 진행돼요.</li>

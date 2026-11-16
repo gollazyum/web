@@ -43,7 +43,8 @@ import { SellerBody, SellerSheet } from "./SellerSheet";
 import { Sheet } from "./Sheet";
 import { Onboarding } from "./Onboarding";
 import { PriceBlock, StayList, StayRow, type StayPick } from "./StayList";
-import { prefetchPrices, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
+import { getVerified, prefetchPrices, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
+import { setSavedList, type SavedBase } from "./saved-price";
 import { IconBack, IconBed, IconChatStar, IconClose, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
 
 type Status = "loading" | "done" | "error";
@@ -70,10 +71,11 @@ type Msg =
 type StayMsg = Extract<Msg, { t: "stay" }>;
 type FlightMsg = Extract<Msg, { t: "flight" }>;
 type AskMsg = Extract<Msg, { t: "ask" }>;
-type Saved = { hotel: HotelOption; query: StayQuery };
+type Saved = { hotel: HotelOption; query: StayQuery; base?: SavedBase }; // base: 담을 때 보이던 금액 (가격 알림용)
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const SAVED_KEY = "tb-saved-v1";
+const UPGRADE_MS = 30 * 60 * 1000;
 const MORE_PAGES = 5; // 스크롤로 더 불러오는 쪽 수 상한 (검색 한 번당 최대 5번 더, 약 100곳)
 const PLACES = ["오사카", "후쿠오카", "도쿄", "삿포로", "오키나와", "다낭", "방콕", "타이베이"];
 const EXAMPLES = ["부모님이랑 조용한 온천 숙소", "12월 오사카 2박, 역 가까운 곳", "인천에서 다낭 왕복, 오전 출발 직항"];
@@ -130,18 +132,33 @@ function useSaved() {
       // 저장소를 못 쓰면 빈 목록으로 둔다
     }
   }, []);
-  const toggle = useCallback((hotel: HotelOption, query: StayQuery) => {
+  const write = (next: Saved[]) => {
+    try {
+      localStorage.setItem(SAVED_KEY, JSON.stringify(next));
+    } catch {
+      // 저장 실패는 조용히 넘긴다
+    }
+    return next;
+  };
+  const toggle = useCallback((hotel: HotelOption, query: StayQuery, base?: SavedBase) => {
+    setSaved((list) => write(list.some((s) => s.hotel.token === hotel.token) ? list.filter((s) => s.hotel.token !== hotel.token) : [{ hotel, query, base }, ...list].slice(0, 50)));
+  }, []);
+  // 예상 총액으로 담은 직후(30분 안)에 같은 조건의 예약처 1위 총액을 받으면, 담을 때 금액을 그 확인 총액으로 바꿔 둔다.
+  // 그래야 나중에 상세에서 확인 총액끼리 견줄 수 있다
+  const upgrade = useCallback(() => {
     setSaved((list) => {
-      const next = list.some((s) => s.hotel.token === hotel.token) ? list.filter((s) => s.hotel.token !== hotel.token) : [{ hotel, query }, ...list].slice(0, 50);
-      try {
-        localStorage.setItem(SAVED_KEY, JSON.stringify(next));
-      } catch {
-        // 저장 실패는 조용히 넘긴다
-      }
-      return next;
+      let changed = false;
+      const next = list.map((s) => {
+        if (!s.base || s.base.verified || Date.now() - s.base.at > UPGRADE_MS) return s;
+        const v = getVerified(s.hotel.token, s.query);
+        if (!v || v.total === null) return s;
+        changed = true;
+        return { ...s, base: { price: v.total, verified: true, at: s.base.at } };
+      });
+      return changed ? write(next) : list;
     });
   }, []);
-  return { saved, toggle };
+  return { saved, toggle, upgrade };
 }
 
 function contextOf(m: Msg | undefined): string {
@@ -212,7 +229,12 @@ export function TripApp() {
   const [seller, setSeller] = useState<{ hotel: HotelOption; query: StayQuery } | null>(null);
   const [toast, setToast] = useState<{ text: string; go?: boolean } | null>(null);
   const [listId, setListId] = useState<string | null>(null); // AI 채팅: 전체 목록 바텀시트
-  const { saved, toggle } = useSaved();
+  const { saved, toggle, upgrade } = useSaved();
+  setSavedList(saved); // 카드·상세가 담을 때 금액을 찾아볼 수 있게
+  const priceVersion = usePriceVersion();
+  useEffect(() => {
+    if (saved.some((s) => s.base && !s.base.verified)) upgrade();
+  }, [priceVersion, saved, upgrade]);
   const savedSet = new Set(saved.map((s) => s.hotel.token));
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -541,7 +563,8 @@ export function TripApp() {
 
   function save(hotel: HotelOption, query: StayQuery) {
     const was = savedSet.has(hotel.token);
-    toggle(hotel, query);
+    const now = shownPrice(hotel, query);
+    toggle(hotel, query, was ? undefined : { price: now.none ? null : now.value, verified: now.verified, at: Date.now() });
     setToast(was ? null : { text: `${query.place} 숙소를 담았어요` });
   }
 
