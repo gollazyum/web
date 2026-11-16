@@ -446,6 +446,8 @@ export function TripApp() {
   // PC 2열: 홈 숙소 결과와 AI 채팅은 왼쪽 목록 + 오른쪽 예약처 패널
   const split = wide && ((tab === "home" && homeMsg?.t === "stay") || tab === "chat");
   const activeToken = seller?.hotel.token;
+  // 열려 있는 숙소가 AI 추천 3곳 중 하나면 그 이유를 상세에도 보여 준다 (가장 최근 결과 기준)
+  const sellerReason = seller ? [...msgs].reverse().flatMap((m) => (m.t === "stay" && m.query.place === seller.query.place ? (m.picks ?? []) : [])).find((p) => p.token === seller.hotel.token)?.reason : undefined;
   // PC: 결과가 있으면 오른쪽 패널이 비지 않게 맨 위 숙소(AI 추천 1위)를 먼저 열어 둔다
   const panelMsg = (tab === "home" ? homeMsg : [...chatMsgs].reverse().find((x) => x.t === "stay")) as StayMsg | FlightMsg | undefined;
   const firstStay = split && panelMsg?.t === "stay" && panelMsg.status === "done" && panelMsg.options?.length ? (panelMsg.options.find((o) => o.token === panelMsg.picks?.[0]?.token) ?? panelMsg.options[0]) : null;
@@ -613,10 +615,10 @@ export function TripApp() {
         {tab === "my" && <My saved={saved} profile={taste.profile} onTaste={() => setOnb(true)} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => setTab("home")} />}
 
         {split && (
-          <aside className="tb-panel" aria-label="예약처별 결제 총액">
+          <aside className="tb-panel" aria-label="숙소 상세">
             {seller ? (
               <>
-                <SellerBody hotel={seller.hotel} query={seller.query} saved={savedSet.has(seller.hotel.token)} onSave={() => save(seller.hotel, seller.query)} onGo={(text) => setToast({ text, go: true })} />
+                <SellerBody hotel={seller.hotel} query={seller.query} reason={sellerReason} saved={savedSet.has(seller.hotel.token)} onSave={() => save(seller.hotel, seller.query)} onGo={(text) => setToast({ text, go: true })} />
               </>
             ) : (
               <div className="tb-panel-empty">
@@ -713,6 +715,7 @@ export function TripApp() {
         onSave={() => seller && save(seller.hotel, seller.query)}
         onClose={() => setSeller(null)}
         onGo={(text) => setToast({ text, go: true })}
+        reason={sellerReason}
       />
     </div>
   );

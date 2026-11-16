@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { sellerRows, type HotelOption, type SellerRow } from "@/lib/hotels";
+import { sellerRows, type HotelOption, type ReviewTopic, type SellerRow } from "@/lib/hotels";
+import { distText, nearby } from "@/lib/landmarks";
+import { positivePct } from "@/lib/prefs";
 import { agodaAffiliateOn } from "@/lib/affiliate";
 import { linkRel, sellerDef, withRo } from "@/lib/hotel-sellers";
 import { nightsOf, won, type StayQuery } from "@/lib/trip";
 import { searchErrorMessage } from "@/lib/search-error";
-import { stayPrices } from "./api";
+import { askHotel, stayPrices } from "./api";
 import { setVerified } from "./prices";
 import { Sheet } from "./Sheet";
-import { IconHeart, IconOut } from "./icons";
+import { IconHeart, IconOut, IconSpark, IconUp } from "./icons";
 
 type Props = {
   hotel: HotelOption | null;
@@ -18,6 +20,7 @@ type Props = {
   onSave: () => void;
   onClose: () => void;
   onGo?: (text: string) => void; // 예약 사이트로 넘어갈 때 잠깐 띄우는 안내
+  reason?: string; // AI 추천 이유 (추천 3곳일 때만)
 };
 
 // 판매처 표시용 색 (첫 글자 배지). 로고 이미지는 쓰지 않는다
@@ -40,17 +43,42 @@ const hm = (at: number) => {
 };
 
 // 예약처별 결제 총액. 열 때 그 숙소의 예약처 가격을 한 번 더 받아 온다 (같은 조건은 이 탭에 30분 캐시)
-export function SellerSheet({ hotel, query, saved, onSave, onClose, onGo }: Props) {
+export function SellerSheet({ hotel, query, saved, onSave, onClose, onGo, reason }: Props) {
   return (
-    <Sheet open={!!hotel} onClose={onClose} label="예약처별 결제 총액">
-      {hotel && <SellerBody hotel={hotel} query={query} saved={saved} onSave={onSave} onGo={onGo} />}
+    <Sheet open={!!hotel} onClose={onClose} label="숙소 상세" tall>
+      {hotel && <SellerBody key={hotel.token} hotel={hotel} query={query} saved={saved} onSave={onSave} onGo={onGo} reason={reason} />}
     </Sheet>
   );
 }
 
-// 시트(휴대폰)와 오른쪽 고정 패널(PC)이 같이 쓰는 본문
-export function SellerBody({ hotel, query, saved, onSave, onGo }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
-  const [state, setState] = useState<{ token: string; rows: SellerRow[] | null; status: number | null | "ok"; at: number } | null>(null);
+// 후기 주제: 언급이 많은 순 4개 (3건 이상만)
+const topTopics = (t: ReviewTopic[] | null) => (t ?? []).filter((x) => x.total >= 3).sort((a, b) => b.total - a.total).slice(0, 4);
+
+const QUICK = ["조식은 어때요?", "역이나 번화가까지 가까워요?", "부모님과 가기 좋아요?"];
+
+// AI에게 넘길 숙소 정보 (화면에 보이는 사실만)
+function factsOf(h: HotelOption, q: StayQuery, nights: number, rows: SellerRow[] | null, topics: ReviewTopic[] | null, near: ReturnType<typeof nearby>, reason?: string): string {
+  return [
+    `이름: ${h.name}`,
+    `종류: ${[h.kind, h.stars ? `${h.stars}성급` : ""].filter(Boolean).join(", ")}`,
+    h.rating ? `후기 점수: 5점 만점 ${h.rating.toFixed(1)}점${h.reviews ? ` (후기 ${h.reviews}개)` : ""}` : "",
+    h.amenities.length ? `편의시설: ${h.amenities.slice(0, 15).join(", ")}` : "",
+    topTopics(topics).length ? `후기 주제: ${topTopics(topics).map((t) => `${t.name} 긍정 ${positivePct(t)}% (${t.total}건)`).join(", ")}` : "",
+    near.length ? `주요 장소까지 직선거리: ${near.map((n) => `${n.name} ${distText(n.km)}`).join(", ")}` : "",
+    `일정: ${q.place} ${q.checkIn}~${q.checkOut} (${nights}박), 성인 ${q.adults}명`,
+    rows?.length ? `가장 낮은 예약처 총액: ${rows[0].cost.toLocaleString("ko-KR")}원 (세금 포함, 확인 시각 기준)` : "",
+    reason ? `AI가 먼저 보여 준 이유: ${reason}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+// 시트(휴대폰)와 오른쪽 고정 패널(PC)이 같이 쓰는 숙소 상세: 사진 → 이유 → 예약처별 총액 → 후기 → 주변 장소 → AI에게 물어보기
+export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
+  const [state, setState] = useState<{ token: string; rows: SellerRow[] | null; status: number | null | "ok"; at: number; topics?: ReviewTopic[] | null } | null>(null);
+  const [qa, setQa] = useState<{ token: string; list: { q: string; a: string | null }[] }>({ token: hotel.token, list: [] });
+  const [ask, setAsk] = useState("");
+  const near = nearby(hotel.gps);
   const [again, setAgain] = useState(0);
   const nights = nightsOf(query);
 
@@ -63,7 +91,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo }: Omit<Props, "h
       if (r.ok) {
         const rows = sellerRows(r.data.sources, nights, hotel.name, hq);
         setVerified(hotel.token, query, rows); // 목록 카드 금액도 이 1위 총액으로 맞춘다
-        setState({ token: hotel.token, rows, status: "ok", at: r.at ?? Date.now() });
+        setState({ token: hotel.token, rows, status: "ok", at: r.at ?? Date.now(), topics: r.data.topics });
       }
       // 실패하면 목록에 같이 온 몇 곳이라도 보여 준다
       else setState({ token: hotel.token, rows: sellerRows(hotel.sources, nights, hotel.name, hq), status: r.status, at: 0 });
@@ -74,12 +102,39 @@ export function SellerBody({ hotel, query, saved, onSave, onGo }: Omit<Props, "h
   }, [hotel, query, nights, again]);
 
   const rows = state?.token === hotel.token ? state?.rows : null;
+  const topics = state?.token === hotel.token ? topTopics(state.topics ?? null) : [];
   const failed = state && state.status !== "ok";
+  const list = qa.token === hotel.token ? qa.list : [];
+  const waiting = list.some((x) => x.a === null);
+  const photos = (hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : []).slice(0, 8);
+
+  async function send(raw: string) {
+    const q = raw.trim().slice(0, 200);
+    if (!q || waiting) return;
+    setAsk("");
+    const token = hotel.token;
+    setQa({ token, list: [...list, { q, a: null }] });
+    const r = await askHotel(factsOf(hotel, query, nights, rows ?? null, state?.topics ?? null, near, reason), q);
+    const a = r.ok && r.data.answer ? r.data.answer : r.ok ? "그 질문에는 여기 있는 정보로 답하기 어려워요. 예약 사이트 숙소 소개에서 확인해 주세요." : r.status === 429 ? "질문이 많아서 잠시 쉬어야 해요. 조금 뒤에 다시 물어봐 주세요." : "지금은 답을 드리기 어려워요. 잠시 뒤에 다시 물어봐 주세요.";
+    setQa((s) => (s.token === token ? { token, list: s.list.map((x) => (x.q === q && x.a === null ? { q, a } : x)) } : s));
+  }
 
   return (
     <div className="tb-seller">
-      <div className="tb-seller-head">
-        {hotel.image ? <img src={hotel.image} alt="" className="tb-seller-img" /> : <div className="tb-seller-img" />}
+      {photos.length > 1 && (
+        <div className="tb-photos" aria-label={`사진 ${photos.length}장`}>
+          {photos.map((src, i) => (
+            <span key={src + i} className="tb-photo">
+              <img src={src} alt="" loading={i ? "lazy" : undefined} onError={(e) => (e.currentTarget.style.visibility = "hidden")} />
+              <em>
+                {i + 1}/{photos.length}
+              </em>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className={`tb-seller-head${photos.length > 1 ? " under" : ""}`}>
+        {photos.length > 1 ? null : hotel.image ? <img src={hotel.image} alt="" className="tb-seller-img" /> : <div className="tb-seller-img" />}
         <div>
           <h2>{hotel.name}</h2>
           <p>
@@ -93,6 +148,15 @@ export function SellerBody({ hotel, query, saved, onSave, onGo }: Omit<Props, "h
           )}
         </div>
       </div>
+      {reason && (
+        <p className="tb-detail-why">
+          <IconSpark size={16} />
+          <span>
+            <b>AI가 먼저 보여 드린 이유</b>
+            {reason}
+          </span>
+        </p>
+      )}
       <div className="tb-seller-title">
         <h3>예약처별 결제 총액</h3>
         {state?.at ? <span>{hm(state.at)} 확인</span> : null}
@@ -144,6 +208,72 @@ export function SellerBody({ hotel, query, saved, onSave, onGo }: Omit<Props, "h
         가격은 확인한 시각 기준이라 바뀔 수 있어요. 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요.
         {agodaAffiliateOn() ? " 일부 예약처에서 제휴 수수료를 받을 수 있지만, 내는 금액은 같아요." : ""}
       </p>
+      {topics.length > 0 && (
+        <section className="tb-detail-sec">
+          <h3>후기에서 많이 나온 이야기</h3>
+          <ul className="tb-topics">
+            {topics.map((t) => (
+              <li key={t.name}>
+                <span>{t.name}</span>
+                <i aria-hidden>
+                  <b style={{ width: `${positivePct(t)}%` }} />
+                </i>
+                <small>
+                  좋아요 {positivePct(t)}% · {t.total.toLocaleString("ko-KR")}건
+                </small>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {near.length > 0 && (
+        <section className="tb-detail-sec">
+          <h3>주요 장소까지 거리</h3>
+          <ul className="tb-near">
+            {near.map((n) => (
+              <li key={n.name}>
+                <span>{n.name}</span>
+                <b>{distText(n.km)}</b>
+              </li>
+            ))}
+          </ul>
+          <p className="tb-note">직선거리예요. 실제 이동 거리와 시간은 더 걸릴 수 있어요.</p>
+        </section>
+      )}
+      <section className="tb-detail-sec">
+        <h3>이 숙소, AI에게 물어보기</h3>
+        {list.length === 0 ? (
+          <div className="tb-chips">
+            {QUICK.map((q) => (
+              <button key={q} type="button" className="tb-chip" onClick={() => send(q)}>
+                {q}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="tb-qa" aria-live="polite">
+            {list.map((x, i) => (
+              <div key={i}>
+                <p className="tb-qa-q">{x.q}</p>
+                <p className="tb-qa-a">{x.a ?? "숙소 정보를 살펴보고 있어요…"}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        <form
+          className="tb-composer tb-detail-ask"
+          onSubmit={(e) => {
+            e.preventDefault();
+            send(ask);
+          }}
+        >
+          <input value={ask} maxLength={200} onChange={(e) => setAsk(e.target.value)} placeholder="예: 수영장 있어요?" aria-label="이 숙소에 대해 AI에게 묻기" enterKeyHint="send" />
+          <button type="submit" className="tb-send" disabled={!ask.trim() || waiting} aria-label="보내기">
+            <IconUp size={20} />
+          </button>
+        </form>
+        <p className="tb-note">화면에 보이는 숙소 정보만으로 답해요. 정확한 내용은 예약 사이트에서 확인해 주세요.</p>
+      </section>
       <button type="button" className="tb-save" onClick={onSave} aria-pressed={saved}>
         <IconHeart size={18} on={saved} /> {saved ? "내 여행에 담았어요" : "내 여행에 담기"}
       </button>

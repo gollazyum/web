@@ -125,3 +125,6 @@ export const pickFlights = (list: FlightOption[], taste: string) =>
       price: o.price,
     })),
   });
+
+// 숙소 상세 'AI에게 물어보기': facts는 화면에 보이는 그 숙소 정보 (글)
+export const askHotel = (facts: string, question: string) => post<{ answer: string }>("/api/trip-ai", { mode: "hotel", facts, question });

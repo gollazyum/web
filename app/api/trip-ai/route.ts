@@ -5,6 +5,7 @@ import { ASK_SLOTS, cleanCopy, isDate, stayReason, MAX_QUESTIONS, TOP_PICKS, typ
 // 탐색 탭 AI. 두 가지 일을 한다.
 // - mode "parse": 자유 문장을 숙소/항공 검색 조건으로 바꾸고, 빠진 조건은 칩 질문(최대 3개)으로 되묻는다
 // - mode "pick": 이미 받아 온 검색 결과(번호 목록) 안에서 취향에 맞는 3곳과 한 줄 이유를 준다. 가격 검색은 하지 않는다
+// - mode "hotel": 숙소 상세에서 그 숙소 하나에 대한 질문에 화면 정보만으로 답한다
 // API 키는 Vercel 환경변수 ANTHROPIC_API_KEY 에만 둔다. 키가 없거나 AI가 실패하면 화면이 규칙 기반으로 대신한다
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -171,6 +172,24 @@ const PICK_SCHEMA = {
   },
 } as const;
 
+// mode "hotel": 숙소 상세 화면의 'AI에게 물어보기'. 화면에 보이는 그 숙소 정보만으로 짧게 답한다
+const HOTEL_SYSTEM = `너는 여행 앱 "${brand.appName}"의 "${brand.aiName}"야. 사용자가 보고 있는 숙소 하나에 대한 질문에 답해.
+
+${RULES}
+
+할 일
+- [숙소 정보]에 있는 사실만 근거로 3문장 이내로 답해. 후기 주제는 "긍정 N%"처럼 정보에 있는 숫자만 써.
+- 정보에 없는 것(방 크기, 소음, 체크인 시간, 정확한 금액, 정책 등)은 지어내지 말고 "그 정보는 여기 없어요. 예약 사이트 숙소 소개에서 확인해 주세요"처럼 말해.
+- 거리는 직선거리라서 실제 이동 거리와 다르다는 걸 필요하면 짧게 덧붙여.
+- 숙소와 상관없는 질문이면 이 숙소나 여행 이야기로 짧게 돌려.`;
+
+const HOTEL_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["answer"],
+  properties: { answer: { type: "string" } },
+} as const;
+
 const MAX_ITEMS = 40;
 
 function pickInput(body: Record<string, unknown>): string | null {
@@ -218,6 +237,15 @@ export async function POST(req: Request) {
       note: cleanCopy(raw.note, 120),
     };
     return Response.json(out);
+  }
+
+  if (body.mode === "hotel") {
+    const facts = typeof body.facts === "string" ? body.facts.trim().slice(0, 1500) : "";
+    const question = str(body.question, 200);
+    if (!facts || !question) return jsonError(400, "bad_request");
+    const raw = await jsonReply<{ answer: string }>(HOTEL_SYSTEM, `[숙소 정보]\n${facts}\n\n[질문] ${question}`, HOTEL_SCHEMA, 800);
+    if (!raw || typeof raw.answer !== "string") return jsonError(502, "ai_failed");
+    return Response.json({ answer: cleanCopy(raw.answer, 400) });
   }
 
   return jsonError(400, "bad_request");

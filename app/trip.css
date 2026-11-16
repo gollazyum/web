@@ -1493,6 +1493,154 @@
 }
 
 /* 예약처별 총액 (v4 09) */
+/* 숙소 상세: 위 사진 넘기기 · AI 이유 · 후기 주제 · 주변 장소 · AI에게 묻기 */
+.tb-photos {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  margin: 0 -20px 14px;
+  padding: 0 20px;
+}
+.tb-photos::-webkit-scrollbar {
+  display: none;
+}
+.tb-photo {
+  position: relative;
+  flex: 0 0 88%;
+  height: 200px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--tb-soft);
+  scroll-snap-align: center;
+}
+.tb-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tb-photo em {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-style: normal;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(11, 11, 15, 0.55);
+}
+.tb-seller-head.under {
+  margin-right: 0;
+}
+.tb-detail-why {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--tb-accent-soft);
+  color: var(--tb-ink);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.tb-detail-why svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--tb-accent);
+}
+.tb-detail-why b {
+  display: block;
+  font-size: 13px;
+  color: var(--tb-accent);
+}
+.tb-detail-sec {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--tb-line);
+}
+.tb-detail-sec h3 {
+  font-size: 17px;
+  font-weight: 800;
+  margin: 0 0 12px;
+}
+.tb-topics,
+.tb-near {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tb-topics li {
+  display: grid;
+  grid-template-columns: minmax(64px, 30%) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 14.5px;
+}
+.tb-topics span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.tb-topics i {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--tb-soft);
+  overflow: hidden;
+}
+.tb-topics i b {
+  display: block;
+  height: 100%;
+  background: var(--tb-accent);
+}
+.tb-topics small {
+  font-size: 13px;
+  color: var(--tb-sub);
+  white-space: nowrap;
+}
+.tb-near li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+}
+.tb-near b {
+  white-space: nowrap;
+}
+.tb-qa {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tb-qa-q {
+  margin: 0 0 6px auto;
+  width: fit-content;
+  max-width: 85%;
+  padding: 8px 14px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--tb-ink);
+  color: #fff;
+  font-size: 14.5px;
+}
+.tb-qa-a {
+  margin: 0;
+  max-width: 92%;
+  padding: 10px 14px;
+  border-radius: 16px 16px 16px 4px;
+  background: var(--tb-soft);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+.tb-detail-ask {
+  margin-top: 12px;
+}
 .tb-seller-head {
   display: flex;
   gap: 14px;
