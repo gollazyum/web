@@ -39,7 +39,7 @@ import { SellerBody, SellerSheet } from "./SellerSheet";
 import { Sheet } from "./Sheet";
 import { Onboarding } from "./Onboarding";
 import { PriceBlock, StayList, StayRow, type StayPick } from "./StayList";
-import { prefetchPrices, shownPrice, usePriceVersion } from "./prices";
+import { prefetchPrices, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
 import { IconBack, IconBed, IconChatStar, IconClose, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
 
 type Status = "loading" | "done" | "error";
@@ -256,8 +256,9 @@ export function TripApp() {
       const ai = await pickStays(head, want, query.budget);
       const picks = mergePicks(ai.ok ? ai.data.picks : [], fb, head.length, (n) => stayFactReason(head[n - 1], want));
       patch(id, { picks: toPicks(picks), aiPending: false, note: [overNote, ai.ok ? ai.data.note : ""].filter(Boolean).join(" ") });
-      // AI 추천 3곳은 예약처 가격을 미리 받아 카드 금액을 시트 1위 총액과 맞춰 둔다
-      prefetchPrices(picks.slice(0, 3).map((p) => head[p.n - 1]), query);
+      // AI 추천 1위만 예약처 가격을 미리 받아 카드 금액을 시트 1위 총액과 맞춰 둔다.
+      // 2·3위는 카드가 화면에 보이거나 눌렀을 때 받는다 (검색 한 번당 가격 조회를 줄이기 위해)
+      prefetchPrices(picks.slice(0, 1).map((p) => head[p.n - 1]), query);
     },
     [patch, push],
   );
@@ -888,6 +889,30 @@ function ErrorBox({ status, onRetry, fallbackHref }: { status: number | null | u
   );
 }
 
+// AI 추천 카드 한 장. 화면에 보이면 예약처 가격을 받아 금액을 시트 1위 총액과 맞춘다
+function PickCard({ p, i, t, isLow, q, nights, saved: on, active, onSave, onOpenHotel }: { p: { token: string; reason: string; h: HotelOption }; i: number; t: ReturnType<typeof shownPrice>; isLow: boolean; q: StayQuery; nights: number; saved: boolean; active: boolean; onSave: (h: HotelOption) => void; onOpenHotel: (h: HotelOption) => void }) {
+  const ref = useLazyPrice<HTMLElement>(p.h, q, true);
+  return (
+    <article ref={ref} className={`tb-hcard${active ? " on" : ""}`}>
+      <div className="tb-hcard-img">
+        {p.h.image ? <img src={p.h.image} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : null}
+        <em className="tb-tag wt">{isLow && t.value !== null ? `최저가 ${won(t.value)}` : `${i + 1}`}</em>
+        <button type="button" className={`tb-love${on ? " on" : ""}`} aria-pressed={on} aria-label={on ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={() => onSave(p.h)}>
+          <IconHeart size={18} on={on} />
+        </button>
+      </div>
+      <button type="button" className="tb-hcard-body" onClick={() => onOpenHotel(p.h)} aria-label={`${p.h.name} 예약처별 총액 보기`}>
+        <strong>{p.h.name}</strong>
+        <span className="tb-hcard-meta">{[p.h.rating ? `★ ${p.h.rating.toFixed(1)}` : "", p.h.stars ? `${p.h.stars}성급` : p.h.kind].filter(Boolean).join(" · ")}</span>
+        <span className="tb-why">
+          <IconSpark size={14} /> {p.reason}
+        </span>
+        <PriceBlock p={t} nights={nights} />
+      </button>
+    </article>
+  );
+}
+
 function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, onPrefill, active }: MsgProps & { m: StayMsg }) {
   usePriceVersion(); // 예약처 시트·미리 조회로 맞춘 금액이 오면 다시 그린다
   const q = m.query;
@@ -909,29 +934,9 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
         {m.note ? ` ${m.note}` : ""}
       </AiSay>
       <div className="tb-hcards">
-        {picks.map((p, i) => {
-          const t = prices[i];
-          const on = saved.has(p.token);
-          return (
-            <article key={p.token} className={`tb-hcard${active === p.token ? " on" : ""}`}>
-              <div className="tb-hcard-img">
-                {p.h.image ? <img src={p.h.image} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : null}
-                <em className="tb-tag wt">{totals[i] === low && t.value !== null ? `최저가 ${won(t.value)}` : `${i + 1}`}</em>
-                <button type="button" className={`tb-love${on ? " on" : ""}`} aria-pressed={on} aria-label={on ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={() => onSave(p.h)}>
-                  <IconHeart size={18} on={on} />
-                </button>
-              </div>
-              <button type="button" className="tb-hcard-body" onClick={() => onOpenHotel(p.h)} aria-label={`${p.h.name} 예약처별 총액 보기`}>
-                <strong>{p.h.name}</strong>
-                <span className="tb-hcard-meta">{[p.h.rating ? `★ ${p.h.rating.toFixed(1)}` : "", p.h.stars ? `${p.h.stars}성급` : p.h.kind].filter(Boolean).join(" · ")}</span>
-                <span className="tb-why">
-                  <IconSpark size={14} /> {p.reason}
-                </span>
-                <PriceBlock p={t} nights={nights} />
-              </button>
-            </article>
-          );
-        })}
+        {picks.map((p, i) => (
+          <PickCard key={p.token} p={p} i={i} t={prices[i]} isLow={totals[i] === low} q={q} nights={nights} saved={saved.has(p.token)} active={active === p.token} onSave={onSave} onOpenHotel={onOpenHotel} />
+        ))}
       </div>
       {picks.length > 1 && (
         <table className="tb-compare">

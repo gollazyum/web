@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { HotelOption } from "@/lib/hotels";
 import { nightsOf, won, type StayQuery } from "@/lib/trip";
-import { shownCost, shownPrice, usePriceVersion } from "./prices";
+import { shownCost, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
 import { IconBack, IconHeart, IconSort, IconSpark } from "./icons";
 
 export type StayPick = { token: string; reason: string };
@@ -134,8 +134,9 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
   usePriceVersion();
   const nights = nightsOf(query);
   const t = shownPrice(h, query);
+  const ref = useLazyPrice<HTMLElement>(h, query, !!reason); // AI 추천 카드만, 화면에 보이면 예약처 가격을 받는다
   return (
-    <article className={`tb-srow${active ? " on" : ""}`}>
+    <article ref={ref} className={`tb-srow${active ? " on" : ""}`}>
       <div className="tb-srow-img">
         {h.image ? <img src={h.image} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : null}
         {reason ? <em className="tb-tag ac">AI 추천</em> : cheapest && !t.none ? <em className="tb-tag red">최저가</em> : null}
