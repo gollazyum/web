@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { HotelOption } from "@/lib/hotels";
 import { activeCount, applyFilter, countFilters, EMPTY_FILTER, type StayFilter } from "@/lib/stay-filters";
 import { nightsOf, won, type StayQuery } from "@/lib/trip";
@@ -21,6 +21,8 @@ type Props = {
   onBack: () => void;
   active?: string; // PC 패널에 열려 있는 숙소
   bare?: boolean; // 바텀시트 안: 위쪽 검색 줄 대신 제목만
+  more?: "more" | "loading" | "error" | "end"; // 목록 끝에서 더 불러오기
+  onMore?: () => void;
 };
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
@@ -30,7 +32,16 @@ const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋�
 
 // v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다.
 // 필터: 휴대폰·좁은 PC는 위쪽 3버튼(조건 검색/요금/정렬 기준), 넓은 PC(1280px 이상)는 같은 항목을 왼쪽에 늘 보이게
-export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare }: Props) {
+export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore }: Props) {
+  // 목록 끝이 화면에 가까워지면 다음 쪽을 부른다 (필터로 목록이 짧아져도 같은 기준)
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = endRef.current;
+    if (!el || more !== "more" || !onMore) return;
+    const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && onMore(), { rootMargin: "600px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [more, onMore, options.length]);
   const nights = nightsOf(query);
   const side = !bare;
   const [sort, setSort] = useState<Sort>("ai");
@@ -40,7 +51,6 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   const cost = (h: HotelOption) => shownCost(h, query);
   const cheapest = useMemo(() => options.reduce<HotelOption | null>((m, h) => (cost(h) < (m ? cost(m) : Infinity) ? h : m), null), [options, pv]); // eslint-disable-line react-hooks/exhaustive-deps
   const counts = useMemo(() => countFilters(options, cost, nights), [options, pv, nights]); // eslint-disable-line react-hooks/exhaustive-deps
-  const countOf = (x: StayFilter) => applyFilter(options, x, cost, nights).length;
 
   const shown = useMemo(() => {
     let list = applyFilter(options, f, cost, nights);
@@ -80,7 +90,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
         </div>
       )}
       <div className={side ? "tb-fbar-wrap has-side" : "tb-fbar-wrap"}>
-        <FilterBar c={counts} f={f} set={setF} sort={sort} setSort={setSort} countOf={countOf} />
+        <FilterBar c={counts} f={f} set={setF} sort={sort} setSort={setSort} />
       </div>
       </div>
       <div className={side ? "tb-results-body" : undefined}>
@@ -121,7 +131,21 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
                 onOpen={() => onOpen(h)}
               />
             ))}
-            {!shown.length && (
+            <div ref={endRef} className="tb-more" aria-live="polite">
+              {more === "loading" ? (
+                <>
+                  <div className="tb-srow skel" />
+                  <p>숙소를 더 불러오고 있어요…</p>
+                </>
+              ) : more === "error" ? (
+                <button type="button" className="tb-btn" onClick={onMore}>
+                  숙소 더 불러오기
+                </button>
+              ) : more === "end" && options.length > 0 ? (
+                <p>받아 온 숙소를 모두 보여 드렸어요</p>
+              ) : null}
+            </div>
+            {!shown.length && more !== "loading" && (
               <div className="tb-note">
                 조건에 맞는 숙소가 없어요.{" "}
                 <button type="button" className="tb-link" onClick={() => setF(EMPTY_FILTER)}>

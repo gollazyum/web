@@ -32,7 +32,7 @@ import {
   type StayRefineId,
   type StayQuery,
 } from "@/lib/trip";
-import { parseText, pickFlights, pickStays, searchFlights, searchStays } from "./api";
+import { parseText, pickFlights, pickStays, searchFlights, searchStays, searchStaysPage } from "./api";
 import { FlightBrowser, FlightCard, flightLink } from "./Flights";
 import { FlightSheet, StaySheet } from "./InputSheets";
 import { SearchCard, type SearchCardHandle, type SearchKind } from "./SearchCard";
@@ -60,7 +60,8 @@ type Msg =
       done: boolean;
     }
   // home: 홈 검색 카드에서 찾은 결과 (대화에는 보이지 않는다). aiPending: 규칙으로 먼저 보여 주고 AI 결과를 기다리는 중
-  | { id: string; t: "stay"; home?: boolean; query: StayQuery; status: Status; err?: number | null; options?: HotelOption[]; picks?: StayPick[]; aiPending?: boolean; note?: string }
+  // next·pages·more: 스크롤 끝에서 다음 쪽 더 불러오기 (next가 없으면 끝)
+  | { id: string; t: "stay"; home?: boolean; query: StayQuery; status: Status; err?: number | null; options?: HotelOption[]; picks?: StayPick[]; aiPending?: boolean; note?: string; next?: string | null; pages?: number; more?: "loading" | "error" }
   | { id: string; t: "flight"; home?: boolean; query: FlightQuery; status: Status; err?: number | null; options?: FlightOption[]; picks?: { n: number; reason: string }[]; aiPending?: boolean; note?: string };
 
 type StayMsg = Extract<Msg, { t: "stay" }>;
@@ -71,6 +72,7 @@ type Saved = { hotel: HotelOption; query: StayQuery };
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const SAVED_KEY = "tb-saved-v1";
+const MORE_PAGES = 5; // 스크롤로 더 불러오는 쪽 수 상한 (검색 한 번당 최대 5번 더, 약 100곳)
 const PLACES = ["오사카", "후쿠오카", "도쿄", "삿포로", "오키나와", "다낭", "방콕", "타이베이"];
 const EXAMPLES = ["부모님이랑 조용한 온천 숙소", "12월 오사카 2박, 역 가까운 곳", "인천에서 다낭 왕복, 오전 출발 직항"];
 
@@ -239,12 +241,15 @@ export function TripApp() {
       push({ id, t: "stay", home: o.home, query, status: "loading" });
       if (o.home) setHomeId(id);
       let options = o.reuse;
+      let next: string | null = null;
       if (!options) {
         const r = await searchStays(query);
         if (!r.ok) return patch(id, { status: "error", err: r.status });
         options = r.data.options;
+        next = r.data.next;
       }
       if (!options.length) return patch(id, { status: "done", options: [], picks: [] });
+      patch(id, { next, pages: 0 });
       const nights = nightsOf(query);
       const { list: pool, over } = withinBudget(options, query.budget, nights);
       const head = pool.slice(0, 40);
@@ -263,6 +268,22 @@ export function TripApp() {
       prefetchPrices(picks.slice(0, 1).map((p) => head[p.n - 1]), query);
     },
     [patch, push],
+  );
+
+  // 스크롤 끝: 다음 쪽(20곳 안팎)을 붙인다. 검색 한 번당 최대 MORE_PAGES쪽 (검색 비용 보호). AI 추천 3곳은 그대로
+  const loadMore = useCallback(
+    async (id: string) => {
+      const m = msgsRef.current.find((x) => x.id === id);
+      if (!m || m.t !== "stay" || !m.next || m.more === "loading" || (m.pages ?? 0) >= MORE_PAGES) return;
+      patch(id, { more: "loading" });
+      const r = await searchStaysPage(m.query, m.next);
+      if (!r.ok) return patch(id, { more: "error" });
+      const cur = msgsRef.current.find((x) => x.id === id) as StayMsg | undefined;
+      const have = new Set((cur?.options ?? []).map((h) => h.token));
+      const add = r.data.options.filter((h) => !have.has(h.token));
+      patch(id, { options: [...(cur?.options ?? []), ...add], next: add.length ? r.data.next : null, pages: (cur?.pages ?? 0) + 1, more: undefined });
+    },
+    [patch],
   );
 
   // ---------- 항공 ----------
@@ -468,6 +489,7 @@ export function TripApp() {
               onOpen={(h) => homeMsg.t === "stay" && setSeller({ hotel: h, query: homeMsg.query })}
               active={activeToken}
               onRetry={() => (homeMsg.t === "stay" ? runStay(homeMsg.query, { home: true }) : runFlight(homeMsg.query, { home: true }))}
+              onMore={() => loadMore(homeMsg.id)}
             />
           ) : (
             <main className="tb-home">
@@ -704,6 +726,7 @@ export function TripApp() {
         onSave={(h, q) => save(h, q)}
         onOpen={(h, q) => setSeller({ hotel: h, query: q })}
         onClose={() => setListId(null)}
+        onMore={(id) => loadMore(id)}
       />
 
       <StaySheet open={!!staySheet} init={staySheet ?? {}} onClose={() => setStaySheet(null)} onSubmit={submitStay} />
@@ -722,12 +745,12 @@ export function TripApp() {
 }
 
 // AI 채팅의 '전체 N곳 보기': 받은 목록 전체를 바텀시트로. 정렬·조건은 이 안에서만 거른다 (지도는 두지 않는다)
-function AllList({ m, saved, onSave, onOpen, onClose }: { m: StayMsg | FlightMsg | undefined; saved: Set<string>; onSave: (h: HotelOption, q: StayQuery) => void; onOpen: (h: HotelOption, q: StayQuery) => void; onClose: () => void }) {
+function AllList({ m, saved, onSave, onOpen, onClose, onMore }: { m: StayMsg | FlightMsg | undefined; saved: Set<string>; onSave: (h: HotelOption, q: StayQuery) => void; onOpen: (h: HotelOption, q: StayQuery) => void; onClose: () => void; onMore: (id: string) => void }) {
   const open = !!m && m.status === "done" && !!m.options?.length;
   return (
     <Sheet open={open} onClose={onClose} label="전체 목록" tall>
       {open && m.t === "stay" && (
-        <StayList bare query={m.query} options={m.options ?? []} picks={m.picks ?? []} aiPending={!!m.aiPending} saved={saved} onSave={(h) => onSave(h, m.query)} onOpen={(h) => onOpen(h, m.query)} onBack={onClose} />
+        <StayList bare query={m.query} options={m.options ?? []} picks={m.picks ?? []} aiPending={!!m.aiPending} saved={saved} onSave={(h) => onSave(h, m.query)} onOpen={(h) => onOpen(h, m.query)} onBack={onClose} more={moreOf(m)} onMore={() => onMore(m.id)} />
       )}
       {open && m.t === "flight" && <FlightBrowser bare data={{ query: m.query, options: m.options ?? [], picks: m.picks ?? [] }} aiPending={m.aiPending} onBack={onClose} />}
     </Sheet>
@@ -737,7 +760,10 @@ function AllList({ m, saved, onSave, onOpen, onClose }: { m: StayMsg | FlightMsg
 const EMPTY_QUERY: StayQuery = { place: "", checkIn: "2000-01-01", checkOut: "2000-01-02", adults: 2, budget: 0, taste: "" };
 
 // ---------- 홈 검색 결과 ----------
-function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, active }: { m: StayMsg | FlightMsg; saved: Set<string>; onBack: () => void; onSave: (h: HotelOption) => void; onOpen: (h: HotelOption) => void; onRetry: () => void; active?: string }) {
+// 목록 끝 상태: 더 불러올 수 있음 / 불러오는 중 / 실패 / 끝
+const moreOf = (m: StayMsg): "more" | "loading" | "error" | "end" => (m.more === "loading" ? "loading" : m.more === "error" ? "error" : m.next && (m.pages ?? 0) < MORE_PAGES ? "more" : "end");
+
+function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onMore, active }: { m: StayMsg | FlightMsg; saved: Set<string>; onBack: () => void; onSave: (h: HotelOption) => void; onOpen: (h: HotelOption) => void; onRetry: () => void; onMore: () => void; active?: string }) {
   const title = m.t === "stay" ? m.query.place : `${cityOf(m.query.fromLabel || m.query.from)} → ${cityOf(m.query.toLabel || m.query.to)}`;
   if (m.status !== "done" || !m.options?.length)
     return (
@@ -777,7 +803,7 @@ function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, active }: { m: 
   if (m.t === "stay")
     return (
       <main>
-        <StayList query={m.query} options={m.options} picks={m.picks ?? []} aiPending={!!m.aiPending} saved={saved} onSave={onSave} onOpen={onOpen} onBack={onBack} active={active} />
+        <StayList query={m.query} options={m.options} picks={m.picks ?? []} aiPending={!!m.aiPending} saved={saved} onSave={onSave} onOpen={onOpen} onBack={onBack} active={active} more={moreOf(m)} onMore={onMore} />
       </main>
     );
   return (

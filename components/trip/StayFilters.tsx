@@ -16,11 +16,11 @@ export const SORTS: { id: Sort; label: string }[] = [
 const RATING_WORD: Record<number, string> = { 3.5: "좋음", 4: "아주 좋음", 4.5: "최고" };
 const AMEN_SHOW = 6;
 
-function Check({ on, label, count, onClick, radio }: { on: boolean; label: string; count?: number; onClick: () => void; radio?: boolean }) {
+// 개수는 보여 주지 않는다 (받은 숙소가 20곳 안팎이라 숫자가 작게 보여서). 0곳인 항목만 숨긴다
+function Check({ on, label, onClick, radio }: { on: boolean; label: string; count?: number; onClick: () => void; radio?: boolean }) {
   return (
     <button type="button" className={`tb-fopt${radio ? " radio" : ""}`} aria-pressed={on} onClick={onClick}>
       <span>{label}</span>
-      {count !== undefined && <small>{count}</small>}
       <i aria-hidden />
     </button>
   );
@@ -67,7 +67,6 @@ export function FilterPanel({ c, f, set }: { c: FilterCounts; f: StayFilter; set
                       ★
                     </span>
                   </b>
-                  <small>({s.count})</small>
                 </button>
               );
             })}
@@ -83,7 +82,6 @@ export function FilterPanel({ c, f, set }: { c: FilterCounts; f: StayFilter; set
             {bands.map((b) => (
               <button key={b.id} type="button" className="tb-fbox" aria-pressed={f.bands.includes(b.id)} onClick={() => set({ ...f, bands: toggleIn(f.bands, b.id) })}>
                 <b>{b.label.replace("1박 ", "")}</b>
-                <small>({b.count})</small>
               </button>
             ))}
           </div>
@@ -100,9 +98,7 @@ export function FilterPanel({ c, f, set }: { c: FilterCounts; f: StayFilter; set
               return (
                 <button key={min} type="button" className="tb-fbox" aria-pressed={f.minRating === min} disabled={!r.count} onClick={() => set({ ...f, minRating: f.minRating === min ? 0 : min })}>
                   <b>{min.toFixed(1)}+</b>
-                  <small>
-                    {RATING_WORD[min]} ({r.count})
-                  </small>
+                  <small>{RATING_WORD[min]}</small>
                 </button>
               );
             })}
@@ -132,9 +128,7 @@ export function FilterPanel({ c, f, set }: { c: FilterCounts; f: StayFilter; set
       )}
       {c.breakfast > 0 && (
         <section className="tb-frow">
-          <h3>
-            조식 포함 <small>({c.breakfast})</small>
-          </h3>
+          <h3>조식 포함</h3>
           <button type="button" className="tb-switch" role="switch" aria-checked={f.breakfast} aria-label="조식 포함" onClick={() => set({ ...f, breakfast: !f.breakfast })}>
             <span>
               <i />
@@ -153,7 +147,7 @@ export function FilterPanel({ c, f, set }: { c: FilterCounts; f: StayFilter; set
 }
 
 // 휴대폰·좁은 PC: 결과 위 고정 3버튼 (조건 검색 / 요금 / 정렬 기준)
-export function FilterBar({ c, f, set, sort, setSort, countOf }: { c: FilterCounts; f: StayFilter; set: (f: StayFilter) => void; sort: Sort; setSort: (s: Sort) => void; countOf: (f: StayFilter) => number }) {
+export function FilterBar({ c, f, set, sort, setSort }: { c: FilterCounts; f: StayFilter; set: (f: StayFilter) => void; sort: Sort; setSort: (s: Sort) => void }) {
   const [open, setOpen] = useState<"all" | "price" | "sort" | null>(null);
   const [draft, setDraft] = useState<StayFilter>(f);
   const n = activeCount(f);
@@ -197,7 +191,7 @@ export function FilterBar({ c, f, set, sort, setSort, countOf }: { c: FilterCoun
               setOpen(null);
             }}
           >
-            숙소 {countOf(draft)}곳 보기
+            적용하기
           </button>
         </div>
       </Sheet>
@@ -215,7 +209,7 @@ export function FilterBar({ c, f, set, sort, setSort, countOf }: { c: FilterCoun
             해제하기
           </button>
           <button type="button" className="tb-cta" onClick={() => setOpen(null)}>
-            숙소 {countOf(f)}곳 보기
+            적용하기
           </button>
         </div>
       </Sheet>

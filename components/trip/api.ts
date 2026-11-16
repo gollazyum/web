@@ -76,6 +76,12 @@ export const searchStays = (q: StayQuery) => {
   return cached(`stay:${JSON.stringify(body)}`, () => post<HotelResults>("/api/hotels", body));
 };
 
+// 숙소 목록 다음 쪽 (스크롤 끝에서만 부른다. 한 쪽 = 검색 1번). 같은 쪽은 이 탭에 30분 담아 둔다
+export const searchStaysPage = (q: StayQuery, page: string) => {
+  const body = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, page };
+  return cached(`stay-page:${JSON.stringify(body)}`, () => post<HotelResults>("/api/hotels", body));
+};
+
 // fresh: '다시 검색'을 눌렀을 때만 캐시를 건너뛴다
 export const stayPrices = (token: string, q: StayQuery, name: string, fresh = false) => {
   const body = { q: name.slice(0, 100), checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, token };

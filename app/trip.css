@@ -2622,3 +2622,13 @@
     font-weight: 600;
   }
 }
+.tb-more {
+  padding: 4px 0 24px;
+  text-align: center;
+  color: var(--tb-sub);
+  font-size: 14px;
+}
+.tb-more .tb-btn {
+  border: 1px solid var(--tb-line) !important;
+  background: var(--tb-card) !important;
+}
