@@ -4,6 +4,7 @@ import type { FlightOption } from "@/lib/flights";
 import { brand, brandCssVars, cssVarName } from "@/lib/brand";
 import { site } from "@/lib/site";
 import {
+  stayReason,
   cleanCopy,
   fallbackFlightPicks,
   fallbackStayPicks,
@@ -147,5 +148,13 @@ describe("AI 결과 검사", () => {
   });
   it("이유가 금지어로 비면 사실 이유로 채운다", () => {
     expect(mergePicks([{ n: 1, reason: "Google 평점 높음" }], [], 1, () => "후기 4.5점")).toEqual([{ n: 1, reason: "후기 4.5점" }]);
+  });
+});
+
+describe("stayReason", () => {
+  it("금액·예산 판단이 들어간 숙소 이유는 비운다 (카드 금액과 어긋나지 않게)", () => {
+    expect(stayReason("후기 4.5점에 698개 후기, 총액 167,193원으로 예산 안이에요.")).toBe("");
+    expect(stayReason("20만 원 이하로 묵을 수 있어요")).toBe("");
+    expect(stayReason("4성급에 대욕장이 있어요")).toBe("4성급에 대욕장이 있어요");
   });
 });
