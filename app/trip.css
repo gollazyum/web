@@ -2295,3 +2295,90 @@
 .tb-row-price.best strong {
   color: var(--tb-accent);
 }
+
+/* 결과 왼쪽 정렬·조건 (넓은 PC만). 휴대폰·좁은 PC는 위쪽 칩 줄을 쓴다 */
+.tb-filters {
+  display: none;
+}
+@media (min-width: 1280px) {
+  .tb-main.split {
+    max-width: 1400px;
+  }
+  .tb-chiprow.has-side {
+    display: none;
+  }
+  .tb-results-body {
+    display: grid;
+    grid-template-columns: 208px minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  .tb-results-main {
+    min-width: 0;
+  }
+  .tb-filters {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 88px;
+    max-height: calc(100dvh - 112px);
+    overflow-y: auto;
+    margin-top: 12px;
+    padding: 4px 4px 16px 16px;
+  }
+  .tb-filters h3 {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--tb-sub);
+    margin: 18px 0 6px;
+  }
+  .tb-filters h3:first-child {
+    margin-top: 4px;
+  }
+  .tb-fopt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 10px;
+    border-radius: 12px;
+    background: none !important;
+    font-size: 15px;
+    text-align: left;
+  }
+  .tb-fopt:hover {
+    background: var(--tb-soft) !important;
+  }
+  .tb-fopt i {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    border: 2px solid var(--tb-line);
+    background: var(--tb-card);
+  }
+  .tb-fopt.radio i {
+    border-radius: 50%;
+  }
+  .tb-fopt[aria-pressed="true"] {
+    font-weight: 700;
+  }
+  .tb-fopt[aria-pressed="true"] i {
+    border-color: var(--tb-ink);
+    background: var(--tb-ink);
+    box-shadow: inset 0 0 0 3px var(--tb-card);
+  }
+  .tb-fopt small {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--tb-mute);
+  }
+  .tb-freset {
+    margin-top: 12px;
+    min-height: 44px;
+    border-radius: 12px;
+    background: var(--tb-soft) !important;
+    font-size: 14px;
+    font-weight: 600;
+  }
+}

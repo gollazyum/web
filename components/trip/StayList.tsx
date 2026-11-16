@@ -46,6 +46,7 @@ const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋�
 // v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다
 export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare }: Props) {
   const nights = nightsOf(query);
+  const side = !bare; // 넓은 PC(1280px 이상)에서는 정렬·조건을 왼쪽에 늘 보이게 둔다 (좁으면 CSS로 위쪽 칩만)
   const [sort, setSort] = useState<Sort>("ai");
   const [on, setOn] = useState<Set<string>>(new Set());
   const [band, setBand] = useState<string | null>(null); // 가격대 (하나만)
@@ -103,7 +104,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
         </button>
       </div>
       )}
-      <div className="tb-chiprow">
+      <div className={`tb-chiprow${side ? " has-side" : ""}`}>
         {SORTS.map((s) => (
           <button key={s.id} type="button" className="tb-chip" aria-pressed={sort === s.id} onClick={() => setSort(s.id)}>
             {s.id === "ai" ? <IconSpark size={16} /> : s.id === "price" ? <IconSort size={16} /> : null}
@@ -128,7 +129,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
         ))}
       </div>
       {bandOpen && (
-        <div className="tb-chiprow tb-bandrow" role="group" aria-label="가격대">
+        <div className={`tb-chiprow tb-bandrow${side ? " has-side" : ""}`} role="group" aria-label="가격대">
           {bands.map((b) => (
             <button
               key={b.id}
@@ -157,6 +158,55 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
           )}
         </div>
       )}
+      <div className={side ? "tb-results-body" : undefined}>
+      {side && (
+        <aside className="tb-filters" aria-label="정렬과 조건">
+          <h3>정렬</h3>
+          {SORTS.map((s) => (
+            <button key={s.id} type="button" className="tb-fopt radio" aria-pressed={sort === s.id} onClick={() => setSort(s.id)}>
+              <i aria-hidden />
+              {s.label}
+            </button>
+          ))}
+          {filters.length > 0 && <h3>조건</h3>}
+          {filters.map((f) => (
+            <button key={f.label} type="button" className="tb-fopt" aria-pressed={on.has(f.label)} onClick={() => toggle(f.label)}>
+              <i aria-hidden />
+              {f.label}
+              <small>{base.filter(f.test).length}</small>
+            </button>
+          ))}
+          {(bands.length > 0 || bandNow) && (
+            <>
+              <h3>가격대 (1박)</h3>
+              <button type="button" className="tb-fopt radio" aria-pressed={!bandNow} onClick={() => setBand(null)}>
+                <i aria-hidden />
+                전체 가격
+              </button>
+              {bands.map((b) => (
+                <button key={b.id} type="button" className="tb-fopt radio" aria-pressed={band === b.id} onClick={() => setBand(band === b.id ? null : b.id)}>
+                  <i aria-hidden />
+                  {b.label.replace("1박 ", "")}
+                  <small>{b.n}</small>
+                </button>
+              ))}
+            </>
+          )}
+          {(on.size > 0 || bandNow) && (
+            <button
+              type="button"
+              className="tb-freset"
+              onClick={() => {
+                setOn(new Set());
+                setBand(null);
+              }}
+            >
+              조건 모두 풀기
+            </button>
+          )}
+        </aside>
+      )}
+      <div className={side ? "tb-results-main" : undefined}>
       <p className="tb-results-note">
         숙소 {shown.length}곳 · {aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}곳을 먼저 보여드려요`} · {nights}박 총액
       </p>
@@ -174,7 +224,9 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
             onOpen={() => onOpen(h)}
           />
         ))}
-        {!shown.length && <p className="tb-note">조건에 맞는 숙소가 없어요. 위의 조건을 하나 풀어 보세요.</p>}
+        {!shown.length && <p className="tb-note">조건에 맞는 숙소가 없어요. 조건을 하나 풀어 보세요.</p>}
+      </div>
+      </div>
       </div>
     </div>
   );
