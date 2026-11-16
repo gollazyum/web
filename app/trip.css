@@ -519,6 +519,12 @@
 .tb-chiprow::-webkit-scrollbar {
   display: none;
 }
+/* 가로 스크롤 끝의 오른쪽 여백 (스크롤 상자의 오른쪽 padding은 브라우저가 무시하므로 빈 칸을 하나 둔다) */
+.tb-chiprow::after,
+.tb-hcards::after {
+  content: "";
+  flex: 0 0 8px;
+}
 .tb-results-note {
   padding: 12px 16px 4px;
   font-size: 13.5px;
@@ -1229,13 +1235,29 @@
   right: 0;
   bottom: 0;
   max-height: 92dvh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--tb-bg);
-  border-radius: 28px 28px 0 0;
-  padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
+  border-radius: 24px 24px 0 0;
   animation: tb-up 0.22s ease-out;
   outline: none;
+}
+.tb-sheet-head {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 10;
+  min-height: 52px;
+  padding-top: 10px;
+  background: var(--tb-bg);
+}
+.tb-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 20px calc(20px + env(safe-area-inset-bottom));
 }
 .tb-sheet.tall {
   min-height: 78dvh;
@@ -1255,8 +1277,8 @@
 }
 .tb-sheet-x {
   position: absolute !important;
-  top: 6px;
-  right: 6px;
+  top: 4px;
+  right: 8px;
   width: 44px;
   height: 44px;
   display: grid;
@@ -2070,4 +2092,29 @@
   min-height: 44px;
   margin: -12px 0;
   color: var(--tb-sub);
+}
+
+/* ---------- 2026-11-16 핫픽스: 카드 금액 영역·비교 유도·1위 강조 ---------- */
+.tb-srow-price .tb-cmp {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tb-accent);
+}
+.tb-srow-price.none strong {
+  font-size: 14px;
+  color: var(--tb-mute);
+}
+.tb-hcard .tb-srow-price {
+  align-self: stretch;
+  align-items: flex-start;
+  padding-top: 6px;
+}
+.tb-hcard .tb-srow-price strong {
+  font-size: 18px;
+}
+.tb-row-price.best strong {
+  color: var(--tb-accent);
 }

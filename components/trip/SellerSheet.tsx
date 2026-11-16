@@ -7,6 +7,7 @@ import { linkRel, sellerDef, withRo } from "@/lib/hotel-sellers";
 import { nightsOf, won, type StayQuery } from "@/lib/trip";
 import { searchErrorMessage } from "@/lib/search-error";
 import { stayPrices } from "./api";
+import { setVerified } from "./prices";
 import { Sheet } from "./Sheet";
 import { IconHeart, IconOut } from "./icons";
 
@@ -59,7 +60,11 @@ export function SellerBody({ hotel, query, saved, onSave, onGo }: Omit<Props, "h
     setState({ token: hotel.token, rows: null, status: "ok", at: 0 });
     stayPrices(hotel.token, query, hotel.name, again > 0).then((r) => {
       if (!live) return;
-      if (r.ok) setState({ token: hotel.token, rows: sellerRows(r.data.sources, nights, hotel.name, hq), status: "ok", at: r.at ?? Date.now() });
+      if (r.ok) {
+        const rows = sellerRows(r.data.sources, nights, hotel.name, hq);
+        setVerified(hotel.token, query, rows); // 목록 카드 금액도 이 1위 총액으로 맞춘다
+        setState({ token: hotel.token, rows, status: "ok", at: r.at ?? Date.now() });
+      }
       // 실패하면 목록에 같이 온 몇 곳이라도 보여 준다
       else setState({ token: hotel.token, rows: sellerRows(hotel.sources, nights, hotel.name, hq), status: r.status, at: 0 });
     });
@@ -70,7 +75,6 @@ export function SellerBody({ hotel, query, saved, onSave, onGo }: Omit<Props, "h
 
   const rows = state?.token === hotel.token ? state?.rows : null;
   const failed = state && state.status !== "ok";
-  const lowest = rows?.[0]?.cost ?? 0;
 
   return (
     <div className="tb-seller">
@@ -116,10 +120,9 @@ export function SellerBody({ hotel, query, saved, onSave, onGo }: Omit<Props, "h
                   <strong>{ko}</strong>
                   {s.approx && <small>1박 요금 × {nights}박</small>}
                 </div>
-                <div className="tb-row-price">
+                <div className={`tb-row-price${i === 0 ? " best" : ""}`}>
                   {i === 0 && rows.length > 1 && <em className="tb-low">가장 낮아요</em>}
                   <strong>{won(s.cost)}</strong>
-                  {i > 0 && s.cost > lowest && <small>+{Math.round(s.cost - lowest).toLocaleString("ko-KR")}</small>}
                 </div>
                 <a className={`tb-book${i === 0 ? " dark" : ""}`} href={s.href} target="_blank" rel={linkRel(s.key)} onClick={() => onGo?.(`${withRo(ko)} 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요`)}>
                   예약 <IconOut />

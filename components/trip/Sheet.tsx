@@ -35,11 +35,14 @@ export function Sheet({ open, onClose, label, tall, children }: Props) {
     <div className="tb-sheet-wrap">
       <div className="tb-dim" onClick={onClose} />
       <div ref={ref} className={`tb-sheet${tall ? " tall" : ""}`} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1}>
-        <div className="tb-grab" aria-hidden />
-        <button type="button" className="tb-round tb-sheet-x" onClick={onClose} aria-label="닫기">
-          <IconClose size={20} />
-        </button>
-        {children}
+        {/* 위는 고정(손잡이·닫기), 아래만 스크롤: 내용이 둥근 모서리 밖으로 나가거나 닫기 버튼이 사라지지 않게 */}
+        <div className="tb-sheet-head">
+          <div className="tb-grab" aria-hidden />
+          <button type="button" className="tb-round tb-sheet-x" onClick={onClose} aria-label="닫기">
+            <IconClose size={20} />
+          </button>
+        </div>
+        <div className="tb-sheet-body">{children}</div>
       </div>
     </div>
   );

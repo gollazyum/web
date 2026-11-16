@@ -54,12 +54,21 @@ function writeCache<T>(key: string, data: T) {
 }
 
 // 성공한 응답만 담는다. at: 가격을 받아 온 시각 (예약처 시트의 '가격 확인 시각')
+// 같은 조건을 동시에 부르면(미리 조회 + 시트 열기) 한 번만 보낸다
+const pending = new Map<string, Promise<Res<unknown> & { at?: number }>>();
+
 async function cached<T>(key: string, load: () => Promise<Res<T>>, fresh = false): Promise<Res<T> & { at?: number }> {
   const hit = fresh ? null : readCache<T>(key);
   if (hit) return { ok: true, data: hit.data, at: hit.at };
-  const r = await load();
-  if (r.ok) writeCache(key, r.data);
-  return r.ok ? { ...r, at: Date.now() } : r;
+  const going = !fresh && pending.get(key);
+  if (going) return going as Promise<Res<T> & { at?: number }>;
+  const run = load().then((r) => {
+    pending.delete(key);
+    if (r.ok) writeCache(key, r.data);
+    return r.ok ? { ...r, at: Date.now() } : r;
+  });
+  pending.set(key, run);
+  return run;
 }
 
 export const searchStays = (q: StayQuery) => {
