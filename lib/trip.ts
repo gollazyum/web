@@ -148,7 +148,8 @@ export function stayFactReason(h: HotelOption, taste: string): string {
 }
 
 // 규칙 점수: 후기 점수 + 취향 편의시설 + 후기 수 − 가격 순위. list 순서 기준 번호(1부터)를 돌려준다
-export function fallbackStayPicks(list: HotelOption[], taste: string, budget: number, nights: number): Pick[] {
+// w: 취향 온보딩에서 정한 순서로 평점·가격을 얼마나 칠지 (lib/taste.ts criteriaWeights)
+export function fallbackStayPicks(list: HotelOption[], taste: string, budget: number, nights: number, w: { rating: number; price: number } = { rating: 2, price: 1.2 }): Pick[] {
   const wants = stayWants(taste);
   const totals = list.map((h) => stayTotal(h, nights)?.value ?? Infinity);
   const sorted = [...totals].sort((a, b) => a - b);
@@ -157,7 +158,7 @@ export function fallbackStayPicks(list: HotelOption[], taste: string, budget: nu
     const overBudget = budget > 0 && t > budget;
     const priceRank = sorted.indexOf(t) / Math.max(sorted.length - 1, 1); // 0 싼 쪽 ~ 1 비싼 쪽
     const hits = wants.filter((w) => h.amenities.some((a) => w.amenity.test(a))).length;
-    const score = (h.rating ?? 3.5) * 2 + hits * 1.5 + Math.log10((h.reviews ?? 0) + 1) * 0.4 - priceRank * 1.2 - (overBudget ? 5 : 0);
+    const score = (h.rating ?? 3.5) * w.rating + hits * 1.5 + Math.log10((h.reviews ?? 0) + 1) * 0.4 - priceRank * w.price - (overBudget ? 5 : 0);
     return { n: i + 1, score };
   });
   return scored
