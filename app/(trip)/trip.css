@@ -206,6 +206,10 @@
 .tb-tab {
   position: relative;
   width: 80px;
+  min-height: 44px;
+  justify-content: center;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
