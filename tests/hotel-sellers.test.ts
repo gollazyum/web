@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AGODA_AFFILIATE_ENABLED, AGODA_CID } from "@/lib/affiliate";
-import { allowedSellers, anySellerKey, hotelSellerKey, isGoogleLink, linkRel, withRo } from "@/lib/hotel-sellers";
+import { allowedSellers, anySellerKey, hotelSellerKey, HOTEL_SELLERS_SHOWN, isGoogleLink, linkRel, withRo } from "@/lib/hotel-sellers";
 import { agodaSearchUrl, bookingLink, roboPick, type HotelSource } from "@/lib/hotels";
 
 const q = { q: "도쿄", checkIn: "2026-12-10", checkOut: "2026-12-12", adults: 2 };
@@ -25,18 +25,21 @@ describe("숙소 판매처 허용 목록", () => {
     expect(hotelSellerKey("hotels . com")).toBe("hotels");
     expect(hotelSellerKey("야놀자")).toBe("yanolja");
     expect(hotelSellerKey("여기어때")).toBe("yeogi");
-    // 정의는 남아 있지만 지금은 보여 주지 않는 곳 (HOTEL_SELLERS_SHOWN 밖)
-    expect(anySellerKey("Booking.com")).toBe("booking");
-    expect(anySellerKey("NOL 인터파크")).toBe("interpark");
-    expect(anySellerKey("MyRealTrip")).toBe("myrealtrip");
+    expect(hotelSellerKey("Booking.com")).toBe("booking");
+    expect(hotelSellerKey("부킹닷컴")).toBe("booking");
+    expect(hotelSellerKey("NOL 인터파크")).toBe("interpark");
+    expect(hotelSellerKey("NOL")).toBe("interpark");
+    expect(hotelSellerKey("MyRealTrip")).toBe("myrealtrip");
+    expect(hotelSellerKey("마이리얼트립")).toBe("myrealtrip");
   });
 
-  it("보여 주는 곳은 아고다·트립닷컴·익스피디아·호텔스닷컴·야놀자·여기어때 6곳뿐이다", () => {
-    for (const n of ["Booking.com", "NOL 인터파크", "MyRealTrip", "Hilton Official Site"]) expect(hotelSellerKey(n), n).toBeNull();
-    expect(hotelSellerKey("HOTEL MYSTAYS Asakusabashi", true)).toBeNull();
+  it("허용한 10곳(공식 사이트 포함)을 모두 보여 준다", () => {
+    expect(HOTEL_SELLERS_SHOWN).toHaveLength(10);
+    expect(hotelSellerKey("Hilton Official Site")).toBe("official");
+    expect(hotelSellerKey("HOTEL MYSTAYS Asakusabashi", true)).toBe("official");
   });
 
-  it("공식 사이트는 플래그나 키워드로 판별한다 (지금은 숨김)", () => {
+  it("공식 사이트는 플래그나 키워드로 판별한다", () => {
     expect(anySellerKey("HOTEL MYSTAYS Asakusabashi", true)).toBe("official");
     expect(anySellerKey("Hilton Official Site")).toBe("official");
     expect(anySellerKey("신라호텔 공식")).toBe("official");
@@ -60,7 +63,7 @@ describe("숙소 판매처 허용 목록", () => {
 
 describe("예약 링크", () => {
   it("google 주소는 쓰지 않고 판매처 검색 주소로 보낸다", () => {
-    for (const n of ["Agoda", "Trip.com", "Expedia", "Hotels.com", "야놀자", "여기어때"]) {
+    for (const n of ["Agoda", "Trip.com", "Expedia", "Hotels.com", "Booking.com", "야놀자", "여기어때", "NOL 인터파크", "마이리얼트립"]) {
       const link = bookingLink(src(n, 1000), "Hotel Mystays", q);
       expect(link, n).not.toBe("");
       expect(isGoogleLink(link), `${n} ${link}`).toBe(false);

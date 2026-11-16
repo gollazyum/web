@@ -19,7 +19,12 @@ export function Sheet({ open, onClose, label, tall, children }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    // 시트가 겹쳐 있으면 맨 위 시트만 닫는다
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const wraps = document.querySelectorAll(".tb-sheet-wrap");
+      if (ref.current?.closest(".tb-sheet-wrap") === wraps[wraps.length - 1]) onClose();
+    };
     window.addEventListener("keydown", onKey);
     ref.current?.focus();
     return () => window.removeEventListener("keydown", onKey);

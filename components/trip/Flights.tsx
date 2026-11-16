@@ -62,9 +62,10 @@ const SORTS: { id: Sort; label: string }[] = [
   { id: "short", label: "짧은 비행순" },
 ];
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
+const cityOf = (label: string) => label.replace(/\s*\([A-Z]{3}\)\s*$/, "");
 
 // 항공권 결과 목록 (v7 05와 같은 틀). AI가 먼저 본 3편이 맨 위
-export function FlightBrowser({ data, aiPending, onBack }: { data: FlightData; aiPending?: boolean; onBack: () => void }) {
+export function FlightBrowser({ data, aiPending, onBack, bare }: { data: FlightData; aiPending?: boolean; onBack: () => void; bare?: boolean }) {
   const { query: q, options, picks } = data;
   const [direct, setDirect] = useState(false);
   const [morning, setMorning] = useState(false);
@@ -81,6 +82,11 @@ export function FlightBrowser({ data, aiPending, onBack }: { data: FlightData; a
 
   return (
     <div className="tb-results">
+      {bare ? (
+        <h2 className="tb-list-title">
+          {cityOf(q.toLabel || q.to)} 항공편 전체 {options.length}편
+        </h2>
+      ) : (
       <div className="tb-results-top">
         <button type="button" className="tb-ib" onClick={onBack} aria-label="검색으로 돌아가기">
           <IconBack size={20} />
@@ -95,6 +101,7 @@ export function FlightBrowser({ data, aiPending, onBack }: { data: FlightData; a
           </span>
         </button>
       </div>
+      )}
       <div className="tb-chiprow">
         {SORTS.map((s) => (
           <button key={s.id} type="button" className="tb-chip" aria-pressed={sort === s.id} onClick={() => setSort(s.id)}>
@@ -109,7 +116,7 @@ export function FlightBrowser({ data, aiPending, onBack }: { data: FlightData; a
         </button>
       </div>
       <p className="tb-results-note">
-        항공편 {shown.length}편 · {aiPending ? "AI가 조건에 맞는 편을 살펴보는 중이에요" : `AI가 고른 ${Math.min(3, picks.length)}편을 먼저 보여드려요`} · {q.adults}명 {q.ret ? "왕복" : "편도"} 총액
+        항공편 {shown.length}편 · {aiPending ? "AI가 조건에 맞는 편을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}편을 먼저 보여드려요`} · {q.adults}명 {q.ret ? "왕복" : "편도"} 총액
       </p>
       <div className="tb-rlist pad">
         {shown.map((o, i) => {

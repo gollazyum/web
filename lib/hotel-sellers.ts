@@ -133,9 +133,8 @@ export function isGoogleLink(link: string | null | undefined): boolean {
 
 const OFFICIAL_WORD = /official|공식/i;
 
-// 지금 화면에 보여 주는 판매처. 2026-11-04 초록 요청(LB 모바일 15): 한국어를 지원하고 한국 사용자에게 익숙한 6곳만.
-// 부킹닷컴·인터파크·마이리얼트립·호텔 공식 사이트는 정의는 남겨 두고 숨긴다 (다시 보이려면 이 목록에 키를 넣는다)
-export const HOTEL_SELLERS_SHOWN: readonly HotelSellerKey[] = ["agoda", "trip", "expedia", "hotels", "yanolja", "yeogi"];
+// 지금 화면에 보여 주는 판매처. 2026-11-16 초록 지시서: 허용 목록 10곳 전부 (숨기려면 이 목록에서 키를 뺀다)
+export const HOTEL_SELLERS_SHOWN: readonly HotelSellerKey[] = HOTEL_SELLER_ALLOWLIST.map((s) => s.key);
 
 // 판매처 이름·공식 플래그·링크로 허용 목록 중 하나를 찾는다. 없거나 지금 보여 주지 않는 곳이면 null (결과에서 뺀다)
 export function hotelSellerKey(name: string | null | undefined, official = false, link?: string | null): HotelSellerKey | null {

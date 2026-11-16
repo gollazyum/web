@@ -1,17 +1,16 @@
-// 처음 들어올 때 묻는 여행 취향 설문. 이 기기에만 저장하고, 숙소·항공 'AI가 고른 3곳'에 반영한다
-// 화면: 1 여행 스타일 → 2 좋아하는 여행(사진) → 3 숙소 → 4 음식 → 완료
+// 여행 취향 설문 (3단계). AI 채팅에 처음 들어갈 때만 묻고, 이 기기(localStorage)에만 저장한다.
+// 답은 숙소·항공 'AI 추천 3곳'의 취향 글과 규칙 점수에 반영한다. 지금 대화에서 말한 조건이 항상 먼저다
+// 화면: 1 여행 스타일(동행·예산·하루 이동량) → 2 좋아하는 여행(카드 6장) → 3 숙소·항공 기준
 
 type Opt<T extends string> = { id: T; label: string; say?: string; icon?: string };
 
 export type WhoId = "solo" | "couple" | "family" | "friends" | "parents";
 export type BudgetId = "b1" | "b2" | "b3" | "b4";
-export type SplurgeId = "stay" | "food" | "activity" | "shopping";
+export type PaceId = "slow" | "mid" | "full";
 export type TasteId = "food" | "onsen" | "alley" | "nature" | "history" | "night";
-export type StayId = "luxury" | "boutique" | "resort" | "ryokan" | "value" | "business" | "guesthouse" | "minbak" | "house";
-export type CriterionId = "location" | "clean" | "price" | "breakfast" | "bath";
-export type FlightPrefId = "direct" | "morning" | "bag" | "major" | "miles";
-export type FoodId = "local" | "street" | "izakaya" | "cafe" | "fine" | "korean" | "bakery";
-export type AvoidId = "none" | "seafood" | "pork" | "spicy" | "veg" | "halal" | "gluten";
+export type StayId = "luxury" | "value" | "ryokan" | "mood" | "house" | "guesthouse";
+export type CriterionId = "location" | "clean" | "price" | "cancel" | "breakfast" | "bath";
+export type FlightPrefId = "cheap" | "direct" | "morning" | "bag" | "major" | "business";
 
 // say: AI와 규칙 점수(lib/trip.ts의 STAY_WANTS·FLIGHT_WANTS)에 넘기는 짧은 말
 export const WHO: Opt<WhoId>[] = [
@@ -23,17 +22,16 @@ export const WHO: Opt<WhoId>[] = [
 ];
 
 export const BUDGETS: Opt<BudgetId>[] = [
-  { id: "b1", label: "₩ 알뜰하게", say: "알뜰한 예산" },
-  { id: "b2", label: "₩₩ 적당하게", say: "적당한 예산" },
-  { id: "b3", label: "₩₩₩ 여유 있게", say: "여유 있는 예산" },
-  { id: "b4", label: "₩₩₩₩ 고급스럽게", say: "고급 숙소 선호" },
+  { id: "b1", label: "알뜰하게", say: "알뜰한 예산" },
+  { id: "b2", label: "적당하게", say: "적당한 예산" },
+  { id: "b3", label: "여유 있게", say: "여유 있는 예산" },
+  { id: "b4", label: "고급스럽게", say: "고급 숙소 선호" },
 ];
 
-export const SPLURGE: Opt<SplurgeId>[] = [
-  { id: "stay", label: "숙소", say: "숙소에는 돈을 더 씀" },
-  { id: "food", label: "맛집" },
-  { id: "activity", label: "체험·투어" },
-  { id: "shopping", label: "쇼핑" },
+export const PACES: Opt<PaceId>[] = [
+  { id: "slow", label: "적게 걷고 여유롭게", say: "적게 걷는 여유로운 일정" },
+  { id: "mid", label: "핵심 명소만 적당히", say: "핵심 명소만 적당히" },
+  { id: "full", label: "알차게 많이 걷기", say: "많이 걷는 알찬 일정" },
 ];
 
 export const TASTES: Opt<TasteId>[] = [
@@ -46,98 +44,86 @@ export const TASTES: Opt<TasteId>[] = [
 ];
 
 export const STAYS: Opt<StayId>[] = [
-  { id: "luxury", label: "고급 호텔", say: "고급 호텔", icon: "bell" },
-  { id: "boutique", label: "부티크·디자인 호텔", say: "부티크 호텔", icon: "star" },
-  { id: "resort", label: "리조트", say: "리조트", icon: "palm" },
+  { id: "luxury", label: "고급 호텔·리조트", say: "고급 호텔·리조트", icon: "bell" },
+  { id: "value", label: "깔끔한 가성비·비즈니스 호텔", say: "깔끔한 가성비 호텔", icon: "coin" },
   { id: "ryokan", label: "료칸·온천 숙소", say: "료칸·온천", icon: "steam" },
-  { id: "value", label: "가성비 호텔", say: "가성비 호텔", icon: "coin" },
-  { id: "business", label: "비즈니스 호텔", say: "비즈니스 호텔", icon: "case" },
-  { id: "guesthouse", label: "게스트하우스", say: "게스트하우스", icon: "bunk" },
-  { id: "minbak", label: "한인 민박", say: "한인 민박", icon: "home" },
-  { id: "house", label: "집 한 채 통째로", say: "독채·집 전체", icon: "key" },
+  { id: "mood", label: "감성 숙소", say: "감성 숙소", icon: "star" },
+  { id: "house", label: "독채·레지던스", say: "독채·레지던스", icon: "key" },
+  { id: "guesthouse", label: "게스트하우스·민박", say: "게스트하우스·민박", icon: "bunk" },
 ];
 
 export const CRITERIA: Opt<CriterionId>[] = [
   { id: "location", label: "역·관광지와 가까운 위치", say: "역·관광지와 가까운 위치" },
-  { id: "clean", label: "깨끗한 객실 · 높은 평점", say: "깨끗하고 평점 높은 곳" },
-  { id: "price", label: "최저가 · 가성비", say: "가성비" },
+  { id: "clean", label: "깨끗한 객실·높은 평점", say: "깨끗하고 평점 높은 곳" },
+  { id: "price", label: "최저가·가성비", say: "가성비" },
+  { id: "cancel", label: "무료 취소 가능", say: "무료 취소" },
   { id: "breakfast", label: "조식 포함", say: "조식" },
-  { id: "bath", label: "대욕장 · 수영장", say: "대욕장·수영장" },
+  { id: "bath", label: "대욕장·수영장", say: "대욕장·수영장" },
 ];
 
 export const FLIGHT_PREFS: Opt<FlightPrefId>[] = [
+  { id: "cheap", label: "최저가 우선", say: "가장 싼 항공권 우선" },
   { id: "direct", label: "직항만", say: "직항" },
   { id: "morning", label: "오전 출발", say: "오전 출발" },
   { id: "bag", label: "위탁 수하물 포함", say: "위탁 수하물 포함" },
   { id: "major", label: "대형 항공사", say: "대형 항공사" },
-  { id: "miles", label: "마일리지 적립", say: "마일리지 적립" },
+  { id: "business", label: "비즈니스석 선호", say: "비즈니스석 선호" },
 ];
-
-export const FOODS: Opt<FoodId>[] = [
-  { id: "local", label: "현지 맛집·노포", icon: "bowl" },
-  { id: "street", label: "길거리 음식·시장", icon: "skewer" },
-  { id: "izakaya", label: "이자카야·술집", icon: "cup" },
-  { id: "cafe", label: "카페·디저트", icon: "coffee" },
-  { id: "fine", label: "파인다이닝", icon: "dish" },
-  { id: "bakery", label: "빵집", icon: "bread" },
-  { id: "korean", label: "가끔은 한식", icon: "spoon" },
-];
-
-export const AVOIDS: Opt<AvoidId>[] = [
-  { id: "none", label: "없어요" },
-  { id: "seafood", label: "해산물" },
-  { id: "pork", label: "돼지고기" },
-  { id: "spicy", label: "매운 음식" },
-  { id: "veg", label: "채식" },
-  { id: "halal", label: "할랄" },
-  { id: "gluten", label: "글루텐" },
-];
-
-// 기타를 고르고 직접 적은 말
-export type NoteKey = "splurge" | "stay" | "food" | "avoid";
 
 export type TasteProfile = {
   who: WhoId[];
   budget: BudgetId | "";
-  splurge: SplurgeId[];
+  pace: PaceId | "";
   tastes: TasteId[];
   stays: StayId[];
   criteria: CriterionId[]; // 중요한 순서
   flight: FlightPrefId[];
-  foods: FoodId[];
-  avoid: AvoidId[];
-  notes: Partial<Record<NoteKey, string>>;
 };
 
+// 저장 상태: done(끝까지 답함) · skipped(나중에 하기). 둘 다 다시 묻지 않는다
+export type TasteStatus = "done" | "skipped";
+export type TasteSaved = { profile: TasteProfile; status: TasteStatus };
+
 export const TASTE_KEY = "tb-taste-v1";
-export const EMPTY_PROFILE: TasteProfile = { who: [], budget: "", splurge: [], tastes: [], stays: [], criteria: [], flight: [], foods: [], avoid: [], notes: {} };
-export const NOTE_MAX = 40;
+export const EMPTY_PROFILE: TasteProfile = { who: [], budget: "", pace: "", tastes: [], stays: [], criteria: [], flight: [] };
 
 const ids = <T extends string>(list: Opt<T>[]) => list.map((o) => o.id);
 const only = <T extends string>(v: unknown, ok: readonly T[]): T[] => (Array.isArray(v) ? [...new Set(v.filter((x): x is T => ok.includes(x as T)))] : []);
-const note = (v: unknown) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, NOTE_MAX) : "");
+const one = <T extends string>(v: unknown, ok: readonly T[]): T | "" => (ok.includes(v as T) ? (v as T) : "");
 
-// 저장된 값을 믿지 않고 아는 값만 남긴다. 예전(사진·순서·항공만 있던) 저장값도 그대로 읽힌다
+// 앞선 설문 판의 숙소 유형 → 지금 6가지
+const OLD_STAY: Record<string, StayId> = { resort: "luxury", business: "value", boutique: "mood", minbak: "guesthouse" };
+
+// 저장된 값을 믿지 않고 아는 값만 남긴다. 앞선 판(사진·순서·항공만, 또는 음식까지 있던 판)의 저장값도 읽힌다
 export function cleanProfile(raw: unknown): TasteProfile | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
-  const n = (r.notes && typeof r.notes === "object" ? r.notes : {}) as Record<string, unknown>;
-  const notes: TasteProfile["notes"] = {};
-  for (const k of ["splurge", "stay", "food", "avoid"] as NoteKey[]) if (note(n[k])) notes[k] = note(n[k]);
-  const budget = only([r.budget], ids(BUDGETS))[0] ?? "";
+  const stays = Array.isArray(r.stays) ? r.stays.map((s) => (typeof s === "string" && OLD_STAY[s]) || s) : [];
   return {
     who: only(r.who, ids(WHO)),
-    budget,
-    splurge: only(r.splurge, ids(SPLURGE)),
+    budget: one(r.budget, ids(BUDGETS)),
+    pace: one(r.pace, ids(PACES)),
     tastes: only(r.tastes, ids(TASTES)),
-    stays: only(r.stays, ids(STAYS)),
+    stays: only(stays, ids(STAYS)),
     criteria: only(r.criteria, ids(CRITERIA)),
     flight: only(r.flight, ids(FLIGHT_PREFS)),
-    foods: only(r.foods, ids(FOODS)),
-    avoid: only(r.avoid, ids(AVOIDS)),
-    notes,
   };
 }
+
+// localStorage 값 → 저장 상태. 상태가 없는 앞선 판 값은 끝까지 답한 것으로 본다
+export function readSaved(raw: string | null): TasteSaved | null {
+  if (!raw) return null;
+  try {
+    const j = JSON.parse(raw) as Record<string, unknown>;
+    const profile = cleanProfile(j.profile ?? j);
+    if (!profile) return null;
+    return { profile, status: j.status === "skipped" ? "skipped" : "done" };
+  } catch {
+    return null;
+  }
+}
+
+export const hasAnswers = (p: TasteProfile | null) => !!p && (p.who.length + p.tastes.length + p.stays.length + p.criteria.length + p.flight.length > 0 || !!p.budget || !!p.pace);
 
 const sayOf = <T extends string>(list: Opt<T>[], id: T) => {
   const o = list.find((x) => x.id === id);
@@ -145,29 +131,32 @@ const sayOf = <T extends string>(list: Opt<T>[], id: T) => {
 };
 const join = (xs: string[], sep = ", ") => xs.filter(Boolean).join(sep);
 
-// 검색 때 적은 취향 글 뒤에 붙일 말. 숙소는 누구와·예산·숙소 스타일·순서·좋아하는 여행, 항공은 항공 선호·예산
+// 평소 취향 글. 숙소는 동행·예산·이동량·숙소 유형·순서·좋아하는 여행, 항공은 항공 조건·예산
 export function profileTaste(p: TasteProfile | null, kind: "stay" | "flight"): string {
   if (!p) return "";
   const budget = p.budget ? sayOf(BUDGETS, p.budget) : "";
-  if (kind === "flight") return join([...p.flight.map((id) => sayOf(FLIGHT_PREFS, id)), budget === "알뜰한 예산" ? "싼 항공권" : ""]);
-  const parts = [
-    join(p.who.map((id) => sayOf(WHO, id))),
-    budget,
-    p.splurge.includes("stay") ? sayOf(SPLURGE, "stay") : "",
-    p.stays.length || p.notes.stay ? `숙소 ${join([...p.stays.map((id) => sayOf(STAYS, id)), p.notes.stay ?? ""])}` : "",
-    p.criteria.length ? `중요한 순서 ${p.criteria.map((id, i) => `${i + 1}.${sayOf(CRITERIA, id)}`).join(" ")}` : "",
-    p.tastes.length ? `좋아하는 여행 ${p.tastes.map((id) => sayOf(TASTES, id)).join("·")}` : "",
-  ];
-  return join(parts, " / ");
+  if (kind === "flight") return join([...p.flight.map((id) => sayOf(FLIGHT_PREFS, id)), budget]);
+  return join(
+    [
+      join([...p.who.map((id) => sayOf(WHO, id)), budget, p.pace ? sayOf(PACES, p.pace) : ""]),
+      p.stays.length ? `숙소 ${join(p.stays.map((id) => sayOf(STAYS, id)))}` : "",
+      p.criteria.length ? `중요한 순서 ${p.criteria.map((id, i) => `${i + 1}.${sayOf(CRITERIA, id)}`).join(" ")}` : "",
+      p.tastes.length ? `좋아하는 여행 ${p.tastes.map((id) => sayOf(TASTES, id)).join("·")}` : "",
+    ],
+    " / ",
+  );
 }
 
+// 지금 대화·검색에서 말한 조건이 앞에 오고 우선이다. 평소 취향은 뒤에 '참고'로 붙인다
 export function withProfile(taste: string, p: TasteProfile | null, kind: "stay" | "flight"): string {
   const extra = profileTaste(p, kind);
-  return [taste.trim(), extra].filter(Boolean).join(" / ").slice(0, 300);
+  const now = taste.trim();
+  if (!extra) return now;
+  return (now ? `${now} (이번 조건이 우선) / 평소 취향: ${extra}` : `평소 취향: ${extra}`).slice(0, 300);
 }
 
-// 규칙 점수의 무게. 순서는 앞일수록, 예산·숙소 스타일은 가격과 평점 중 어디를 더 볼지 정한다
-const BOOST = [1, 0.7, 0.45, 0.3, 0.2];
+// 규칙 점수의 무게. 순서는 앞일수록, 예산·숙소 유형은 가격과 평점 중 어디를 더 볼지 정한다
+const BOOST = [1, 0.7, 0.45, 0.3, 0.2, 0.15];
 const BUDGET_W: Record<BudgetId, { rating: number; price: number }> = { b1: { rating: 0, price: 2 }, b2: { rating: 0, price: 0.6 }, b3: { rating: 0.6, price: -0.4 }, b4: { rating: 1.2, price: -0.9 } };
 export function criteriaWeights(p: TasteProfile | null): { rating: number; price: number } {
   const w = { rating: 2, price: 1.2 };
@@ -181,22 +170,20 @@ export function criteriaWeights(p: TasteProfile | null): { rating: number; price
     w.price += BUDGET_W[p.budget].price;
   }
   if (p.stays.some((s) => s === "value" || s === "guesthouse")) w.price += 0.6;
-  if (p.stays.some((s) => s === "luxury" || s === "resort")) w.rating += 0.4;
+  if (p.stays.includes("luxury")) w.rating += 0.4;
   w.price = Math.max(0.2, w.price);
   return w;
 }
 
-// 마이 탭에 보여 줄 요약 (줄마다 한 묶음)
+// 마이 탭 요약 (줄마다 한 묶음)
 export function profileLines(p: TasteProfile | null): string[] {
   if (!p) return [];
   const lb = <T extends string>(list: Opt<T>[], xs: T[]) => xs.map((id) => list.find((o) => o.id === id)?.label ?? "");
   return [
-    join([...lb(WHO, p.who), p.budget ? `예산 ${(BUDGETS.find((b) => b.id === p.budget)?.label ?? "").replace(/^₩+ /, "")}` : ""]),
-    join([...lb(STAYS, p.stays), p.notes.stay ?? ""]),
-    p.criteria.length ? `중요한 순서: ${lb(CRITERIA, p.criteria).join(" > ")}` : "",
+    join([...lb(WHO, p.who), p.budget ? `예산 ${lb(BUDGETS, [p.budget])[0]}` : "", p.pace ? lb(PACES, [p.pace])[0] : ""]),
     join(lb(TASTES, p.tastes)),
-    join([...lb(FOODS, p.foods), p.notes.food ?? ""]),
-    p.avoid.length && !p.avoid.includes("none") ? `못 먹는 것: ${join([...lb(AVOIDS, p.avoid), p.notes.avoid ?? ""])}` : "",
+    join(lb(STAYS, p.stays)),
+    p.criteria.length ? `중요한 순서: ${lb(CRITERIA, p.criteria).join(" > ")}` : "",
     join(lb(FLIGHT_PREFS, p.flight)),
   ].filter(Boolean);
 }

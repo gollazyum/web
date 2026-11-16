@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { bookingLink, type HotelOption, type HotelSource } from "@/lib/hotels";
-import { hotelSellerKey, linkRel, sellerDef } from "@/lib/hotel-sellers";
+import { sellerRows, type HotelOption, type SellerRow } from "@/lib/hotels";
+import { agodaAffiliateOn } from "@/lib/affiliate";
+import { linkRel, sellerDef, withRo } from "@/lib/hotel-sellers";
 import { nightsOf, won, type StayQuery } from "@/lib/trip";
 import { searchErrorMessage } from "@/lib/search-error";
 import { stayPrices } from "./api";
@@ -15,55 +16,61 @@ type Props = {
   saved: boolean;
   onSave: () => void;
   onClose: () => void;
+  onGo?: (text: string) => void; // 예약 사이트로 넘어갈 때 잠깐 띄우는 안내
 };
 
 // 판매처 표시용 색 (첫 글자 배지). 로고 이미지는 쓰지 않는다
-const TONE: Record<string, string> = { agoda: "#5B4BDB", trip: "#287DFA", expedia: "#1B2E5A", hotels: "#D32F2F", yanolja: "#FF3478", yeogi: "#E6007E" };
+const TONE: Record<string, string> = {
+  agoda: "#5B4BDB",
+  trip: "#287DFA",
+  expedia: "#1B2E5A",
+  hotels: "#D32F2F",
+  booking: "#003B95",
+  yanolja: "#FF3478",
+  yeogi: "#E6007E",
+  interpark: "#6A3DF0",
+  myrealtrip: "#0BB3E6",
+  official: "#18202B",
+};
 
-type Row = HotelSource & { cost: number; approx: boolean };
+const hm = (at: number) => {
+  const d = new Date(at);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
 
-function rowsOf(sources: HotelSource[], nights: number): Row[] {
-  return sources
-    .map((s) => {
-      const cost = s.total ?? (s.perNight ? s.perNight * nights : null);
-      return cost === null ? null : { ...s, cost, approx: s.total === null };
-    })
-    .filter((r): r is Row => !!r)
-    .sort((a, b) => a.cost - b.cost);
-}
-
-// v4 09번: 예약처별 결제 총액. 열 때 그 숙소의 예약처 가격을 한 번 더 받아 온다 (같은 조건은 30분 캐시)
-export function SellerSheet({ hotel, query, saved, onSave, onClose }: Props) {
+// 예약처별 결제 총액. 열 때 그 숙소의 예약처 가격을 한 번 더 받아 온다 (같은 조건은 이 탭에 30분 캐시)
+export function SellerSheet({ hotel, query, saved, onSave, onClose, onGo }: Props) {
   return (
     <Sheet open={!!hotel} onClose={onClose} label="예약처별 결제 총액">
-      {hotel && <SellerBody hotel={hotel} query={query} saved={saved} onSave={onSave} />}
+      {hotel && <SellerBody hotel={hotel} query={query} saved={saved} onSave={onSave} onGo={onGo} />}
     </Sheet>
   );
 }
 
 // 시트(휴대폰)와 오른쪽 고정 패널(PC)이 같이 쓰는 본문
-export function SellerBody({ hotel, query, saved, onSave }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
-  const [state, setState] = useState<{ token: string; rows: Row[] | null; status: number | null | "ok" } | null>(null);
+export function SellerBody({ hotel, query, saved, onSave, onGo }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
+  const [state, setState] = useState<{ token: string; rows: SellerRow[] | null; status: number | null | "ok"; at: number } | null>(null);
+  const [again, setAgain] = useState(0);
   const nights = nightsOf(query);
 
   useEffect(() => {
     let live = true;
-    setState({ token: hotel.token, rows: null, status: "ok" });
-    stayPrices(hotel.token, query, hotel.name).then((r) => {
+    const hq = { q: query.place, checkIn: query.checkIn, checkOut: query.checkOut, adults: query.adults };
+    setState({ token: hotel.token, rows: null, status: "ok", at: 0 });
+    stayPrices(hotel.token, query, hotel.name, again > 0).then((r) => {
       if (!live) return;
-      if (r.ok) setState({ token: hotel.token, rows: rowsOf(r.data.sources, nights), status: "ok" });
+      if (r.ok) setState({ token: hotel.token, rows: sellerRows(r.data.sources, nights, hotel.name, hq), status: "ok", at: r.at ?? Date.now() });
       // 실패하면 목록에 같이 온 몇 곳이라도 보여 준다
-      else setState({ token: hotel.token, rows: rowsOf(hotel.sources, nights), status: r.status });
+      else setState({ token: hotel.token, rows: sellerRows(hotel.sources, nights, hotel.name, hq), status: r.status, at: 0 });
     });
     return () => {
       live = false;
     };
-  }, [hotel, query, nights]);
+  }, [hotel, query, nights, again]);
 
   const rows = state?.token === hotel.token ? state?.rows : null;
   const failed = state && state.status !== "ok";
   const lowest = rows?.[0]?.cost ?? 0;
-  const hq = { q: query.place, checkIn: query.checkIn, checkOut: query.checkOut, adults: query.adults };
 
   return (
     <div className="tb-seller">
@@ -76,16 +83,20 @@ export function SellerBody({ hotel, query, saved, onSave }: Omit<Props, "hotel" 
           </p>
           {hotel.rating ? <p className="tb-mute">후기 {hotel.rating.toFixed(1)}점{hotel.reviews ? ` (${hotel.reviews.toLocaleString("ko-KR")})` : ""}</p> : null}
           {hotel.gps && (
-            <a className="tb-maplink" href={`https://maps.google.com/?q=${hotel.gps[0]},${hotel.gps[1]}`} target="_blank" rel="noopener noreferrer">
-              지도 앱에서 위치 보기 <IconOut />
+            <a className="tb-maplink" href={`https://www.openstreetmap.org/?mlat=${hotel.gps[0]}&mlon=${hotel.gps[1]}#map=17/${hotel.gps[0]}/${hotel.gps[1]}`} target="_blank" rel="noopener noreferrer">
+              지도에서 위치 보기 <IconOut />
             </a>
           )}
         </div>
       </div>
       <div className="tb-seller-title">
         <h3>예약처별 결제 총액</h3>
-        <span>세금·수수료 포함</span>
+        {state?.at ? <span>{hm(state.at)} 확인</span> : null}
       </div>
+      <ul className="tb-seller-info">
+        <li>세금·수수료를 포함한 {nights}박 총액이에요. 현지에서 내는 숙박세는 포함되지 않아 따로 낼 수 있어요.</li>
+        <li>결제는 이동한 예약 사이트에서 진행돼요.</li>
+      </ul>
       {!rows ? (
         <div className="tb-rows">
           {[0, 1, 2].map((i) => (
@@ -95,13 +106,10 @@ export function SellerBody({ hotel, query, saved, onSave }: Omit<Props, "hotel" 
       ) : rows.length ? (
         <div className="tb-rows">
           {rows.map((s, i) => {
-            const key = hotelSellerKey(s.name, s.official, s.link);
-            const href = bookingLink(s, hotel.name, hq);
-            if (!href) return null;
-            const ko = key ? sellerDef(key).ko : s.name;
+            const ko = sellerDef(s.key).ko;
             return (
-              <div key={s.name} className="tb-row">
-                <span className="tb-seller-badge" style={{ background: (key && TONE[key]) || "#18202B" }} aria-hidden>
+              <div key={`${s.key}:${s.name}`} className="tb-row">
+                <span className="tb-seller-badge" style={{ background: TONE[s.key] }} aria-hidden>
                   {ko.slice(0, 1)}
                 </span>
                 <div className="tb-row-name">
@@ -113,7 +121,7 @@ export function SellerBody({ hotel, query, saved, onSave }: Omit<Props, "hotel" 
                   <strong>{won(s.cost)}</strong>
                   {i > 0 && s.cost > lowest && <small>+{Math.round(s.cost - lowest).toLocaleString("ko-KR")}</small>}
                 </div>
-                <a className={`tb-book${i === 0 ? " dark" : ""}`} href={href} target="_blank" rel={linkRel(key)}>
+                <a className={`tb-book${i === 0 ? " dark" : ""}`} href={s.href} target="_blank" rel={linkRel(s.key)} onClick={() => onGo?.(`${withRo(ko)} 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요`)}>
                   예약 <IconOut />
                 </a>
               </div>
@@ -121,11 +129,17 @@ export function SellerBody({ hotel, query, saved, onSave }: Omit<Props, "hotel" 
           })}
         </div>
       ) : (
-        <p className="tb-note">이 날짜에 가격을 보여 주는 예약처가 없어요. 날짜를 바꿔 다시 찾아봐 주세요.</p>
+        <div className="tb-seller-none">
+          <p>지금 비교할 수 있는 예약 사이트가 없어요</p>
+          <button type="button" className="tb-cta small" onClick={() => setAgain((n) => n + 1)}>
+            다시 검색
+          </button>
+        </div>
       )}
-      {failed && <p className="tb-note">{searchErrorMessage(state.status === "ok" ? null : state.status)}</p>}
+      {failed && rows?.length ? <p className="tb-note">{searchErrorMessage(state.status === "ok" ? null : state.status)}</p> : null}
       <p className="tb-note">
-        <strong>예약 ↗</strong>을 누르면 그 사이트로 이동해 결제해요. {` `}이 앱은 제휴 수수료를 받을 수 있지만, 내는 금액은 같아요. 가격은 찾은 시점 기준이라 결제 화면에서 꼭 다시 확인해 주세요.
+        가격은 확인한 시각 기준이라 바뀔 수 있어요. 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요.
+        {agodaAffiliateOn() ? " 일부 예약처에서 제휴 수수료를 받을 수 있지만, 내는 금액은 같아요." : ""}
       </p>
       <button type="button" className="tb-save" onClick={onSave} aria-pressed={saved}>
         <IconHeart size={18} on={saved} /> {saved ? "내 여행에 담았어요" : "내 여행에 담기"}
