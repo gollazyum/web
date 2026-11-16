@@ -5,6 +5,7 @@ import type { HotelOption } from "@/lib/hotels";
 import { activeCount, applyFilter, countFilters, EMPTY_FILTER, type StayFilter } from "@/lib/stay-filters";
 import { nightsOf, won, type StayQuery } from "@/lib/trip";
 import { shownCost, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
+import { changeText, priceChange, savedBaseFor } from "./saved-price";
 import { FilterBar, FilterPanel, SORTS, type Sort } from "./StayFilters";
 import { IconBack, IconHeart, IconSpark } from "./icons";
 
@@ -170,6 +171,7 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
   const nights = nightsOf(query);
   const t = shownPrice(h, query);
   const ref = useLazyPrice<HTMLElement>(h, query, !!reason); // AI 추천 카드만, 화면에 보이면 예약처 가격을 받는다
+  const diff = saved ? priceChange(savedBaseFor(h.token, query), t) : null; // 담아 둔 숙소면 담을 때 금액과 견준다
   return (
     <article ref={ref} className={`tb-srow${active ? " on" : ""}`}>
       <div className="tb-srow-img">
@@ -202,9 +204,15 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
           </span>
         )}
         <PriceBlock p={t} nights={nights} />
+        {diff !== null && <PriceChange diff={diff} />}
       </button>
     </article>
   );
+}
+
+// 담을 때보다 내려갔/올랐어요 한 줄
+export function PriceChange({ diff }: { diff: number }) {
+  return <span className={`tb-pchg${diff < 0 ? " down" : " up"}`}>{changeText(diff)}</span>;
 }
 
 // 카드 금액 영역: 금액 · 보조 문구 · 비교 유도 문구. 시트 1위 총액과 맞춘 뒤에는 '세금 포함', 그 전에는 '예상 총액'
