@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useSheet } from "@/lib/useSheet";
 import { IconClose } from "./icons";
 
@@ -31,7 +32,9 @@ export function Sheet({ open, onClose, label, tall, children }: Props) {
   }, [open, onClose]);
 
   if (!open) return null;
-  return (
+  // 목록 안(필터 버튼 등)에서 열어도 탭 바 위에 뜨도록 앱 맨 바깥(.tb-app, 색 변수가 있는 곳)에 그린다
+  const host = typeof document !== "undefined" ? document.querySelector(".tb-app") : null;
+  const node = (
     <div className="tb-sheet-wrap">
       <div className="tb-dim" onClick={onClose} />
       <div ref={ref} className={`tb-sheet${tall ? " tall" : ""}`} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1}>
@@ -46,4 +49,5 @@ export function Sheet({ open, onClose, label, tall, children }: Props) {
       </div>
     </div>
   );
+  return host ? createPortal(node, host) : node;
 }

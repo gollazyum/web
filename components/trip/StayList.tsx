@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { HotelOption } from "@/lib/hotels";
-import { inBand, PRICE_BANDS } from "@/lib/price-bands";
+import { activeCount, applyFilter, countFilters, EMPTY_FILTER, type StayFilter } from "@/lib/stay-filters";
 import { nightsOf, won, type StayQuery } from "@/lib/trip";
 import { shownCost, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
-import { IconBack, IconHeart, IconSort, IconSpark } from "./icons";
+import { FilterBar, FilterPanel, SORTS, type Sort } from "./StayFilters";
+import { IconBack, IconHeart, IconSpark } from "./icons";
 
 export type StayPick = { token: string; reason: string };
 
@@ -20,50 +21,47 @@ type Props = {
   onBack: () => void;
   active?: string; // PC 패널에 열려 있는 숙소
   bare?: boolean; // 바텀시트 안: 위쪽 검색 줄 대신 제목만
+  more?: "more" | "loading" | "error" | "end"; // 목록 끝에서 더 불러오기
+  onMore?: () => void;
+  onStars?: (stars: number[]) => void; // 고른 성급이 바뀌면 그 성급만 다시 찾는다
 };
-
-// 결과 위 빠른 조건 (아고다·트립닷컴처럼 자주 쓰는 것부터). 받은 목록에 해당 숙소가 있을 때만 보인다
-const FILTERS: { label: string; test: (h: HotelOption) => boolean }[] = [
-  { label: "무료 취소", test: (h) => h.amenities.some((a) => /무료 취소/.test(a)) },
-  { label: "조식", test: (h) => h.amenities.some((a) => /조식|아침/.test(a)) },
-  { label: "평점 4.0+", test: (h) => (h.rating ?? 0) >= 4 },
-  { label: "온천·대욕장", test: (h) => h.amenities.some((a) => /온천|대욕장|사우나/.test(a)) },
-  { label: "수영장", test: (h) => h.amenities.some((a) => /수영장/.test(a)) },
-];
-
-type Sort = "ai" | "price" | "rating";
-const SORTS: { id: Sort; label: string }[] = [
-  { id: "ai", label: "AI 추천순" },
-  { id: "price", label: "낮은 가격순" },
-  { id: "rating", label: "평점순" },
-];
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
 
 // 평점(5점 만점) 한 단어
 const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋음" : r >= 3.8 ? "좋음" : "보통");
 
-// v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다
-export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare }: Props) {
+// v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다.
+// 필터: 휴대폰·좁은 PC는 위쪽 3버튼(조건 검색/요금/정렬 기준), 넓은 PC(1280px 이상)는 같은 항목을 왼쪽에 늘 보이게
+export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars }: Props) {
+  // 목록 끝이 화면에 가까워지면 다음 쪽을 부른다 (필터로 목록이 짧아져도 같은 기준)
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = endRef.current;
+    if (!el || more !== "more" || !onMore) return;
+    const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && onMore(), { rootMargin: "600px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [more, onMore, options.length]);
   const nights = nightsOf(query);
+  const side = !bare;
   const [sort, setSort] = useState<Sort>("ai");
-  const [on, setOn] = useState<Set<string>>(new Set());
-  const [band, setBand] = useState<string | null>(null); // 가격대 (하나만)
-  const [bandOpen, setBandOpen] = useState(false);
+  const [f, setF] = useState<StayFilter>(EMPTY_FILTER);
+  const starKey = [...f.stars].sort().join(",");
+  useEffect(() => {
+    onStars?.(starKey ? starKey.split(",").map(Number) : []);
+  }, [starKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const reasons = useMemo(() => new Map(picks.map((p) => [p.token, p.reason])), [picks]);
-  const filters = FILTERS.filter((f) => options.some(f.test));
   const pv = usePriceVersion(); // 예약처 시트·미리 조회로 맞춘 금액이 오면 다시 계산
   const cost = (h: HotelOption) => shownCost(h, query);
   const cheapest = useMemo(() => options.reduce<HotelOption | null>((m, h) => (cost(h) < (m ? cost(m) : Infinity) ? h : m), null), [options, pv]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 가격대: 다른 조건을 건 목록 기준으로 몇 곳인지 세고, 0곳인 가격대는 숨긴다
-  const base = useMemo(() => options.filter((h) => filters.every((f) => !on.has(f.label) || f.test(h))), [options, on]); // eslint-disable-line react-hooks/exhaustive-deps
-  const bands = useMemo(() => PRICE_BANDS.map((b) => ({ ...b, n: base.filter((h) => inBand(cost(h), nights, b)).length })).filter((b) => b.n > 0 || b.id === band), [base, pv, nights, band]); // eslint-disable-line react-hooks/exhaustive-deps
-  const bandNow = PRICE_BANDS.find((b) => b.id === band);
+  const counts = useMemo(() => countFilters(options, cost, nights), [options, pv, nights]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shown = useMemo(() => {
-    let list = bandNow ? base.filter((h) => inBand(cost(h), nights, bandNow)) : base;
+    let list = applyFilter(options, f, cost, nights);
     if (sort === "price") list = [...list].sort((a, b) => cost(a) - cost(b));
+    else if (sort === "priceDesc") list = [...list].sort((a, b) => (Number.isFinite(cost(b)) ? cost(b) : -1) - (Number.isFinite(cost(a)) ? cost(a) : -1));
+    else if (sort === "stars") list = [...list].sort((a, b) => (b.stars ?? 0) - (a.stars ?? 0));
     else if (sort === "rating") list = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     else {
       const rank = (h: HotelOption) => {
@@ -74,107 +72,94 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
     }
     // 비교할 수 있는 예약처가 0곳으로 확인된 숙소는 맨 아래로
     return [...list].sort((a, b) => Number(shownPrice(a, query).none) - Number(shownPrice(b, query).none));
-  }, [base, bandNow, sort, picks, pv]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const toggle = (l: string) =>
-    setOn((s) => {
-      const n = new Set(s);
-      if (n.has(l)) n.delete(l);
-      else n.add(l);
-      return n;
-    });
+  }, [options, f, sort, picks, pv]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="tb-results">
+      <div className={bare ? "tb-results-head bare" : "tb-results-head"}>
       {bare ? (
         <h2 className="tb-list-title">
           {query.place} 전체 {options.length}곳
         </h2>
       ) : (
-      <div className="tb-results-top">
-        <button type="button" className="tb-ib" onClick={onBack} aria-label="검색으로 돌아가기">
-          <IconBack size={20} />
-        </button>
-        <button type="button" className="tb-qpill" onClick={onBack}>
-          <strong>{query.place}</strong>
-          <span>
-            {md(query.checkIn)} – {md(query.checkOut)} · 성인 {query.adults}
-          </span>
-        </button>
-      </div>
-      )}
-      <div className="tb-chiprow">
-        {SORTS.map((s) => (
-          <button key={s.id} type="button" className="tb-chip" aria-pressed={sort === s.id} onClick={() => setSort(s.id)}>
-            {s.id === "ai" ? <IconSpark size={16} /> : s.id === "price" ? <IconSort size={16} /> : null}
-            {s.label}
+        <div className="tb-results-top">
+          <button type="button" className="tb-ib" onClick={onBack} aria-label="검색으로 돌아가기">
+            <IconBack size={20} />
           </button>
-        ))}
-        {filters.slice(0, 3).map((f) => (
-          <button key={f.label} type="button" className="tb-chip" aria-pressed={on.has(f.label)} onClick={() => toggle(f.label)}>
-            {f.label}
+          <button type="button" className="tb-qpill" onClick={onBack}>
+            <strong>{query.place}</strong>
+            <span>
+              {md(query.checkIn)} – {md(query.checkOut)} · 성인 {query.adults}
+            </span>
           </button>
-        ))}
-        {(bands.length > 0 || bandNow) && (
-          <button type="button" className="tb-chip" aria-pressed={!!bandNow} aria-expanded={bandOpen} onClick={() => setBandOpen((o) => !o)}>
-            {bandNow ? bandNow.label : "가격대"}
-            <i className={`tb-caret${bandOpen ? " up" : ""}`} aria-hidden />
-          </button>
-        )}
-        {filters.slice(3).map((f) => (
-          <button key={f.label} type="button" className="tb-chip" aria-pressed={on.has(f.label)} onClick={() => toggle(f.label)}>
-            {f.label}
-          </button>
-        ))}
-      </div>
-      {bandOpen && (
-        <div className="tb-chiprow tb-bandrow" role="group" aria-label="가격대">
-          {bands.map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              className="tb-chip"
-              aria-pressed={band === b.id}
-              onClick={() => {
-                setBand(band === b.id ? null : b.id);
-                setBandOpen(false);
-              }}
-            >
-              {b.label} <small>{b.n}곳</small>
-            </button>
-          ))}
-          {bandNow && (
-            <button
-              type="button"
-              className="tb-chip"
-              onClick={() => {
-                setBand(null);
-                setBandOpen(false);
-              }}
-            >
-              전체 가격
-            </button>
-          )}
         </div>
       )}
-      <p className="tb-results-note">
-        숙소 {shown.length}곳 · {aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}곳을 먼저 보여드려요`} · {nights}박 총액
-      </p>
-      <div className="tb-rlist">
-        {shown.map((h) => (
-          <StayRow
-            key={h.token}
-            h={h}
-            query={query}
-            reason={reasons.get(h.token)}
-            cheapest={cheapest?.token === h.token}
-            saved={saved.has(h.token)}
-            active={active === h.token}
-            onSave={() => onSave(h)}
-            onOpen={() => onOpen(h)}
-          />
-        ))}
-        {!shown.length && <p className="tb-note">조건에 맞는 숙소가 없어요. 위의 조건을 하나 풀어 보세요.</p>}
+      <div className={side ? "tb-fbar-wrap has-side" : "tb-fbar-wrap"}>
+        <FilterBar c={counts} f={f} set={setF} sort={sort} setSort={setSort} />
+      </div>
+      </div>
+      <div className={side ? "tb-results-body" : undefined}>
+        {side && (
+          <aside className="tb-filters" aria-label="정렬과 필터">
+            <section>
+              <h3>정렬 기준</h3>
+              {SORTS.map((s) => (
+                <button key={s.id} type="button" className="tb-fopt radio" aria-pressed={sort === s.id} onClick={() => setSort(s.id)}>
+                  <span>{s.label}</span>
+                  <i aria-hidden />
+                </button>
+              ))}
+            </section>
+            <FilterPanel c={counts} f={f} set={setF} />
+            {activeCount(f) > 0 && (
+              <button type="button" className="tb-freset" onClick={() => setF(EMPTY_FILTER)}>
+                필터 모두 해제
+              </button>
+            )}
+          </aside>
+        )}
+        <div className={side ? "tb-results-main" : undefined}>
+          <p className="tb-results-note">
+            숙소 {shown.length}곳 · {aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}곳을 먼저 보여드려요`} · {nights}박 총액
+          </p>
+          <div className="tb-rlist">
+            {shown.map((h) => (
+              <StayRow
+                key={h.token}
+                h={h}
+                query={query}
+                reason={reasons.get(h.token)}
+                cheapest={cheapest?.token === h.token}
+                saved={saved.has(h.token)}
+                active={active === h.token}
+                onSave={() => onSave(h)}
+                onOpen={() => onOpen(h)}
+              />
+            ))}
+            <div ref={endRef} className="tb-more" aria-live="polite">
+              {more === "loading" ? (
+                <>
+                  <div className="tb-srow skel" />
+                  <p>숙소를 더 불러오고 있어요…</p>
+                </>
+              ) : more === "error" ? (
+                <button type="button" className="tb-btn" onClick={onMore}>
+                  숙소 더 불러오기
+                </button>
+              ) : more === "end" && options.length > 0 ? (
+                <p>받아 온 숙소를 모두 보여 드렸어요</p>
+              ) : null}
+            </div>
+            {!shown.length && more !== "loading" && (
+              <div className="tb-note">
+                조건에 맞는 숙소가 없어요.{" "}
+                <button type="button" className="tb-link" onClick={() => setF(EMPTY_FILTER)}>
+                  필터 해제하기
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
