@@ -5,7 +5,7 @@ import { brand } from "@/lib/brand";
 import { today as localToday } from "@/lib/dates";
 import { sellerSearchUrl } from "@/lib/hotel-sellers";
 import type { HotelOption } from "@/lib/hotels";
-import { cleanProfile, criteriaWeights, EMPTY_PROFILE, TASTE_KEY, withProfile, type TasteProfile } from "@/lib/taste";
+import { cleanProfile, criteriaWeights, EMPTY_PROFILE, profileLines, TASTE_KEY, withProfile, type TasteProfile } from "@/lib/taste";
 import type { FlightOption } from "@/lib/flights";
 import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
 import {
@@ -30,7 +30,7 @@ import { FlightBrowser, FlightCard, flightLink } from "./Flights";
 import { FlightSheet, StaySheet } from "./InputSheets";
 import { SearchCard, type SearchKind } from "./SearchCard";
 import { SellerBody, SellerSheet } from "./SellerSheet";
-import { Onboarding, profileSummary } from "./Onboarding";
+import { Onboarding } from "./Onboarding";
 import { StayList, StayRow, type StayPick } from "./StayList";
 import { IconBack, IconBed, IconChatStar, IconClose, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
 
@@ -617,8 +617,8 @@ export function TripApp() {
             taste.set(p);
             setOnb(false);
           }}
-          onSkip={() => {
-            if (!taste.profile) taste.set(EMPTY_PROFILE);
+          onClose={(p) => {
+            taste.set(p); // 그때까지 고른 것만 남긴다. 아무것도 안 골라도 다시 묻지 않는다
             setOnb(false);
           }}
         />
@@ -959,7 +959,7 @@ function Soon({ title, lead, items }: { title: string; lead: string; items: stri
 }
 
 function My({ saved, profile, onTaste, onOpen, onSave, onHome }: { saved: Saved[]; profile: TasteProfile | null; onTaste: () => void; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void }) {
-  const summary = profileSummary(profile);
+  const summary = profileLines(profile).join("\n");
   return (
     <main className="tb-page">
       <h1>마이</h1>
