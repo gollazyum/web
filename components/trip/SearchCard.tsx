@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useImperativeHandle, useState } from "react";
 import { AirportInput } from "@/components/AirportInput";
 import { addDays, today as localToday } from "@/lib/dates";
 import type { FlightQuery, StayQuery } from "@/lib/trip";
@@ -16,7 +16,11 @@ type Props = {
   flight: Partial<FlightQuery>;
   onStay: (q: StayQuery) => void;
   onFlight: (q: FlightQuery) => void;
+  ref?: React.Ref<SearchCardHandle>;
 };
+
+// 바깥(인기 여행지 칩)에서 검색 버튼과 같은 흐름으로 숙소 검색을 시작할 때 쓴다
+export type SearchCardHandle = { searchStay: (place: string) => void };
 
 const People = ({ value, onChange, label }: { value: number; onChange: (n: number) => void; label: string }) => (
   <select value={value} onChange={(e) => onChange(Number(e.target.value))} aria-label={label}>
@@ -41,7 +45,7 @@ const pick = (e: React.MouseEvent<HTMLInputElement>) => {
 };
 
 // v7 04: 홈 검색 카드 (숙소 / 항공권 / 투어). 내가 직접 조건을 넣고 찾는 게 기본
-export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight }: Props) {
+export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }: Props) {
   const [a, b] = defaultDates();
   const t = localToday();
   const [s, setS] = useState<StayQuery>({ place: "", checkIn: a, checkOut: b, adults: 2, budget: 0, taste: "" });
@@ -59,13 +63,26 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight }: Pro
   }, [flight]);
   useEffect(() => setErr(""), [kind]);
 
+  // 숙소 검색: 검색 버튼과 인기 여행지 칩이 같이 쓴다 (날짜·인원은 지금 폼 값 그대로)
+  function startStay(q: StayQuery) {
+    setErr("");
+    if (!q.place.trim()) return setErr("어디로 가는지 적어 주세요.");
+    if (q.checkIn < t || q.checkOut <= q.checkIn) return setErr("날짜를 다시 봐 주세요.");
+    onStay({ ...q, place: q.place.trim() });
+  }
+
+  useImperativeHandle(ref, () => ({
+    searchStay(place: string) {
+      const q = { ...s, place };
+      setS(q);
+      if (kind !== "stay") onKind("stay");
+      startStay(q);
+    },
+  }));
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (kind === "stay") {
-      if (!s.place.trim()) return setErr("어디로 가는지 적어 주세요.");
-      if (s.checkIn < t || s.checkOut <= s.checkIn) return setErr("날짜를 다시 봐 주세요.");
-      return onStay({ ...s, place: s.place.trim() });
-    }
+    if (kind === "stay") return startStay(s);
     if (!f.from || !f.to) return setErr("출발·도착은 목록에 뜬 도시나 공항을 눌러 주세요.");
     if (f.from === f.to) return setErr("출발과 도착이 같아요.");
     const ret = oneWay ? "" : f.ret;

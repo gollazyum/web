@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { brand, BRAND_AI_NAME, BRAND_NAME } from "@/lib/brand";
 import { today as localToday } from "@/lib/dates";
@@ -34,7 +35,7 @@ import {
 import { parseText, pickFlights, pickStays, searchFlights, searchStays } from "./api";
 import { FlightBrowser, FlightCard, flightLink } from "./Flights";
 import { FlightSheet, StaySheet } from "./InputSheets";
-import { SearchCard, type SearchKind } from "./SearchCard";
+import { SearchCard, type SearchCardHandle, type SearchKind } from "./SearchCard";
 import { SellerBody, SellerSheet } from "./SellerSheet";
 import { Sheet } from "./Sheet";
 import { Onboarding } from "./Onboarding";
@@ -187,6 +188,7 @@ export function TripApp() {
   const savedSet = new Set(saved.map((s) => s.hotel.token));
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<SearchCardHandle>(null);
   const msgsRef = useRef(msgs);
   msgsRef.current = msgs;
 
@@ -475,6 +477,7 @@ export function TripApp() {
                 </span>
               </header>
               <SearchCard
+                ref={searchRef}
                 kind={kind}
                 onKind={setKind}
                 stay={prefStay}
@@ -500,7 +503,7 @@ export function TripApp() {
                 <h2>인기 여행지</h2>
                 <div className="tb-places">
                   {PLACES.map((p) => (
-                    <button key={p} type="button" onClick={() => prefill("stay", { place: p })}>
+                    <button key={p} type="button" onClick={() => searchRef.current?.searchStay(p)}>
                       {p}
                     </button>
                   ))}
@@ -514,6 +517,12 @@ export function TripApp() {
                   <br />
                   문의 <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
                 </p>
+                <nav className="tb-foot-links" aria-label="약관과 정책">
+                  <Link href="/terms">이용약관</Link>
+                  <Link href="/privacy">
+                    <b>개인정보처리방침</b>
+                  </Link>
+                </nav>
                 <p>이 서비스는 예약 사이트로 연결해 드려요. 결제와 취소·환불에 관한 모든 책임은 해당 예약 사이트에 있습니다.</p>
               </footer>
             </main>
