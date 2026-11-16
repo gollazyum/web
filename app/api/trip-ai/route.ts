@@ -1,6 +1,6 @@
 import { jsonError, jsonReply, rateLimited } from "@/lib/claudeChat";
 import { brand } from "@/lib/brand";
-import { ASK_SLOTS, cleanCopy, isDate, MAX_QUESTIONS, TOP_PICKS, type AskQuestion, type ParseResult, type Pick, type PickResult } from "@/lib/trip";
+import { ASK_SLOTS, cleanCopy, isDate, stayReason, MAX_QUESTIONS, TOP_PICKS, type AskQuestion, type ParseResult, type Pick, type PickResult } from "@/lib/trip";
 
 // 탐색 탭 AI. 두 가지 일을 한다.
 // - mode "parse": 자유 문장을 숙소/항공 검색 조건으로 바꾸고, 빠진 조건은 칩 질문(최대 3개)으로 되묻는다
@@ -149,6 +149,7 @@ ${RULES}
 할 일
 - picks: 목록 번호 n과 이유 reason. 정확히 ${TOP_PICKS}개(목록이 더 적으면 전부). 같은 번호를 두 번 쓰지 마.
 - reason은 25자 안팎 한 문장. 목록에 있는 사실(후기 점수, 성급, 편의시설, 총액, 시간, 직항 여부)만 근거로 써. 위치·역 거리·방 크기·조용함처럼 목록에 없는 건 지어내지 마.
+- 숙소 reason에는 금액(원)과 "예산 안" 같은 가격 판단을 쓰지 마. 카드 금액은 예약처 가격을 확인한 뒤 바뀌어서 이유와 어긋나. 숙소는 후기·성급·편의시설로 써. 항공편은 금액을 써도 돼.
 - 예산이 있으면 예산 안의 곳을 먼저. 예산 안에 없으면 가장 가까운 곳을 쓰고 note에 짧게 알려.
 - 취향 조건이 목록 정보로 확인되지 않으면 note에 "역 거리는 지도에서 확인해 주세요"처럼 한 문장으로 알려. 따로 할 말이 없으면 note는 "".`;
 
@@ -213,7 +214,7 @@ export async function POST(req: Request) {
     const raw = await jsonReply<{ picks: Pick[]; note: string }>(PICK_SYSTEM, input, PICK_SCHEMA);
     if (!raw || !Array.isArray(raw.picks)) return jsonError(502, "ai_failed");
     const out: PickResult = {
-      picks: raw.picks.slice(0, TOP_PICKS).map((p) => ({ n: Number(p.n), reason: cleanCopy(p.reason, 80) })),
+      picks: raw.picks.slice(0, TOP_PICKS).map((p) => ({ n: Number(p.n), reason: body.kind === "stay" ? stayReason(p.reason) : cleanCopy(p.reason, 80) })),
       note: cleanCopy(raw.note, 120),
     };
     return Response.json(out);

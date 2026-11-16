@@ -97,6 +97,13 @@ export function cleanCopy(text: string, max = 300): string {
   return findBannedWords(out, true).length ? "" : out;
 }
 
+// 숙소 카드 금액은 예약처 가격 확인 뒤 바뀐다. 이유에 금액·예산 판단이 들어가면 카드와 어긋나니 비우고, 화면이 사실 기반 이유로 채운다
+const MONEY = /\d[\d,.]*\s*(만\s*)?원|예산/;
+export function stayReason(text: unknown): string {
+  const out = cleanCopy(typeof text === "string" ? text : "", 80);
+  return MONEY.test(out) ? "" : out;
+}
+
 // ---------- 숙소 3곳 먼저 (AI가 없을 때 쓰는 규칙) ----------
 
 // 취향 글에 나온 말 → 편의시설 이름에 있으면 맞는 것으로 보는 말
