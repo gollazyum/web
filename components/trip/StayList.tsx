@@ -23,6 +23,7 @@ type Props = {
   bare?: boolean; // 바텀시트 안: 위쪽 검색 줄 대신 제목만
   more?: "more" | "loading" | "error" | "end"; // 목록 끝에서 더 불러오기
   onMore?: () => void;
+  onStars?: (stars: number[]) => void; // 고른 성급이 바뀌면 그 성급만 다시 찾는다
 };
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
@@ -32,7 +33,7 @@ const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋�
 
 // v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다.
 // 필터: 휴대폰·좁은 PC는 위쪽 3버튼(조건 검색/요금/정렬 기준), 넓은 PC(1280px 이상)는 같은 항목을 왼쪽에 늘 보이게
-export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore }: Props) {
+export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars }: Props) {
   // 목록 끝이 화면에 가까워지면 다음 쪽을 부른다 (필터로 목록이 짧아져도 같은 기준)
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -46,6 +47,10 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   const side = !bare;
   const [sort, setSort] = useState<Sort>("ai");
   const [f, setF] = useState<StayFilter>(EMPTY_FILTER);
+  const starKey = [...f.stars].sort().join(",");
+  useEffect(() => {
+    onStars?.(starKey ? starKey.split(",").map(Number) : []);
+  }, [starKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const reasons = useMemo(() => new Map(picks.map((p) => [p.token, p.reason])), [picks]);
   const pv = usePriceVersion(); // 예약처 시트·미리 조회로 맞춘 금액이 오면 다시 계산
   const cost = (h: HotelOption) => shownCost(h, query);

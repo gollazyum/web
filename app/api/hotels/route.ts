@@ -14,17 +14,20 @@ const MAX_OPTIONS = 20;
 const MAX_SOURCES = 12;
 const MAX_IMAGES = 5;
 const MAX_AMENITIES = 20;
+const STARS = /^[2-5](,[2-5]){0,3}$/;
 
 function parseQuery(body: unknown) {
   if (!body || typeof body !== "object") return null;
-  const { q, checkIn, checkOut, adults, token, page } = body as Record<string, unknown>;
+  const { q, checkIn, checkOut, adults, token, page, stars } = body as Record<string, unknown>;
   if (typeof q !== "string" || !q.trim() || q.length > 100) return null;
   if (typeof checkIn !== "string" || !DATE.test(checkIn) || checkIn < today()) return null;
   if (typeof checkOut !== "string" || !DATE.test(checkOut) || checkOut <= checkIn) return null;
   if (typeof adults !== "number" || !Number.isInteger(adults) || adults < 1 || adults > 9) return null;
   if (token !== undefined && (typeof token !== "string" || !token || token.length > 500)) return null;
   if (page !== undefined && (typeof page !== "string" || !page || page.length > 500)) return null;
-  return { q: normalizeText(q), checkIn, checkOut, adults, token: token as string | undefined, page: page as string | undefined };
+  // stars: 성급만 다시 찾을 때 "4" 또는 "4,5" (검색이 2~5성만 받는다)
+  if (stars !== undefined && (typeof stars !== "string" || !STARS.test(stars))) return null;
+  return { q: normalizeText(q), checkIn, checkOut, adults, token: token as string | undefined, page: page as string | undefined, stars: stars as string | undefined };
 }
 
 type Rate = { extracted_lowest?: number };
@@ -198,11 +201,14 @@ export async function POST(req: Request) {
     params.property_token = q.token;
     return serpSearch(req, params, shapePrices);
   }
+  // 성급 필터를 누른 사람만: 그 성급만 한 번 찾는다 (검색 1번 요금). 다음 쪽도 같은 성급
+  if (q.stars) params.hotel_class = q.stars;
   // "호텔 더 보기": Google은 한 번에 20곳 안팎만 주므로 다음 쪽을 따로 부른다 (검색 1번 요금). 다음 쪽은 기본 순서 그대로
   if (q.page) {
     params.next_page_token = q.page;
     return serpSearch(req, params, shapeList);
   }
+  if (q.stars) return serpSearch(req, params, shapeList);
   // 첫 쪽은 4·5성만 한 번 더 불러 같이 놓고 추천순 비율로 고른다 (검색 2번 요금)
   return serpSearch(req, params, shapeList, { ...params, hotel_class: "4,5" });
 }

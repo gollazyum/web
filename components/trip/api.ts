@@ -71,14 +71,15 @@ async function cached<T>(key: string, load: () => Promise<Res<T>>, fresh = false
   return run;
 }
 
-export const searchStays = (q: StayQuery) => {
-  const body = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults };
+// stars: 성급 필터를 눌렀을 때만 "4" 또는 "4,5"처럼 그 성급만 다시 찾는다
+export const searchStays = (q: StayQuery, stars?: string) => {
+  const body = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...(stars ? { stars } : {}) };
   return cached(`stay:${JSON.stringify(body)}`, () => post<HotelResults>("/api/hotels", body));
 };
 
 // 숙소 목록 다음 쪽 (스크롤 끝에서만 부른다. 한 쪽 = 검색 1번). 같은 쪽은 이 탭에 30분 담아 둔다
-export const searchStaysPage = (q: StayQuery, page: string) => {
-  const body = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, page };
+export const searchStaysPage = (q: StayQuery, page: string, stars?: string) => {
+  const body = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, page, ...(stars ? { stars } : {}) };
   return cached(`stay-page:${JSON.stringify(body)}`, () => post<HotelResults>("/api/hotels", body));
 };
 
