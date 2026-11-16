@@ -2093,6 +2093,15 @@
   margin: -12px 0;
   color: var(--tb-sub);
 }
+.tb-foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+  margin: 0 0 10px;
+}
+.tb-foot-links a {
+  margin: 0;
+}
 
 /* ---------- 2026-11-16 핫픽스: 카드 금액 영역·비교 유도·1위 강조 ---------- */
 .tb-srow-price .tb-cmp {
