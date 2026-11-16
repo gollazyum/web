@@ -124,7 +124,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo }: Omit<Props, "h
                 <div className={`tb-row-price${i === 0 ? " best" : ""}`}>
                   {i === 0 && rows.length > 1 && <em className="tb-low">가장 낮아요</em>}
                   <strong>{won(s.cost)}</strong>
-                  {i > 0 && s.cost > lowest && <small>+{Math.round(s.cost - lowest).toLocaleString("ko-KR")}</small>}
+                  {i > 0 && s.cost > lowest && <small>1위보다 {won(s.cost - lowest)} 더</small>}
                 </div>
                 <a className={`tb-book${i === 0 ? " dark" : ""}`} href={s.href} target="_blank" rel={linkRel(s.key)} onClick={() => onGo?.(`${withRo(ko)} 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요`)}>
                   예약 <IconOut />
