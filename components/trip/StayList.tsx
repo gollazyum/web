@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { HotelOption } from "@/lib/hotels";
+import { inBand, PRICE_BANDS } from "@/lib/price-bands";
 import { nightsOf, won, type StayQuery } from "@/lib/trip";
 import { shownCost, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
 import { IconBack, IconHeart, IconSort, IconSpark } from "./icons";
@@ -21,12 +22,13 @@ type Props = {
   bare?: boolean; // 바텀시트 안: 위쪽 검색 줄 대신 제목만
 };
 
+// 결과 위 빠른 조건 (아고다·트립닷컴처럼 자주 쓰는 것부터). 받은 목록에 해당 숙소가 있을 때만 보인다
 const FILTERS: { label: string; test: (h: HotelOption) => boolean }[] = [
+  { label: "무료 취소", test: (h) => h.amenities.some((a) => /무료 취소/.test(a)) },
   { label: "조식", test: (h) => h.amenities.some((a) => /조식|아침/.test(a)) },
+  { label: "평점 4.0+", test: (h) => (h.rating ?? 0) >= 4 },
   { label: "온천·대욕장", test: (h) => h.amenities.some((a) => /온천|대욕장|사우나/.test(a)) },
   { label: "수영장", test: (h) => h.amenities.some((a) => /수영장/.test(a)) },
-  { label: "무료 취소", test: (h) => h.amenities.some((a) => /무료 취소/.test(a)) },
-  { label: "평점 4.0+", test: (h) => (h.rating ?? 0) >= 4 },
 ];
 
 type Sort = "ai" | "price" | "rating";
@@ -46,14 +48,21 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   const nights = nightsOf(query);
   const [sort, setSort] = useState<Sort>("ai");
   const [on, setOn] = useState<Set<string>>(new Set());
+  const [band, setBand] = useState<string | null>(null); // 가격대 (하나만)
+  const [bandOpen, setBandOpen] = useState(false);
   const reasons = useMemo(() => new Map(picks.map((p) => [p.token, p.reason])), [picks]);
   const filters = FILTERS.filter((f) => options.some(f.test));
   const pv = usePriceVersion(); // 예약처 시트·미리 조회로 맞춘 금액이 오면 다시 계산
   const cost = (h: HotelOption) => shownCost(h, query);
   const cheapest = useMemo(() => options.reduce<HotelOption | null>((m, h) => (cost(h) < (m ? cost(m) : Infinity) ? h : m), null), [options, pv]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 가격대: 다른 조건을 건 목록 기준으로 몇 곳인지 세고, 0곳인 가격대는 숨긴다
+  const base = useMemo(() => options.filter((h) => filters.every((f) => !on.has(f.label) || f.test(h))), [options, on]); // eslint-disable-line react-hooks/exhaustive-deps
+  const bands = useMemo(() => PRICE_BANDS.map((b) => ({ ...b, n: base.filter((h) => inBand(cost(h), nights, b)).length })).filter((b) => b.n > 0 || b.id === band), [base, pv, nights, band]); // eslint-disable-line react-hooks/exhaustive-deps
+  const bandNow = PRICE_BANDS.find((b) => b.id === band);
+
   const shown = useMemo(() => {
-    let list = options.filter((h) => filters.every((f) => !on.has(f.label) || f.test(h)));
+    let list = bandNow ? base.filter((h) => inBand(cost(h), nights, bandNow)) : base;
     if (sort === "price") list = [...list].sort((a, b) => cost(a) - cost(b));
     else if (sort === "rating") list = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     else {
@@ -65,7 +74,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
     }
     // 비교할 수 있는 예약처가 0곳으로 확인된 숙소는 맨 아래로
     return [...list].sort((a, b) => Number(shownPrice(a, query).none) - Number(shownPrice(b, query).none));
-  }, [options, on, sort, picks, pv]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [base, bandNow, sort, picks, pv]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = (l: string) =>
     setOn((s) => {
@@ -101,12 +110,53 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
             {s.label}
           </button>
         ))}
-        {filters.map((f) => (
+        {filters.slice(0, 3).map((f) => (
+          <button key={f.label} type="button" className="tb-chip" aria-pressed={on.has(f.label)} onClick={() => toggle(f.label)}>
+            {f.label}
+          </button>
+        ))}
+        {(bands.length > 0 || bandNow) && (
+          <button type="button" className="tb-chip" aria-pressed={!!bandNow} aria-expanded={bandOpen} onClick={() => setBandOpen((o) => !o)}>
+            {bandNow ? bandNow.label : "가격대"}
+            <i className={`tb-caret${bandOpen ? " up" : ""}`} aria-hidden />
+          </button>
+        )}
+        {filters.slice(3).map((f) => (
           <button key={f.label} type="button" className="tb-chip" aria-pressed={on.has(f.label)} onClick={() => toggle(f.label)}>
             {f.label}
           </button>
         ))}
       </div>
+      {bandOpen && (
+        <div className="tb-chiprow tb-bandrow" role="group" aria-label="가격대">
+          {bands.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              className="tb-chip"
+              aria-pressed={band === b.id}
+              onClick={() => {
+                setBand(band === b.id ? null : b.id);
+                setBandOpen(false);
+              }}
+            >
+              {b.label} <small>{b.n}곳</small>
+            </button>
+          ))}
+          {bandNow && (
+            <button
+              type="button"
+              className="tb-chip"
+              onClick={() => {
+                setBand(null);
+                setBandOpen(false);
+              }}
+            >
+              전체 가격
+            </button>
+          )}
+        </div>
+      )}
       <p className="tb-results-note">
         숙소 {shown.length}곳 · {aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}곳을 먼저 보여드려요`} · {nights}박 총액
       </p>
