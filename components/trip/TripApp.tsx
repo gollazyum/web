@@ -5,6 +5,7 @@ import { brand } from "@/lib/brand";
 import { today as localToday } from "@/lib/dates";
 import { sellerSearchUrl } from "@/lib/hotel-sellers";
 import type { HotelOption } from "@/lib/hotels";
+import { cleanProfile, criteriaWeights, EMPTY_PROFILE, TASTE_KEY, withProfile, type TasteProfile } from "@/lib/taste";
 import type { FlightOption } from "@/lib/flights";
 import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
 import {
@@ -29,6 +30,7 @@ import { FlightBrowser, FlightCard, flightLink } from "./Flights";
 import { FlightSheet, StaySheet } from "./InputSheets";
 import { SearchCard, type SearchKind } from "./SearchCard";
 import { SellerBody, SellerSheet } from "./SellerSheet";
+import { Onboarding, profileSummary } from "./Onboarding";
 import { StayList, StayRow, type StayPick } from "./StayList";
 import { IconBack, IconBed, IconChatStar, IconClose, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
 
@@ -78,6 +80,30 @@ function useWide() {
     return () => mq.removeEventListener("change", on);
   }, []);
   return wide;
+}
+
+// 취향 온보딩 결과. 한 번도 고르거나 건너뛴 적이 없으면 asked=false → 온보딩을 연다
+function useTaste() {
+  const [state, setState] = useState<{ loaded: boolean; profile: TasteProfile | null }>({ loaded: false, profile: null });
+  useEffect(() => {
+    let profile: TasteProfile | null = null;
+    try {
+      const raw = localStorage.getItem(TASTE_KEY);
+      profile = raw ? cleanProfile(JSON.parse(raw)) : null;
+    } catch {
+      profile = EMPTY_PROFILE; // 저장소를 못 쓰면 매번 묻지 않는다
+    }
+    setState({ loaded: true, profile });
+  }, []);
+  const set = useCallback((p: TasteProfile) => {
+    try {
+      localStorage.setItem(TASTE_KEY, JSON.stringify(p));
+    } catch {
+      // 저장 실패는 조용히 넘긴다
+    }
+    setState({ loaded: true, profile: p });
+  }, []);
+  return { profile: state.profile, asked: !state.loaded || !!state.profile, set };
 }
 
 function useSaved() {
@@ -141,6 +167,10 @@ export function TripApp() {
   const [flightSheet, setFlightSheet] = useState<Partial<FlightQuery> | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const wide = useWide();
+  const taste = useTaste();
+  const [onb, setOnb] = useState(false);
+  const profileRef = useRef<TasteProfile | null>(null);
+  profileRef.current = taste.profile;
   const [seller, setSeller] = useState<{ hotel: HotelOption; query: StayQuery } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const { saved, toggle } = useSaved();
@@ -192,12 +222,13 @@ export function TripApp() {
       const { list: pool, over } = withinBudget(options, query.budget, nights);
       const head = pool.slice(0, 40);
       const toPicks = (ps: { n: number; reason: string }[]) => ps.map((p) => ({ token: head[p.n - 1].token, reason: p.reason }));
-      const fb = fallbackStayPicks(head, query.taste, query.budget, nights);
+      const want = withProfile(query.taste, profileRef.current, "stay"); // 그때 적은 말 + 온보딩 취향
+      const fb = fallbackStayPicks(head, want, query.budget, nights, criteriaWeights(profileRef.current));
       const overNote = over ? `예산(${Math.round(query.budget / 10000)}만 원) 안의 숙소가 없어서 가장 가까운 곳을 보여 드려요.` : "";
       patch(id, { status: "done", options, picks: toPicks(fb), aiPending: true, note: overNote });
       setActiveId(id);
-      const ai = await pickStays(head, query.taste, query.budget);
-      const picks = mergePicks(ai.ok ? ai.data.picks : [], fb, head.length, (n) => stayFactReason(head[n - 1], query.taste));
+      const ai = await pickStays(head, want, query.budget);
+      const picks = mergePicks(ai.ok ? ai.data.picks : [], fb, head.length, (n) => stayFactReason(head[n - 1], want));
       patch(id, { picks: toPicks(picks), aiPending: false, note: [overNote, ai.ok ? ai.data.note : ""].filter(Boolean).join(" ") });
     },
     [patch, push],
@@ -216,12 +247,13 @@ export function TripApp() {
         options = r.data.options;
       }
       if (!options.length) return patch(id, { status: "done", options: [], picks: [] });
-      const fb = fallbackFlightPicks(options, query.taste);
+      const want = withProfile(query.taste, profileRef.current, "flight");
+      const fb = fallbackFlightPicks(options, want);
       patch(id, { status: "done", options, picks: fb, aiPending: true });
       setActiveId(id);
       const list = options;
-      const ai = await pickFlights(options, query.taste);
-      const picks = mergePicks(ai.ok ? ai.data.picks : [], fb, list.length, (n) => flightFactReason(list[n - 1], query.taste));
+      const ai = await pickFlights(options, want);
+      const picks = mergePicks(ai.ok ? ai.data.picks : [], fb, list.length, (n) => flightFactReason(list[n - 1], want));
       patch(id, { picks, aiPending: false, note: ai.ok ? ai.data.note : "" });
     },
     [patch, push],
@@ -509,7 +541,7 @@ export function TripApp() {
             items={["오늘 날씨와 다음 일정을 한눈에", "메뉴판을 찍으면 우리말로 풀어 보기", "현지 가격을 원화로 바로 보기"]}
           />
         )}
-        {tab === "my" && <My saved={saved} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => setTab("home")} />}
+        {tab === "my" && <My saved={saved} profile={taste.profile} onTaste={() => setOnb(true)} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => setTab("home")} />}
 
         {split && (
           <aside className="tb-panel" aria-label="예약처별 결제 총액">
@@ -576,6 +608,20 @@ export function TripApp() {
             보기
           </button>
         </div>
+      )}
+
+      {(onb || !taste.asked) && (
+        <Onboarding
+          init={taste.profile ?? EMPTY_PROFILE}
+          onDone={(p) => {
+            taste.set(p);
+            setOnb(false);
+          }}
+          onSkip={() => {
+            if (!taste.profile) taste.set(EMPTY_PROFILE);
+            setOnb(false);
+          }}
+        />
       )}
 
       <StaySheet open={!!staySheet} init={staySheet ?? {}} onClose={() => setStaySheet(null)} onSubmit={submitStay} />
@@ -912,10 +958,18 @@ function Soon({ title, lead, items }: { title: string; lead: string; items: stri
   );
 }
 
-function My({ saved, onOpen, onSave, onHome }: { saved: Saved[]; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void }) {
+function My({ saved, profile, onTaste, onOpen, onSave, onHome }: { saved: Saved[]; profile: TasteProfile | null; onTaste: () => void; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void }) {
+  const summary = profileSummary(profile);
   return (
     <main className="tb-page">
       <h1>마이</h1>
+      <section className="tb-taste-box">
+        <h2 className="tb-h2">내 여행 취향</h2>
+        <p>{summary || "아직 고른 취향이 없어요. 고르면 AI 추천 3곳이 취향에 맞춰져요."}</p>
+        <button type="button" className="tb-btn" onClick={onTaste}>
+          {summary ? "취향 다시 고르기" : "취향 고르기"}
+        </button>
+      </section>
       <h2 className="tb-h2">담아 둔 숙소</h2>
       {saved.length ? (
         <div className="tb-rlist flat">
@@ -938,7 +992,7 @@ function My({ saved, onOpen, onSave, onHome }: { saved: Saved[]; onOpen: (s: Sav
       )}
       <div className="tb-soon-box">
         <span className="tb-tag ac">곧 열려요</span>
-        <p>다가오는 여행 일정, 지난 여행 사진 모아 보기, 취향 설정을 준비하고 있어요.</p>
+        <p>다가오는 여행 일정, 지난 여행 사진 모아 보기를 준비하고 있어요.</p>
       </div>
     </main>
   );
