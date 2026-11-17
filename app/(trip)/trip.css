@@ -1419,7 +1419,8 @@
   border-radius: 50%;
   background: var(--tb-accent);
 }
-.tb-ffoot {
+/* 항공 카드 아래 줄 (항공사 · 총액). 필터 시트 하단 고정 버튼 줄 .tb-ffoot과 이름을 나눠 서로 덮어쓰지 않게 한다 */
+.tb-fcard-foot {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -1448,8 +1449,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-wrap: wrap;
+  text-align: center;
   gap: 4px;
-  padding: 11px;
+  padding: 11px 16px;
   min-height: 44px;
   background: var(--tb-soft);
   font-weight: 700;

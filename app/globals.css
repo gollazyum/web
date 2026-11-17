@@ -5161,3 +5161,183 @@ body:has(.compare-bar) .hcards {
 .hot-chip:hover {
   background: #e2e8f0;
 }
+
+/* 약관·개인정보·404 공통 머리글·바닥글 (components/PageShell.tsx). 여행 앱과 같은 흰 바탕 + 검정 글씨 + 파란 구슬 */
+.pg {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  color: #0b0b0f;
+}
+.pg-wrap {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+.pg-head {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #fff;
+  border-bottom: 1px solid #ececf0;
+}
+.pg-head-in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 60px;
+}
+.pg-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #0b0b0f;
+  text-decoration: none;
+}
+.pg-logo strong {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.pg-logo em {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #55555e;
+  background: #f3f3f6;
+  border-radius: 7px;
+  padding: 2px 7px;
+}
+.pg-orb {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #b8d4ff, #3a5bff 55%, #1b2a8c);
+}
+.pg-nav {
+  display: flex;
+  gap: 4px;
+}
+.pg-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 10px;
+  color: #0b0b0f;
+  font-weight: 700;
+  font-size: 14.5px;
+  text-decoration: none;
+}
+.pg-nav a:hover {
+  background: #f3f3f6;
+}
+.pg .legal {
+  flex: 1;
+  padding-top: 32px;
+  padding-bottom: 56px;
+}
+.pg .legal h1,
+.pg .legal h2 {
+  color: #0b0b0f;
+}
+.pg-foot {
+  border-top: 1px solid #ececf0;
+  padding: 24px 0 32px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #74747c;
+  word-break: keep-all;
+}
+.pg-foot p {
+  margin: 0 0 10px;
+}
+.pg-foot a {
+  color: #55555e;
+}
+.pg-foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+  margin: 0 0 6px;
+}
+.pg-foot-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* 404: 한국어 안내 + 홈으로 + 인기 여행지 (app/not-found.tsx) */
+.nf {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 56px 20px;
+  text-align: center;
+}
+.nf-code {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #74747c;
+  letter-spacing: 0.08em;
+}
+.nf h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.nf-sub {
+  margin: 0 0 14px;
+  font-size: 15px;
+  color: #55555e;
+}
+.nf a.nf-home,
+.nf a.nf-home:hover {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 160px;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 14px;
+  background: #0b0b0f;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+.nf-places {
+  margin-top: 28px;
+}
+.nf-places p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #55555e;
+}
+.nf-places div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.nf-places button {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid #ececf0;
+  background: #fff;
+  color: #0b0b0f;
+  font: inherit;
+  font-weight: 700;
+  font-size: 14.5px;
+  cursor: pointer;
+}

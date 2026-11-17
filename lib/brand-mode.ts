@@ -53,8 +53,8 @@ const COPY = {
   mockBestBadge: { safe: "가장 낮은 가격", normal: "최저가" },
   // 공통 푸터 첫 문장
   footerLead: {
-    safe: "Gollazyum은 쇼핑몰과 예약 사이트의 가격을 한 화면에 모아 보여 드리는 AI 쇼핑·여행 플랫폼입니다.",
-    normal: "Gollazyum은 쇼핑몰과 예약 사이트의 가격을 한 화면에서 비교하는 AI 쇼핑·여행 플랫폼입니다.",
+    safe: "Gollazyum은 숙소와 항공권의 예약처별 세금 포함 총액을 한 화면에 모아 보여 드려요.",
+    normal: "Gollazyum은 숙소와 항공권의 예약처별 세금 포함 총액을 한 화면에서 비교해 보여 드려요.",
   },
   // 개인정보처리방침
   privacyReviewTopics: { safe: "호텔 후기 주제 숫자는 보관함 화면에 다시 쓰려고", normal: "호텔 후기 주제 숫자는 비교 화면에 다시 쓰려고" },

@@ -2,8 +2,7 @@
 // 정식 시행 전에 반드시 법률 전문가의 검토를 받고, 사업자 정보와 시행일을 실제 값으로 바꿔 주세요.
 import Link from "next/link";
 import type { Metadata } from "next";
-import { SiteFooter } from "@/components/SiteFooter";
-import { SiteHeader } from "@/components/SiteHeader";
+import { PageFooter, PageHeader } from "@/components/PageShell";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -14,9 +13,9 @@ export const metadata: Metadata = {
 
 export default function Terms() {
   return (
-    <>
-      <SiteHeader />
-      <main className="wrap legal">
+    <div className="pg">
+      <PageHeader />
+      <main className="pg-wrap legal">
         <h1>이용약관</h1>
 
         <h2>제1조 (목적)</h2>
@@ -138,7 +137,7 @@ export default function Terms() {
           시행일: [시행일] · 상호 {site.business.name} · 대표자 {site.business.ceo} · 사업자등록번호 {site.business.registrationNo}
         </p>
       </main>
-      <SiteFooter />
-    </>
+      <PageFooter />
+    </div>
   );
 }

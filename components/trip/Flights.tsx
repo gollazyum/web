@@ -38,7 +38,7 @@ export function FlightCard({ o, q, reason, rank, tag }: { o: FlightOption; q: Fl
           <span>{o.toId}</span>
         </div>
       </div>
-      <div className="tb-ffoot">
+      <div className="tb-fcard-foot">
         <span className="tb-fair">{o.airlines.join(" · ")}</span>
         <span className="tb-fprice">
           <small>
