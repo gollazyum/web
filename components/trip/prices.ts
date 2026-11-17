@@ -49,6 +49,20 @@ export function setVerified(token: string, q: Pick<StayQuery, "checkIn" | "check
   subs.forEach((f) => f());
 }
 
+// 예약처 가격을 받는 중인 숙소 (카드에 '예약처 가격을 확인하는 중'을 보여 준다)
+const checking = new Set<string>();
+const bump = () => {
+  version++;
+  subs.forEach((f) => f());
+};
+export function setChecking(token: string, q: Pick<StayQuery, "checkIn" | "checkOut" | "adults">, on: boolean) {
+  const k = keyOf(token, q);
+  if (on === checking.has(k)) return;
+  if (on) checking.add(k);
+  else checking.delete(k);
+  bump();
+}
+
 // 맞춘 금액이 바뀌면 목록을 다시 그린다
 export function usePriceVersion(): number {
   return useSyncExternalStore(
@@ -61,13 +75,14 @@ export function usePriceVersion(): number {
   );
 }
 
-// 카드에 보여 줄 금액. verified: 시트 1위 총액과 같은 값, none: 허용 예약처 0곳
-export type ShownPrice = { value: number | null; verified: boolean; none: boolean; count: number | null };
+// 카드에 보여 줄 금액. verified: 시트 1위 총액과 같은 값, none: 허용 예약처 0곳, checking: 예약처 가격을 받는 중
+// verified가 아니면 검색 목록에 같이 온 '예상' 금액이다 (예약처마다 달라질 수 있어 화면에 '예상'을 크게 붙인다)
+export type ShownPrice = { value: number | null; verified: boolean; none: boolean; count: number | null; checking?: boolean };
 
 export function shownPrice(h: HotelOption, q: StayQuery): ShownPrice {
   const v = getVerified(h.token, q);
   if (v) return { value: v.total, verified: v.total !== null, none: v.total === null, count: v.count };
-  return { value: stayTotal(h, nightsOf(q))?.value ?? null, verified: false, none: false, count: null };
+  return { value: stayTotal(h, nightsOf(q))?.value ?? null, verified: false, none: false, count: null, checking: checking.has(keyOf(h.token, q)) };
 }
 
 // 정렬용 금액 (0곳이면 맨 뒤)
@@ -85,9 +100,11 @@ export function prefetchPrices(list: HotelOption[], q: StayQuery) {
     const k = keyOf(h.token, q);
     if (inflight.has(k) || getVerified(h.token, q)) continue;
     inflight.add(k);
+    setChecking(h.token, q, true);
     stayPrices(h.token, q, h.name).then((r) => {
       inflight.delete(k);
       if (r.ok) setVerified(h.token, q, sellerRows(r.data.sources, nightsOf(q), h.name, hq));
+      setChecking(h.token, q, false);
     });
   }
 }

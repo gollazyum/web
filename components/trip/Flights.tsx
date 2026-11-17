@@ -121,7 +121,7 @@ export function FlightBrowser({ data, aiPending, onBack, bare }: { data: FlightD
       <div className="tb-rlist pad">
         {shown.map((o, i) => {
           const r = reason.get(o);
-          return <FlightCard key={`${o.departTime}-${o.airlines.join()}-${o.price}-${i}`} o={o} q={q} reason={r?.reason} rank={r?.rank} tag={!r && o.price === low ? "최저가" : undefined} />;
+          return <FlightCard key={`${o.departTime}-${o.airlines.join()}-${o.price}-${i}`} o={o} q={q} reason={r?.reason} rank={r?.rank} tag={!r && o.price === low ? "찾은 항공편 중 가장 낮아요" : undefined} />;
         })}
         {!shown.length && <p className="tb-note">조건에 맞는 항공편이 없어요. 위의 조건을 하나 풀어 보세요.</p>}
         {q.ret && <p className="tb-note">왕복 총액이에요. 오는 편 시간은 예약 사이트에서 정해요.</p>}
