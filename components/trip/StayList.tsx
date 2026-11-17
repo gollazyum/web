@@ -211,9 +211,9 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
 }
 
 // 카드 위쪽 큰 사진. 휴대폰은 손가락으로 옆으로 넘기고, PC는 마우스를 올리면 나오는 화살표로 넘긴다
-const MAX_PHOTOS = 5;
-function PhotoStrip({ images, name, onOpen }: { images: string[]; name: string; onOpen: () => void }) {
-  const list = images.slice(0, MAX_PHOTOS);
+// 숙소 상세(big)는 사진 한 장씩, 화살표를 늘 보이고 '1/8'을 함께 보여 준다
+export function PhotoStrip({ images, name, onOpen, max = 5, big }: { images: string[]; name: string; onOpen?: () => void; max?: number; big?: boolean }) {
+  const list = images.slice(0, max);
   const ref = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState(0);
   const go = (d: number) => {
@@ -225,7 +225,7 @@ function PhotoStrip({ images, name, onOpen }: { images: string[]; name: string; 
     <>
       <div
         ref={ref}
-        className="tb-srow-photos"
+        className={`tb-srow-photos${big ? " big" : ""}`}
         onScroll={(e) => {
           const el = e.currentTarget;
           setAt(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)));
@@ -239,11 +239,17 @@ function PhotoStrip({ images, name, onOpen }: { images: string[]; name: string; 
       </div>
       {list.length > 1 && (
         <>
-          <span className="tb-dots" aria-hidden>
-            {list.map((_, i) => (
-              <i key={i} className={i === at ? "on" : undefined} />
-            ))}
-          </span>
+          {big ? (
+            <em className="tb-ph-count">
+              {at + 1}/{list.length}
+            </em>
+          ) : (
+            <span className="tb-dots" aria-hidden>
+              {list.map((_, i) => (
+                <i key={i} className={i === at ? "on" : undefined} />
+              ))}
+            </span>
+          )}
           {at > 0 && (
             <button type="button" className="tb-ph-nav prev" aria-label="이전 사진" onClick={() => go(-1)}>
               <IconBack size={16} />

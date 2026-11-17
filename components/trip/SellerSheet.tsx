@@ -11,7 +11,7 @@ import { searchErrorMessage } from "@/lib/search-error";
 import { askHotel, stayPrices } from "./api";
 import { setVerified } from "./prices";
 import { priceChange, savedBaseFor } from "./saved-price";
-import { PriceChange } from "./StayList";
+import { PhotoStrip, PriceChange } from "./StayList";
 import { Sheet } from "./Sheet";
 import { IconHeart, IconOut, IconSpark, IconUp } from "./icons";
 
@@ -127,15 +127,8 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
   return (
     <div className="tb-seller">
       {photos.length > 1 && (
-        <div className="tb-photos" aria-label={`사진 ${photos.length}장`}>
-          {photos.map((src, i) => (
-            <span key={src + i} className="tb-photo">
-              <img src={src} alt="" loading={i ? "lazy" : undefined} onError={(e) => (e.currentTarget.style.visibility = "hidden")} />
-              <em>
-                {i + 1}/{photos.length}
-              </em>
-            </span>
-          ))}
+        <div className="tb-gallery">
+          <PhotoStrip images={photos} name={hotel.name} max={8} big />
         </div>
       )}
       <div className={`tb-seller-head${photos.length > 1 ? " under" : ""}`}>
