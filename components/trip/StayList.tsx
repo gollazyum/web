@@ -175,7 +175,7 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
   return (
     <article ref={ref} className={`tb-srow${active ? " on" : ""}`}>
       <div className="tb-srow-img">
-        {h.image ? <img src={h.image} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : null}
+        <PhotoStrip images={h.images.length ? h.images : h.image ? [h.image] : []} name={h.name} onOpen={onOpen} />
         {reason ? <em className="tb-tag ac">AI 추천</em> : cheapest && !t.none ? <em className="tb-tag red">최저가</em> : null}
         {onSave && (
           <button type="button" className={`tb-love${saved ? " on" : ""}`} aria-pressed={saved} aria-label={saved ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={onSave}>
@@ -207,6 +207,56 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
         {diff !== null && <PriceChange diff={diff} />}
       </button>
     </article>
+  );
+}
+
+// 카드 위쪽 큰 사진. 휴대폰은 손가락으로 옆으로 넘기고, PC는 마우스를 올리면 나오는 화살표로 넘긴다
+const MAX_PHOTOS = 5;
+function PhotoStrip({ images, name, onOpen }: { images: string[]; name: string; onOpen: () => void }) {
+  const list = images.slice(0, MAX_PHOTOS);
+  const ref = useRef<HTMLDivElement>(null);
+  const [at, setAt] = useState(0);
+  const go = (d: number) => {
+    const el = ref.current;
+    if (el) el.scrollTo({ left: el.clientWidth * Math.max(0, Math.min(list.length - 1, at + d)), behavior: "smooth" });
+  };
+  if (!list.length) return null;
+  return (
+    <>
+      <div
+        ref={ref}
+        className="tb-srow-photos"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          setAt(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)));
+        }}
+        onClick={onOpen}
+        aria-label={`${name} 사진 ${list.length}장`}
+      >
+        {list.map((src, i) => (
+          <img key={src + i} src={src} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} />
+        ))}
+      </div>
+      {list.length > 1 && (
+        <>
+          <span className="tb-dots" aria-hidden>
+            {list.map((_, i) => (
+              <i key={i} className={i === at ? "on" : undefined} />
+            ))}
+          </span>
+          {at > 0 && (
+            <button type="button" className="tb-ph-nav prev" aria-label="이전 사진" onClick={() => go(-1)}>
+              <IconBack size={16} />
+            </button>
+          )}
+          {at < list.length - 1 && (
+            <button type="button" className="tb-ph-nav next" aria-label="다음 사진" onClick={() => go(1)}>
+              <IconBack size={16} />
+            </button>
+          )}
+        </>
+      )}
+    </>
   );
 }
 
