@@ -142,6 +142,33 @@ export function labelForCode(d: Data, code: string): string {
   return a ? `${cityName(a)} (${code})` : code;
 }
 
+// 공항 코드 → 도시 이름 ("ICN" → "인천", "TYO" → "도쿄"). 모르면 코드 그대로
+// 한 도시에 공항이 여럿이면 공항 이름까지 (인천·김포, 나리타·하네다 …)
+const AIRPORT_KO: Record<string, string> = {
+  ICN: "인천",
+  GMP: "김포",
+  NRT: "도쿄 나리타",
+  HND: "도쿄 하네다",
+  KIX: "오사카 간사이",
+  ITM: "오사카 이타미",
+  BKK: "방콕 수완나품",
+  DMK: "방콕 돈므앙",
+  TPE: "타이베이 타오위안",
+  TSA: "타이베이 쑹산",
+  PVG: "상하이 푸둥",
+  SHA: "상하이 훙차오",
+  PEK: "베이징 서우두",
+  PKX: "베이징 다싱",
+  CGK: "자카르타",
+};
+export function cityForCode(d: Data, code: string): string {
+  if (AIRPORT_KO[code]) return AIRPORT_KO[code];
+  const metro = d.metros.find((m) => m[0] === code);
+  if (metro) return metro[2] || metro[1];
+  const a = d.airports.find((x) => x[0] === code);
+  return a ? cityName(a) : code;
+}
+
 // "도쿄 모든 공항 (TYO)", "nrt" 처럼 이미 코드가 보이면 바로 꺼낸다
 export function codeFromText(input: string): string | null {
   const text = input.trim();

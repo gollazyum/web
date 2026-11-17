@@ -1,4 +1,5 @@
 import type { FlightOption, FlightResults } from "@/lib/flights";
+import { airlineKo } from "@/lib/flight-filters";
 import { DATE, serpSearch, today } from "@/lib/serpapi";
 
 // 실시간 항공권 가격. SerpApi의 Google Flights 결과를 받아 화면용으로 줄인다.
@@ -58,7 +59,7 @@ function toOption(t: Trip): FlightOption | null {
   if (!first || !last || typeof t.price !== "number") return null;
   return {
     price: t.price,
-    airlines: [...new Set(segs.map((s) => s.airline).filter((a): a is string => !!a))],
+    airlines: [...new Set(segs.map((s) => s.airline).filter((a): a is string => !!a).map(airlineKo))],
     logo: t.airline_logo ?? "",
     departTime: first.departure_airport?.time ?? "",
     arriveTime: last.arrival_airport?.time ?? "",
@@ -67,7 +68,7 @@ function toOption(t: Trip): FlightOption | null {
     minutes: t.total_duration ?? 0,
     stops: (t.layovers ?? []).map((l) => l.id ?? "").filter(Boolean),
     segments: segs.map((s) => ({
-      airline: s.airline ?? "",
+      airline: airlineKo(s.airline ?? ""),
       flightNo: s.flight_number ?? "",
       plane: s.airplane ?? "",
       fromId: s.departure_airport?.id ?? "",
