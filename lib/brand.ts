@@ -15,7 +15,7 @@ export const brand = {
     soft2: "#EBEBEF",
     ink: "#0B0B0F", // 글자·검정 버튼
     sub: "#6B6B73",
-    mute: "#A1A1AA",
+    mute: "#74747C", // 흰 바탕 대비 4.6:1 (글자 읽기 기준 4.5:1 이상)
     line: "#E7E7EC",
     accent: "#3A5BFF", // 하나뿐인 강조색 (AI 표시·선택)
     accentDark: "#2742D9",

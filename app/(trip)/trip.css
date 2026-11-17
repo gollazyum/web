@@ -2,6 +2,7 @@
    v7 시안: 흰 바탕 + 검정 버튼 + 파란 강조 하나. 휴대폰 기준, PC에서는 가운데 640px 기둥 */
 
 .tb-app {
+  overflow-x: clip; /* PC 홈 배경 사진(화면 너비 가득)이 가로 스크롤을 만들지 않게 */
   --tb-r: 20px;
   --tb-shadow: 0 8px 28px rgba(11, 11, 15, 0.08);
   min-height: 100dvh;
@@ -222,11 +223,12 @@
 .tb-panel {
   display: none;
 }
-.tb-tab.ai svg {
-  color: var(--tb-accent);
-}
 .tb-tab[aria-current="page"] {
   color: var(--tb-ink) !important;
+}
+/* AI 채팅 아이콘은 지금 보고 있을 때만 파란색 (늘 파랗면 선택된 탭처럼 보인다) */
+.tb-tab.ai[aria-current="page"] svg {
+  color: var(--tb-accent);
 }
 .tb-soon-dot {
   position: absolute;
@@ -465,17 +467,88 @@
   letter-spacing: -0.02em;
   margin: 28px 0 12px;
 }
+/* 홈 큰 제목 (휴대폰은 제목만, PC는 넓은 배경 사진 위에) */
+.tb-hero {
+  position: relative;
+}
+.tb-hero-title {
+  margin: 10px 0 16px;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+}
+.tb-hero-title small {
+  display: block;
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--tb-sub);
+}
+/* 인기 여행지 사진 카드: 휴대폰은 옆으로 넘겨 보기 */
 .tb-places {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  display: flex;
+  gap: 10px;
+  margin: 0 -20px;
+  padding: 0 20px 4px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 20px;
+  scrollbar-width: none;
+}
+.tb-places::-webkit-scrollbar {
+  display: none;
 }
 .tb-places button {
-  height: 48px;
-  border-radius: 14px;
-  background: var(--tb-soft) !important;
-  font-weight: 700;
-  font-size: 15px;
+  position: relative;
+  flex: none;
+  width: 136px;
+  aspect-ratio: 3 / 4;
+  border-radius: 18px;
+  overflow: hidden;
+  scroll-snap-align: start;
+  background: linear-gradient(160deg, #3d4c7a, #0b0b0f) !important;
+  color: #fff !important;
+  text-align: left;
+}
+.tb-places img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+.tb-places button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 11, 15, 0) 45%, rgba(11, 11, 15, 0.72));
+}
+.tb-places span {
+  position: absolute;
+  z-index: 1;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+}
+.tb-places strong {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.tb-places small {
+  font-size: 12.5px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+@media (hover: hover) {
+  .tb-places button:hover img {
+    transform: scale(1.05);
+  }
 }
 
 /* 결과 위 가격대 칩: 누르면 아래 줄에 가격대가 열린다 */
@@ -2080,7 +2153,35 @@
     display: none;
   }
   .tb-home {
-    padding-top: 40px;
+    padding-top: 0;
+  }
+  /* PC 홈: 머리글 아래 화면 너비 가득 배경 사진, 그 위에 제목과 검색 카드 */
+  .tb-hero {
+    padding-top: 64px;
+  }
+  .tb-hero::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 100vw;
+    height: 330px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, rgba(11, 11, 15, 0.28), rgba(11, 11, 15, 0.5)), var(--tb-hero-img) center / cover, #1d2b52;
+  }
+  .tb-hero-title,
+  .tb-hero .tb-search {
+    position: relative;
+  }
+  .tb-hero-title {
+    margin: 0 0 22px;
+    font-size: 40px;
+    color: #fff;
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+  }
+  .tb-hero-title small {
+    font-size: 17px;
+    color: rgba(255, 255, 255, 0.9);
   }
   .tb-results-top,
   .tb-chat-top {
@@ -2104,7 +2205,16 @@
     bottom: 24px;
   }
   .tb-places {
-    grid-template-columns: repeat(8, 1fr);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+  .tb-places button {
+    width: auto;
+    aspect-ratio: 4 / 3;
   }
 
   /* 2열: 왼쪽 목록, 오른쪽 예약처 총액 패널 (스크롤해도 제자리) */
