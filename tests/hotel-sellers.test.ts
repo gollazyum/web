@@ -27,15 +27,13 @@ describe("숙소 판매처 허용 목록", () => {
     expect(hotelSellerKey("여기어때")).toBe("yeogi");
     expect(hotelSellerKey("Booking.com")).toBe("booking");
     expect(hotelSellerKey("부킹닷컴")).toBe("booking");
-    expect(hotelSellerKey("Tripbtoz")).toBe("tripbtoz");
-    expect(hotelSellerKey("트립비토즈")).toBe("tripbtoz");
-    expect(hotelSellerKey("모두투어")).toBe("modetour");
-    expect(hotelSellerKey("MODETOUR")).toBe("modetour");
   });
 
-  it("2026-11-17 지시서: 9곳만 보여 주고 인터파크·마이리얼트립·공식 사이트는 뺀다", () => {
-    expect([...HOTEL_SELLERS_SHOWN].sort()).toEqual(["agoda", "booking", "expedia", "hotels", "modetour", "trip", "tripbtoz", "yanolja", "yeogi"]);
+  it("2026-11-17 지시서: 7곳만 보여 주고 인터파크·마이리얼트립·트립비토즈·모두투어·공식 사이트는 뺀다", () => {
+    expect([...HOTEL_SELLERS_SHOWN].sort()).toEqual(["agoda", "booking", "expedia", "hotels", "trip", "yanolja", "yeogi"]);
     expect(hotelSellerKey("NOL 인터파크")).toBeNull();
+    expect(hotelSellerKey("트립비토즈")).toBeNull();
+    expect(hotelSellerKey("모두투어")).toBeNull();
     expect(hotelSellerKey("MyRealTrip")).toBeNull();
     expect(hotelSellerKey("Hilton Official Site")).toBeNull();
     expect(hotelSellerKey("HOTEL MYSTAYS Asakusabashi", true)).toBeNull();
@@ -72,11 +70,6 @@ describe("예약 링크", () => {
       expect(link, n).toContain(encodeURIComponent("Hotel Mystays").slice(0, 5));
     }
     expect(bookingLink(src("Some Hotel", 1000, { official: true }), "Some Hotel", q)).toBe("");
-  });
-
-  it("트립비토즈·모두투어는 직링크가 없으면 사이트 첫 화면으로", () => {
-    expect(bookingLink(src("트립비토즈", 1000), "Hotel Mystays", q)).toBe("https://www.tripbtoz.com/");
-    expect(bookingLink(src("모두투어", 1000), "Hotel Mystays", q)).toBe("https://www.modetour.com/");
   });
 
   it("직링크가 있으면 그 주소를 쓴다", () => {

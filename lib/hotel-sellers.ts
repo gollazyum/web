@@ -14,8 +14,6 @@ export type HotelSellerKey =
   | "yeogi"
   | "interpark"
   | "myrealtrip"
-  | "tripbtoz"
-  | "modetour"
   | "official";
 
 export type SearchQuery = { checkIn: string; checkOut: string; adults: number };
@@ -109,23 +107,6 @@ export const HOTEL_SELLER_ALLOWLIST: readonly SellerDef[] = [
     hosts: ["myrealtrip.com"],
     search: (hotel) => `https://www.myrealtrip.com/search?${qs({ q: hotel })}`,
   },
-  // 트립비토즈·모두투어: 날짜를 넣어 여는 호텔 검색 주소를 확인하지 못해, 직링크가 없으면 사이트 첫 화면으로 보낸다
-  {
-    key: "tripbtoz",
-    label: "트립비토즈",
-    ko: "트립비토즈",
-    aliases: ["트립비토즈", "tripbtoz"],
-    hosts: ["tripbtoz.com"],
-    search: () => "https://www.tripbtoz.com/",
-  },
-  {
-    key: "modetour",
-    label: "모두투어",
-    ko: "모두투어",
-    aliases: ["모두투어", "modetour", "modetournetwork"],
-    hosts: ["modetour.com"],
-    search: () => "https://www.modetour.com/",
-  },
   // 호텔 공식 사이트: 응답의 official 플래그나 이름의 Official/공식 키워드로 판별한다. 정해진 검색 주소가 없다
   { key: "official", label: "호텔 공식 사이트", ko: "호텔 공식 사이트", aliases: [], hosts: [] },
 ];
@@ -152,9 +133,9 @@ export function isGoogleLink(link: string | null | undefined): boolean {
 
 const OFFICIAL_WORD = /official|공식/i;
 
-// 지금 화면에 보여 주는 판매처. 2026-11-17 초록 지시서: 아래 9곳만 (서버 /api/hotels 에서 이 목록 밖은 걸러 낸다).
+// 지금 화면에 보여 주는 판매처. 2026-11-17 초록 지시서: 아래 7곳만 (트립비토즈·모두투어는 같은 날 빼기로 함) (서버 /api/hotels 에서 이 목록 밖은 걸러 낸다).
 // 인터파크·마이리얼트립·호텔 공식 사이트는 정의만 남기고 보여 주지 않는다
-export const HOTEL_SELLERS_SHOWN: readonly HotelSellerKey[] = ["booking", "agoda", "tripbtoz", "modetour", "yeogi", "yanolja", "hotels", "expedia", "trip"];
+export const HOTEL_SELLERS_SHOWN: readonly HotelSellerKey[] = ["booking", "agoda", "yeogi", "yanolja", "hotels", "expedia", "trip"];
 
 // 판매처 이름·공식 플래그·링크로 허용 목록 중 하나를 찾는다. 없거나 지금 보여 주지 않는 곳이면 null (결과에서 뺀다)
 export function hotelSellerKey(name: string | null | undefined, official = false, link?: string | null): HotelSellerKey | null {

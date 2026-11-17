@@ -37,8 +37,6 @@ const TONE: Record<string, string> = {
   yeogi: "#E6007E",
   interpark: "#6A3DF0",
   myrealtrip: "#0BB3E6",
-  tripbtoz: "#00B8C8",
-  modetour: "#2D5BD7",
   official: "#18202B",
 };
 
@@ -53,8 +51,6 @@ const BADGE: Record<string, string> = {
   yeogi: "여기",
   interpark: "NOL",
   myrealtrip: "MRT",
-  tripbtoz: "TB",
-  modetour: "모두",
   official: "공식",
 };
 
