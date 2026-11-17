@@ -15,7 +15,7 @@ export const SORTS: { id: Sort; label: string }[] = [
 
 const RATING_WORD: Record<number, string> = { 3.5: "좋음", 4: "아주 좋음", 4.5: "최고" };
 const AMEN_SHOW = 6;
-const QUICK_AMEN = ["무료 와이파이", "전용 욕실", "대욕장", "레스토랑", "무료 주차"];
+const QUICK_AMEN = ["대욕장", "전용 욕실", "수영장", "무료 주차", "레스토랑"]; // 와이파이는 거의 모든 숙소에 있어 빼둔다
 
 // 개수는 보여 주지 않는다 (받은 숙소가 20곳 안팎이라 숫자가 작게 보여서). 0곳인 항목만 숨긴다
 function Check({ on, label, onClick, radio }: { on: boolean; label: string; count?: number; onClick: () => void; radio?: boolean }) {

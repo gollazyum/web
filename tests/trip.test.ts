@@ -118,6 +118,8 @@ describe("AI가 없을 때 3곳 먼저", () => {
     expect(plain).toBe("후기 3.9점(120개) · 3성급");
     expect(isPlainReason(plain)).toBe(true);
     expect(isPlainReason("후기가 좋은 숙소예요")).toBe(false);
+    // 와이파이는 이유로 쓰지 않는다
+    expect(stayFactReason(hotel({ rating: 4.3, amenities: ["무료 와이파이"] }), "")).toBe("후기가 좋은 숙소예요");
     // 자모로 풀려 온 글자도 받침을 맞게 본다
     expect(stayFactReason(hotel({ rating: 4.0, amenities: ["레스토랑".normalize("NFD")] }), "")).toBe("레스토랑을 갖춘 숙소예요");
   });

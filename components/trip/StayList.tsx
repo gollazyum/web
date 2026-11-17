@@ -191,7 +191,7 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
             {"★".repeat(Math.min(5, Math.round(h.stars)))}
           </span>
         ) : null}
-        <span className="tb-srow-meta">{[h.kind, ...h.amenities.filter(isShownAmenity).slice(0, 2)].filter(Boolean).join(" · ")}</span>
+        <span className="tb-srow-meta">{[h.kind, ...h.amenities.filter((a) => isShownAmenity(a) && !/와이파이/.test(a)).slice(0, 2)].filter(Boolean).join(" · ")}</span>
         {h.rating ? (
           <span className="tb-score">
             <b>{h.rating.toFixed(1)}</b>
