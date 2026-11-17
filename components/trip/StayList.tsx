@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HotelOption } from "@/lib/hotels";
+import { isShownAmenity } from "@/lib/hotelText";
 import { activeCount, applyFilter, countFilters, EMPTY_FILTER, type StayFilter } from "@/lib/stay-filters";
-import { nightsOf, won, type StayQuery } from "@/lib/trip";
+import { isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
 import { shownCost, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
 import { changeText, priceChange, savedBaseFor } from "./saved-price";
 import { FilterBar, FilterPanel, SORTS, type Sort } from "./StayFilters";
@@ -175,7 +176,7 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
   return (
     <article ref={ref} className={`tb-srow${active ? " on" : ""}`}>
       <div className="tb-srow-img">
-        {h.image ? <img src={h.image} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : null}
+        <PhotoStrip images={h.images.length ? h.images : h.image ? [h.image] : []} name={h.name} onOpen={onOpen} />
         {reason ? <em className="tb-tag ac">AI 추천</em> : cheapest && !t.none ? <em className="tb-tag red">최저가</em> : null}
         {onSave && (
           <button type="button" className={`tb-love${saved ? " on" : ""}`} aria-pressed={saved} aria-label={saved ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={onSave}>
@@ -190,7 +191,7 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
             {"★".repeat(Math.min(5, Math.round(h.stars)))}
           </span>
         ) : null}
-        <span className="tb-srow-meta">{[h.kind, ...h.amenities.slice(0, 2)].filter(Boolean).join(" · ")}</span>
+        <span className="tb-srow-meta">{[h.kind, ...h.amenities.filter((a) => isShownAmenity(a) && !/와이파이/.test(a)).slice(0, 2)].filter(Boolean).join(" · ")}</span>
         {h.rating ? (
           <span className="tb-score">
             <b>{h.rating.toFixed(1)}</b>
@@ -198,7 +199,7 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
             {h.reviews ? <span>리뷰 {h.reviews.toLocaleString("ko-KR")}</span> : null}
           </span>
         ) : null}
-        {reason && (
+        {reason && !isPlainReason(reason) && (
           <span className="tb-why">
             <IconSpark size={15} /> {reason}
           </span>
@@ -207,6 +208,62 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
         {diff !== null && <PriceChange diff={diff} />}
       </button>
     </article>
+  );
+}
+
+// 카드 위쪽 큰 사진. 휴대폰은 손가락으로 옆으로 넘기고, PC는 마우스를 올리면 나오는 화살표로 넘긴다
+// 숙소 상세(big)는 사진 한 장씩, 화살표를 늘 보이고 '1/8'을 함께 보여 준다
+export function PhotoStrip({ images, name, onOpen, max = 5, big }: { images: string[]; name: string; onOpen?: () => void; max?: number; big?: boolean }) {
+  const list = images.slice(0, max);
+  const ref = useRef<HTMLDivElement>(null);
+  const [at, setAt] = useState(0);
+  const go = (d: number) => {
+    const el = ref.current;
+    if (el) el.scrollTo({ left: el.clientWidth * Math.max(0, Math.min(list.length - 1, at + d)), behavior: "smooth" });
+  };
+  if (!list.length) return null;
+  return (
+    <>
+      <div
+        ref={ref}
+        className={`tb-srow-photos${big ? " big" : ""}`}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          setAt(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)));
+        }}
+        onClick={onOpen}
+        aria-label={`${name} 사진 ${list.length}장`}
+      >
+        {list.map((src, i) => (
+          <img key={src + i} src={src} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} />
+        ))}
+      </div>
+      {list.length > 1 && (
+        <>
+          {big ? (
+            <em className="tb-ph-count">
+              {at + 1}/{list.length}
+            </em>
+          ) : (
+            <span className="tb-dots" aria-hidden>
+              {list.map((_, i) => (
+                <i key={i} className={i === at ? "on" : undefined} />
+              ))}
+            </span>
+          )}
+          {at > 0 && (
+            <button type="button" className="tb-ph-nav prev" aria-label="이전 사진" onClick={() => go(-1)}>
+              <IconBack size={16} />
+            </button>
+          )}
+          {at < list.length - 1 && (
+            <button type="button" className="tb-ph-nav next" aria-label="다음 사진" onClick={() => go(1)}>
+              <IconBack size={16} />
+            </button>
+          )}
+        </>
+      )}
+    </>
   );
 }
 
@@ -229,6 +286,7 @@ export function PriceBlock({ p, nights }: { p: ReturnType<typeof shownPrice>; ni
       <small>
         {nights}박 · {p.verified ? "세금 포함" : "예상 총액(세금 포함)"}
       </small>
+      {nights > 1 && p.value !== null && <small className="tb-per-night">(1박 약 {won(Math.round(p.value / nights / 100) * 100)})</small>}
       <em className="tb-cmp">{p.count ? `예약처 ${p.count}곳 비교` : "예약처 가격 비교"} &gt;</em>
     </span>
   );

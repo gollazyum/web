@@ -143,15 +143,49 @@ export function withinBudget(list: HotelOption[], budget: number, nights: number
   return ok.length ? { list: ok, over: false } : { list, over: true };
 }
 
-// 받아 온 숫자로만 만드는 한 줄 이유
+// 받침 있는 말 뒤에는 '을/이', 없으면 '를/가'
+function josa(word: string, withF: string, without: string): string {
+  const w = word.normalize("NFC").trim(); // 받아 온 글자가 자모로 풀려 올 때가 있다
+  const c = w.charCodeAt(w.length - 1);
+  if (c < 0xac00 || c > 0xd7a3) return without;
+  return (c - 0xac00) % 28 ? withF : without;
+}
+
+// 이유에 쓸 만한 편의시설 (앞쪽이 먼저). 와이파이처럼 거의 모든 숙소에 있는 것은 이유가 되지 않아 뺀다
+const HIGHLIGHTS = [/온천|대욕장|노천탕/, /전용 욕실/, /조식/, /수영장/, /스파|사우나/, /피트니스/, /무료 주차/, /공항 셔틀|픽업/, /레스토랑/];
+
+// 받아 온 사실로만 만드는 한 줄 이유. 카드 윗줄에 이미 보이는 평점·리뷰 수·성급 숫자는 되풀이하지 않는다.
+// 더할 말이 없으면 숫자만 적은 줄을 돌려주고, 화면(isPlainReason)은 그 줄을 숨긴다
 export function stayFactReason(h: HotelOption, taste: string): string {
-  const parts: string[] = [];
   const hits = stayWants(taste).filter((w) => h.amenities.some((a) => w.amenity.test(a)));
-  if (hits.length) parts.push(`${hits.map((w) => w.label).join("·")} 있어요`);
+  const feats: string[] = [];
+  const ams = h.amenities.map((x) => x.normalize("NFC"));
+  for (const re of HIGHLIGHTS) {
+    const a = ams.find((x) => re.test(x));
+    if (a && !feats.includes(a) && feats.length < 2) feats.push(a.normalize("NFC").replace(/\(유료\)$/, "").trim());
+  }
+  const rating = h.rating ?? 0;
+  const good = rating >= 4.5 ? "후기가 아주 좋은" : rating >= 4.2 ? "후기가 좋은" : "";
+  if (good) feats.splice(1); // 한 줄에 들어가게: 평점 말이 붙으면 편의시설은 하나만
+  if (hits.length) {
+    const labels = hits.map((w) => w.label).join("·");
+    return `${labels}${josa(labels, "이", "가")} 있고 ${good ? "후기 만족도가 높아요" : "찾는 조건에 맞아요"}`;
+  }
+  const featText = feats.join("·");
+  if (feats.length && good) return `${featText}${josa(featText, "을", "를")} 갖춘 ${good} 숙소예요`;
+  if (good) return `${good} 숙소예요`;
+  if (feats.length) return `${featText}${josa(featText, "을", "를")} 갖춘 숙소예요`;
+  const parts: string[] = [];
   if (h.rating) parts.push(`후기 ${h.rating.toFixed(1)}점${h.reviews ? `(${h.reviews.toLocaleString("ko-KR")}개)` : ""}`);
   if (h.stars) parts.push(`${h.stars}성급`);
   if (!parts.length && h.deal) parts.push(h.deal);
   return parts.join(" · ") || "조건에 맞는 숙소예요";
+}
+
+// 카드 윗줄(별·평점·리뷰 수)과 같은 숫자만 적힌 이유. 두 번 보이지 않게 화면에서 숨긴다
+const PLAIN_REASON = /^(후기 [\d.]+점(\([\d,]+개\))?)?( · )?(\d(\.\d)?성급)?$|^조건에 맞는 숙소예요$/;
+export function isPlainReason(reason: string): boolean {
+  return PLAIN_REASON.test(reason.trim());
 }
 
 // 규칙 점수: 후기 점수 + 취향 편의시설 + 후기 수 − 가격 순위. list 순서 기준 번호(1부터)를 돌려준다

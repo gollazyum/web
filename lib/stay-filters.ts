@@ -1,3 +1,4 @@
+import { isShownAmenity } from "@/lib/hotelText";
 import type { HotelOption } from "./hotels";
 import { inBand, PRICE_BANDS } from "./price-bands";
 
@@ -64,7 +65,7 @@ export function countFilters(list: HotelOption[], cost: (h: HotelOption) => numb
     ratings: RATING_STEPS.map((min) => ({ min, count: list.filter((h) => (h.rating ?? 0) >= min).length })),
     kinds: tally(list.map((h) => h.kind)),
     // 조식·무료 취소는 따로 묻는다
-    amenities: tally(list.flatMap((h) => [...new Set(h.amenities)].filter((a) => !BREAKFAST.test(a) && !FREE_CANCEL.test(a)))),
+    amenities: tally(list.flatMap((h) => [...new Set(h.amenities)].filter((a) => !BREAKFAST.test(a) && !FREE_CANCEL.test(a) && isShownAmenity(a)))),
     breakfast: list.filter(hasBreakfast).length,
     freeCancel: list.filter(hasFreeCancel).length,
   };

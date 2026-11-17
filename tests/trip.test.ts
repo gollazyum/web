@@ -12,6 +12,7 @@ import {
   mergePicks,
   nightsOf,
   stayFactReason,
+  isPlainReason,
   stayReady,
   stayTotal,
   withinBudget,
@@ -108,8 +109,19 @@ describe("AI가 없을 때 3곳 먼저", () => {
     expect(list[picks[0].n - 1].name).toBe("대욕장");
     expect(picks[0].reason).toContain("온천·대욕장");
   });
-  it("이유는 받아 온 숫자로만 만든다", () => {
-    expect(stayFactReason(hotel({ rating: 4.5, reviews: 1284, stars: 4 }), "")).toBe("후기 4.5점(1,284개) · 4성급");
+  it("이유는 받아 온 사실로만 만들고 카드 윗줄 숫자는 되풀이하지 않는다", () => {
+    expect(stayFactReason(hotel({ rating: 4.5, reviews: 1284, stars: 4, amenities: ["무료 와이파이", "전용 욕실"] }), "")).toBe("전용 욕실을 갖춘 후기가 아주 좋은 숙소예요");
+    expect(stayFactReason(hotel({ rating: 4.3, amenities: [] }), "")).toBe("후기가 좋은 숙소예요");
+    expect(stayFactReason(hotel({ rating: 4.0, amenities: ["대욕장"] }), "대욕장 있으면")).toBe("온천·대욕장이 있고 찾는 조건에 맞아요");
+    // 더할 말이 없으면 숫자 줄 → 화면에서 숨긴다
+    const plain = stayFactReason(hotel({ rating: 3.9, reviews: 120, stars: 3, amenities: [] }), "");
+    expect(plain).toBe("후기 3.9점(120개) · 3성급");
+    expect(isPlainReason(plain)).toBe(true);
+    expect(isPlainReason("후기가 좋은 숙소예요")).toBe(false);
+    // 와이파이는 이유로 쓰지 않는다
+    expect(stayFactReason(hotel({ rating: 4.3, amenities: ["무료 와이파이"] }), "")).toBe("후기가 좋은 숙소예요");
+    // 자모로 풀려 온 글자도 받침을 맞게 본다
+    expect(stayFactReason(hotel({ rating: 4.0, amenities: ["레스토랑".normalize("NFD")] }), "")).toBe("레스토랑을 갖춘 숙소예요");
   });
   it("항공은 직항·오전 조건을 먼저 본다", () => {
     const list = [flight({ price: 150_000, stops: ["NRT"], minutes: 300 }), flight({ price: 171_000 }), flight({ price: 160_000, departTime: "2026-12-05 19:40" })];

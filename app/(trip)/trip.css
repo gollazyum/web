@@ -635,15 +635,16 @@
   gap: 12px;
   padding-top: 12px;
 }
+/* 숙소 카드: 왼쪽 사진(옆으로 넘겨 보기) + 오른쪽 정보. 한 화면에 4~5곳이 보이게 낮게 */
 .tb-srow {
   position: relative;
   display: flex;
   gap: 14px;
-  padding: 16px;
+  padding: 14px 16px;
   border-bottom: 8px solid var(--tb-soft);
 }
 .tb-srow.skel {
-  height: 170px;
+  height: 160px;
   margin: 12px 16px 0;
   border: 0;
   border-radius: 16px;
@@ -654,30 +655,116 @@
 .tb-srow-img {
   position: relative;
   width: 120px;
-  height: 150px;
+  height: 148px;
   flex: none;
   border-radius: 16px;
   overflow: hidden;
   background: var(--tb-soft);
 }
-.tb-srow-img img {
+.tb-srow-photos {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  cursor: pointer;
+}
+.tb-srow-photos.big {
+  cursor: default;
+}
+.tb-srow-photos::-webkit-scrollbar {
+  display: none;
+}
+/* 숙소 상세 위 사진: 한 장씩, 양옆 화살표는 늘 보인다 */
+.tb-gallery {
+  position: relative;
+  height: 190px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--tb-soft);
+}
+.tb-gallery .tb-ph-nav {
+  display: grid;
+}
+.tb-ph-count {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-style: normal;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(11, 11, 15, 0.55);
+}
+.tb-srow-photos img {
+  flex: 0 0 100%;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 .tb-srow-img .tb-tag {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 10px;
+  left: 10px;
 }
 .tb-srow-img .tb-love {
-  top: auto;
-  bottom: 0;
-  right: 0;
+  top: 4px;
+  right: 4px;
 }
 .tb-srow-img .tb-love::before {
   inset: 6px;
+}
+.tb-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  pointer-events: none;
+}
+.tb-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.25);
+}
+.tb-dots i.on {
+  background: #fff;
+}
+.tb-ph-nav {
+  position: absolute;
+  top: 50%;
+  width: 32px;
+  height: 32px;
+  margin-top: -16px;
+  border-radius: 50%;
+  display: none;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: var(--tb-ink) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+.tb-ph-nav.prev {
+  left: 10px;
+}
+.tb-ph-nav.next {
+  right: 10px;
+}
+.tb-ph-nav.next svg {
+  transform: rotate(180deg);
+}
+@media (hover: hover) {
+  .tb-srow-img:hover .tb-ph-nav {
+    display: grid;
+  }
 }
 .tb-srow-body {
   flex: 1;
@@ -685,8 +772,36 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 3px;
+  gap: 2px;
   text-align: left;
+}
+/* 넓은 화면: 왼쪽 숙소 정보, 오른쪽 아래 금액 */
+@media (min-width: 600px) {
+  .tb-srow {
+    padding: 12px 16px;
+  }
+  .tb-srow-img {
+    width: 176px;
+    height: 128px;
+  }
+  .tb-srow-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-auto-flow: row dense;
+    justify-items: start;
+    column-gap: 12px;
+    row-gap: 3px;
+    text-align: left;
+  }
+  .tb-srow-body > * {
+    grid-column: 1;
+  }
+  .tb-srow-body > .tb-srow-price {
+    grid-column: 2;
+    grid-row: 1 / span 6;
+    align-self: end;
+    margin-top: 0;
+  }
 }
 .tb-srow-name {
   font-size: 17px;
@@ -736,6 +851,10 @@
 .tb-srow-price small {
   font-size: 12.5px;
   color: var(--tb-sub);
+}
+.tb-srow-price small.tb-per-night {
+  font-size: 12px;
+  color: var(--tb-mute);
 }
 .tb-rlist.flat .tb-srow {
   border-bottom: 1px solid var(--tb-line);
@@ -1801,7 +1920,9 @@
   height: 38px;
   border-radius: 12px;
   color: #fff;
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: -0.02em;
   display: grid;
   place-items: center;
   flex: none;
@@ -1845,8 +1966,22 @@
   font-size: 13.5px;
   color: var(--tb-sub);
 }
+/* '내 여행에 담기'는 스크롤해도 창 아래에 붙어 있다 (상세 창 PC 패널·휴대폰 시트).
+   불투명 흰 바탕 + 위쪽 구분선으로 뒤 글씨가 비치지 않게, 창 안쪽 여백(20px)까지 덮는다 */
+.tb-save-bar {
+  position: sticky;
+  bottom: -20px;
+  z-index: 3;
+  margin: 16px -20px 0;
+  padding: 12px 20px 20px;
+  background: #fff;
+  border-top: 1px solid var(--tb-line);
+}
+.tb-sheet-body .tb-save-bar {
+  bottom: calc(-20px - env(safe-area-inset-bottom));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+}
 .tb-save {
-  margin-top: 12px;
   width: 100%;
   display: flex;
   justify-content: center;
