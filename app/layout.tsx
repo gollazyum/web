@@ -51,7 +51,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <body>
         {children}
         {/* Travelpayouts Drive: 제휴 링크 자동 변환 */}

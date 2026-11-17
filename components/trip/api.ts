@@ -97,6 +97,13 @@ export async function searchFlights(q: FlightQuery) {
   return cached(`flight:${JSON.stringify(body)}`, () => post<FlightResults>("/api/flights", body));
 }
 
+// 왕복: 가는 편 하나의 토큰으로 오는 편 후보를 한 번 찾는다 (카드 상세를 열 때만)
+export async function searchFlightReturns(q: FlightQuery, token: string) {
+  const [from, to] = await Promise.all([airportsFor(q.from), airportsFor(q.to)]);
+  const body = { from, to, depart: q.depart, ret: q.ret, adults: q.adults, token };
+  return cached(`flightret:${token}`, () => post<FlightResults>("/api/flights", body));
+}
+
 export const parseText = (text: string, today: string, context: string) => post<ParseResult>("/api/trip-ai", { mode: "parse", text, today, context });
 
 export const pickStays = (list: HotelOption[], taste: string, budget: number) =>
