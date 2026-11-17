@@ -37,6 +37,8 @@ const TONE: Record<string, string> = {
   yeogi: "#E6007E",
   interpark: "#6A3DF0",
   myrealtrip: "#0BB3E6",
+  tripbtoz: "#00B8C8",
+  modetour: "#2D5BD7",
   official: "#18202B",
 };
 
@@ -51,6 +53,8 @@ const BADGE: Record<string, string> = {
   yeogi: "여기",
   interpark: "NOL",
   myrealtrip: "MRT",
+  tripbtoz: "TB",
+  modetour: "모두",
   official: "공식",
 };
 
@@ -207,6 +211,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
                 <div className="tb-row-name">
                   <strong>{ko}</strong>
                   {s.approx && <small>1박 요금 × {nights}박</small>}
+                  {s.freeCancel && <small className="tb-free">무료 취소 가능</small>}
                 </div>
                 <div className={`tb-row-price${i === 0 ? " best" : ""}`}>
                   {i === 0 && rows.length > 1 && <em className="tb-low">가장 낮아요</em>}
@@ -320,6 +325,15 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
             >
               예약하러 가기 <IconOut />
             </a>
+            {(() => {
+              // 아고다가 가장 싼 곳이 아니면 총액 옆에 보조 버튼으로 둔다
+              const ag = rows.find((r, i) => i > 0 && r.key === "agoda");
+              return ag ? (
+                <a className="tb-book-bar-sub" href={ag.href} target="_blank" rel={linkRel("agoda")} onClick={() => onGo?.("아고다로 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요")}>
+                  아고다에서 보기 <IconOut />
+                </a>
+              ) : null;
+            })()}
           </div>
         ) : (
           <button type="button" className="tb-save" onClick={onSave} aria-pressed={saved}>

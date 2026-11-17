@@ -27,16 +27,18 @@ describe("숙소 판매처 허용 목록", () => {
     expect(hotelSellerKey("여기어때")).toBe("yeogi");
     expect(hotelSellerKey("Booking.com")).toBe("booking");
     expect(hotelSellerKey("부킹닷컴")).toBe("booking");
-    expect(hotelSellerKey("NOL 인터파크")).toBe("interpark");
-    expect(hotelSellerKey("NOL")).toBe("interpark");
-    expect(hotelSellerKey("MyRealTrip")).toBe("myrealtrip");
-    expect(hotelSellerKey("마이리얼트립")).toBe("myrealtrip");
+    expect(hotelSellerKey("Tripbtoz")).toBe("tripbtoz");
+    expect(hotelSellerKey("트립비토즈")).toBe("tripbtoz");
+    expect(hotelSellerKey("모두투어")).toBe("modetour");
+    expect(hotelSellerKey("MODETOUR")).toBe("modetour");
   });
 
-  it("허용한 10곳(공식 사이트 포함)을 모두 보여 준다", () => {
-    expect(HOTEL_SELLERS_SHOWN).toHaveLength(10);
-    expect(hotelSellerKey("Hilton Official Site")).toBe("official");
-    expect(hotelSellerKey("HOTEL MYSTAYS Asakusabashi", true)).toBe("official");
+  it("2026-11-17 지시서: 9곳만 보여 주고 인터파크·마이리얼트립·공식 사이트는 뺀다", () => {
+    expect([...HOTEL_SELLERS_SHOWN].sort()).toEqual(["agoda", "booking", "expedia", "hotels", "modetour", "trip", "tripbtoz", "yanolja", "yeogi"]);
+    expect(hotelSellerKey("NOL 인터파크")).toBeNull();
+    expect(hotelSellerKey("MyRealTrip")).toBeNull();
+    expect(hotelSellerKey("Hilton Official Site")).toBeNull();
+    expect(hotelSellerKey("HOTEL MYSTAYS Asakusabashi", true)).toBeNull();
   });
 
   it("공식 사이트는 플래그나 키워드로 판별한다", () => {
@@ -63,13 +65,18 @@ describe("숙소 판매처 허용 목록", () => {
 
 describe("예약 링크", () => {
   it("google 주소는 쓰지 않고 판매처 검색 주소로 보낸다", () => {
-    for (const n of ["Agoda", "Trip.com", "Expedia", "Hotels.com", "Booking.com", "야놀자", "여기어때", "NOL 인터파크", "마이리얼트립"]) {
+    for (const n of ["Agoda", "Trip.com", "Expedia", "Hotels.com", "Booking.com", "야놀자", "여기어때"]) {
       const link = bookingLink(src(n, 1000), "Hotel Mystays", q);
       expect(link, n).not.toBe("");
       expect(isGoogleLink(link), `${n} ${link}`).toBe(false);
       expect(link, n).toContain(encodeURIComponent("Hotel Mystays").slice(0, 5));
     }
     expect(bookingLink(src("Some Hotel", 1000, { official: true }), "Some Hotel", q)).toBe("");
+  });
+
+  it("트립비토즈·모두투어는 직링크가 없으면 사이트 첫 화면으로", () => {
+    expect(bookingLink(src("트립비토즈", 1000), "Hotel Mystays", q)).toBe("https://www.tripbtoz.com/");
+    expect(bookingLink(src("모두투어", 1000), "Hotel Mystays", q)).toBe("https://www.modetour.com/");
   });
 
   it("직링크가 있으면 그 주소를 쓴다", () => {

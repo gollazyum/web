@@ -11,7 +11,11 @@ export type HotelSource = {
   total: number | null; // 원, 전체 숙박 총액
   link: string; // 예약 사이트로 가는 주소
   official: boolean; // 호텔 공식 사이트
+  freeCancel?: boolean; // 이 예약처 요금이 무료 취소 가능하다고 온 경우만 true
 };
+
+// 숙소에서 가까운 역·주요 장소 한 곳 (검색 결과에 온 값만. 없으면 null)
+export type NearPlace = { name: string; how: "도보" | "대중교통" | "택시"; mins: number };
 
 export type HotelOption = {
   token: string; // 예약 사이트별 가격을 더 불러올 때 쓴다
@@ -29,6 +33,8 @@ export type HotelOption = {
   total: number | null;
   priceSource: string | null; // perNight·total을 가져온 예약 사이트. 사이트 가격이 없으면 null
   sources: HotelSource[]; // 검색 목록에 함께 온 몇 곳
+  near?: NearPlace | null; // 가까운 역·주요 장소 (값이 온 숙소만)
+  freeCancel?: boolean; // 무료 취소 가능한 예약처가 하나라도 있다고 온 경우만 true
 };
 
 export type HotelResults = { options: HotelOption[]; next: string | null }; // next: 다음 쪽을 부를 때 쓰는 값

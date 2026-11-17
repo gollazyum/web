@@ -44,7 +44,8 @@ import { SearchCard, type SearchCardHandle, type SearchKind } from "./SearchCard
 import { SellerBody, SellerSheet } from "./SellerSheet";
 import { Sheet } from "./Sheet";
 import { Onboarding } from "./Onboarding";
-import { PriceBlock, StayList, StayRow, type StayPick } from "./StayList";
+import { PriceBlock, RankLines, StayList, StayRow, type StayPick } from "./StayList";
+import { rankNotes, stayFactLine, type RankNote } from "@/lib/stay-facts";
 import { getVerified, prefetchPrices, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
 import { setSavedList, type SavedBase } from "./saved-price";
 import { MyTrips } from "./MyTrips";
@@ -409,6 +410,8 @@ export function TripApp() {
   useEffect(() => {
     if (tab !== "home" || window.location.pathname !== "/") return;
     const hs = parseHomeSearch(window.location.search); // search 상태는 바뀐 걸 알리는 용도 (탭을 옮긴 직후엔 한 박자 늦다)
+    // 결과(또는 검색 화면)를 그린 다음 프레임에 감춘 것을 푼다
+    requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove("tb-has-q")));
     if (!hs) return setHomeId(null);
     const key = hs.kind === "stay" ? stayHref(hs.query) : flightHref({ ...hs.query, fromLabel: "", toLabel: "" });
     const have = [...msgsRef.current].reverse().find((m) => (m.t === "stay" || m.t === "flight") && m.home && homeHrefOf(m) === key);
@@ -598,7 +601,8 @@ export function TripApp() {
   const sellerReason = seller ? [...msgs].reverse().flatMap((m) => (m.t === "stay" && m.query.place === seller.query.place ? (m.picks ?? []) : [])).find((p) => p.token === seller.hotel.token)?.reason : undefined;
   // PC: 결과가 있으면 오른쪽 패널이 비지 않게 맨 위 숙소(AI 추천 1위)를 먼저 열어 둔다
   const panelMsg = (tab === "home" ? homeMsg : [...chatMsgs].reverse().find((x) => x.t === "stay")) as StayMsg | FlightMsg | undefined;
-  const firstStay = split && panelMsg?.t === "stay" && panelMsg.status === "done" && panelMsg.options?.length ? (panelMsg.options.find((o) => o.token === panelMsg.picks?.[0]?.token) ?? panelMsg.options[0]) : null;
+  // AI 답이 온 뒤에 추천 1번을 연다 (그 전에 규칙으로 정한 곳을 열었다가 바뀌지 않게)
+  const firstStay = split && panelMsg?.t === "stay" && panelMsg.status === "done" && !panelMsg.aiPending && panelMsg.options?.length ? (panelMsg.options.find((o) => o.token === panelMsg.picks?.[0]?.token) ?? panelMsg.options[0]) : null;
   useEffect(() => {
     if (!seller && firstStay && panelMsg?.t === "stay") setSeller({ hotel: firstStay, query: panelMsg.query });
   }, [seller, firstStay, panelMsg]);
@@ -1088,13 +1092,13 @@ function ErrorBox({ status, onRetry, fallbackHref }: { status: number | null | u
 }
 
 // AI 추천 카드 한 장. 화면에 보이면 예약처 가격을 받아 금액을 시트 1위 총액과 맞춘다
-function PickCard({ p, i, of, t, isLow, q, nights, saved: on, active, onSave, onOpenHotel }: { p: { token: string; reason: string; h: HotelOption }; i: number; of: number; t: ReturnType<typeof shownPrice>; isLow: boolean; q: StayQuery; nights: number; saved: boolean; active: boolean; onSave: (h: HotelOption) => void; onOpenHotel: (h: HotelOption) => void }) {
+function PickCard({ p, i, of, note, t, isLow, q, nights, saved: on, active, onSave, onOpenHotel }: { p: { token: string; reason: string; h: HotelOption }; i: number; of: number; note?: RankNote; t: ReturnType<typeof shownPrice>; isLow: boolean; q: StayQuery; nights: number; saved: boolean; active: boolean; onSave: (h: HotelOption) => void; onOpenHotel: (h: HotelOption) => void }) {
   const ref = useLazyPrice<HTMLElement>(p.h, q, true);
   return (
     <article ref={ref} className={`tb-hcard${active ? " on" : ""}`}>
       <div className="tb-hcard-img">
         {p.h.image ? <img src={p.h.image} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : null}
-        <em className="tb-tag wt">{isLow && of > 1 && t.value !== null ? `${i + 1} · ${of}곳 중 가장 낮아요` : `${i + 1}`}</em>
+        <em className="tb-tag wt">{isLow && of > 1 && t.verified ? `${i + 1} · 최저가` : `${i + 1}`}</em>
         <button type="button" className={`tb-love${on ? " on" : ""}`} aria-pressed={on} aria-label={on ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={() => onSave(p.h)}>
           <IconHeart size={18} on={on} />
         </button>
@@ -1102,11 +1106,13 @@ function PickCard({ p, i, of, t, isLow, q, nights, saved: on, active, onSave, on
       <button type="button" className="tb-hcard-body" onClick={() => onOpenHotel(p.h)} aria-label={`${p.h.name} 예약처별 총액 보기`}>
         <strong>{p.h.name}</strong>
         <span className="tb-hcard-meta">{[p.h.rating ? `★ ${p.h.rating.toFixed(1)}` : "", p.h.stars ? `${p.h.stars}성급` : p.h.kind].filter(Boolean).join(" · ")}</span>
+        {stayFactLine(p.h) && <span className="tb-fact">{stayFactLine(p.h)}</span>}
         {!isPlainReason(p.reason) && (
           <span className="tb-why">
             <IconSpark size={14} /> {p.reason}
           </span>
         )}
+        {note && <RankLines note={note} />}
         <PriceBlock p={t} nights={nights} />
       </button>
     </article>
@@ -1123,8 +1129,11 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
   if (!options.length) return <AiSay>이 조건으로는 숙소를 찾지 못했어요. 지역 이름을 조금 넓게(예: “오사카”) 적거나 날짜를 바꿔 보세요.</AiSay>;
   const picks = (m.picks ?? []).map((p) => ({ ...p, h: options.find((o) => o.token === p.token)! })).filter((p) => p.h);
   const prices = picks.map((p) => shownPrice(p.h, q));
-  const totals = prices.map((p) => (p.none || p.value === null ? Infinity : p.value));
+  // 비교표·'최저가'는 예약처에서 확인한 금액만 (확인 전 예상 금액은 넣지 않는다)
+  const totals = prices.map((p) => (p.verified && p.value !== null ? p.value : Infinity));
   const low = Math.min(...totals);
+  const lowOnce = Number.isFinite(low) && totals.filter((x) => x === low).length === 1;
+  const notes = rankNotes(picks.map((p) => p.h), q.taste ?? "", prices);
   const bestRating = Math.max(...picks.map((p) => p.h.rating ?? 0));
   const short = (n: string) => (n.length > 9 ? `${n.slice(0, 8)}…` : n);
   return (
@@ -1135,7 +1144,7 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
       </AiSay>
       <div className="tb-hcards">
         {picks.map((p, i) => (
-          <PickCard key={p.token} p={p} i={i} of={picks.length} t={prices[i]} isLow={totals[i] === low} q={q} nights={nights} saved={saved.has(p.token)} active={active === p.token} onSave={onSave} onOpenHotel={onOpenHotel} />
+          <PickCard key={p.token} p={p} i={i} of={picks.length} note={notes[i]} t={prices[i]} isLow={lowOnce && totals[i] === low} q={q} nights={nights} saved={saved.has(p.token)} active={active === p.token} onSave={onSave} onOpenHotel={onOpenHotel} />
         ))}
       </div>
       {picks.length > 1 && (
@@ -1152,8 +1161,8 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
             <tr>
               <td>{nights}박 총액</td>
               {picks.map((p, i) => (
-                <td key={p.token} className={totals[i] === low ? "best" : undefined}>
-                  {Number.isFinite(totals[i]) ? won(totals[i]) : "–"}
+                <td key={p.token} className={lowOnce && totals[i] === low ? "best" : undefined}>
+                  {Number.isFinite(totals[i]) ? won(totals[i]) : "확인 전"}
                 </td>
               ))}
             </tr>

@@ -2430,7 +2430,9 @@
     aspect-ratio: 4 / 3;
   }
 
-  /* 2열: 왼쪽 목록, 오른쪽 예약처 총액 패널 (스크롤해도 제자리) */
+  /* 2열: 왼쪽 목록, 오른쪽 예약처 총액 패널 (스크롤해도 제자리).
+     주소로 숙소 검색을 열 때(.tb-has-q)는 처음부터 같은 폭으로 그려 결과가 나올 때 화면이 옆으로 밀리지 않게 한다 */
+  .tb-has-q .tb-main,
   .tb-main.split {
     max-width: 1200px;
     display: grid;
@@ -2887,6 +2889,7 @@
   top: 0 !important;
 }
 @media (min-width: 1280px) {
+  .tb-has-q .tb-main,
   .tb-main.split {
     max-width: 1400px;
   }
@@ -3192,4 +3195,103 @@
 }
 .tb-price-line .tb-est {
   margin-bottom: 0;
+}
+
+/* 카드 한 줄 사실(가까운 역·무료 취소), AI 3곳 순위 이유·확인 못 한 조건 */
+.tb-fact {
+  font-size: 13px;
+  color: var(--tb-ink);
+  font-weight: 600;
+}
+.tb-rank {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tb-ink);
+}
+.tb-unk {
+  font-size: 12.5px;
+  color: var(--tb-sub);
+}
+.tb-row-name small.tb-free {
+  color: var(--tb-accent-dark);
+  font-weight: 700;
+}
+
+.tb-rank,
+.tb-unk {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* ---------- 2026-11-17 P0-2·P0-3: 카드 자리 고정, 확인한 금액만 강조 ---------- */
+/* 열린 카드(패널에 보이는 숙소)는 테두리로 표시 (휴대폰·PC 모두) */
+.tb-srow[aria-current="true"] {
+  box-shadow: inset 0 0 0 2px var(--tb-ink);
+  border-radius: 16px;
+}
+.tb-srow-img .tb-tag.second {
+  top: 40px;
+}
+.tb-reorder {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  margin: 0 16px 6px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--tb-line) !important;
+  background: var(--tb-card) !important;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+/* 확인 전 금액: 회색 + 얇은 굵기 + '예상' 꼬리표 */
+.tb-srow-price.est strong {
+  color: var(--tb-mute);
+  font-weight: 400;
+}
+.tb-srow-price.est .tb-est {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 6px;
+  color: var(--tb-sub);
+  background: var(--tb-soft);
+  border: 0;
+}
+/* 확인한 금액: 강조색은 가격에만 */
+.tb-srow-price:not(.est):not(.none) strong {
+  color: var(--tb-accent-dark);
+}
+.tb-seller-chip {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--tb-ink);
+  background: var(--tb-soft);
+  border-radius: 6px;
+  padding: 2px 7px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+.tb-srow-price .tb-cmp {
+  color: var(--tb-sub);
+}
+.tb-book-bar {
+  flex-wrap: wrap;
+}
+.tb-book-bar-sub {
+  flex: 1 0 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--tb-line);
+  color: var(--tb-ink) !important;
+  font-weight: 700;
+  font-size: 14px;
+}
+/* 주소로 검색을 열 때 결과가 그려지기 전의 빈 검색 화면은 감춘다 (layout.tsx 스크립트) */
+.tb-has-q .tb-home {
+  visibility: hidden;
 }
