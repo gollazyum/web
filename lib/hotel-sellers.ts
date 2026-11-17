@@ -133,8 +133,9 @@ export function isGoogleLink(link: string | null | undefined): boolean {
 
 const OFFICIAL_WORD = /official|공식/i;
 
-// 지금 화면에 보여 주는 판매처. 2026-11-16 초록 지시서: 허용 목록 10곳 전부 (숨기려면 이 목록에서 키를 뺀다)
-export const HOTEL_SELLERS_SHOWN: readonly HotelSellerKey[] = HOTEL_SELLER_ALLOWLIST.map((s) => s.key);
+// 지금 화면에 보여 주는 판매처. 2026-11-17 초록 지시서: 아래 7곳만 (트립비토즈·모두투어는 같은 날 빼기로 함) (서버 /api/hotels 에서 이 목록 밖은 걸러 낸다).
+// 인터파크·마이리얼트립·호텔 공식 사이트는 정의만 남기고 보여 주지 않는다
+export const HOTEL_SELLERS_SHOWN: readonly HotelSellerKey[] = ["booking", "agoda", "yeogi", "yanolja", "hotels", "expedia", "trip"];
 
 // 판매처 이름·공식 플래그·링크로 허용 목록 중 하나를 찾는다. 없거나 지금 보여 주지 않는 곳이면 null (결과에서 뺀다)
 export function hotelSellerKey(name: string | null | undefined, official = false, link?: string | null): HotelSellerKey | null {

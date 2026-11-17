@@ -1,4 +1,4 @@
-import { lowestNightly, type HotelOption, type HotelPrices, type HotelResults, type HotelSource, type ReviewTopic } from "@/lib/hotels";
+import { lowestNightly, type HotelOption, type NearPlace, type HotelPrices, type HotelResults, type HotelSource, type ReviewTopic } from "@/lib/hotels";
 import { DATE, serpSearch, today } from "@/lib/serpapi";
 import { normalizeText } from "@/lib/search-cache";
 import { amenityKo, dealKo, kindKo } from "@/lib/hotelText";
@@ -31,7 +31,8 @@ function parseQuery(body: unknown) {
 }
 
 type Rate = { extracted_lowest?: number };
-type SerpPrice = { source?: string; logo?: string; link?: string; official?: boolean; rate_per_night?: Rate; total_rate?: Rate };
+type SerpPrice = { source?: string; logo?: string; link?: string; official?: boolean; rate_per_night?: Rate; total_rate?: Rate; free_cancellation?: boolean };
+type SerpNearby = { name?: string; transportations?: { type?: string; duration?: string }[] };
 type SerpProperty = {
   name?: string;
   type?: string;
@@ -48,7 +49,37 @@ type SerpProperty = {
   rate_per_night?: Rate;
   total_rate?: Rate;
   prices?: SerpPrice[];
+  nearby_places?: SerpNearby[];
 };
+
+// "9분", "1시간 5분", "12 min" → 분. 못 읽으면 null
+function minutesOf(d: string | undefined): number | null {
+  if (!d) return null;
+  const h = /(\d+)\s*(시간|hr|hour)/i.exec(d);
+  const m = /(\d+)\s*(분|min)/i.exec(d);
+  if (!h && !m) return null;
+  return (h ? Number(h[1]) * 60 : 0) + (m ? Number(m[1]) : 0);
+}
+
+const HOW: Record<string, NearPlace["how"]> = { Walking: "도보", "Public transport": "대중교통", Taxi: "택시" };
+const AIRPORT = /공항|airport/i;
+const STATION = /역(\s*앞)?$|역\s|station/i;
+// 식당·가게가 아니라 '주요 장소'로 볼 만한 이름 끝말 (역이 아닌 곳은 이것과 걸어서 20분 이내만)
+const SPOT = /(시장|공원|성|신사|신궁|타워|해변|비치|광장|동물원|수족관|대교|궁|사원|거리|도톤보리|스트리트|스카이빌딩|[가-힣]{2}지)$/;
+
+// 카드에 한 줄로 쓸 가까운 곳 하나. 공항·식당(한글 이름이 없는 곳)은 빼고, 역이면 먼저, 그다음 걸어서 가까운 장소.
+// 걸어서 20분 넘는 곳은 '가깝다'고 보기 어려워 역이 아니면 쓰지 않는다
+function nearOf(list: SerpNearby[] | undefined): NearPlace | null {
+  const cands = (list ?? [])
+    .filter((n) => n.name && /[가-힣]/.test(n.name) && !AIRPORT.test(n.name))
+    .flatMap((n) =>
+      (n.transportations ?? []).map((t) => ({ name: n.name!.normalize("NFC"), how: HOW[t.type ?? ""], mins: minutesOf(t.duration) })),
+    )
+    .filter((c): c is NearPlace => !!c.how && c.mins !== null && c.mins > 0);
+  const rank = (c: NearPlace) => (STATION.test(c.name) ? 0 : 1) * 1000 + (c.how === "도보" ? 0 : 500) + c.mins;
+  const ok = cands.filter((c) => STATION.test(c.name) || (SPOT.test(c.name) && c.how === "도보" && c.mins <= 20)).sort((a, b) => rank(a) - rank(b));
+  return ok[0] ?? null;
+}
 
 function toSource(p: SerpPrice): HotelSource | null {
   if (!p.source) return null;
@@ -59,6 +90,7 @@ function toSource(p: SerpPrice): HotelSource | null {
     total: p.total_rate?.extracted_lowest ?? null,
     link: p.link ?? "",
     official: !!p.official,
+    ...(p.free_cancellation === true ? { freeCancel: true } : {}),
   };
 }
 
@@ -100,6 +132,8 @@ function toOption(p: SerpProperty): HotelOption | null {
     total: best ? best.total : (p.total_rate?.extracted_lowest ?? null),
     priceSource: best?.name ?? null,
     sources: shown.slice(0, 3),
+    near: nearOf(p.nearby_places),
+    freeCancel: sources.some((s) => s.freeCancel),
   };
 }
 

@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HotelOption } from "@/lib/hotels";
 import { isShownAmenity } from "@/lib/hotelText";
+import { sellerDef } from "@/lib/hotel-sellers";
+import { rankNotes, stayFactLine, type RankNote } from "@/lib/stay-facts";
 import { activeCount, applyFilter, countFilters, EMPTY_FILTER, type StayFilter } from "@/lib/stay-filters";
 import { isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
-import { shownCost, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
+import { shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
 import { changeText, priceChange, savedBaseFor } from "./saved-price";
 import { FilterBar, FilterPanel, SORTS, type Sort } from "./StayFilters";
 import { IconBack, IconHeart, IconSpark } from "./icons";
@@ -55,26 +57,69 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   }, [starKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const reasons = useMemo(() => new Map(picks.map((p) => [p.token, p.reason])), [picks]);
   const pv = usePriceVersion(); // 예약처 시트·미리 조회로 맞춘 금액이 오면 다시 계산
-  const cost = (h: HotelOption) => shownCost(h, query);
-  const cheapest = useMemo(() => options.reduce<HotelOption | null>((m, h) => (cost(h) < (m ? cost(m) : Infinity) ? h : m), null), [options, pv]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 정렬·요금 필터·'최저가' 배지는 예약처에서 확인한 금액만 쓴다 (확인 전 예상 금액은 쓰지 않는다)
+  const cost = (h: HotelOption) => verifiedCost(h, query);
+  const cheapest = useMemo(() => {
+    const vals = options.map(cost).filter(Number.isFinite);
+    if (!vals.length) return null;
+    const min = Math.min(...vals);
+    const hits = options.filter((h) => cost(h) === min);
+    return hits.length === 1 ? hits[0].token : null;
+  }, [options, pv]); // eslint-disable-line react-hooks/exhaustive-deps
   const counts = useMemo(() => countFilters(options, cost, nights), [options, pv, nights]); // eslint-disable-line react-hooks/exhaustive-deps
+  // AI 3곳: 왜 1·2·3위인지 + 확인하지 못한 조건 (받은 데이터끼리만 견준다)
+  const notes = useMemo(() => {
+    const top = picks.slice(0, 3).map((p) => options.find((o) => o.token === p.token)).filter((h): h is HotelOption => !!h);
+    const ns = rankNotes(top, query.taste ?? "", top.map((h) => shownPrice(h, query)));
+    return new Map(top.map((h, i) => [h.token, ns[i]]));
+  }, [picks, options, pv, query]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 한 번 보여 준 카드 순서는 바꾸지 않는다 (P0-2). 순서는 아래 때에만 새로 정한다:
+  // 새 검색, 정렬·필터를 바꿀 때, 더 불러온 숙소가 붙을 때(뒤에만 붙는다), '추천순으로 보기'를 누를 때.
+  // AI 추천이 늦게 와도 카드에 배지·이유만 붙고 자리는 그대로다. 예약처 가격이 와도 자리는 그대로다
+  const searchKey = `${query.place}|${query.checkIn}|${query.checkOut}|${query.adults}|${query.taste ?? ""}`;
+  const [rankPicks, setRankPicks] = useState<{ key: string; tokens: string[] }>({ key: searchKey, tokens: picks.map((p) => p.token) });
+  const frozenTokens = rankPicks.key === searchKey ? rankPicks.tokens : picks.map((p) => p.token);
+  useEffect(() => {
+    if (rankPicks.key !== searchKey) setRankPicks({ key: searchKey, tokens: picks.map((p) => p.token) });
+  }, [searchKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const top3 = (t: string[]) => t.slice(0, 3).join(",");
+  const reorderable = sort === "ai" && !aiPending && picks.length > 0 && top3(picks.map((p) => p.token)) !== top3(frozenTokens);
+  const prevOrder = useRef<{ key: string; order: string[] }>({ key: "", order: [] });
 
   const shown = useMemo(() => {
     let list = applyFilter(options, f, cost, nights);
-    if (sort === "price") list = [...list].sort((a, b) => cost(a) - cost(b));
-    else if (sort === "priceDesc") list = [...list].sort((a, b) => (Number.isFinite(cost(b)) ? cost(b) : -1) - (Number.isFinite(cost(a)) ? cost(a) : -1));
+    // 확인한 금액끼리만 줄 세우고, 확인 전인 숙소는 원래 순서대로 그 뒤에 둔다
+    const byCost = (dir: 1 | -1) => (a: HotelOption, b: HotelOption) => {
+      const x = cost(a);
+      const y = cost(b);
+      if (Number.isFinite(x) && Number.isFinite(y)) return (x - y) * dir;
+      return Number(!Number.isFinite(x)) - Number(!Number.isFinite(y));
+    };
+    if (sort === "price") list = [...list].sort(byCost(1));
+    else if (sort === "priceDesc") list = [...list].sort(byCost(-1));
     else if (sort === "stars") list = [...list].sort((a, b) => (b.stars ?? 0) - (a.stars ?? 0));
     else if (sort === "rating") list = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     else {
       const rank = (h: HotelOption) => {
-        const i = picks.findIndex((p) => p.token === h.token);
+        const i = frozenTokens.indexOf(h.token);
         return i < 0 ? 99 : i;
       };
       list = [...list].sort((a, b) => rank(a) - rank(b));
     }
-    // 비교할 수 있는 예약처가 0곳으로 확인된 숙소는 맨 아래로
-    return [...list].sort((a, b) => Number(shownPrice(a, query).none) - Number(shownPrice(b, query).none));
-  }, [options, f, sort, picks, pv]); // eslint-disable-line react-hooks/exhaustive-deps
+    // 예약처가 0곳으로 확인된 숙소는 맨 뒤로
+    list = [...list].sort((a, b) => Number(shownPrice(a, query).none) - Number(shownPrice(b, query).none));
+    // 같은 정렬·필터 안에서는 이미 보여 준 순서를 지킨다 (가격 확인으로 0곳이 된 숙소도 지금 자리에 둔다).
+    // 새로 붙은 숙소만 뒤에 이어 붙인다
+    const key = `${searchKey}|${sort}|${JSON.stringify(f)}|${frozenTokens.slice(0, 3).join(",")}`;
+    const prev = prevOrder.current;
+    if (prev.key === key) {
+      const pos = new Map(prev.order.map((t, i) => [t, i]));
+      list = [...list].sort((a, b) => (pos.get(a.token) ?? 1e6) - (pos.get(b.token) ?? 1e6));
+    }
+    prevOrder.current = { key, order: list.map((h) => h.token) };
+    return list;
+  }, [options, f, sort, frozenTokens.join(","), searchKey, pv]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="tb-results">
@@ -122,8 +167,13 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
         )}
         <div className={side ? "tb-results-main" : undefined}>
           <p className="tb-results-note">
-            숙소 {shown.length}곳 · {aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}곳을 먼저 보여드려요`} · {nights}박 총액
+            숙소 {shown.length}곳 · {aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}곳에 표시했어요`} · {nights}박 총액
           </p>
+          {reorderable && (
+            <button type="button" className="tb-reorder" onClick={() => setRankPicks({ key: searchKey, tokens: picks.map((p) => p.token) })}>
+              추천순으로 보기
+            </button>
+          )}
           <div className="tb-rlist">
             {shown.map((h) => (
               <StayRow
@@ -131,7 +181,8 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
                 h={h}
                 query={query}
                 reason={reasons.get(h.token)}
-                cheapest={cheapest?.token === h.token}
+                note={notes.get(h.token)}
+                cheapest={cheapest === h.token}
                 saved={saved.has(h.token)}
                 active={active === h.token}
                 onSave={() => onSave(h)}
@@ -167,17 +218,18 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   );
 }
 
-export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onOpen }: { h: HotelOption; query: StayQuery; reason?: string; cheapest?: boolean; saved: boolean; active?: boolean; onSave?: () => void; onOpen: () => void }) {
+export function StayRow({ h, query, reason, note, cheapest, saved, active, onSave, onOpen }: { h: HotelOption; query: StayQuery; reason?: string; note?: RankNote; cheapest?: boolean; saved: boolean; active?: boolean; onSave?: () => void; onOpen: () => void }) {
   usePriceVersion();
   const nights = nightsOf(query);
   const t = shownPrice(h, query);
-  const ref = useLazyPrice<HTMLElement>(h, query, !!reason); // AI 추천 카드만, 화면에 보이면 예약처 가격을 받는다
+  const ref = useLazyPrice<HTMLElement>(h, query, true); // 화면에 잠깐 머문 카드부터 예약처 가격을 받아 금액을 맞춘다
   const diff = saved ? priceChange(savedBaseFor(h.token, query), t) : null; // 담아 둔 숙소면 담을 때 금액과 견준다
   return (
-    <article ref={ref} className={`tb-srow${active ? " on" : ""}`}>
+    <article ref={ref} className={`tb-srow${active ? " on" : ""}`} aria-current={active ? "true" : undefined}>
       <div className="tb-srow-img">
         <PhotoStrip images={h.images.length ? h.images : h.image ? [h.image] : []} name={h.name} onOpen={onOpen} />
-        {reason ? <em className="tb-tag ac">AI 추천</em> : cheapest && !t.none ? <em className="tb-tag low">이 목록에서 가장 낮아요</em> : null}
+        {reason ? <em className="tb-tag ac">AI 추천</em> : null}
+        {cheapest && t.verified ? <em className={`tb-tag low${reason ? " second" : ""}`}>최저가</em> : null}
         {onSave && (
           <button type="button" className={`tb-love${saved ? " on" : ""}`} aria-pressed={saved} aria-label={saved ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={onSave}>
             <IconHeart size={18} on={saved} />
@@ -199,11 +251,13 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
             {h.reviews ? <span>리뷰 {h.reviews.toLocaleString("ko-KR")}</span> : null}
           </span>
         ) : null}
+        {stayFactLine(h) && <span className="tb-fact">{stayFactLine(h)}</span>}
         {reason && !isPlainReason(reason) && (
           <span className="tb-why">
             <IconSpark size={15} /> {reason}
           </span>
         )}
+        {note && <RankLines note={note} />}
         <PriceBlock p={t} nights={nights} />
         {diff !== null && <PriceChange diff={diff} />}
       </button>
@@ -267,13 +321,24 @@ export function PhotoStrip({ images, name, onOpen, max = 5, big }: { images: str
   );
 }
 
+// AI 3곳 카드: 순위 이유 한 줄 + 확인하지 못한 조건 한 줄 (없으면 숨김)
+export function RankLines({ note }: { note: RankNote }) {
+  return (
+    <>
+      <span className="tb-rank">{note.why}</span>
+      {note.unknown.length > 0 && <span className="tb-unk">확인하지 못한 조건: {note.unknown.join(", ")}</span>}
+    </>
+  );
+}
+
 // 담을 때보다 내려갔/올랐어요 한 줄
 export function PriceChange({ diff }: { diff: number }) {
   return <span className={`tb-pchg${diff < 0 ? " down" : " up"}`}>{changeText(diff)}</span>;
 }
 
-// 카드 금액 영역. 예약처 가격을 받기 전에는 검색 목록의 금액에 '예상'을 크게 붙이고,
-// 받는 중이면 '예약처 가격을 확인하는 중', 받은 뒤에는 예약처 시트 1위 총액(세금 포함)과 같은 금액을 보여 준다
+// 카드 금액 영역 (P0-3).
+// 확인 전: 회색·한 단계 얇은 금액 + '예상' 꼬리표, 아래 줄 'N박 · 예약처 확인 전 금액' (받는 중이면 '예약처 가격을 확인하는 중')
+// 확인 후: 예약처 시트 1위 총액과 같은 금액 + '확인한 최저가 · 아고다' 칩
 export function PriceBlock({ p, nights }: { p: ReturnType<typeof shownPrice>; nights: number }) {
   if (p.none)
     return (
@@ -282,23 +347,31 @@ export function PriceBlock({ p, nights }: { p: ReturnType<typeof shownPrice>; ni
       </span>
     );
   const est = !p.verified;
-  return (
-    <span className={`tb-srow-price${est ? " est" : ""}`}>
-      <span className="tb-price-line">
-        {est && p.value !== null && <em className="tb-est">예상</em>}
-        <strong>{p.value !== null ? won(p.value) : "가격 확인"}</strong>
+  const perNight = nights > 1 && p.value !== null ? <small className="tb-per-night">(1박 약 {won(Math.round(p.value / nights / 100) * 100)})</small> : null;
+  if (est)
+    return (
+      <span className="tb-srow-price est">
+        <span className="tb-price-line">
+          {p.value !== null && <em className="tb-est">예상</em>}
+          <strong>{p.value !== null ? won(p.value) : "가격 확인"}</strong>
+        </span>
+        <small>{nights}박 · 예약처 확인 전 금액</small>
+        {p.checking ? (
+          <em className="tb-checking" role="status">
+            <i aria-hidden /> 예약처 가격을 확인하는 중
+          </em>
+        ) : (
+          <em className="tb-cmp">예약처별 가격 보기 &gt;</em>
+        )}
       </span>
-      <small>
-        {nights}박 · {p.verified ? "세금 포함" : "예상 총액 · 예약처마다 달라요"}
-      </small>
-      {nights > 1 && p.value !== null && <small className="tb-per-night">(1박 약 {won(Math.round(p.value / nights / 100) * 100)})</small>}
-      {p.checking ? (
-        <em className="tb-checking" role="status">
-          <i aria-hidden /> 예약처 가격을 확인하는 중
-        </em>
-      ) : (
-        <em className="tb-cmp">{p.verified && p.count ? `확인한 예약처 ${p.count}곳 중 가장 낮은 가격` : "예약처별 가격 보기"} &gt;</em>
-      )}
+    );
+  return (
+    <span className="tb-srow-price">
+      {p.seller && <em className="tb-seller-chip">확인한 최저가 · {sellerDef(p.seller).ko}</em>}
+      <strong>{p.value !== null ? won(p.value) : "가격 확인"}</strong>
+      <small>{nights}박 · 세금 포함</small>
+      {perNight}
+      <em className="tb-cmp">{p.count ? `예약처 ${p.count}곳 가격 보기` : "예약처별 가격 보기"} &gt;</em>
     </span>
   );
 }

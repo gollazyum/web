@@ -4,6 +4,7 @@ import type { FlightResults } from "@/lib/flights";
 import type { HotelPrices, HotelResults } from "@/lib/hotels";
 import type { FlightQuery, ParseResult, PickResult, StayQuery } from "@/lib/trip";
 import { airportsFor } from "@/lib/airports";
+import { distText, nearby } from "@/lib/landmarks";
 import { hhmm } from "@/lib/trip";
 import type { FlightOption } from "@/lib/flights";
 import type { HotelOption } from "@/lib/hotels";
@@ -114,6 +115,8 @@ export const pickStays = (list: HotelOption[], taste: string, budget: number) =>
       perNight: h.perNight ?? 0,
       amenities: h.amenities.slice(0, 12).join(", "),
       deal: h.deal,
+      // 패널에 보이는 거리 정보도 같이 넘긴다 (가까운 역·장소 소요 시간 + 주요 장소까지 직선거리)
+      distance: [h.near ? `${h.near.name} ${h.near.how} ${h.near.mins}분` : "", ...nearby(h.gps).slice(0, 2).map((n) => `${n.name} 직선 ${distText(n.km)}`)].filter(Boolean).join(", "),
     })),
   });
 

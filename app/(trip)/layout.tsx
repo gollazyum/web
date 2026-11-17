@@ -9,6 +9,9 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
     <>
       {/* 브랜드 색은 lib/brand.ts 에서만 정한다 */}
       <style>{`:root{${brandCssVars()}}`}</style>
+      {/* 주소에 검색 조건이 있으면(공유 링크·새로 고침) 앱이 결과 화면을 그릴 때까지 빈 검색 화면을 잠깐 감춘다.
+          검색 화면이 먼저 보였다가 결과 화면으로 통째로 바뀌는 흔들림(CLS)을 막는다. 앱이 준비되면 tb-has-q를 지운다 */}
+      <script dangerouslySetInnerHTML={{ __html: `if(location.pathname==="/"&&/[?&](q|from)=/.test(location.search)){document.documentElement.classList.add("tb-has-q");setTimeout(function(){document.documentElement.classList.remove("tb-has-q")},4000)}` }} />
       {children}
       <TripApp />
     </>

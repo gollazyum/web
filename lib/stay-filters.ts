@@ -20,7 +20,7 @@ export const RATING_STEPS = [3.5, 4, 4.5] as const;
 const BREAKFAST = /조식|아침|breakfast/i;
 const FREE_CANCEL = /무료 취소|free cancel/i;
 export const hasBreakfast = (h: HotelOption) => h.amenities.some((a) => BREAKFAST.test(a));
-export const hasFreeCancel = (h: HotelOption) => h.amenities.some((a) => FREE_CANCEL.test(a));
+export const hasFreeCancel = (h: HotelOption) => !!h.freeCancel || h.amenities.some((a) => FREE_CANCEL.test(a));
 const starOf = (h: HotelOption) => (h.stars ? Math.min(5, Math.max(1, Math.round(h.stars))) : 0);
 
 export function activeCount(f: StayFilter): number {
