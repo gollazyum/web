@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { bandLabel, type PriceBasis } from "@/lib/price-bands";
 import { EMPTY_FILTER, RATING_STEPS, toggleIn, activeCount, type FilterCounts, type StayFilter } from "@/lib/stay-filters";
 import { Sheet } from "./Sheet";
 
@@ -28,8 +29,22 @@ function Check({ on, label, onClick, radio }: { on: boolean; label: string; coun
 }
 
 // 필터 항목 (휴대폰 전체 화면과 PC 왼쪽이 같이 쓴다). 받은 목록에 없는 항목은 숨긴다
-export function FilterPanel({ c, f, set }: { c: FilterCounts; f: StayFilter; set: (f: StayFilter) => void }) {
+function BasisToggle({ basis, set, nights }: { basis: PriceBasis; set: (b: PriceBasis) => void; nights: number }) {
+  return (
+    <span className="tb-basis" role="group" aria-label="요금 기준">
+      <button type="button" aria-pressed={basis === "total"} onClick={() => set("total")}>
+        {nights}박 총액
+      </button>
+      <button type="button" aria-pressed={basis === "night"} onClick={() => set("night")}>
+        1박
+      </button>
+    </span>
+  );
+}
+
+export function FilterPanel({ c, f, set, nights = 1 }: { c: FilterCounts; f: StayFilter; set: (f: StayFilter) => void; nights?: number }) {
   const [more, setMore] = useState(false);
+  const [basis, setBasis] = useState<PriceBasis>("total");
   const stars = c.stars.filter((s) => s.count > 0 || f.stars.includes(s.n));
   const bands = c.bands.filter((b) => b.count > 0 || f.bands.includes(b.id));
   const ratings = c.ratings.filter((r) => r.count > 0);
@@ -84,13 +99,16 @@ export function FilterPanel({ c, f, set }: { c: FilterCounts; f: StayFilter; set
       )}
       {bands.length > 0 && (
         <section>
-          <h3>
-            요금 <small>1박 · 세금 포함</small>
+          <h3 className="tb-h3-row">
+            <span>
+              요금 <small>세금 포함</small>
+            </span>
+            <BasisToggle basis={basis} set={setBasis} nights={nights} />
           </h3>
           <div className="tb-fgrid two">
             {bands.map((b) => (
               <button key={b.id} type="button" className="tb-fbox" aria-pressed={f.bands.includes(b.id)} onClick={() => set({ ...f, bands: toggleIn(f.bands, b.id) })}>
-                <b>{b.label.replace("1박 ", "")}</b>
+                <b>{bandLabel(b, basis, nights)}</b>
               </button>
             ))}
           </div>
@@ -156,8 +174,9 @@ export function FilterPanel({ c, f, set }: { c: FilterCounts; f: StayFilter; set
 }
 
 // 휴대폰·좁은 PC: 결과 위 고정 3버튼 (조건 검색 / 요금 / 정렬 기준)
-export function FilterBar({ c, f, set, sort, setSort }: { c: FilterCounts; f: StayFilter; set: (f: StayFilter) => void; sort: Sort; setSort: (s: Sort) => void }) {
+export function FilterBar({ c, f, set, sort, setSort, nights = 1 }: { c: FilterCounts; f: StayFilter; set: (f: StayFilter) => void; sort: Sort; setSort: (s: Sort) => void; nights?: number }) {
   const [open, setOpen] = useState<"all" | "price" | "sort" | null>(null);
+  const [basis, setBasis] = useState<PriceBasis>("total");
   const [draft, setDraft] = useState<StayFilter>(f);
   const n = activeCount(f);
   const bands = c.bands.filter((b) => b.count > 0 || f.bands.includes(b.id));
@@ -187,7 +206,7 @@ export function FilterBar({ c, f, set, sort, setSort }: { c: FilterCounts; f: St
 
       <Sheet open={open === "all"} onClose={() => setOpen(null)} label="필터" tall>
         <h2 className="tb-fsheet-title">필터</h2>
-        <FilterPanel c={c} f={draft} set={setDraft} />
+        <FilterPanel c={c} f={draft} set={setDraft} nights={nights} />
         <div className="tb-ffoot">
           <button type="button" className="tb-btn" onClick={() => setDraft(EMPTY_FILTER)}>
             해제하기
@@ -206,11 +225,14 @@ export function FilterBar({ c, f, set, sort, setSort }: { c: FilterCounts; f: St
       </Sheet>
 
       <Sheet open={open === "price"} onClose={() => setOpen(null)} label="요금">
-        <h2 className="tb-fsheet-title">
-          요금 <small>1박 · 세금 포함</small>
+        <h2 className="tb-fsheet-title tb-h3-row">
+          <span>
+            요금 <small>세금 포함</small>
+          </span>
+          <BasisToggle basis={basis} set={setBasis} nights={nights} />
         </h2>
         {bands.map((b) => (
-          <Check key={b.id} on={f.bands.includes(b.id)} label={b.label.replace("1박 ", "")} count={b.count} onClick={() => set({ ...f, bands: toggleIn(f.bands, b.id) })} />
+          <Check key={b.id} on={f.bands.includes(b.id)} label={bandLabel(b, basis, nights)} count={b.count} onClick={() => set({ ...f, bands: toggleIn(f.bands, b.id) })} />
         ))}
         {!bands.length && <p className="tb-note">요금을 아직 확인하지 못한 숙소만 있어요.</p>}
         <div className="tb-ffoot">

@@ -8,6 +8,7 @@ import { applyFlightFilter, EMPTY_FLIGHT_FILTER, flightFacets, flightFilterCount
 import { dayShift, durText, legDate, perPerson, stopText, waits } from "@/lib/flight-legs";
 import { searchFlightReturns } from "./api";
 import { IconBack, IconOut } from "./icons";
+import { AiSortInfo } from "./AiSortInfo";
 import { Sheet } from "./Sheet";
 
 export type FlightData = { query: FlightQuery; options: FlightOption[]; picks: { n: number; reason: string }[] };
@@ -368,6 +369,7 @@ export function FlightBrowser({ data, aiPending, onBack, bare }: { data: FlightD
           <p className="tb-results-note">
             항공편 {shown.length}편 · {aiPending ? "AI가 조건에 맞는 편을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}편을 먼저 보여드려요`} · {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액, 세금 포함
           </p>
+          {sort === "ai" && <AiSortInfo kind="flight" />}
           <div className="tb-rlist pad">
             {shown.map((o, i) => {
               const r = reason.get(o);

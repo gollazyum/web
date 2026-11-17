@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { ogImage, site } from "@/lib/site";
-// 본문 글꼴 Pretendard: 화면에 쓰인 글자 묶음만 받는 분할 폰트 중 굵기 400·700만 (scripts/build-pretendard-css.mjs 로 만든다).
+// 본문 글꼴 Pretendard: 화면에 쓰인 글자 묶음만 받는 분할 폰트 중 굵기 400·500·600만 (P2) (scripts/build-pretendard-css.mjs 로 만든다).
 // preload 하지 않고 font-display: swap 이라 폰트가 늦으면 시스템 글꼴(Apple SD Gothic Neo, 맑은 고딕)로 먼저 보인다
 import "./pretendard.css";
 import "./globals.css";

@@ -30,3 +30,11 @@ describe("항공 필터 (P1-5)", () => {
     expect(airlineKo("Unknown Air")).toBe("Unknown Air");
   });
 });
+
+describe("요금 필터 1박/총액 글자 (P2)", () => {
+  it("총액은 박 수를 곱해 보여 준다", async () => {
+    const { bandLabel, PRICE_BANDS } = await import("@/lib/price-bands");
+    expect(PRICE_BANDS.map((b) => bandLabel(b, "total", 2))).toEqual(["20만 원 이하", "20만~40만 원", "40만~60만 원", "60만 원 이상"]);
+    expect(bandLabel(PRICE_BANDS[1], "night", 2)).toBe("10~20만 원");
+  });
+});

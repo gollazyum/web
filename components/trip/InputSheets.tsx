@@ -162,9 +162,6 @@ export function FlightSheet({ open, init, onClose, onSubmit }: { open: boolean; 
           <button type="button" aria-pressed={oneWay} onClick={() => setOneWay(true)}>
             편도
           </button>
-          <button type="button" disabled>
-            여러 도시 <small>곧 열려요</small>
-          </button>
         </div>
         <div className="tb-field tb-air">
           <AirportInput label="출발" placeholder="예: 인천, 서울" text={q.fromLabel} onChange={(text, code) => set({ fromLabel: text, from: code ?? "" })} />

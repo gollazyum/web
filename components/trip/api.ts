@@ -110,8 +110,19 @@ export async function searchFlightReturns(q: FlightQuery, token: string) {
 
 export const parseText = (text: string, today: string, context: string) => post<ParseResult>("/api/trip-ai", { mode: "parse", text, today, context });
 
+// P2: 같은 목록·같은 취향의 AI 추천은 이 탭에 담아 두고 다시 부르지 않는다 (홈 검색이 주소를 바꾸며 두 번 불리는 경우 포함)
+function hashOf(text: string): string {
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36) + text.length.toString(36);
+}
+const pickCached = (body: Record<string, unknown>) => {
+  const key = `pick:${hashOf(JSON.stringify(body))}`;
+  return cached(key, () => post<PickResult>("/api/trip-ai", body));
+};
+
 export const pickStays = (list: HotelOption[], taste: string, budget: number) =>
-  post<PickResult>("/api/trip-ai", {
+  pickCached({
     mode: "pick",
     kind: "stay",
     taste,
@@ -132,7 +143,7 @@ export const pickStays = (list: HotelOption[], taste: string, budget: number) =>
   });
 
 export const pickFlights = (list: FlightOption[], taste: string) =>
-  post<PickResult>("/api/trip-ai", {
+  pickCached({
     mode: "pick",
     kind: "flight",
     taste,

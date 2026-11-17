@@ -88,7 +88,7 @@
 }
 .tb-tag.ac {
   background: var(--tb-accent-soft);
-  color: var(--tb-accent);
+  color: var(--tb-sub);
 }
 .tb-tag.red {
   background: var(--tb-warn-soft);
@@ -181,7 +181,7 @@
   display: flex;
   gap: 5px;
   align-items: flex-start;
-  color: var(--tb-accent);
+  color: var(--tb-sub);
   font-weight: 600;
   font-size: 14.5px;
   line-height: 1.4;
@@ -228,7 +228,7 @@
 }
 /* AI 채팅 아이콘은 지금 보고 있을 때만 파란색 (늘 파랗면 선택된 탭처럼 보인다) */
 .tb-tab.ai[aria-current="page"] svg {
-  color: var(--tb-accent);
+  color: var(--tb-ink);
 }
 .tb-soon-dot {
   position: absolute;
@@ -282,7 +282,7 @@
 }
 .tb-search-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 4px;
   padding: 6px 6px 8px;
   border-bottom: 1px solid var(--tb-line);
@@ -457,7 +457,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--tb-accent);
+  background: var(--tb-ink);
   color: #fff;
 }
 .tb-sec h2,
@@ -981,7 +981,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--tb-accent);
+  background: var(--tb-sub);
   animation: tb-blink 1s infinite ease-in-out;
 }
 .tb-typing i:nth-child(2) {
@@ -1213,7 +1213,7 @@
   display: inline-grid;
   place-items: center;
   font-size: 12px;
-  color: var(--tb-accent);
+  color: var(--tb-ink);
   background: var(--tb-accent-soft);
 }
 
@@ -1335,7 +1335,7 @@
   margin: -6px 0 -10px;
   font-size: 13.5px;
   font-weight: 600;
-  color: var(--tb-accent) !important;
+  color: var(--tb-ink) !important;
 }
 
 /* 항공 카드 (v4 10) */
@@ -1354,19 +1354,19 @@
   align-items: center;
   padding: 9px 16px;
   background: var(--tb-accent-soft);
-  color: var(--tb-accent);
+  color: var(--tb-sub);
   font-weight: 700;
   font-size: 14px;
 }
 .tb-fcard:not(.ai) .tb-fcard-band {
   background: var(--tb-accent-soft);
-  color: var(--tb-accent-dark);
+  color: var(--tb-sub);
 }
 .tb-fcard-band b {
   width: 20px;
   height: 20px;
   border-radius: 6px;
-  background: var(--tb-accent);
+  background: var(--tb-ink);
   color: #fff;
   font-size: 12px;
   display: inline-grid;
@@ -1491,7 +1491,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--tb-accent);
+  background: var(--tb-sub);
 }
 /* 항공 카드 아래 줄 (항공사 · 총액). 필터 시트 하단 고정 버튼 줄 .tb-ffoot과 이름을 나눠 서로 덮어쓰지 않게 한다 */
 .tb-fcard-foot {
@@ -1835,7 +1835,7 @@
 }
 .tb-tabs3 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 4px;
   padding: 4px;
   border-radius: 16px;
@@ -1940,12 +1940,12 @@
 .tb-detail-why svg {
   flex: none;
   margin-top: 3px;
-  color: var(--tb-accent);
+  color: var(--tb-ink);
 }
 .tb-detail-why b {
   display: block;
   font-size: 13px;
-  color: var(--tb-accent);
+  color: var(--tb-ink);
 }
 .tb-detail-sec {
   margin-top: 24px;
@@ -1988,7 +1988,7 @@
 .tb-topics i b {
   display: block;
   height: 100%;
-  background: var(--tb-accent);
+  background: var(--tb-ink);
 }
 .tb-topics small {
   font-size: 13px;
@@ -2236,7 +2236,7 @@
   padding: 14px;
   border-radius: 18px;
   background: var(--tb-accent-soft) !important;
-  color: var(--tb-accent-dark) !important;
+  color: var(--tb-ink) !important;
   font-weight: 700;
 }
 
@@ -2302,10 +2302,10 @@
 }
 /* 설문: 선택·포커스는 파란색 (2026-11-16 지시서) */
 .tb-q-chip[aria-pressed="true"] {
-  border-color: var(--tb-accent) !important;
+  border-color: var(--tb-ink) !important;
   box-shadow: inset 0 0 0 1px var(--tb-accent);
   background: var(--tb-accent-soft) !important;
-  color: var(--tb-accent) !important;
+  color: var(--tb-ink) !important;
 }
 .tb-onb button:focus-visible {
   outline: 2px solid var(--tb-accent);
@@ -2348,7 +2348,7 @@
   background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent 55%);
 }
 .tb-onb-tile.on {
-  outline-color: var(--tb-accent);
+  outline-color: var(--tb-ink);
 }
 .tb-onb-lb {
   position: absolute;
@@ -2373,7 +2373,7 @@
   color: transparent;
 }
 .tb-onb-tile.on .tb-onb-ck {
-  background: var(--tb-accent);
+  background: var(--tb-ink);
   color: #fff;
 }
 .tb-onb-rank {
@@ -2396,7 +2396,7 @@
 }
 .tb-onb-rank button.on {
   background: var(--tb-accent-soft) !important;
-  border-color: var(--tb-accent) !important;
+  border-color: var(--tb-ink) !important;
   color: var(--tb-ink) !important;
   font-weight: 700;
 }
@@ -2412,7 +2412,7 @@
   color: var(--tb-mute);
 }
 .tb-onb-rank button.on b {
-  background: var(--tb-accent);
+  background: var(--tb-ink);
   color: #fff;
 }
 .tb-onb-foot {
@@ -2429,7 +2429,7 @@
 .tb-onb-bar i {
   display: block;
   height: 100%;
-  background: var(--tb-accent);
+  background: var(--tb-ink);
   transition: width 0.25s ease;
 }
 .tb-onb-nav {
@@ -2460,7 +2460,7 @@
   height: 52px;
   padding: 0 26px;
   border-radius: 999px;
-  background: var(--tb-accent) !important;
+  background: var(--tb-ink) !important;
   color: #fff !important;
   font-size: 16.5px;
   font-weight: 700;
@@ -2828,7 +2828,7 @@
   border-left: 1px solid var(--tb-line);
 }
 .tb-fbar button[aria-pressed="true"] {
-  color: var(--tb-accent) !important;
+  color: var(--tb-ink) !important;
 }
 .tb-fbar em {
   min-width: 20px;
@@ -2839,7 +2839,7 @@
   font-size: 12px;
   line-height: 20px;
   color: #fff;
-  background: var(--tb-accent);
+  background: var(--tb-ink);
 }
 .tb-fsheet-title {
   font-size: 20px;
@@ -2962,7 +2962,7 @@
   min-height: 44px;
   padding: 0 2px;
   background: none !important;
-  color: var(--tb-accent) !important;
+  color: var(--tb-sub) !important;
   font-weight: 700;
   font-size: 15px;
 }
@@ -3042,7 +3042,7 @@
   border-bottom: 0 !important;
 }
 .tb-sortlist button[aria-pressed="true"] {
-  color: var(--tb-accent) !important;
+  color: var(--tb-ink) !important;
   font-weight: 700;
 }
 .tb-filters {
@@ -3211,7 +3211,7 @@
   padding: 5px 10px;
   border-radius: 999px;
   background: var(--tb-accent-soft);
-  color: var(--tb-accent);
+  color: var(--tb-ink);
   font-style: normal;
   font-size: 13px;
   font-weight: 800;
@@ -3268,8 +3268,8 @@
   background: var(--tb-bg);
 }
 .tb-check.on::before {
-  border-color: var(--tb-accent);
-  background: var(--tb-accent);
+  border-color: var(--tb-ink);
+  background: var(--tb-ink);
 }
 .tb-check.on::after {
   content: "";
@@ -3381,7 +3381,7 @@
   color: var(--tb-sub);
 }
 .tb-row-name small.tb-free {
-  color: var(--tb-accent-dark);
+  color: var(--tb-ink);
   font-weight: 700;
 }
 
@@ -3800,4 +3800,155 @@
 }
 .tb-fopt span small {
   margin-left: 2px;
+}
+
+/* P2: 설문 머리글 */
+.tb-onb-top {
+  gap: 10px;
+}
+.tb-onb-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tb-sub);
+}
+/* P2: AI 채팅 첫 화면 공은 작고 조용하게 */
+.tb-orb.calm {
+  box-shadow: 0 6px 16px -10px color-mix(in srgb, var(--tb-accent) 50%, transparent);
+  animation: none !important;
+}
+.tb-orb.calm::before {
+  animation: none !important;
+}
+/* P2: 첫 답 아래 「30초 취향 설정」 카드 */
+.tb-taste-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--tb-line);
+  background: var(--tb-card);
+  text-align: left;
+}
+.tb-taste-card > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tb-taste-card strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.tb-taste-card small {
+  font-size: 13px;
+  color: var(--tb-sub);
+  line-height: 1.45;
+}
+.tb-taste-card-go {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+.tb-app .tb-taste-card-x {
+  font-size: 12.5px;
+  color: var(--tb-sub);
+  min-height: 32px;
+  padding: 0 8px;
+}
+.tb-chat-empty .tb-taste-card {
+  width: 100%;
+  max-width: 520px;
+  margin-top: 20px;
+}
+
+/* P2: 강조색은 가격에만. AI 이유 띠는 회색 바탕 + 회색 글자 */
+.tb-fcard-band,
+.tb-fcard.ai .tb-fcard-band {
+  background: var(--tb-soft);
+}
+.tb-fcard.ai {
+  border-color: var(--tb-line);
+}
+/* P2: 포커스 링이 둥근 입력칸 모양을 따라가게 */
+.tb-app :focus-visible {
+  outline: 2px solid var(--tb-ink);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+.tb-app .tb-sf:focus-within {
+  box-shadow: inset 0 0 0 2px var(--tb-ink);
+  border-radius: 12px;
+}
+.tb-app .tb-sf input:focus-visible,
+.tb-app .tb-sf select:focus-visible {
+  outline: none;
+}
+/* P2: AI 추천순 ⓘ */
+.tb-ainfo {
+  margin: -4px 0 8px;
+}
+.tb-ainfo summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--tb-sub);
+}
+.tb-ainfo summary::-webkit-details-marker {
+  display: none;
+}
+.tb-ainfo p {
+  margin: 6px 0 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--tb-soft);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--tb-ink);
+}
+.tb-ainfo a {
+  text-decoration: underline;
+}
+/* P2: 요금 필터 1박/총액 */
+.tb-h3-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tb-basis {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--tb-soft);
+}
+.tb-app .tb-basis button {
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tb-sub);
+}
+.tb-app .tb-basis button[aria-pressed="true"] {
+  background: var(--tb-card);
+  color: var(--tb-ink);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+/* P2: 오류 화면 보조 버튼 (다시 시도가 주 버튼) */
+.tb-app .tb-err-sub {
+  border: 1px solid var(--tb-line);
+  background: var(--tb-card);
+  color: var(--tb-ink) !important;
+  font-weight: 600;
 }
