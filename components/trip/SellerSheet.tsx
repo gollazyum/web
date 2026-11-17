@@ -290,10 +290,34 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
         </form>
         <p className="tb-note">화면에 보이는 숙소 정보만으로 답해요. 정확한 내용은 예약 사이트에서 확인해 주세요.</p>
       </section>
+      {/* 아래 고정: 예약처 총액을 받으면 ♡ + 가장 낮은 총액 + 예약 버튼, 그 전에는 '내 여행에 담기'만 */}
       <div className="tb-save-bar">
-        <button type="button" className="tb-save" onClick={onSave} aria-pressed={saved}>
-          <IconHeart size={18} on={saved} /> {saved ? "내 여행에 담았어요" : "내 여행에 담기"}
-        </button>
+        {rows?.length ? (
+          <div className="tb-book-bar">
+            <button type="button" className={`tb-save-ic${saved ? " on" : ""}`} onClick={onSave} aria-pressed={saved} aria-label={saved ? "내 여행에서 빼기" : "내 여행에 담기"}>
+              <IconHeart size={20} on={saved} />
+            </button>
+            <span className="tb-book-bar-price">
+              <strong>{won(rows[0].cost)}</strong>
+              <small>
+                {nights}박 총액 · {sellerDef(rows[0].key).ko}
+              </small>
+            </span>
+            <a
+              className="tb-book-bar-go"
+              href={rows[0].href}
+              target="_blank"
+              rel={linkRel(rows[0].key)}
+              onClick={() => onGo?.(`${withRo(sellerDef(rows[0].key).ko)} 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요`)}
+            >
+              예약하러 가기 <IconOut />
+            </a>
+          </div>
+        ) : (
+          <button type="button" className="tb-save" onClick={onSave} aria-pressed={saved}>
+            <IconHeart size={18} on={saved} /> {saved ? "내 여행에 담았어요" : "내 여행에 담기"}
+          </button>
+        )}
       </div>
     </div>
   );

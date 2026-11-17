@@ -51,7 +51,9 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
     return (
       <>
         <h2 className="tb-h2">내 여행</h2>
-        <div className="tb-empty">
+        <div className="tb-empty tb-empty-trip">
+          <TripCardsArt />
+          <strong>아직 담아 둔 여행이 없어요</strong>
           <p>마음에 드는 숙소의 ♡를 누르면 여행별로 여기에 모여요.</p>
           <button type="button" className="tb-cta small" onClick={onHome}>
             숙소 찾으러 가기
@@ -138,5 +140,28 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
         );
       })}
     </>
+  );
+}
+
+// 빈 화면 그림: 겹쳐 놓은 여행 사진 카드 두 장 + ♡ (캐릭터 없이 앱 색으로만)
+function TripCardsArt() {
+  return (
+    <svg className="tb-empty-art" width="168" height="112" viewBox="0 0 168 112" aria-hidden>
+      <g transform="rotate(-8 60 60)">
+        <rect x="22" y="20" width="92" height="70" rx="12" fill="#fff" stroke="var(--tb-line)" />
+        <rect x="30" y="28" width="76" height="38" rx="7" fill="var(--tb-soft2)" />
+        <path d="M30 60 l20 -16 l14 10 l12 -8 l30 20 v0 a7 7 0 0 1 -7 0 h-62 a7 7 0 0 1 -7 -6z" fill="var(--tb-line)" />
+        <rect x="30" y="73" width="44" height="6" rx="3" fill="var(--tb-soft2)" />
+      </g>
+      <g transform="rotate(6 108 56)">
+        <rect x="60" y="14" width="96" height="74" rx="12" fill="#fff" stroke="var(--tb-line)" />
+        <rect x="68" y="22" width="80" height="40" rx="7" fill="var(--tb-accent-soft)" />
+        <circle cx="130" cy="33" r="6" fill="#fff" />
+        <path d="M68 56 l22 -18 l16 12 l14 -9 l28 19 v2 a6 6 0 0 1 -6 0 h-68 a6 6 0 0 1 -6 -6z" fill="var(--tb-accent)" opacity="0.35" />
+        <rect x="68" y="70" width="52" height="6" rx="3" fill="var(--tb-soft2)" />
+      </g>
+      <circle cx="146" cy="88" r="16" fill="var(--tb-accent)" />
+      <path d="M146 96 l-7 -7 a4.4 4.4 0 0 1 7 -5.4 a4.4 4.4 0 0 1 7 5.4z" fill="#fff" />
+    </svg>
   );
 }
