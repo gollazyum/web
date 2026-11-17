@@ -5161,3 +5161,49 @@ body:has(.compare-bar) .hcards {
 .hot-chip:hover {
   background: #e2e8f0;
 }
+
+/* 404: 한국어 안내 + 홈으로 (app/not-found.tsx) */
+.nf {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 16px;
+  text-align: center;
+  background: #fff;
+  color: #0b0b0f;
+}
+.nf-code {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #3a5bff;
+  letter-spacing: 0.08em;
+}
+.nf h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.nf-sub {
+  margin: 0 0 14px;
+  font-size: 15px;
+  color: #55555e;
+}
+.nf a.nf-home,
+.nf a.nf-home:hover {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 160px;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 14px;
+  background: #0b0b0f;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}

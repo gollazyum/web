@@ -31,18 +31,28 @@ export default function Privacy() {
           서비스 개선을 위해 방문 기록, 브라우저 종류 같은 접속 정보가 수집될 수 있습니다. Gollazyum의 링크를 통해 예약 사이트로
           이동하면, 해당 사이트가 제휴 수수료 정산을 위해 쿠키를 사용할 수 있으며 이는 각 사이트의 개인정보처리방침을 따릅니다.
         </p>
+        <h2>제휴 링크 스크립트와 쿠키</h2>
+        <p>
+          Gollazyum의 모든 화면에는 제휴 마케팅 서비스 Travelpayouts의 &lsquo;Travelpayouts Drive&rsquo; 스크립트(emrldtp.com에서
+          불러옴)가 함께 로드됩니다. 이 스크립트는 예약 사이트로 가는 링크를 제휴 링크로 바꾸고 수수료 정산을 위해 링크 클릭과 예약
+          전환을 추적합니다. 이 과정에서 IP 주소, 브라우저·기기 정보, 방문한 페이지 주소, 누른 링크 같은 접속 정보가 Travelpayouts로
+          전송되고, 이용자의 브라우저에 쿠키 또는 이와 비슷한 저장 정보가 저장될 수 있습니다. 브라우저 설정에서 쿠키를 거부하거나
+          삭제할 수 있으며, 거부해도 검색과 예약 사이트 이동은 그대로 이용할 수 있습니다. 자세한 처리 방식은 Travelpayouts의
+          개인정보처리방침을 따릅니다.
+        </p>
         <h2>개인정보 처리 위탁 및 국외 이전</h2>
         <p>서비스 제공을 위해 아래 업체에 개인정보 처리를 위탁하며, 이 과정에서 정보가 국외로 이전됩니다.</p>
         <ol>
           <li>Vercel Inc. / 미국 / 웹사이트 호스팅, 접속 기록 처리</li>
           <li>Anthropic, PBC / 미국 / AI 대화 답변 생성(이용자가 입력한 대화 내용)</li>
+          <li>Travelpayouts / 홍콩 / 제휴 링크 변환, 클릭·예약 전환 추적과 수수료 정산(IP 주소, 브라우저·기기 정보, 방문 페이지, 누른 링크, 쿠키 식별자)</li>
         </ol>
         <p>
           이전 시기·방법: 서비스 이용 시 네트워크로 전송됩니다. 보유 기간: 처리 목적 달성 시까지 또는 수탁사 정책에 따릅니다.
         </p>
         <h2>개인정보 보호책임자</h2>
         <p>
-          담당: [보호책임자]
+          담당: {site.business.privacyOfficer}
           <br />
           연락처: <a href="mailto:gollazyum@gmail.com">gollazyum@gmail.com</a>
         </p>
@@ -70,7 +80,7 @@ export default function Privacy() {
             "문의처는 서비스 오픈 시 안내됩니다."
           )}
         </p>
-        <p className="muted">시행일: 2026년 11월 14일</p>
+        <p className="muted">시행일: 2026년 11월 17일</p>
       </main>
       <SiteFooter />
     </>
