@@ -90,7 +90,7 @@ function toOption(p: SerpProperty): HotelOption | null {
     image: images[0] ?? "",
     images,
     kind: kindKo(p.type),
-    amenities: [...new Set((p.amenities ?? []).map(amenityKo))].slice(0, MAX_AMENITIES),
+    amenities: [...new Set((p.amenities ?? []).map((a) => amenityKo(a.normalize("NFC"))))].slice(0, MAX_AMENITIES),
     deal: [p.deal, p.deal_description].filter(Boolean).map((t) => dealKo(t as string)).join(" · "),
     gps: typeof gps?.latitude === "number" && typeof gps?.longitude === "number" ? [gps.latitude, gps.longitude] : null,
     stars: p.extracted_hotel_class ?? null,

@@ -15,6 +15,7 @@ export const SORTS: { id: Sort; label: string }[] = [
 
 const RATING_WORD: Record<number, string> = { 3.5: "좋음", 4: "아주 좋음", 4.5: "최고" };
 const AMEN_SHOW = 6;
+const QUICK_AMEN = ["무료 와이파이", "전용 욕실", "대욕장", "레스토랑", "무료 주차"];
 
 // 개수는 보여 주지 않는다 (받은 숙소가 20곳 안팎이라 숫자가 작게 보여서). 0곳인 항목만 숨긴다
 function Check({ on, label, onClick, radio }: { on: boolean; label: string; count?: number; onClick: () => void; radio?: boolean }) {
@@ -34,11 +35,19 @@ export function FilterPanel({ c, f, set }: { c: FilterCounts; f: StayFilter; set
   const ratings = c.ratings.filter((r) => r.count > 0);
   const kinds = c.kinds.filter((k) => k.name);
   const amen = more ? c.amenities : c.amenities.slice(0, AMEN_SHOW);
+  // 빠른 조건: 아래 '성급'과 겹치지 않게, 받은 목록에서 바로 거를 수 있는 인기 조건만 (최대 4개)
+  const top = c.ratings.find((r) => r.min === 4.5);
   const quick = [
-    ...[4, 5].filter((n) => c.stars[n - 1].count > 0).map((n) => ({ key: `s${n}`, label: `${n}성급`, on: f.stars.includes(n), tap: () => set({ ...f, stars: toggleIn(f.stars, n) }) })),
     ...(c.freeCancel ? [{ key: "fc", label: "무료 취소", on: f.freeCancel, tap: () => set({ ...f, freeCancel: !f.freeCancel }) }] : []),
     ...(c.breakfast ? [{ key: "bf", label: "조식 포함", on: f.breakfast, tap: () => set({ ...f, breakfast: !f.breakfast }) }] : []),
-  ];
+    ...(top && top.count > 0 ? [{ key: "r45", label: "4.5점 이상", on: f.minRating === 4.5, tap: () => set({ ...f, minRating: f.minRating === 4.5 ? 0 : 4.5 }) }] : []),
+    ...QUICK_AMEN.filter((name) => c.amenities.some((a) => a.name === name && a.count > 0)).map((name) => ({
+      key: `a:${name}`,
+      label: name,
+      on: f.amenities.includes(name),
+      tap: () => set({ ...f, amenities: toggleIn(f.amenities, name) }),
+    })),
+  ].slice(0, 4);
   return (
     <div className="tb-fpanel">
       {quick.length > 0 && (

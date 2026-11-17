@@ -113,7 +113,51 @@ const EN_KO: Record<string, string> = {
   "terrace": "테라스",
   "shuttle": "셔틀",
   "parking (paid)": "주차(유료)",
+  // 2026-11-17 카드에 영문이 그대로 나오던 것 (예: 'Transfer')
+  transfer: "픽업 서비스",
+  transfers: "픽업 서비스",
+  "airport pick-up": "공항 픽업",
+  "airport pickup": "공항 픽업",
+  "shuttle service": "셔틀",
+  fitness: "피트니스 센터",
+  "fitness room": "피트니스 센터",
+  "free parking on site": "무료 주차",
+  "free wifi in all rooms": "무료 와이파이",
+  "free internet": "무료 인터넷",
+  internet: "인터넷",
+  concierge: "컨시어지",
+  "daily housekeeping": "매일 객실 청소",
+  housekeeping: "객실 청소",
+  "non-smoking rooms": "금연 객실",
+  "smoking area": "흡연 구역",
+  safe: "금고",
+  "ironing service": "다림질 서비스",
+  massage: "마사지",
+  lounge: "라운지",
+  "coffee shop": "카페",
+  cafe: "카페",
+  "convenience store": "편의점",
+  "vending machine": "자판기",
+  "vending machines": "자판기",
+  karaoke: "노래방",
+  "currency exchange": "환전",
+  babysitting: "아이 돌봄",
+  "family rooms": "가족 객실",
+  "rooftop terrace": "루프톱 테라스",
+  "evening entertainment": "저녁 공연",
+  "bicycle rental": "자전거 대여",
+  "car rental": "렌터카",
+  "tour desk": "투어 데스크",
+  "meeting rooms": "회의실",
+  "accessible parking": "장애인 주차",
+  "kitchen in all rooms": "전 객실 주방",
 };
+
+// 표에 없는 영문 원본(한글이 한 글자도 없는 값)은 화면 목록에서 뺀다. 'TV'처럼 그대로 써도 되는 것만 남긴다
+const KEEP_LATIN = new Set(["TV", "B&B", "케이블 TV"]);
+export function isShownAmenity(a: string): boolean {
+  return /[가-힣]/.test(a) || KEEP_LATIN.has(a);
+}
 
 function lookup(text: string): string | undefined {
   return EN_KO[text.trim().toLowerCase()];
@@ -139,7 +183,8 @@ export function dealKo(text: string): string {
 // 숙소 종류. 비어 있으면 호텔로 본다
 export function kindKo(type: string | undefined): string {
   if (!type) return "호텔";
-  return lookup(type) ?? type;
+  const ko = lookup(type) ?? type;
+  return /[가-힣]/.test(ko) ? ko : "숙소"; // 표에 없는 영문 종류는 '숙소'로
 }
 
 // 자주 나오는 호텔 체인 영문 이름 → 한글. 앞쪽이 더 긴 이름이라 먼저 맞춰 본다
@@ -206,4 +251,37 @@ export function cardAmenities(list: string[]): string[] {
     return i < 0 ? FIRST.length : i;
   };
   return kept.map((a, i) => ({ a, i })).sort((x, y) => rank(x.a) - rank(y.a) || x.i - y.i).map((x) => x.a);
+}
+
+// 후기 주제 이름. 데이터에 직역된 이름('특징' 등)이나 영문이 오면 알아보기 쉬운 말로 바꾼다
+const TOPIC_KO: Record<string, string> = {
+  특징: "시설·객실",
+  property: "시설·객실",
+  amenities: "편의시설",
+  "편의 시설": "편의시설",
+  service: "서비스",
+  location: "위치",
+  breakfast: "아침식사",
+  cleanliness: "청결",
+  rooms: "객실",
+  room: "객실",
+  "value for money": "가성비",
+  value: "가성비",
+  food: "음식",
+  dining: "식사",
+  bathroom: "욕실",
+  sleep: "숙면",
+  "sleep quality": "숙면",
+  wifi: "와이파이",
+  "wi-fi": "와이파이",
+  pool: "수영장",
+  parking: "주차",
+  nature: "자연",
+  atmosphere: "분위기",
+  "family-friendliness": "가족 여행",
+  staff: "직원",
+};
+export function topicKo(name: string): string {
+  const key = name.trim();
+  return TOPIC_KO[key] ?? TOPIC_KO[key.toLowerCase()] ?? key;
 }

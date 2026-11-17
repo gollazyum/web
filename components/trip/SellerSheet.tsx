@@ -6,7 +6,8 @@ import { distText, nearby } from "@/lib/landmarks";
 import { positivePct } from "@/lib/prefs";
 import { agodaAffiliateOn } from "@/lib/affiliate";
 import { linkRel, sellerDef, withRo } from "@/lib/hotel-sellers";
-import { nightsOf, won, type StayQuery } from "@/lib/trip";
+import { topicKo } from "@/lib/hotelText";
+import { isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
 import { searchErrorMessage } from "@/lib/search-error";
 import { askHotel, stayPrices } from "./api";
 import { setVerified } from "./prices";
@@ -39,6 +40,20 @@ const TONE: Record<string, string> = {
   official: "#18202B",
 };
 
+// 원형 뱃지 안 글자: 영문 이니셜 (한글 첫 글자보다 정돈돼 보인다)
+const BADGE: Record<string, string> = {
+  expedia: "EX",
+  hotels: "H",
+  booking: "B.",
+  agoda: "AG",
+  trip: "TR",
+  yanolja: "Y",
+  yeogi: "여기",
+  interpark: "NOL",
+  myrealtrip: "MRT",
+  official: "공식",
+};
+
 const hm = (at: number) => {
   const d = new Date(at);
   return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -65,7 +80,7 @@ function factsOf(h: HotelOption, q: StayQuery, nights: number, rows: SellerRow[]
     `종류: ${[h.kind, h.stars ? `${h.stars}성급` : ""].filter(Boolean).join(", ")}`,
     h.rating ? `후기 점수: 5점 만점 ${h.rating.toFixed(1)}점${h.reviews ? ` (후기 ${h.reviews}개)` : ""}` : "",
     h.amenities.length ? `편의시설: ${h.amenities.slice(0, 15).join(", ")}` : "",
-    topTopics(topics).length ? `후기 주제: ${topTopics(topics).map((t) => `${t.name} 긍정 ${positivePct(t)}% (${t.total}건)`).join(", ")}` : "",
+    topTopics(topics).length ? `후기 주제: ${topTopics(topics).map((t) => `${topicKo(t.name)} 긍정 ${positivePct(t)}% (${t.total}건)`).join(", ")}` : "",
     near.length ? `주요 장소까지 직선거리: ${near.map((n) => `${n.name} ${distText(n.km)}`).join(", ")}` : "",
     `일정: ${q.place} ${q.checkIn}~${q.checkOut} (${nights}박), 성인 ${q.adults}명`,
     rows?.length ? `가장 낮은 예약처 총액: ${rows[0].cost.toLocaleString("ko-KR")}원 (세금 포함, 확인 시각 기준)` : "",
@@ -146,7 +161,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
           )}
         </div>
       </div>
-      {reason && (
+      {reason && !isPlainReason(reason) && (
         <p className="tb-detail-why">
           <IconSpark size={16} />
           <span>
@@ -179,7 +194,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
             return (
               <div key={`${s.key}:${s.name}`} className="tb-row">
                 <span className="tb-seller-badge" style={{ background: TONE[s.key] }} aria-hidden>
-                  {ko.slice(0, 1)}
+                  {BADGE[s.key] ?? ko.slice(0, 1)}
                 </span>
                 <div className="tb-row-name">
                   <strong>{ko}</strong>
@@ -215,7 +230,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
           <ul className="tb-topics">
             {topics.map((t) => (
               <li key={t.name}>
-                <span>{t.name}</span>
+                <span>{topicKo(t.name)}</span>
                 <i aria-hidden>
                   <b style={{ width: `${positivePct(t)}%` }} />
                 </i>
@@ -275,9 +290,11 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
         </form>
         <p className="tb-note">화면에 보이는 숙소 정보만으로 답해요. 정확한 내용은 예약 사이트에서 확인해 주세요.</p>
       </section>
-      <button type="button" className="tb-save" onClick={onSave} aria-pressed={saved}>
-        <IconHeart size={18} on={saved} /> {saved ? "내 여행에 담았어요" : "내 여행에 담기"}
-      </button>
+      <div className="tb-save-bar">
+        <button type="button" className="tb-save" onClick={onSave} aria-pressed={saved}>
+          <IconHeart size={18} on={saved} /> {saved ? "내 여행에 담았어요" : "내 여행에 담기"}
+        </button>
+      </div>
     </div>
   );
 }

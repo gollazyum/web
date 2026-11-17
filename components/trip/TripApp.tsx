@@ -26,6 +26,7 @@ import {
   refineStays,
   STAY_REFINES,
   stayFactReason,
+  isPlainReason,
   stayReady,
   withinBudget,
   won,
@@ -1098,9 +1099,11 @@ function PickCard({ p, i, t, isLow, q, nights, saved: on, active, onSave, onOpen
       <button type="button" className="tb-hcard-body" onClick={() => onOpenHotel(p.h)} aria-label={`${p.h.name} 예약처별 총액 보기`}>
         <strong>{p.h.name}</strong>
         <span className="tb-hcard-meta">{[p.h.rating ? `★ ${p.h.rating.toFixed(1)}` : "", p.h.stars ? `${p.h.stars}성급` : p.h.kind].filter(Boolean).join(" · ")}</span>
-        <span className="tb-why">
-          <IconSpark size={14} /> {p.reason}
-        </span>
+        {!isPlainReason(p.reason) && (
+          <span className="tb-why">
+            <IconSpark size={14} /> {p.reason}
+          </span>
+        )}
         <PriceBlock p={t} nights={nights} />
       </button>
     </article>

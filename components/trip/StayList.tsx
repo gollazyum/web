@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HotelOption } from "@/lib/hotels";
+import { isShownAmenity } from "@/lib/hotelText";
 import { activeCount, applyFilter, countFilters, EMPTY_FILTER, type StayFilter } from "@/lib/stay-filters";
-import { nightsOf, won, type StayQuery } from "@/lib/trip";
+import { isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
 import { shownCost, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
 import { changeText, priceChange, savedBaseFor } from "./saved-price";
 import { FilterBar, FilterPanel, SORTS, type Sort } from "./StayFilters";
@@ -190,7 +191,7 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
             {"★".repeat(Math.min(5, Math.round(h.stars)))}
           </span>
         ) : null}
-        <span className="tb-srow-meta">{[h.kind, ...h.amenities.slice(0, 2)].filter(Boolean).join(" · ")}</span>
+        <span className="tb-srow-meta">{[h.kind, ...h.amenities.filter(isShownAmenity).slice(0, 2)].filter(Boolean).join(" · ")}</span>
         {h.rating ? (
           <span className="tb-score">
             <b>{h.rating.toFixed(1)}</b>
@@ -198,7 +199,7 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
             {h.reviews ? <span>리뷰 {h.reviews.toLocaleString("ko-KR")}</span> : null}
           </span>
         ) : null}
-        {reason && (
+        {reason && !isPlainReason(reason) && (
           <span className="tb-why">
             <IconSpark size={15} /> {reason}
           </span>
@@ -285,6 +286,7 @@ export function PriceBlock({ p, nights }: { p: ReturnType<typeof shownPrice>; ni
       <small>
         {nights}박 · {p.verified ? "세금 포함" : "예상 총액(세금 포함)"}
       </small>
+      {nights > 1 && p.value !== null && <small className="tb-per-night">(1박 약 {won(Math.round(p.value / nights / 100) * 100)})</small>}
       <em className="tb-cmp">{p.count ? `예약처 ${p.count}곳 비교` : "예약처 가격 비교"} &gt;</em>
     </span>
   );
