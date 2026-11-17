@@ -10,7 +10,7 @@ import { topicKo } from "@/lib/hotelText";
 import { isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
 import { searchErrorMessage } from "@/lib/search-error";
 import { askHotel, stayPrices } from "./api";
-import { setVerified } from "./prices";
+import { setChecking, setVerified } from "./prices";
 import { priceChange, savedBaseFor } from "./saved-price";
 import { PhotoStrip, PriceChange } from "./StayList";
 import { Sheet } from "./Sheet";
@@ -106,18 +106,23 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
     let live = true;
     const hq = { q: query.place, checkIn: query.checkIn, checkOut: query.checkOut, adults: query.adults };
     setState({ token: hotel.token, rows: null, status: "ok", at: 0 });
+    setChecking(hotel.token, query, true);
     stayPrices(hotel.token, query, hotel.name, again > 0).then((r) => {
-      if (!live) return;
+      setChecking(hotel.token, query, false);
       if (r.ok) {
         const rows = sellerRows(r.data.sources, nights, hotel.name, hq);
-        setVerified(hotel.token, query, rows); // 목록 카드 금액도 이 1위 총액으로 맞춘다
-        setState({ token: hotel.token, rows, status: "ok", at: r.at ?? Date.now(), topics: r.data.topics });
+        setVerified(hotel.token, query, rows); // 목록 카드 금액도 이 1위 총액으로 맞춘다 (패널을 닫아도)
+        if (live) setState({ token: hotel.token, rows, status: "ok", at: r.at ?? Date.now(), topics: r.data.topics });
+        return;
       }
-      // 실패하면 목록에 같이 온 몇 곳이라도 보여 준다
-      else setState({ token: hotel.token, rows: sellerRows(hotel.sources, nights, hotel.name, hq), status: r.status, at: 0 });
+      // 실패하면 목록에 같이 온 몇 곳이라도 보여 주고, 보여 준 1위로 카드 금액도 맞춘다 (0곳이면 카드는 그대로)
+      const rows = sellerRows(hotel.sources, nights, hotel.name, hq);
+      if (rows.length) setVerified(hotel.token, query, rows);
+      if (live) setState({ token: hotel.token, rows, status: r.status, at: 0 });
     });
     return () => {
       live = false;
+      setChecking(hotel.token, query, false);
     };
   }, [hotel, query, nights, again]);
 
@@ -182,7 +187,10 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
         <li>결제는 이동한 예약 사이트에서 진행돼요.</li>
       </ul>
       {!rows ? (
-        <div className="tb-rows">
+        <div className="tb-rows" aria-busy="true">
+          <p className="tb-checking" role="status">
+            <i aria-hidden /> 예약처 가격을 확인하는 중
+          </p>
           {[0, 1, 2].map((i) => (
             <div key={i} className="tb-row skel" />
           ))}

@@ -55,14 +55,14 @@ export const STAYS: Opt<StayId>[] = [
 export const CRITERIA: Opt<CriterionId>[] = [
   { id: "location", label: "역·관광지와 가까운 위치", say: "역·관광지와 가까운 위치" },
   { id: "clean", label: "깨끗한 객실·높은 평점", say: "깨끗하고 평점 높은 곳" },
-  { id: "price", label: "최저가·가성비", say: "가성비" },
+  { id: "price", label: "가성비·낮은 가격", say: "가성비" },
   { id: "cancel", label: "무료 취소 가능", say: "무료 취소" },
   { id: "breakfast", label: "조식 포함", say: "조식" },
   { id: "bath", label: "대욕장·수영장", say: "대욕장·수영장" },
 ];
 
 export const FLIGHT_PREFS: Opt<FlightPrefId>[] = [
-  { id: "cheap", label: "최저가 우선", say: "가장 싼 항공권 우선" },
+  { id: "cheap", label: "낮은 가격 우선", say: "가격이 낮은 항공권 우선" },
   { id: "direct", label: "직항만", say: "직항" },
   { id: "morning", label: "오전 출발", say: "오전 출발" },
   { id: "bag", label: "위탁 수하물 포함", say: "위탁 수하물 포함" },

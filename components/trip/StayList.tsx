@@ -177,7 +177,7 @@ export function StayRow({ h, query, reason, cheapest, saved, active, onSave, onO
     <article ref={ref} className={`tb-srow${active ? " on" : ""}`}>
       <div className="tb-srow-img">
         <PhotoStrip images={h.images.length ? h.images : h.image ? [h.image] : []} name={h.name} onOpen={onOpen} />
-        {reason ? <em className="tb-tag ac">AI 추천</em> : cheapest && !t.none ? <em className="tb-tag red">최저가</em> : null}
+        {reason ? <em className="tb-tag ac">AI 추천</em> : cheapest && !t.none ? <em className="tb-tag low">이 목록에서 가장 낮아요</em> : null}
         {onSave && (
           <button type="button" className={`tb-love${saved ? " on" : ""}`} aria-pressed={saved} aria-label={saved ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={onSave}>
             <IconHeart size={18} on={saved} />
@@ -272,22 +272,33 @@ export function PriceChange({ diff }: { diff: number }) {
   return <span className={`tb-pchg${diff < 0 ? " down" : " up"}`}>{changeText(diff)}</span>;
 }
 
-// 카드 금액 영역: 금액 · 보조 문구 · 비교 유도 문구. 시트 1위 총액과 맞춘 뒤에는 '세금 포함', 그 전에는 '예상 총액'
+// 카드 금액 영역. 예약처 가격을 받기 전에는 검색 목록의 금액에 '예상'을 크게 붙이고,
+// 받는 중이면 '예약처 가격을 확인하는 중', 받은 뒤에는 예약처 시트 1위 총액(세금 포함)과 같은 금액을 보여 준다
 export function PriceBlock({ p, nights }: { p: ReturnType<typeof shownPrice>; nights: number }) {
   if (p.none)
     return (
       <span className="tb-srow-price none">
-        <strong>비교 가능한 예약처 없음</strong>
+        <strong>확인한 예약처 가격 없음</strong>
       </span>
     );
+  const est = !p.verified;
   return (
-    <span className="tb-srow-price">
-      <strong>{p.value !== null ? won(p.value) : "가격 확인"}</strong>
+    <span className={`tb-srow-price${est ? " est" : ""}`}>
+      <span className="tb-price-line">
+        {est && p.value !== null && <em className="tb-est">예상</em>}
+        <strong>{p.value !== null ? won(p.value) : "가격 확인"}</strong>
+      </span>
       <small>
-        {nights}박 · {p.verified ? "세금 포함" : "예상 총액(세금 포함)"}
+        {nights}박 · {p.verified ? "세금 포함" : "예상 총액 · 예약처마다 달라요"}
       </small>
       {nights > 1 && p.value !== null && <small className="tb-per-night">(1박 약 {won(Math.round(p.value / nights / 100) * 100)})</small>}
-      <em className="tb-cmp">{p.count ? `예약처 ${p.count}곳 비교` : "예약처 가격 비교"} &gt;</em>
+      {p.checking ? (
+        <em className="tb-checking" role="status">
+          <i aria-hidden /> 예약처 가격을 확인하는 중
+        </em>
+      ) : (
+        <em className="tb-cmp">{p.verified && p.count ? `확인한 예약처 ${p.count}곳 중 가장 낮은 가격` : "예약처별 가격 보기"} &gt;</em>
+      )}
     </span>
   );
 }

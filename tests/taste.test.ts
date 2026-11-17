@@ -13,8 +13,8 @@ describe("취향 설문 (3단계)", () => {
     expect(PACES.map((o) => o.label)).toEqual(["적게 걷고 여유롭게", "핵심 명소만 적당히", "알차게 많이 걷기"]);
     expect(TASTES).toHaveLength(6);
     expect(STAYS.map((o) => o.label)).toEqual(["고급 호텔·리조트", "깔끔한 가성비·비즈니스 호텔", "료칸·온천 숙소", "감성 숙소", "독채·레지던스", "게스트하우스·민박"]);
-    expect(CRITERIA.map((o) => o.label)).toEqual(["역·관광지와 가까운 위치", "깨끗한 객실·높은 평점", "최저가·가성비", "무료 취소 가능", "조식 포함", "대욕장·수영장"]);
-    expect(FLIGHT_PREFS.map((o) => o.label)).toEqual(["최저가 우선", "직항만", "오전 출발", "위탁 수하물 포함", "대형 항공사", "비즈니스석 선호"]);
+    expect(CRITERIA.map((o) => o.label)).toEqual(["역·관광지와 가까운 위치", "깨끗한 객실·높은 평점", "가성비·낮은 가격", "무료 취소 가능", "조식 포함", "대욕장·수영장"]);
+    expect(FLIGHT_PREFS.map((o) => o.label)).toEqual(["낮은 가격 우선", "직항만", "오전 출발", "위탁 수하물 포함", "대형 항공사", "비즈니스석 선호"]);
   });
 
   it("저장값에서 모르는 값·중복은 버린다", () => {
@@ -77,7 +77,13 @@ describe("취향 설문 (3단계)", () => {
   });
 
   it("마이 요약: 선택한 묶음만 줄로", () => {
-    expect(profileLines(P)).toEqual(["아이와 가족, 예산 적당하게, 적게 걷고 여유롭게", "온천 · 휴식, 맛집 탐방", "료칸·온천 숙소, 깔끔한 가성비·비즈니스 호텔", "중요한 순서: 최저가·가성비 > 조식 포함", "직항만, 오전 출발"]);
+    expect(profileLines(P)).toEqual(["아이와 가족, 예산 적당하게, 적게 걷고 여유롭게", "온천 · 휴식, 맛집 탐방", "료칸·온천 숙소, 깔끔한 가성비·비즈니스 호텔", "중요한 순서: 가성비·낮은 가격 > 조식 포함", "직항만, 오전 출발"]);
     expect(profileLines(EMPTY_PROFILE)).toEqual([]);
+  });
+});
+
+describe("가격 표현", () => {
+  it("취향·항공 칩에 '최저가'를 쓰지 않는다 (확인한 범위만 말한다)", () => {
+    for (const o of [...CRITERIA, ...FLIGHT_PREFS]) expect(o.label).not.toMatch(/최저가/);
   });
 });

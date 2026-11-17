@@ -1085,13 +1085,13 @@ function ErrorBox({ status, onRetry, fallbackHref }: { status: number | null | u
 }
 
 // AI 추천 카드 한 장. 화면에 보이면 예약처 가격을 받아 금액을 시트 1위 총액과 맞춘다
-function PickCard({ p, i, t, isLow, q, nights, saved: on, active, onSave, onOpenHotel }: { p: { token: string; reason: string; h: HotelOption }; i: number; t: ReturnType<typeof shownPrice>; isLow: boolean; q: StayQuery; nights: number; saved: boolean; active: boolean; onSave: (h: HotelOption) => void; onOpenHotel: (h: HotelOption) => void }) {
+function PickCard({ p, i, of, t, isLow, q, nights, saved: on, active, onSave, onOpenHotel }: { p: { token: string; reason: string; h: HotelOption }; i: number; of: number; t: ReturnType<typeof shownPrice>; isLow: boolean; q: StayQuery; nights: number; saved: boolean; active: boolean; onSave: (h: HotelOption) => void; onOpenHotel: (h: HotelOption) => void }) {
   const ref = useLazyPrice<HTMLElement>(p.h, q, true);
   return (
     <article ref={ref} className={`tb-hcard${active ? " on" : ""}`}>
       <div className="tb-hcard-img">
         {p.h.image ? <img src={p.h.image} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : null}
-        <em className="tb-tag wt">{isLow && t.value !== null ? `최저가 ${won(t.value)}` : `${i + 1}`}</em>
+        <em className="tb-tag wt">{isLow && of > 1 && t.value !== null ? `${i + 1} · ${of}곳 중 가장 낮아요` : `${i + 1}`}</em>
         <button type="button" className={`tb-love${on ? " on" : ""}`} aria-pressed={on} aria-label={on ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={() => onSave(p.h)}>
           <IconHeart size={18} on={on} />
         </button>
@@ -1132,7 +1132,7 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
       </AiSay>
       <div className="tb-hcards">
         {picks.map((p, i) => (
-          <PickCard key={p.token} p={p} i={i} t={prices[i]} isLow={totals[i] === low} q={q} nights={nights} saved={saved.has(p.token)} active={active === p.token} onSave={onSave} onOpenHotel={onOpenHotel} />
+          <PickCard key={p.token} p={p} i={i} of={picks.length} t={prices[i]} isLow={totals[i] === low} q={q} nights={nights} saved={saved.has(p.token)} active={active === p.token} onSave={onSave} onOpenHotel={onOpenHotel} />
         ))}
       </div>
       {picks.length > 1 && (
