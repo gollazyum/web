@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { brandCopy } from "@/lib/brand-mode";
-import { SiteFooter } from "@/components/SiteFooter";
-import { SiteHeader } from "@/components/SiteHeader";
+import { PageFooter, PageHeader } from "@/components/PageShell";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -12,9 +11,9 @@ export const metadata: Metadata = {
 
 export default function Privacy() {
   return (
-    <>
-      <SiteHeader />
-      <main className="wrap legal">
+    <div className="pg">
+      <PageHeader />
+      <main className="pg-wrap legal">
         <h1>개인정보처리방침</h1>
         <p>Gollazyum(이하 “서비스”)은 현재 회원가입 없이 이용할 수 있으며, 이름·연락처 등 개인정보를 직접 수집하지 않습니다.</p>
         <h2>브라우저에 저장하는 정보</h2>
@@ -82,7 +81,7 @@ export default function Privacy() {
         </p>
         <p className="muted">시행일: 2026년 11월 17일</p>
       </main>
-      <SiteFooter />
-    </>
+      <PageFooter />
+    </div>
   );
 }

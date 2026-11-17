@@ -688,6 +688,9 @@ export function TripApp() {
               </section>
               <footer className="tb-foot">
                 <p>
+                  {site.footerIntro} {site.footerAffiliate}
+                </p>
+                <p>
                   상호 {site.business.name} · 대표자 {site.business.ceo}
                   <br />
                   사업자등록번호 {site.business.registrationNo}
@@ -700,7 +703,7 @@ export function TripApp() {
                     <b>개인정보처리방침</b>
                   </Link>
                 </nav>
-                <p>이 서비스는 예약 사이트로 연결해 드려요. 결제와 취소·환불에 관한 모든 책임은 해당 예약 사이트에 있습니다.</p>
+                <p>{site.footerNotice}</p>
               </footer>
             </main>
           ))}

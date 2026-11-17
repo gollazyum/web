@@ -5,9 +5,11 @@ export const site = {
   name: brand.legalName,
   nameKo: brand.legalName,
   url: "https://www.gollazyum.com",
-  tagline: "AI Travel & Lifestyle Platform",
-  description:
-    "글로벌 트래블 데이터와 AI 라이프스타일 솔루션을 하나로 연결하는 차세대 디지털 플랫폼. 숙소와 항공편 데이터를 세금·수수료를 포함한 총액으로 한 화면에서 탐색하세요.",
+  description: "숙소와 항공권을 예약처별 세금 포함 총액으로 한 화면에서 확인하세요. 예약은 이동한 예약 사이트에서 진행돼요.",
+  // 홈·약관·개인정보·404 바닥글 문구. 여기서만 바꾼다
+  footerIntro: "Gollazyum은 숙소와 항공권의 예약처별 세금 포함 총액을 한 화면에 모아 보여 드려요.",
+  footerAffiliate: "Gollazyum의 링크로 예약하시면 제휴사로부터 수수료를 받을 수 있지만, 내시는 금액은 같아요.",
+  footerNotice: "예약·결제·취소·환불은 이동한 예약 사이트의 정책에 따라 진행돼요. 표시 가격은 확인한 시각 기준이며 바뀔 수 있어요.",
   instagramUrl: "https://www.instagram.com/gollazyum/", // 인스타그램 주소는 여기서만 바꾼다
   contactEmail: "gollazyum@gmail.com",
   notifyUrl: "", // 오픈 알림 신청 링크. 예: 카카오톡 채널, 구글 폼 주소
