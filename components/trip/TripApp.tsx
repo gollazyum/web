@@ -11,6 +11,7 @@ import type { HotelOption } from "@/lib/hotels";
 import { criteriaWeights, EMPTY_PROFILE, profileLines, readSaved, TASTE_KEY, withProfile, type TasteProfile, type TasteSaved, type TasteStatus } from "@/lib/taste";
 import { site } from "@/lib/site";
 import { HOME_HERO_PHOTO, HOME_PLACES, photoUrl } from "@/lib/home-places";
+import { HOME_FAQ, HOME_TRUST } from "@/lib/home-info";
 import type { FlightOption } from "@/lib/flights";
 import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
 import { flightHref, parseHomeSearch, stayHref, TAB_PATH, tabOf, type Tab } from "@/lib/trip-url";
@@ -20,6 +21,9 @@ import {
   FLIGHT_REFINES,
   flightFactReason,
   flightReady,
+  guestText,
+  paxOf,
+  paxText,
   mergePicks,
   nightsOf,
   refineFlights,
@@ -169,11 +173,11 @@ function contextOf(m: Msg | undefined): string {
   if (!m) return "";
   if (m.t === "stay") {
     const q = m.query;
-    return `숙소 · 장소 ${q.place} · ${q.checkIn}~${q.checkOut} · ${q.adults}명${q.budget ? ` · 총액 예산 ${q.budget}원` : ""}${q.taste ? ` · 취향 ${q.taste}` : ""}`;
+    return `숙소 · 장소 ${q.place} · ${q.checkIn}~${q.checkOut} · ${guestText(q)}${q.budget ? ` · 총액 예산 ${q.budget}원` : ""}${q.taste ? ` · 취향 ${q.taste}` : ""}`;
   }
   if (m.t === "flight") {
     const q = m.query;
-    return `항공 · ${q.from}(${q.fromLabel})→${q.to}(${q.toLabel}) · ${q.depart}${q.ret ? `~${q.ret}` : " 편도"} · ${q.adults}명${q.taste ? ` · 취향 ${q.taste}` : ""}`;
+    return `항공 · ${q.from}(${q.fromLabel})→${q.to}(${q.toLabel}) · ${q.depart}${q.ret ? `~${q.ret}` : " 편도"} · ${paxText(q)}${q.taste ? ` · 취향 ${q.taste}` : ""}`;
   }
   return "";
 }
@@ -288,7 +292,7 @@ export function TripApp() {
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), toast.go ? 1600 : 3000);
+    const t = setTimeout(() => setToast(null), toast.go ? 1600 : toast.text.length > 30 ? 5000 : 3000);
     return () => clearTimeout(t);
   }, [toast]);
 
@@ -399,7 +403,7 @@ export function TripApp() {
   const goStay = useCallback(
     (q: Partial<StayQuery>, base?: StayMsg) => {
       if (!stayReady(q, localToday())) return setStaySheet(q);
-      const same = base?.options && base.query.place === q.place && base.query.checkIn === q.checkIn && base.query.checkOut === q.checkOut && base.query.adults === q.adults;
+      const same = base?.options && base.query.place === q.place && base.query.checkIn === q.checkIn && base.query.checkOut === q.checkOut && base.query.adults === q.adults && guestText(base.query) === guestText(q as StayQuery) && (base.query.childAges ?? []).join() === (q.childAges ?? []).join();
       runStay({ ...q, budget: q.budget ?? 0, taste: q.taste ?? "" } as StayQuery, { reuse: same ? base.options : undefined });
     },
     [runStay],
@@ -409,18 +413,26 @@ export function TripApp() {
   // 없으면 그때 찾는다 (공유 링크·새로 고침·옛 /hotels·/flights 링크). 지난 날짜면 검색 칸만 채운다
   useEffect(() => {
     if (tab !== "home" || window.location.pathname !== "/") return;
-    const hs = parseHomeSearch(window.location.search); // search 상태는 바뀐 걸 알리는 용도 (탭을 옮긴 직후엔 한 박자 늦다)
+    const hs = parseHomeSearch(window.location.search, localToday()); // search 상태는 바뀐 걸 알리는 용도 (탭을 옮긴 직후엔 한 박자 늦다)
     // 결과(또는 검색 화면)를 그린 다음 프레임에 감춘 것을 푼다
     requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove("tb-has-q")));
     if (!hs) return setHomeId(null);
     const key = hs.kind === "stay" ? stayHref(hs.query) : flightHref({ ...hs.query, fromLabel: "", toLabel: "" });
     const have = [...msgsRef.current].reverse().find((m) => (m.t === "stay" || m.t === "flight") && m.home && homeHrefOf(m) === key);
     if (have) return setHomeId(have.id);
-    const past = (hs.kind === "stay" ? hs.query.checkIn : hs.query.depart) < localToday();
+    // P1-3: 지났거나 틀린 날짜는 고쳐서 찾고, 주소도 고친 날짜로 바꾼 뒤 한 줄로 알린다 (도시는 그대로)
+    if (hs.fixed) {
+      const fixedHref = hs.kind === "stay" ? stayHref(hs.query) : flightHref({ ...hs.query, fromLabel: "", toLabel: "" });
+      window.history.replaceState(null, "", fixedHref);
+      const a = hs.kind === "stay" ? hs.query.checkIn : hs.query.depart;
+      const b = hs.kind === "stay" ? hs.query.checkOut : hs.query.ret;
+      const md = (x: string) => `${Number(x.slice(5, 7))}월 ${Number(x.slice(8, 10))}일`;
+      setToast({ text: `주소의 날짜가 지났거나 맞지 않아 ${md(a)}${b ? ` – ${md(b)}` : ""}로 바꿔서 찾았어요` });
+    }
     if (hs.kind === "stay") {
       setKind("stay");
       setPrefStay(hs.query);
-      if (!past) runStay(hs.query, { home: true });
+      runStay(hs.query, { home: true });
     } else {
       setKind("flight");
       const q = hs.query;
@@ -429,19 +441,15 @@ export function TripApp() {
         .catch(() => ({ fromLabel: q.from, toLabel: q.to }))
         .then((labels) => {
           setPrefFlight({ ...q, ...labels });
-          if (!past) runFlight({ ...q, ...labels }, { home: true });
+          runFlight({ ...q, ...labels }, { home: true });
         });
-    }
-    if (past) {
-      window.history.replaceState(null, "", "/");
-      setSearch("");
     }
   }, [tab, search, runStay, runFlight]);
 
   const goFlight = useCallback(
     (q: Partial<FlightQuery>, base?: FlightMsg) => {
       if (!flightReady(q, localToday())) return setFlightSheet(q);
-      const same = base?.options && base.query.from === q.from && base.query.to === q.to && base.query.depart === q.depart && base.query.ret === q.ret && base.query.adults === q.adults;
+      const same = base?.options && base.query.from === q.from && base.query.to === q.to && base.query.depart === q.depart && base.query.ret === q.ret && base.query.adults === q.adults && paxText(base.query) === paxText(q as FlightQuery);
       runFlight(q as FlightQuery, { reuse: same ? base.options : undefined });
     },
     [runFlight],
@@ -667,6 +675,14 @@ export function TripApp() {
                   <IconChatStar size={22} />
                 </i>
               </button>
+              <ul className="tb-trust" aria-label="이용 안내">
+                {HOME_TRUST.map((t) => (
+                  <li key={t.title}>
+                    <strong>{t.title}</strong>
+                    <span>{t.text}</span>
+                  </li>
+                ))}
+              </ul>
               <section className="tb-sec">
                 <h2>인기 여행지</h2>
                 <div className="tb-places">
@@ -689,6 +705,18 @@ export function TripApp() {
                     </button>
                   ))}
                 </div>
+              </section>
+              <section className="tb-sec tb-faq">
+                <h2>자주 묻는 질문</h2>
+                {HOME_FAQ.map((f) => (
+                  <details key={f.q}>
+                    <summary>{f.q}</summary>
+                    <p>{f.a}</p>
+                  </details>
+                ))}
+                <p className="tb-faq-more">
+                  더 자세한 내용은 <Link href="/terms">이용약관</Link>에 있어요.
+                </p>
               </section>
               <footer className="tb-foot">
                 <p>
@@ -1213,7 +1241,7 @@ function FlightResult({ m, onAll, onRefine, onRetry, onPrefill }: MsgProps & { m
   return (
     <div className="tb-result">
       <AiSay>
-        {route} {options.length}편 중에 <b>{picks.length}편</b>을 먼저 보여드릴게요. 가격은 {q.adults}명 {q.ret ? "왕복" : "편도"} 총액이에요.{m.note ? ` ${m.note}` : ""}
+        {route} {options.length}편 중에 <b>{picks.length}편</b>을 먼저 보여드릴게요. 가격은 {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액이에요.{m.note ? ` ${m.note}` : ""}
       </AiSay>
       <div className="tb-cards">
         {picks.map((p, i) => (

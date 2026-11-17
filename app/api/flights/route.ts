@@ -8,11 +8,16 @@ export const maxDuration = 30;
 
 const MAX_OPTIONS = 30;
 const AIRPORTS = /^[A-Z]{3}(,[A-Z]{3}){0,3}$/;
+// 좌석 등급 → Google Flights travel_class (1 일반석, 2 프리미엄 일반석, 3 비즈니스, 4 일등석)
+const CABIN: Record<string, string> = { y: "1", s: "2", c: "3", f: "4" };
 const TOKEN = /^[A-Za-z0-9_\-=+/]{1,2000}$/;
 
 function parseQuery(body: unknown) {
   if (!body || typeof body !== "object") return null;
-  const { from, to, depart, ret, adults, token } = body as Record<string, unknown>;
+  const { from, to, depart, ret, adults, token, children, cabin } = body as Record<string, unknown>;
+  // P1-4: 소아 수, 좌석 등급
+  if (children !== undefined && (typeof children !== "number" || !Number.isInteger(children) || children < 0 || children > 8)) return null;
+  if (cabin !== undefined && (typeof cabin !== "string" || !CABIN[cabin])) return null;
   if (typeof from !== "string" || !AIRPORTS.test(from)) return null;
   if (typeof to !== "string" || !AIRPORTS.test(to)) return null;
   if (typeof depart !== "string" || !DATE.test(depart) || depart < today()) return null;
@@ -20,7 +25,8 @@ function parseQuery(body: unknown) {
   if (typeof adults !== "number" || !Number.isInteger(adults) || adults < 1 || adults > 9) return null;
   // 오는 편 조회: 가는 편 결과의 departure_token (왕복일 때만)
   if (token !== undefined && (typeof token !== "string" || !ret || !TOKEN.test(token))) return null;
-  return { from, to, depart, ret, adults, token: (token as string | undefined) ?? "" };
+  if (adults + ((children as number | undefined) ?? 0) > 9) return null;
+  return { from, to, depart, ret, adults, children: (children as number | undefined) ?? 0, cabin: (cabin as string | undefined) ?? "y", token: (token as string | undefined) ?? "" };
 }
 
 type Segment = {
@@ -109,6 +115,8 @@ export async function POST(req: Request) {
     gl: "kr",
   };
   if (q.ret) params.return_date = q.ret;
+  if (q.children) params.children = String(q.children);
+  if (q.cabin !== "y") params.travel_class = CABIN[q.cabin];
   // 왕복 첫 검색에는 가는 편만 온다. 카드의 '상세 보기'를 누르면 그 가는 편의 토큰으로 오는 편을 한 번 더 찾는다
   if (q.token) params.departure_token = q.token;
   return serpSearch(req, params, shape);

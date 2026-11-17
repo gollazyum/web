@@ -102,3 +102,18 @@ export function useSearchLayer() {
     style: layer && box ? ({ top: box.top, height: box.height } as React.CSSProperties) : undefined,
   };
 }
+
+// 휴대폰 검색 레이어가 열릴 때 그 탭이 새로 생긴 ← 버튼에 떨어져 입력칸 포커스를 빼앗던 문제(P1-2, 첫 글자가 사라짐).
+// 레이어가 열리면 입력칸에 포커스를 다시 준다
+export function useLayerFocus(layer: boolean, input: React.RefObject<HTMLInputElement | null>) {
+  useEffect(() => {
+    if (!layer) return;
+    const refocus = () => {
+      const el = input.current;
+      if (el && document.activeElement !== el) el.focus({ preventScroll: true });
+    };
+    refocus();
+    const t = window.setTimeout(refocus, 450);
+    return () => window.clearTimeout(t);
+  }, [layer, input]);
+}

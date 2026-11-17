@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { tripUrl, type FlightOption } from "@/lib/flights";
-import { hhmm, hourOf, won, type FlightQuery } from "@/lib/trip";
+import { hhmm, hourOf, paxOf, paxText, won, type FlightQuery } from "@/lib/trip";
 import { dayShift, durText, legDate, perPerson, stopText, waits } from "@/lib/flight-legs";
 import { searchFlightReturns } from "./api";
 import { IconBack, IconOut } from "./icons";
@@ -11,7 +11,7 @@ import { Sheet } from "./Sheet";
 export type FlightData = { query: FlightQuery; options: FlightOption[]; picks: { n: number; reason: string }[] };
 
 export function flightLink(q: FlightQuery) {
-  return tripUrl(q.from, q.to, q.depart, q.ret, q.adults);
+  return tripUrl(q.from, q.to, q.depart, q.ret, q.adults, q.children ?? 0, q.cabin ?? "y");
 }
 
 // 오는 편 후보: 가는 편 토큰마다 한 번만 찾고, 같은 카드·상세가 함께 쓴다
@@ -72,11 +72,11 @@ function Leg({ label, o }: { label: string; o: FlightOption }) {
 }
 
 function PriceLines({ o, q }: { o: FlightOption; q: FlightQuery }) {
-  const avg = perPerson(o.price, q.adults);
+  const avg = perPerson(o.price, paxOf(q));
   return (
     <span className="tb-fprice">
       <small>
-        {q.adults}명 {q.ret ? "왕복" : "편도"} 총액
+        {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액
       </small>
       <strong>{won(o.price)}</strong>
       {avg !== null && <small>1인 평균 {won(avg)}</small>}
@@ -266,7 +266,7 @@ export function FlightBrowser({ data, aiPending, onBack, bare }: { data: FlightD
           </strong>
           <span>
             {md(q.depart)}
-            {q.ret ? ` – ${md(q.ret)} 왕복` : " 편도"} · 성인 {q.adults}
+            {q.ret ? ` – ${md(q.ret)} 왕복` : " 편도"} · {paxText(q)}
           </span>
         </button>
       </div>
@@ -285,7 +285,7 @@ export function FlightBrowser({ data, aiPending, onBack, bare }: { data: FlightD
         </button>
       </div>
       <p className="tb-results-note">
-        항공편 {shown.length}편 · {aiPending ? "AI가 조건에 맞는 편을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}편을 먼저 보여드려요`} · {q.adults}명 {q.ret ? "왕복" : "편도"} 총액
+        항공편 {shown.length}편 · {aiPending ? "AI가 조건에 맞는 편을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}편을 먼저 보여드려요`} · {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액
       </p>
       <div className="tb-rlist pad">
         {shown.map((o, i) => {

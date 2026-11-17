@@ -159,7 +159,9 @@ export function searchCities(d: Data, input: string, limit = 6): CityHit[] {
   if (!q) return [];
   const best = new Map<string, { hit: CityHit; s: number }>();
   for (const a of d.airports) {
-    const s = Math.max(scoreText(q, a[4], 90, 45), scoreText(q, a[2], 80, 40));
+    // 공항 코드(KIX, NRT)를 치면 그 공항이 있는 도시를 맨 위에 (P1-2)
+    const code = q.length === 3 && a[0].toLowerCase() === q ? 200 : 0;
+    const s = Math.max(code, scoreText(q, a[4], 90, 45), scoreText(q, a[2], 80, 40));
     if (!s) continue;
     const name = cityName(a);
     const key = `${name}|${a[3]}`;
@@ -168,6 +170,14 @@ export function searchCities(d: Data, input: string, limit = 6): CityHit[] {
     if (!prev || prev.s < score) {
       const country = d.countries[a[3]] ?? a[3];
       best.set(key, { hit: { name, sub: a[4] && a[2] ? `${a[2]}, ${country}` : country }, s: score });
+    }
+  }
+  // 도시 코드(OSA, TYO, SEL)도 그 도시로
+  if (q.length === 3) {
+    const m = d.metros.find((x) => x[0].toLowerCase() === q);
+    if (m) {
+      const name = m[2] || m[1];
+      best.set(`${name}|${m[3]}`, { hit: { name, sub: d.countries[m[3]] ?? m[3] }, s: 300 });
     }
   }
   return [...best.values()]

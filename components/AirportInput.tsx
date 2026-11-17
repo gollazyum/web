@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { loadAirports, searchPlaces, type Place } from "@/lib/airports";
-import { useSearchLayer } from "@/lib/useSheet";
+import { useLayerFocus, useSearchLayer } from "@/lib/useSheet";
 
 type Props = {
   label: string;
@@ -23,6 +23,14 @@ export function AirportInput({ label, placeholder, text, onChange, onPicked, inp
   const [results, setResults] = useState<Place[]>([]);
   const sl = useSearchLayer();
   const listOpen = open || sl.layer;
+  const own = useRef<HTMLInputElement | null>(null);
+  const setRef = (el: HTMLInputElement | null) => {
+    own.current = el;
+    if (typeof inputRef === "function") inputRef(el);
+    else if (inputRef) (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = el;
+  };
+
+  useLayerFocus(sl.layer, own);
 
   useEffect(() => {
     setResults(data && listOpen ? searchPlaces(data, text) : []);
@@ -74,10 +82,11 @@ export function AirportInput({ label, placeholder, text, onChange, onPicked, inp
           type="button"
           className="layer-back"
           aria-label="검색 닫기"
+          tabIndex={-1}
           onMouseDown={(e) => e.preventDefault()}
           onClick={(e) => {
             e.preventDefault();
-            if (!sl.backReady()) return;
+            if (!sl.backReady()) return own.current?.focus({ preventScroll: true });
             (document.activeElement as HTMLElement | null)?.blur();
             sl.close();
           }}
@@ -87,7 +96,7 @@ export function AirportInput({ label, placeholder, text, onChange, onPicked, inp
       )}
       <span>{label}</span>
       <input
-        ref={inputRef}
+        ref={setRef}
         role="combobox"
         aria-expanded={showList}
         aria-controls={listId}

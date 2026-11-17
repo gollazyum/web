@@ -66,14 +66,16 @@ export function parseFlightsPath(sp: Record<string, string | string[] | undefine
 
 // 도시 단위 코드(SEL)를 그대로 받는 Trip.com 한국 사이트 검색 결과 주소.
 // 제휴 승인(월 트래픽 3개월) 전이라 제휴 번호 없이 연결한다
-export function tripUrl(from: string, to: string, depart: string, ret: string, adults: number): string {
+export function tripUrl(from: string, to: string, depart: string, ret: string, adults: number, children = 0, cabin: "y" | "s" | "c" | "f" = "y"): string {
   const q = new URLSearchParams({
     dcity: from.toLowerCase(),
     acity: to.toLowerCase(),
     ddate: depart,
     triptype: ret ? "rt" : "ow",
-    class: "y",
+    class: cabin,
     quantity: String(adults),
+    childqty: String(children),
+    babyqty: "0",
     locale: "ko-KR",
     curr: "KRW",
   });

@@ -74,33 +74,37 @@ async function cached<T>(key: string, load: () => Promise<Res<T>>, fresh = false
 
 // stars: 성급 필터를 눌렀을 때만 "4" 또는 "4,5"처럼 그 성급만 다시 찾는다
 export const searchStays = (q: StayQuery, stars?: string) => {
-  const body = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...(stars ? { stars } : {}) };
+  const body = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...kids(q), ...(stars ? { stars } : {}) };
   return cached(`stay:${JSON.stringify(body)}`, () => post<HotelResults>("/api/hotels", body));
 };
 
 // 숙소 목록 다음 쪽 (스크롤 끝에서만 부른다. 한 쪽 = 검색 1번). 같은 쪽은 이 탭에 30분 담아 둔다
 export const searchStaysPage = (q: StayQuery, page: string, stars?: string) => {
-  const body = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, page, ...(stars ? { stars } : {}) };
+  const body = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...kids(q), page, ...(stars ? { stars } : {}) };
   return cached(`stay-page:${JSON.stringify(body)}`, () => post<HotelResults>("/api/hotels", body));
 };
 
+// P1-4: 아동·소아·좌석 등급은 있을 때만 보낸다 (없으면 예전과 같은 요청 → 캐시도 그대로)
+const kids = (q: { childAges?: number[] }) => (q.childAges?.length ? { childAges: q.childAges } : {});
+const pax = (q: { children?: number; cabin?: string }) => ({ ...(q.children ? { children: q.children } : {}), ...(q.cabin && q.cabin !== "y" ? { cabin: q.cabin } : {}) });
+
 // fresh: '다시 검색'을 눌렀을 때만 캐시를 건너뛴다
 export const stayPrices = (token: string, q: StayQuery, name: string, fresh = false) => {
-  const body = { q: name.slice(0, 100), checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, token };
-  return cached(`price:${token}:${q.checkIn}:${q.checkOut}:${q.adults}`, () => post<HotelPrices>("/api/hotels", body), fresh);
+  const body = { q: name.slice(0, 100), checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...kids(q), token };
+  return cached(`price:${token}:${q.checkIn}:${q.checkOut}:${q.adults}:${(q.childAges ?? []).join(".")}`, () => post<HotelPrices>("/api/hotels", body), fresh);
 };
 
 export async function searchFlights(q: FlightQuery) {
   // 도시 코드(SEL, OSA)는 그 도시 공항들로 바꿔 보낸다
   const [from, to] = await Promise.all([airportsFor(q.from), airportsFor(q.to)]);
-  const body = { from, to, depart: q.depart, ret: q.ret, adults: q.adults };
+  const body = { from, to, depart: q.depart, ret: q.ret, adults: q.adults, ...pax(q) };
   return cached(`flight:${JSON.stringify(body)}`, () => post<FlightResults>("/api/flights", body));
 }
 
 // 왕복: 가는 편 하나의 토큰으로 오는 편 후보를 한 번 찾는다 (카드 상세를 열 때만)
 export async function searchFlightReturns(q: FlightQuery, token: string) {
   const [from, to] = await Promise.all([airportsFor(q.from), airportsFor(q.to)]);
-  const body = { from, to, depart: q.depart, ret: q.ret, adults: q.adults, token };
+  const body = { from, to, depart: q.depart, ret: q.ret, adults: q.adults, ...pax(q), token };
   return cached(`flightret:${token}`, () => post<FlightResults>("/api/flights", body));
 }
 
