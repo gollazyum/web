@@ -10,6 +10,7 @@ import { sellerSearchUrl } from "@/lib/hotel-sellers";
 import type { HotelOption } from "@/lib/hotels";
 import { criteriaWeights, EMPTY_PROFILE, profileLines, readSaved, TASTE_KEY, withProfile, type TasteProfile, type TasteSaved, type TasteStatus } from "@/lib/taste";
 import { site } from "@/lib/site";
+import { HOME_HERO_PHOTO, HOME_PLACES, photoUrl } from "@/lib/home-places";
 import type { FlightOption } from "@/lib/flights";
 import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
 import { flightHref, parseHomeSearch, stayHref, TAB_PATH, tabOf, type Tab } from "@/lib/trip-url";
@@ -79,7 +80,6 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const SAVED_KEY = "tb-saved-v1";
 const UPGRADE_MS = 30 * 60 * 1000;
 const MORE_PAGES = 5; // 스크롤로 더 불러오는 쪽 수 상한 (검색 한 번당 최대 5번 더, 약 100곳)
-const PLACES = ["오사카", "후쿠오카", "도쿄", "삿포로", "오키나와", "다낭", "방콕", "타이베이"];
 const EXAMPLES = ["부모님이랑 조용한 온천 숙소", "12월 오사카 2박, 역 가까운 곳", "인천에서 다낭 왕복, 오전 출발 직항"];
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`;
@@ -627,21 +627,27 @@ export function TripApp() {
                   {brand.tentative && <em>가칭</em>}
                 </span>
               </header>
-              <SearchCard
-                ref={searchRef}
-                kind={kind}
-                onKind={setKind}
-                stay={prefStay}
-                flight={prefFlight}
-                onStay={(q) => {
-                  runStay(q, { home: true });
-                  goHome(stayHref(q));
-                }}
-                onFlight={(q) => {
-                  runFlight(q, { home: true });
-                  goHome(flightHref(q));
-                }}
-              />
+              <div className="tb-hero" style={{ "--tb-hero-img": `url(${photoUrl(HOME_HERO_PHOTO, 2000, 760)})` } as React.CSSProperties}>
+                <h1 className="tb-hero-title">
+                  다음 여행, 어디가 좋을까요?
+                  <small>숙소와 항공권을 한 번에 찾아 드려요</small>
+                </h1>
+                <SearchCard
+                  ref={searchRef}
+                  kind={kind}
+                  onKind={setKind}
+                  stay={prefStay}
+                  flight={prefFlight}
+                  onStay={(q) => {
+                    runStay(q, { home: true });
+                    goHome(stayHref(q));
+                  }}
+                  onFlight={(q) => {
+                    runFlight(q, { home: true });
+                    goHome(flightHref(q));
+                  }}
+                />
+              </div>
               <button
                 type="button"
                 className="tb-askbar"
@@ -659,9 +665,22 @@ export function TripApp() {
               <section className="tb-sec">
                 <h2>인기 여행지</h2>
                 <div className="tb-places">
-                  {PLACES.map((p) => (
-                    <button key={p} type="button" onClick={() => searchRef.current?.searchStay(p)}>
-                      {p}
+                  {HOME_PLACES.map((p) => (
+                    <button key={p.name} type="button" onClick={() => searchRef.current?.searchStay(p.name)}>
+                      <img
+                        src={photoUrl(p.photo, 400, 520)}
+                        alt=""
+                        loading="lazy"
+                        // 사진을 못 받으면 깨진 그림 표시 대신 카드 바탕색만 보인다 (화면이 열리기 전에 이미 실패한 경우도)
+                        ref={(el) => {
+                          if (el && el.complete && !el.naturalWidth) el.style.visibility = "hidden";
+                        }}
+                        onError={(e) => (e.currentTarget.style.visibility = "hidden")}
+                      />
+                      <span>
+                        <strong>{p.name}</strong>
+                        <small>{p.country}</small>
+                      </span>
                     </button>
                   ))}
                 </div>
