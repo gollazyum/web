@@ -3463,3 +3463,314 @@
 .tb-has-q .tb-home {
   visibility: hidden;
 }
+
+/* P1-1 홈: 검색칸 아래 인기 여행지·노선 칩 */
+.tb-pop {
+  margin-top: 14px;
+}
+.tb-pop small {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--tb-sub);
+  margin-bottom: 8px;
+}
+.tb-pop-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -4px;
+  padding: 0 4px 2px;
+}
+.tb-pop-row::-webkit-scrollbar {
+  display: none;
+}
+.tb-app .tb-pop-row button {
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  border: 1px solid var(--tb-line);
+  background: var(--tb-card);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+@media (hover: hover) {
+  .tb-app .tb-pop-row button:hover {
+    border-color: var(--tb-ink);
+  }
+}
+/* AI 띠 아래 안내 3칸 */
+.tb-trust {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.tb-trust li {
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--tb-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tb-trust strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+.tb-trust span {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--tb-sub);
+}
+@media (max-width: 520px) {
+  .tb-trust {
+    grid-template-columns: 1fr;
+    gap: 0;
+    border-radius: 14px;
+    background: var(--tb-soft);
+    padding: 4px 0;
+  }
+  .tb-trust li {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    padding: 7px 14px;
+    background: none;
+  }
+  .tb-trust strong {
+    flex: none;
+    font-size: 13.5px;
+  }
+}
+/* 자주 묻는 질문 */
+.tb-faq details {
+  border-bottom: 1px solid var(--tb-line);
+}
+.tb-faq summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.tb-faq summary::-webkit-details-marker {
+  display: none;
+}
+.tb-faq summary::after {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--tb-sub);
+  border-bottom: 2px solid var(--tb-sub);
+  transform: rotate(45deg);
+  margin-right: 4px;
+  transition: transform 0.15s;
+}
+.tb-faq details[open] summary::after {
+  transform: rotate(-135deg);
+}
+.tb-faq details p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tb-sub);
+}
+.tb-faq-more {
+  margin: 12px 0 0;
+  font-size: 13.5px;
+  color: var(--tb-sub);
+}
+.tb-faq-more a {
+  text-decoration: underline;
+}
+
+/* P1-2: 숙소 검색창에서 찾는 곳이 없을 때 인기 도시 */
+.tb-noplace-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.tb-app .tb-noplace-chips button {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 17px;
+  border: 1px solid var(--tb-line);
+  background: var(--tb-card);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--tb-ink);
+}
+
+/* P1-3: 검색 카드 날짜 칸 = 달력 여는 버튼 */
+.tb-app .date-range.custom {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+.tb-app .tb-sf-datebtn {
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.tb-sf-datebtn b {
+  font-size: 17px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tb-sf-row .date-range + .tb-sf {
+  border-left: 1px solid var(--tb-line);
+}
+.tb-sf-datebtn b em {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--tb-sub);
+}
+.tb-app .date-range.custom .dp-pop:not(.dp-sheet) {
+  left: 0;
+  right: auto;
+}
+.tb-app .dp-day:focus-visible,
+.tb-app .dp-nav:focus-visible {
+  outline: 2px solid var(--tb-accent);
+  outline-offset: 1px;
+}
+
+/* P1-4 인원 고르기 */
+.tb-app .tb-gp-btn {
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.tb-gp-btn b {
+  font-size: 17px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tb-gp h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+.tb-gp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--tb-line);
+}
+.tb-gp-row > span:first-child {
+  display: flex;
+  flex-direction: column;
+}
+.tb-gp-row b {
+  font-size: 16px;
+  font-weight: 600;
+}
+.tb-gp-row small {
+  font-size: 13px;
+  color: var(--tb-sub);
+}
+.tb-gp-row .tb-stepper b {
+  min-width: 20px;
+  text-align: center;
+}
+.tb-gp-ages {
+  padding: 12px 0 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.tb-gp-ages p {
+  grid-column: 1 / -1;
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--tb-sub);
+}
+.tb-gp-ages label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.tb-gp-ages select {
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--tb-line);
+  padding: 0 10px;
+  font-size: 15px;
+  background: var(--tb-card);
+}
+.tb-gp-cabin {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 14px 0 4px;
+}
+.tb-app .tb-gp-cabin button {
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--tb-line);
+  background: var(--tb-card);
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.tb-app .tb-gp-cabin button[aria-checked="true"] {
+  border-color: var(--tb-ink);
+  background: var(--tb-ink);
+  color: #fff;
+}
+.tb-gp-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--tb-sub);
+}
+.tb-app .tb-gp-done {
+  width: 100%;
+  height: 50px;
+  margin-top: 16px;
+  border-radius: 14px;
+  background: var(--tb-ink);
+  color: #fff;
+  font-size: 15.5px;
+  font-weight: 700;
+}
+.tb-app .tb-sf-row .date-range.custom {
+  grid-column: auto;
+}
+.tb-gp-btn {
+  min-width: 0;
+}
+/* 휴대폰: 날짜 한 줄, 인원 한 줄 (아동·객실이 붙으면 한 줄에 다 안 들어간다) */
+@media (max-width: 520px) {
+  .tb-sf-row {
+    grid-template-columns: 1fr;
+  }
+  .tb-sf-row .date-range + .tb-sf {
+    border-left: 0;
+  }
+}
+.tb-app .tb-sf-datebtn,
+.tb-app .tb-gp-btn {
+  border-bottom: 1px solid var(--tb-line);
+}

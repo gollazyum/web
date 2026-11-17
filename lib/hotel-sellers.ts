@@ -16,7 +16,10 @@ export type HotelSellerKey =
   | "myrealtrip"
   | "official";
 
-export type SearchQuery = { checkIn: string; checkOut: string; adults: number };
+// rooms·childAges는 P1-4 (없으면 객실 1, 아동 0)
+export type SearchQuery = { checkIn: string; checkOut: string; adults: number; rooms?: number; childAges?: number[] };
+const roomsQ = (q: SearchQuery) => String(Math.max(1, q.rooms ?? 1));
+const agesQ = (q: SearchQuery) => q.childAges ?? [];
 
 type SellerDef = {
   key: HotelSellerKey;
@@ -46,7 +49,7 @@ export const HOTEL_SELLER_ALLOWLIST: readonly SellerDef[] = [
     aliases: ["tripcom", "트립닷컴", "트립컴"],
     hosts: ["trip.com"],
     search: (hotel, q) =>
-      `https://kr.trip.com/hotels/list?${qs({ keyword: hotel, checkin: q.checkIn, checkout: q.checkOut, adult: String(q.adults), crn: "1", curr: "KRW", locale: "ko-KR" })}`,
+      `https://kr.trip.com/hotels/list?${qs({ keyword: hotel, checkin: q.checkIn, checkout: q.checkOut, adult: String(q.adults), children: String(agesQ(q).length), ...(agesQ(q).length ? { ages: agesQ(q).join(",") } : {}), crn: roomsQ(q), curr: "KRW", locale: "ko-KR" })}`,
   },
   {
     key: "expedia",
@@ -55,7 +58,7 @@ export const HOTEL_SELLER_ALLOWLIST: readonly SellerDef[] = [
     aliases: ["expedia", "익스피디아"],
     hosts: ["expedia.co.kr", "expedia.com"],
     search: (hotel, q) =>
-      `https://www.expedia.co.kr/Hotel-Search?${qs({ destination: hotel, startDate: q.checkIn, endDate: q.checkOut, adults: String(q.adults), rooms: "1" })}`,
+      `https://www.expedia.co.kr/Hotel-Search?${qs({ destination: hotel, startDate: q.checkIn, endDate: q.checkOut, adults: String(q.adults), rooms: roomsQ(q), ...(agesQ(q).length ? { children: agesQ(q).map((a) => `1_${a}`).join(",") } : {}) })}`,
   },
   {
     key: "hotels",
@@ -64,7 +67,7 @@ export const HOTEL_SELLER_ALLOWLIST: readonly SellerDef[] = [
     aliases: ["hotelscom", "hotelescom", "hoteiscom", "호텔스닷컴", "호텔스컴"],
     hosts: ["hotels.com"],
     search: (hotel, q) =>
-      `https://kr.hotels.com/Hotel-Search?${qs({ destination: hotel, startDate: q.checkIn, endDate: q.checkOut, adults: String(q.adults), rooms: "1" })}`,
+      `https://kr.hotels.com/Hotel-Search?${qs({ destination: hotel, startDate: q.checkIn, endDate: q.checkOut, adults: String(q.adults), rooms: roomsQ(q), ...(agesQ(q).length ? { children: agesQ(q).map((a) => `1_${a}`).join(",") } : {}) })}`,
   },
   {
     key: "booking",
@@ -73,7 +76,7 @@ export const HOTEL_SELLER_ALLOWLIST: readonly SellerDef[] = [
     aliases: ["bookingcom", "부킹닷컴", "부킹컴"],
     hosts: ["booking.com"],
     search: (hotel, q) =>
-      `https://www.booking.com/searchresults.ko.html?${qs({ ss: hotel, checkin: q.checkIn, checkout: q.checkOut, group_adults: String(q.adults), no_rooms: "1", selected_currency: "KRW", lang: "ko" })}`,
+      `https://www.booking.com/searchresults.ko.html?${qs({ ss: hotel, checkin: q.checkIn, checkout: q.checkOut, group_adults: String(q.adults), no_rooms: roomsQ(q), group_children: String(agesQ(q).length), selected_currency: "KRW", lang: "ko" })}${agesQ(q).map((a) => `&age=${a}`).join("")}`,
   },
   {
     key: "yanolja",
@@ -89,7 +92,7 @@ export const HOTEL_SELLER_ALLOWLIST: readonly SellerDef[] = [
     ko: "여기어때",
     aliases: ["여기어때", "yeogi", "yeogiottae", "goodchoice"],
     hosts: ["yeogi.com", "goodchoice.kr"],
-    search: (hotel, q) => `https://www.yeogi.com/domestic-accommodations?${qs({ keyword: hotel, checkIn: q.checkIn, checkOut: q.checkOut, personal: String(q.adults) })}`,
+    search: (hotel, q) => `https://www.yeogi.com/domestic-accommodations?${qs({ keyword: hotel, checkIn: q.checkIn, checkOut: q.checkOut, personal: String(q.adults + agesQ(q).length) })}`,
   },
   {
     key: "interpark",
@@ -197,9 +200,10 @@ export function agodaSearch(hotel: string, q: SearchQuery): string {
     textToSearch: hotel,
     checkIn: q.checkIn,
     checkOut: q.checkOut,
-    rooms: "1",
+    rooms: roomsQ(q),
     adults: String(q.adults),
-    children: "0",
+    children: String(agesQ(q).length),
+    ...(agesQ(q).length ? { childages: agesQ(q).join(",") } : {}),
     currencyCode: "KRW",
   };
   if (agodaAffiliateOn()) p.cid = AGODA_CID;

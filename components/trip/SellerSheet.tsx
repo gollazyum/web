@@ -7,7 +7,7 @@ import { positivePct } from "@/lib/prefs";
 import { agodaAffiliateOn } from "@/lib/affiliate";
 import { linkRel, sellerDef, withRo } from "@/lib/hotel-sellers";
 import { topicKo } from "@/lib/hotelText";
-import { isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
+import { guestText, isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
 import { searchErrorMessage } from "@/lib/search-error";
 import { askHotel, stayPrices } from "./api";
 import { setChecking, setVerified } from "./prices";
@@ -82,7 +82,7 @@ function factsOf(h: HotelOption, q: StayQuery, nights: number, rows: SellerRow[]
     h.amenities.length ? `편의시설: ${h.amenities.slice(0, 15).join(", ")}` : "",
     topTopics(topics).length ? `후기 주제: ${topTopics(topics).map((t) => `${topicKo(t.name)} 긍정 ${positivePct(t)}% (${t.total}건)`).join(", ")}` : "",
     near.length ? `주요 장소까지 직선거리: ${near.map((n) => `${n.name} ${distText(n.km)}`).join(", ")}` : "",
-    `일정: ${q.place} ${q.checkIn}~${q.checkOut} (${nights}박), 성인 ${q.adults}명`,
+    `일정: ${q.place} ${q.checkIn}~${q.checkOut} (${nights}박), ${guestText(q)}`,
     rows?.length ? `가장 낮은 예약처 총액: ${rows[0].cost.toLocaleString("ko-KR")}원 (세금 포함, 확인 시각 기준)` : "",
     reason ? `AI가 먼저 보여 준 이유: ${reason}` : "",
   ]
@@ -104,7 +104,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
 
   useEffect(() => {
     let live = true;
-    const hq = { q: query.place, checkIn: query.checkIn, checkOut: query.checkOut, adults: query.adults };
+    const hq = { q: query.place, checkIn: query.checkIn, checkOut: query.checkOut, adults: query.adults, rooms: query.rooms, childAges: query.childAges };
     setState({ token: hotel.token, rows: null, status: "ok", at: 0 });
     setChecking(hotel.token, query, true);
     stayPrices(hotel.token, query, hotel.name, again > 0).then((r) => {
@@ -156,7 +156,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
         <div>
           <h2>{hotel.name}</h2>
           <p>
-            {[hotel.stars ? `${hotel.stars}성급` : hotel.kind, `${nights}박`, `${query.adults}명`].filter(Boolean).join(" · ")}
+            {[hotel.stars ? `${hotel.stars}성급` : hotel.kind, `${nights}박`, guestText(query)].filter(Boolean).join(" · ")}
           </p>
           {hotel.rating ? <p className="tb-mute">후기 {hotel.rating.toFixed(1)}점{hotel.reviews ? ` (${hotel.reviews.toLocaleString("ko-KR")})` : ""}</p> : null}
           {hotel.gps && (

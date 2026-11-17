@@ -17,7 +17,7 @@ const mem = new Map<string, Verified>();
 const subs = new Set<() => void>();
 let version = 0;
 
-const keyOf = (token: string, q: Pick<StayQuery, "checkIn" | "checkOut" | "adults">) => `${token}:${q.checkIn}:${q.checkOut}:${q.adults}`;
+const keyOf = (token: string, q: Pick<StayQuery, "checkIn" | "checkOut" | "adults" | "childAges" | "rooms">) => `${token}:${q.checkIn}:${q.checkOut}:${q.adults}${q.childAges?.length ? `:c${q.childAges.join(".")}` : ""}${(q.rooms ?? 1) > 1 ? `:r${q.rooms}` : ""}`;
 
 export function getVerified(token: string, q: Pick<StayQuery, "checkIn" | "checkOut" | "adults">): Verified | undefined {
   const k = keyOf(token, q);
@@ -102,7 +102,7 @@ export const verifiedCost = (h: HotelOption, q: StayQuery) => {
 // 검색 직후에는 AI 추천 1위만 부르고, 나머지 추천 카드는 화면에 보이면(useLazyPrice) 또는 눌러서 시트를 열면 부른다
 const inflight = new Set<string>();
 export function prefetchPrices(list: HotelOption[], q: StayQuery) {
-  const hq = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults };
+  const hq = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, rooms: q.rooms, childAges: q.childAges };
   for (const h of list) {
     const k = keyOf(h.token, q);
     if (inflight.has(k) || getVerified(h.token, q)) continue;

@@ -12,6 +12,8 @@ export type StayQuery = {
   adults: number;
   budget: number; // 숙박 전체 총액 상한(원). 0이면 정하지 않음
   taste: string; // 자유 입력 취향 ("조용하고 역에서 가까운 곳")
+  rooms?: number; // 객실 수 (없으면 1)
+  childAges?: number[]; // 아동 나이 (0~17). 길이 = 아동 수
 };
 
 export type FlightQuery = {
@@ -23,7 +25,33 @@ export type FlightQuery = {
   ret: string; // 편도면 ""
   adults: number;
   taste: string;
+  children?: number; // 소아(만 2~11세) 수
+  cabin?: Cabin; // 좌석 등급 (없으면 일반석)
 };
+
+// 좌석 등급: 일반석·프리미엄 일반석·비즈니스·일등석
+export type Cabin = "y" | "s" | "c" | "f";
+export const CABINS: { id: Cabin; label: string }[] = [
+  { id: "y", label: "일반석" },
+  { id: "s", label: "프리미엄 일반석" },
+  { id: "c", label: "비즈니스" },
+  { id: "f", label: "일등석" },
+];
+export const cabinLabel = (c?: Cabin) => CABINS.find((x) => x.id === (c ?? "y"))?.label ?? "일반석";
+
+// P1-4 인원 표시
+type Guests = { adults: number; rooms?: number; childAges?: number[] };
+type Pax = { adults: number; children?: number; cabin?: Cabin };
+export const roomsOf = (q: Guests) => Math.max(1, q.rooms ?? 1);
+export const kidsOf = (q: Guests) => q.childAges ?? [];
+export function guestText(q: Guests): string {
+  const k = kidsOf(q).length;
+  return [`성인 ${q.adults}`, k ? `아동 ${k}` : "", roomsOf(q) > 1 ? `객실 ${roomsOf(q)}` : ""].filter(Boolean).join(" · ");
+}
+export const paxOf = (q: Pax) => q.adults + (q.children ?? 0);
+export function paxText(q: Pax): string {
+  return [`성인 ${q.adults}`, q.children ? `소아 ${q.children}` : "", q.cabin && q.cabin !== "y" ? cabinLabel(q.cabin) : ""].filter(Boolean).join(" · ");
+}
 
 // AI가 되묻는 질문 하나. 칩을 누르면 value가 그 칸(slot)에 들어간다
 export type AskSlot = "place" | "dates" | "adults" | "budget" | "from" | "to" | "taste";

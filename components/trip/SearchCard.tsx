@@ -2,10 +2,15 @@
 
 import { useEffect, useImperativeHandle, useState } from "react";
 import { AirportInput } from "@/components/AirportInput";
-import { addDays, today as localToday } from "@/lib/dates";
+import { PlaceInput } from "@/components/PlaceInput";
+import { daysBetween, today as localToday } from "@/lib/dates";
+import { DateRangePicker } from "@/components/DateRangePicker";
 import type { FlightQuery, StayQuery } from "@/lib/trip";
+import { HOME_PLACES } from "@/lib/home-places";
+import { HOME_ROUTES } from "@/lib/home-info";
 import { defaultDates } from "./InputSheets";
-import { IconBed, IconCalendar, IconPlane, IconSearch, IconSpark, IconUsers } from "./icons";
+import { FlightPaxPicker, StayGuestPicker } from "./GuestPicker";
+import { IconBed, IconCalendar, IconPlane, IconSpark } from "./icons";
 
 export type SearchKind = "stay" | "flight";
 
@@ -22,28 +27,10 @@ type Props = {
 // 바깥(인기 여행지 칩)에서 검색 버튼과 같은 흐름으로 숙소 검색을 시작할 때 쓴다
 export type SearchCardHandle = { searchStay: (place: string) => void };
 
-const People = ({ value, onChange, label }: { value: number; onChange: (n: number) => void; label: string }) => (
-  <select value={value} onChange={(e) => onChange(Number(e.target.value))} aria-label={label}>
-    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-      <option key={n} value={n}>
-        성인 {n}
-      </option>
-    ))}
-  </select>
-);
-
+const nights = (a: string, b: string) => daysBetween(a, b);
 const kd = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
 // "12월 5일 – 7일", 달이 바뀌면 "12월 30일 – 1월 2일"
 const dateText = (a: string, b?: string) => (!b ? kd(a) : a.slice(5, 7) === b.slice(5, 7) ? `${kd(a)} – ${Number(b.slice(8, 10))}일` : `${kd(a)} – ${kd(b)}`);
-// 날짜 칸: 보이는 건 글자, 누르면 그 아래 깔린 날짜 입력이 열린다 (왼쪽 절반 = 시작, 오른쪽 절반 = 끝)
-const pick = (e: React.MouseEvent<HTMLInputElement>) => {
-  try {
-    e.currentTarget.showPicker?.();
-  } catch {
-    // 지원하지 않으면 기본 동작
-  }
-};
-
 // v7 04: 홈 검색 카드 (숙소 / 항공권 / 투어). 내가 직접 조건을 넣고 찾는 게 기본
 export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }: Props) {
   const [a, b] = defaultDates();
@@ -67,7 +54,9 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
   function startStay(q: StayQuery) {
     setErr("");
     if (!q.place.trim()) return setErr("어디로 가는지 적어 주세요.");
-    if (q.checkIn < t || q.checkOut <= q.checkIn) return setErr("날짜를 다시 봐 주세요.");
+    if (q.childAges?.some((a) => a < 0)) return setErr("아동 나이를 알려 주세요. 인원 칸을 누르면 넣을 수 있어요.");
+    if (q.checkIn < t) return setErr("체크인 날짜가 지났어요. 오늘 이후 날짜로 바꿔 주세요.");
+    if (q.checkOut <= q.checkIn) return setErr("체크아웃은 체크인 다음 날 이후여야 해요.");
     onStay({ ...q, place: q.place.trim() });
   }
 
@@ -80,13 +69,25 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
     },
   }));
 
+  // 인기 노선: 인천 출발 왕복, 기본 날짜로 바로 찾는다
+  function searchRoute(r: (typeof HOME_ROUTES)[number]) {
+    const [d1, d2] = defaultDates();
+    const q: FlightQuery = { ...f, from: "ICN", fromLabel: "인천 (ICN)", to: r.to, toLabel: r.toLabel, depart: d1, ret: d2 };
+    setF(q);
+    setOneWay(false);
+    setErr("");
+    onFlight(q);
+  }
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (kind === "stay") return startStay(s);
     if (!f.from || !f.to) return setErr("출발·도착은 목록에 뜬 도시나 공항을 눌러 주세요.");
-    if (f.from === f.to) return setErr("출발과 도착이 같아요.");
+    if (f.from === f.to) return setErr("출발과 도착이 같아요. 도착 도시를 바꿔 주세요.");
     const ret = oneWay ? "" : f.ret;
-    if (f.depart < t || (!oneWay && (!ret || ret < f.depart))) return setErr("날짜를 다시 봐 주세요.");
+    if (f.depart < t) return setErr("가는 날이 지났어요. 오늘 이후 날짜로 바꿔 주세요.");
+    if (!oneWay && !ret) return setErr("오는 날을 넣어 주세요.");
+    if (!oneWay && ret < f.depart) return setErr("오는 날이 가는 날보다 빨라요. 날짜를 바꿔 주세요.");
     onFlight({ ...f, ret });
   }
 
@@ -106,32 +107,40 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
 
       {kind === "stay" ? (
         <>
-          <label className="tb-sf">
-            <IconSearch />
-            <span>
-              <small>어디로 가세요?</small>
-              <input value={s.place} maxLength={60} placeholder="도시, 지역, 숙소 이름" onChange={(e) => setS({ ...s, place: e.target.value })} />
-            </span>
-          </label>
+          {/* P1-2: 도시·숙소 이름 추천 (공항 코드도 도시로). 없는 곳이면 「찾는 곳이 없어요」 + 인기 도시 */}
+          <div className="tb-sf tb-sf-air">
+            <PlaceInput value={s.place} onChange={(place) => setS({ ...s, place: place.slice(0, 60) })} label="어디로 가세요?" placeholder="도시, 지역, 숙소 이름" popular={HOME_PLACES.slice(0, 6).map((p) => p.name)} className="field" />
+          </div>
           <div className="tb-sf-row">
-            <div className="tb-sf">
-              <IconCalendar />
-              <span>
-                <small>날짜</small>
-                <span className="tb-sf-dates">
-                  <b>{dateText(s.checkIn, s.checkOut)}</b>
-                  <input type="date" aria-label="체크인" min={t} value={s.checkIn} onClick={pick} onChange={(e) => e.target.value && setS({ ...s, checkIn: e.target.value, checkOut: s.checkOut <= e.target.value ? addDays(e.target.value, 1) : s.checkOut })} />
-                  <input type="date" aria-label="체크아웃" min={s.checkIn} value={s.checkOut} onClick={pick} onChange={(e) => e.target.value && setS({ ...s, checkOut: e.target.value })} />
-                </span>
-              </span>
-            </div>
-            <div className="tb-sf narrow">
-              <IconUsers />
-              <span>
-                <small>인원</small>
-                <People value={s.adults} onChange={(adults) => setS({ ...s, adults })} label="인원" />
-              </span>
-            </div>
+            {/* P1-3: 두 달 달력 (휴대폰은 아래 시트), 방향키로 날짜 이동 */}
+            <DateRangePicker
+              start={s.checkIn}
+              end={s.checkOut}
+              onChange={(a, b) => setS({ ...s, checkIn: a, checkOut: b })}
+              labels={["체크인", "체크아웃"]}
+              prompts={["체크인 날짜를 눌러 주세요", "체크아웃 날짜를 눌러 주세요"]}
+              endPlaceholder="체크아웃"
+              minGap={1}
+              unit={(n) => `${n}박`}
+              trigger={(openAt, open) => (
+                <button type="button" className="tb-sf tb-sf-datebtn" aria-expanded={open} aria-haspopup="dialog" onClick={() => openAt("start")}>
+                  <IconCalendar />
+                  <span>
+                    <small>날짜</small>
+                    <b>
+                      {s.checkIn && s.checkOut ? (
+                        <>
+                          {dateText(s.checkIn, s.checkOut)} <em>· {nights(s.checkIn, s.checkOut)}박</em>
+                        </>
+                      ) : (
+                        "날짜를 넣어 주세요"
+                      )}
+                    </b>
+                  </span>
+                </button>
+              )}
+            />
+            <StayGuestPicker value={s} onChange={(g) => setS({ ...s, ...g })} />
           </div>
         </>
       ) : (
@@ -151,31 +160,60 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
             <AirportInput label="도착" placeholder="예: 오사카, 다낭" text={f.toLabel} onChange={(text, code) => setF({ ...f, toLabel: text, to: code ?? "" })} />
           </div>
           <div className="tb-sf-row">
-            <div className="tb-sf">
-              <IconCalendar />
-              <span>
-                <small>날짜</small>
-                <span className={`tb-sf-dates${oneWay ? " one" : ""}`}>
-                  <b>{dateText(f.depart, oneWay ? undefined : f.ret)}</b>
-                  <input type="date" aria-label="가는 날" min={t} value={f.depart} onClick={pick} onChange={(e) => e.target.value && setF({ ...f, depart: e.target.value, ret: f.ret && f.ret < e.target.value ? e.target.value : f.ret })} />
-                  {!oneWay && <input type="date" aria-label="오는 날" min={f.depart} value={f.ret} onClick={pick} onChange={(e) => e.target.value && setF({ ...f, ret: e.target.value })} />}
-                </span>
-              </span>
-            </div>
-            <div className="tb-sf narrow">
-              <IconUsers />
-              <span>
-                <small>인원</small>
-                <People value={f.adults} onChange={(adults) => setF({ ...f, adults })} label="인원" />
-              </span>
-            </div>
+            <DateRangePicker
+              start={f.depart}
+              end={oneWay ? "" : f.ret}
+              single={oneWay}
+              onChange={(a, b) => setF({ ...f, depart: a, ret: oneWay ? f.ret : b })}
+              labels={["가는 날", "오는 날"]}
+              prompts={["가는 날을 눌러 주세요", "오는 날을 눌러 주세요"]}
+              endPlaceholder="오는 날"
+              minGap={0}
+              unit={(n) => `${n + 1}일`}
+              trigger={(openAt, open) => (
+                <button type="button" className="tb-sf tb-sf-datebtn" aria-expanded={open} aria-haspopup="dialog" onClick={() => openAt("start")}>
+                  <IconCalendar />
+                  <span>
+                    <small>날짜</small>
+                    <b>{f.depart && (oneWay || f.ret) ? dateText(f.depart, oneWay ? undefined : f.ret) : "날짜를 넣어 주세요"}</b>
+                  </span>
+                </button>
+              )}
+            />
+            <FlightPaxPicker value={f} onChange={(g) => setF({ ...f, ...g })} />
           </div>
         </>
       )}
-      {err && <p className="tb-err">{err}</p>}
+      {(err || (kind === "flight" && f.from && f.from === f.to)) && <p className="tb-err" role="alert">{err || "출발과 도착이 같아요. 도착 도시를 바꿔 주세요."}</p>}
       <button type="submit" className="tb-cta">
         검색
       </button>
+      {/* P1-1: 검색칸 아래 인기 여행지(숙소)·인기 노선(항공). 누르면 기본 날짜로 바로 찾는다 */}
+      <div className="tb-pop" aria-label={kind === "stay" ? "인기 여행지" : "인기 노선"} role="group">
+        <small>{kind === "stay" ? "인기 여행지" : "인천 출발 인기 노선"}</small>
+        <div className="tb-pop-row">
+          {kind === "stay"
+            ? HOME_PLACES.map((p) => (
+                <button
+                  key={p.name}
+                  type="button"
+                  onClick={() => {
+                    const [d1, d2] = defaultDates();
+                    const q = { ...s, place: p.name, checkIn: d1, checkOut: d2 };
+                    setS(q);
+                    startStay(q);
+                  }}
+                >
+                  {p.name}
+                </button>
+              ))
+            : HOME_ROUTES.map((r) => (
+                <button key={r.to} type="button" onClick={() => searchRoute(r)}>
+                  인천 → {r.name}
+                </button>
+              ))}
+        </div>
+      </div>
     </form>
   );
 }

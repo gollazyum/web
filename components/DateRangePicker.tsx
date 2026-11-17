@@ -15,6 +15,9 @@ type Props = {
   unit: (days: number) => string; // "2박", "3일"
   quick?: { label: string; end: (start: string) => string }; // "편도"
   openSignal?: number; // 바뀌면 달력을 연다 (휴대폰에서 목적지를 고른 직후)
+  // 기본 두 칸 대신 쓸 열기 버튼 (여행 앱 검색 카드). openAt("start")로 연다
+  trigger?: (openAt: (p: "start" | "end") => void, open: boolean) => React.ReactNode;
+  single?: boolean; // 편도: 하루만 고르고 닫는다
 };
 
 const MONTHS_AHEAD = 11;
@@ -33,7 +36,7 @@ function addMonths(d: Date, n: number): Date {
 
 // 가는 날(체크인)을 고르면 그대로 오는 날(체크아웃) 고르기로 넘어가는 달력 한 장.
 // 데스크톱은 두 달을 보여 주고, 휴대폰(640px 이하)은 아래에서 올라오는 시트에 여러 달을 세로로 보여 준다
-export function DateRangePicker({ start, end, onChange, labels, prompts, endPlaceholder, minGap, unit, quick, openSignal }: Props) {
+export function DateRangePicker({ start, end, onChange, labels, prompts, endPlaceholder, minGap, unit, quick, openSignal, trigger, single }: Props) {
   const [open, setOpen] = useState(false);
   const [sheet, setSheet] = useState(false);
   const monthsRef = useRef<HTMLDivElement>(null);
@@ -95,11 +98,37 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
     setHover("");
     const focus = next === "end" ? end || start : start;
     setView(focus ? monthStart(focus) : first);
+    setFocusDay(focus || today());
     setSheet(isPhone());
     setOpen(true);
   }
 
+  // 방향키로 날짜 이동 (←→ 하루, ↑↓ 한 주), Enter·Space는 버튼 기본 동작으로 고른다 (P1-3)
+  const [focusDay, setFocusDay] = useState("");
+  useEffect(() => {
+    if (!open || !focusDay) return;
+    pop.current?.querySelector<HTMLButtonElement>(`[data-day="${focusDay}"]`)?.focus();
+  }, [open, focusDay, view]);
+  function onGridKey(e: React.KeyboardEvent<HTMLDivElement>) {
+    const day = (e.target as HTMLElement).closest<HTMLElement>("[data-day]")?.dataset.day;
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+    if (!day || !step) return;
+    e.preventDefault();
+    const d = parseIso(day);
+    d.setDate(d.getDate() + step);
+    const next = isoDate(d);
+    if (next < today()) return;
+    const m = monthStart(next);
+    if (!sheet && (m < view || m > addMonths(view, 1))) setView(m < view ? m : addMonths(m, -1));
+    setFocusDay(next);
+  }
+
   function pick(day: string) {
+    if (single) {
+      onChange(day, "");
+      setOpen(false);
+      return;
+    }
     if (phase === "start" || !start || daysBetween(start, day) < minGap) {
       onChange(day, "");
       setPhase("end");
@@ -115,7 +144,9 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
   const span = start && end ? daysBetween(start, end) : 0;
 
   const status =
-    phase === "start" || !start
+    single
+      ? start ? `${shortLabel(start)} 출발` : prompts[0]
+      : phase === "start" || !start
       ? prompts[0]
       : end
         ? `${shortLabel(start)} → ${shortLabel(end)} · ${unit(span)}`
@@ -135,7 +166,7 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
         <strong className="dp-title">
           {y}년 {mo + 1}월
         </strong>
-        <div className="dp-grid" role="grid">
+        <div className="dp-grid" role="grid" onKeyDown={onGridKey}>
           {weekdays.map((w, i) => (
             <span key={w} className={`dp-wd${i === 0 ? " sun" : i === 6 ? " sat" : ""}`}>
               {w}
@@ -171,6 +202,9 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
                 disabled={day < min}
                 aria-pressed={isStart || day === end}
                 aria-label={`${y}년 ${mo + 1}월 ${i + 1}일`}
+                data-day={day}
+                tabIndex={day === (focusDay || (phase === "end" ? end || start : start) || min) ? 0 : -1}
+                onFocus={() => setFocusDay(day)}
                 onClick={() => pick(day)}
                 onMouseEnter={() => setHover(day)}
               >
@@ -184,7 +218,9 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
   }
 
   return (
-    <div className="date-range" ref={wrap}>
+    <div className={trigger ? "date-range custom" : "date-range"} ref={wrap}>
+      {trigger ? trigger(openAt, open) : (
+      <>
       <button type="button" className={`field date-field${open && phase === "start" ? " active" : ""}`} onClick={() => openAt("start")}>
         <span>{labels[0]}</span>
         <b className={start ? undefined : "empty"}>{start ? shortLabel(start) : "날짜 입력"}</b>
@@ -196,6 +232,8 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
         </span>
         <b className={end ? undefined : "empty"}>{end ? shortLabel(end) : endPlaceholder}</b>
       </button>
+      </>
+      )}
 
       {open && sheet && <div className="sheet-dim dp-dim" aria-hidden="true" onClick={() => setOpen(false)} />}
       {open && (
@@ -253,7 +291,7 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
                 </button>
               )}
               <button type="button" className="dp-done" onClick={() => setOpen(false)}>
-                {sheet && start && end ? `${dot(start)} – ${dot(end)} · ${unit(span)} 입력 완료` : "완료"}
+                {sheet && start && end && !single ? `${dot(start)} – ${dot(end)} · ${unit(span)} 입력 완료` : "완료"}
               </button>
             </div>
           </div>

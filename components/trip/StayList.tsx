@@ -6,7 +6,7 @@ import { isShownAmenity } from "@/lib/hotelText";
 import { sellerDef } from "@/lib/hotel-sellers";
 import { rankNotes, stayFactLine, type RankNote } from "@/lib/stay-facts";
 import { activeCount, applyFilter, countFilters, EMPTY_FILTER, type StayFilter } from "@/lib/stay-filters";
-import { isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
+import { guestText, isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
 import { shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
 import { changeText, priceChange, savedBaseFor } from "./saved-price";
 import { FilterBar, FilterPanel, SORTS, type Sort } from "./StayFilters";
@@ -77,7 +77,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   // 한 번 보여 준 카드 순서는 바꾸지 않는다 (P0-2). 순서는 아래 때에만 새로 정한다:
   // 새 검색, 정렬·필터를 바꿀 때, 더 불러온 숙소가 붙을 때(뒤에만 붙는다), '추천순으로 보기'를 누를 때.
   // AI 추천이 늦게 와도 카드에 배지·이유만 붙고 자리는 그대로다. 예약처 가격이 와도 자리는 그대로다
-  const searchKey = `${query.place}|${query.checkIn}|${query.checkOut}|${query.adults}|${query.taste ?? ""}`;
+  const searchKey = `${query.place}|${query.checkIn}|${query.checkOut}|${guestText(query)}|${(query.childAges ?? []).join(".")}|${query.taste ?? ""}`;
   const [rankPicks, setRankPicks] = useState<{ key: string; tokens: string[] }>({ key: searchKey, tokens: picks.map((p) => p.token) });
   const frozenTokens = rankPicks.key === searchKey ? rankPicks.tokens : picks.map((p) => p.token);
   useEffect(() => {
@@ -136,7 +136,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
           <button type="button" className="tb-qpill" onClick={onBack}>
             <strong>{query.place}</strong>
             <span>
-              {md(query.checkIn)} – {md(query.checkOut)} · 성인 {query.adults}
+              {md(query.checkIn)} – {md(query.checkOut)} · {guestText(query)}
             </span>
           </button>
         </div>

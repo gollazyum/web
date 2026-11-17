@@ -3,14 +3,23 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { loadAirports, searchCities } from "@/lib/airports";
 import type { PlaceHit } from "@/lib/places";
-import { useSearchLayer } from "@/lib/useSheet";
+import { useLayerFocus, useSearchLayer } from "@/lib/useSheet";
 
-type Props = { value: string; onChange: (text: string) => void; onPicked?: () => void }; // onPicked: 휴대폰에서 고른 뒤 날짜 고르기로 넘어갈 때
+type Props = {
+  value: string;
+  onChange: (text: string) => void;
+  onPicked?: () => void; // 휴대폰에서 고른 뒤 날짜 고르기로 넘어갈 때
+  label?: string;
+  placeholder?: string;
+  // 찾는 곳이 없을 때 보여 줄 인기 도시 (누르면 그 도시로 채운다)
+  popular?: string[];
+  className?: string;
+};
 
 // 숙소 검색창 "어디로 가세요?". 글자를 치면 호텔·도시 이름을 추천한다.
 // 호텔은 /api/places(Google Places), 키가 없거나 실패하면 공항 데이터의 도시 이름만 보여 준다.
 // 휴대폰에서는 누르면 전체 화면 검색 레이어로 펼쳐 목록이 키보드에 가리지 않게 한다
-export function PlaceInput({ value, onChange, onPicked }: Props) {
+export function PlaceInput({ value, onChange, onPicked, label = "어디로 가세요?", placeholder = "목적지, 숙소, 또는 라이프스타일 키워드를 검색해 보세요", popular, className = "field field-url" }: Props) {
   const listId = useId();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -20,6 +29,8 @@ export function PlaceInput({ value, onChange, onPicked }: Props) {
   const session = useRef("");
   const sl = useSearchLayer();
   const listOpen = open || sl.layer;
+  const inputEl = useRef<HTMLInputElement | null>(null);
+  useLayerFocus(sl.layer, inputEl);
 
   useEffect(() => {
     const q = value.trim();
@@ -90,16 +101,17 @@ export function PlaceInput({ value, onChange, onPicked }: Props) {
   const showList = listOpen && (results.length > 0 || empty);
 
   return (
-    <label className={`field field-url airport-field${sl.layer ? " search-layer" : ""}`} style={sl.style}>
+    <label className={`${className} airport-field${sl.layer ? " search-layer" : ""}`} style={sl.style}>
       {sl.layer && (
         <button
           type="button"
           className="layer-back"
           aria-label="검색 닫기"
+          tabIndex={-1}
           onMouseDown={(e) => e.preventDefault()}
           onClick={(e) => {
             e.preventDefault();
-            if (!sl.backReady()) return;
+            if (!sl.backReady()) return inputEl.current?.focus({ preventScroll: true });
             (document.activeElement as HTMLElement | null)?.blur();
             sl.close();
           }}
@@ -107,8 +119,9 @@ export function PlaceInput({ value, onChange, onPicked }: Props) {
           ←
         </button>
       )}
-      <span>어디로 가세요?</span>
+      <span>{label}</span>
       <input
+        ref={inputEl}
         type="text"
         role="combobox"
         aria-expanded={showList}
@@ -116,7 +129,7 @@ export function PlaceInput({ value, onChange, onPicked }: Props) {
         aria-autocomplete="list"
         aria-activedescendant={showList ? `${listId}-${active}` : undefined}
         autoComplete="off"
-        placeholder="목적지, 숙소, 또는 라이프스타일 키워드를 검색해 보세요"
+        placeholder={placeholder}
         maxLength={100}
         value={value}
         enterKeyHint="search"
@@ -134,7 +147,29 @@ export function PlaceInput({ value, onChange, onPicked }: Props) {
       {sl.layer && !value.trim() && <p className="layer-tip">도시나 호텔 이름을 넣어 주세요. 예: 도쿄 신주쿠, 다낭 해변 호텔</p>}
       {showList && (
         <ul id={listId} role="listbox" className="airport-list">
-          {empty && <li className="airport-empty">연결할 곳이 없어요. 이대로 "숙소 탐색"을 눌러도 찾아 드려요.</li>}
+          {empty &&
+            (popular?.length ? (
+              <li className="airport-empty tb-noplace">
+                찾는 곳이 없어요. 이런 곳은 어때요?
+                <span className="tb-noplace-chips">
+                  {popular.map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        pick({ name, sub: "", kind: "city" });
+                      }}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </span>
+              </li>
+            ) : (
+              <li className="airport-empty">연결할 곳이 없어요. 이대로 "숙소 탐색"을 눌러도 찾아 드려요.</li>
+            ))}
           {results.map((p, i) => (
             <li
               key={`${p.kind}-${p.name}-${p.sub}`}
