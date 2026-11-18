@@ -48,6 +48,7 @@ import { SearchCard, type SearchCardHandle, type SearchKind } from "./SearchCard
 import { SellerBody, SellerSheet } from "./SellerSheet";
 import { Sheet } from "./Sheet";
 import { Onboarding } from "./Onboarding";
+import { SharedTripView } from "./TripRecheck";
 import { PriceBlock, RankLines, StayList, StayRow, type StayPick } from "./StayList";
 import { rankNotes, stayFactLine, type RankNote } from "@/lib/stay-facts";
 import { getVerified, prefetchPrices, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
@@ -1303,9 +1304,12 @@ function Soon({ title, lead, items }: { title: string; lead: string; items: stri
 
 function My({ saved, profile, onTaste, onOpen, onSave, onHome, onFlight, onMoreStays }: { saved: Saved[]; profile: TasteProfile | null; onTaste: () => void; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void; onFlight: (t: Trip) => void; onMoreStays: (t: Trip) => void }) {
   const summary = profileLines(profile).join("\n");
+  const [shared, setShared] = useState<string | null>(null);
+  useEffect(() => setShared(new URLSearchParams(window.location.search).get("trip")), []);
   return (
     <main className="tb-page">
       <h1>마이</h1>
+      <SharedTripView code={shared} />
       <section className="tb-taste-box">
         <h2 className="tb-h2">내 여행 취향</h2>
         <p>{summary || "아직 알려 주신 취향이 없어요. 설정하면 AI 추천 3곳이 취향에 맞춰져요."}</p>

@@ -6,6 +6,7 @@ import { daysUntil, groupTrips, TRIP_CHECK_KEY, TRIP_CHECKS, type Trip, type Tri
 import { nightsOf } from "@/lib/trip";
 import { StayRow } from "./StayList";
 import { IconBed, IconPlane } from "./icons";
+import { TripActions } from "./TripRecheck";
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
 
@@ -104,6 +105,7 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
                   이 날짜로 숙소 더 보기
                 </button>
               )}
+              {!t.past && <TripActions items={t.items} place={t.items[0]?.query.place ?? t.city} checkIn={t.checkIn} checkOut={t.checkOut} adults={t.adults} />}
 
               {!t.past && (
                 <div className="tb-trip-checks">
