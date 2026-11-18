@@ -59,8 +59,12 @@ export function Onboarding({ init, onDone, onSkip }: Props) {
   return (
     <div className="tb-onb" role="dialog" aria-modal="true" aria-label="여행 취향 설문">
       <div className="tb-onb-in">
+        {/* P2: 뒤로 가기 머리글 (첫 단계에서는 설문을 닫는다) */}
         <div className="tb-onb-top">
-          <span className="tb-orb" style={{ width: 40, height: 40 }} aria-hidden />
+          <button type="button" className="tb-ib" aria-label={step ? "이전 질문" : "설문 닫기"} onClick={() => (step ? setStep(step - 1) : onSkip(p))}>
+            <IconBack size={20} />
+          </button>
+          <strong className="tb-onb-title">여행 취향 설정 · {step + 1}/{STEPS.length}</strong>
           <button type="button" className="tb-onb-skip" onClick={() => onSkip(p)}>
             나중에 하기
           </button>

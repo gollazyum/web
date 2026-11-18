@@ -1,13 +1,6 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-// 지금 탭 (여행 중 도구, 준비 중). 화면은 (trip)/layout.tsx 의 앱이 주소를 보고 그린다
-export const metadata: Metadata = {
-  title: "지금",
-  description: "여행 중에 쓰는 도구를 준비하고 있어요.",
-  alternates: { canonical: "/now" },
-  robots: { index: false, follow: true },
-};
-
+// P2: '지금' 탭(여행 중 도구)은 준비될 때까지 숨긴다. 예전 주소로 오면 홈으로 보낸다
 export default function NowPage() {
-  return null;
+  redirect("/");
 }

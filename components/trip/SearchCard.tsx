@@ -10,7 +10,7 @@ import { HOME_PLACES } from "@/lib/home-places";
 import { HOME_ROUTES } from "@/lib/home-info";
 import { defaultDates } from "./InputSheets";
 import { FlightPaxPicker, StayGuestPicker } from "./GuestPicker";
-import { IconBed, IconCalendar, IconPlane, IconSpark } from "./icons";
+import { IconBed, IconCalendar, IconPlane } from "./icons";
 
 export type SearchKind = "stay" | "flight";
 
@@ -99,9 +99,6 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
         </button>
         <button type="button" role="tab" aria-selected={kind === "flight"} onClick={() => onKind("flight")}>
           <IconPlane size={20} /> 항공권
-        </button>
-        <button type="button" role="tab" aria-disabled title="곧 열려요">
-          <IconSpark size={18} /> 투어 <em>곧</em>
         </button>
       </div>
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { labelForCode, loadAirports, searchPlaces } from "@/lib/airports";
 import { brand, BRAND_AI_NAME, BRAND_NAME } from "@/lib/brand";
 import { today as localToday } from "@/lib/dates";
@@ -54,7 +54,7 @@ import { getVerified, prefetchPrices, shownPrice, useLazyPrice, usePriceVersion 
 import { setSavedList, type SavedBase } from "./saved-price";
 import { MyTrips } from "./MyTrips";
 import type { Trip } from "@/lib/trips";
-import { IconBack, IconBed, IconChatStar, IconClose, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
+import { IconBack, IconBed, IconChatStar, IconClose, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
 
 type Status = "loading" | "done" | "error";
 
@@ -194,7 +194,8 @@ const homeHrefOf = (m: { t: "stay"; query: StayQuery } | { t: "flight"; query: F
 const cityOf = (label: string) => label.replace(/\s*\([A-Z]{3}\)\s*$/, "");
 
 // AI 표시: 유리 구슬 (v7)
-const Orb = ({ size = 32 }: { size?: number }) => <span className="tb-orb" style={{ width: size, height: size }} aria-hidden />;
+// calm: AI 채팅 첫 화면처럼 크게 보일 때 움직임을 줄인다 (P2)
+const Orb = ({ size = 32, calm }: { size?: number; calm?: boolean }) => <span className={calm ? "tb-orb calm" : "tb-orb"} style={{ width: size, height: size }} aria-hidden />;
 
 export function TripApp() {
   // 탭은 주소가 정한다 (/ 홈, /chat AI 채팅, /now 지금, /my 마이). 뒤로 가기·새로 고침·공유가 그대로 된다
@@ -567,13 +568,25 @@ export function TripApp() {
   // AI 채팅으로 가기. 취향 기록이 없으면 이때 한 번만 설문을 띄운다
   function openChat(focus = false) {
     setTab("chat");
-    if (focus && !taste.need) setTimeout(() => inputRef.current?.focus(), 50);
+    if (focus) setTimeout(() => inputRef.current?.focus(), 50);
   }
-  // 취향 기록이 없으면 AI 채팅(/chat)에 처음 들어왔을 때 한 번만 설문을 띄운다.
-  // 주소가 /chat 으로 바뀐 뒤에 띄워야 뒤로 가기가 설문만 닫고 이전 탭으로 돌아간다
-  useEffect(() => {
-    if (tab === "chat" && taste.need) setOnb(true);
-  }, [tab, taste.need]);
+  // P2: AI 채팅은 대화부터 보여 주고, 취향 설문은 첫 답 아래 「30초 취향 설정」 카드로 권한다 (자동으로 띄우지 않는다)
+  const tasteCard = taste.need ? (
+    <div className="tb-taste-card">
+      <span>
+        <strong>30초 취향 설정</strong>
+        <small>누구와, 어떤 여행을 좋아하는지 알려 주시면 AI 추천을 취향에 맞춰 드려요.</small>
+      </span>
+      <span className="tb-taste-card-go">
+        <button type="button" className="tb-btn dark" onClick={() => setOnb(true)}>
+          설정하기
+        </button>
+        <button type="button" className="tb-taste-card-x" onClick={() => taste.set(EMPTY_PROFILE, "skipped")}>
+          괜찮아요
+        </button>
+      </span>
+    </div>
+  ) : null;
 
   function save(hotel: HotelOption, query: StayQuery) {
     const was = savedSet.has(hotel.token);
@@ -601,6 +614,7 @@ export function TripApp() {
 
   const homeMsg = msgs.find((m) => m.id === homeId) as StayMsg | FlightMsg | undefined;
   const chatMsgs = msgs.filter((m) => !("home" in m && m.home));
+  const firstReply = chatMsgs.findIndex((m) => m.t !== "user");
   const homeHref = homeMsg ? homeHrefOf(homeMsg) : "/";
   // PC 2열: 홈 숙소 결과와 AI 채팅은 왼쪽 목록 + 오른쪽 예약처 패널
   const split = wide && ((tab === "home" && homeMsg?.t === "stay") || tab === "chat");
@@ -764,7 +778,7 @@ export function TripApp() {
             </header>
             {chatMsgs.length === 0 ? (
               <div className="tb-chat-empty">
-                <Orb size={88} />
+                <Orb size={56} calm />
                 <h1>어디로, 언제, 누구와 가는지 편하게 말해 주세요</h1>
                 <p>취향에 맞는 곳을 3곳만 먼저 보여드릴게요.</p>
                 <div className="tb-examples">
@@ -774,12 +788,13 @@ export function TripApp() {
                     </button>
                   ))}
                 </div>
+                {tasteCard}
               </div>
             ) : (
               <div className="tb-msgs" aria-live="polite">
-                {chatMsgs.map((m) => (
+                {chatMsgs.map((m, i) => (
+                  <Fragment key={m.id}>
                   <MsgView
-                    key={m.id}
                     m={m}
                     saved={savedSet}
                     onAnswer={(i, a) => m.t === "ask" && patch(m.id, { answers: { ...m.answers, [i]: a } })}
@@ -793,6 +808,8 @@ export function TripApp() {
                     onSay={send}
                     onPrefill={prefill}
                   />
+                  {i === firstReply && tasteCard}
+                  </Fragment>
                 ))}
                 {busy && <Typing />}
                 <div ref={endRef} />
@@ -850,7 +867,7 @@ export function TripApp() {
             [
               { id: "home", label: "홈", icon: <IconHome size={24} /> },
               { id: "chat", label: "AI 채팅", icon: <IconChatStar size={24} /> },
-              { id: "now", label: "지금", icon: <IconCompass size={24} />, soon: true },
+              // P2: '지금' 탭은 여행 중 기능이 준비될 때까지 숨긴다 (/now 는 홈으로 보낸다)
               { id: "my", label: "마이", icon: <IconUser size={24} /> },
             ] as { id: Tab; label: string; icon: React.ReactNode; soon?: boolean }[]
           ).map((it) => (
@@ -982,8 +999,8 @@ function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onMore, onStars
               <button type="button" className="tb-cta small" onClick={onRetry}>
                 {SEARCH_RETRY_LABEL}
               </button>
-              <a className="tb-link" href={m.t === "stay" ? sellerSearchUrl("trip", m.query.place, m.query) : flightLink(m.query)} target="_blank" rel="noopener noreferrer">
-                트립닷컴에서 바로 보기 <IconOut />
+              <a className="tb-btn tb-err-sub" href={m.t === "stay" ? sellerSearchUrl("agoda", m.query.place, m.query) : flightLink(m.query)} target="_blank" rel="noopener noreferrer">
+                {m.t === "stay" ? "아고다에서 보기" : "트립닷컴에서 보기"} <IconOut />
               </a>
             </div>
           </div>
@@ -1103,7 +1120,8 @@ function Searching({ text }: { text: string }) {
   );
 }
 
-function ErrorBox({ status, onRetry, fallbackHref }: { status: number | null | undefined; onRetry: () => void; fallbackHref: string }) {
+// P2: 오류 화면은 '다시 시도'가 주 버튼, 예약처 링크는 보조 (숙소는 아고다, 항공은 트립닷컴)
+function ErrorBox({ status, onRetry, fallbackHref, fallbackLabel }: { status: number | null | undefined; onRetry: () => void; fallbackHref: string; fallbackLabel: string }) {
   return (
     <div className="tb-col">
       <AiSay>{searchErrorMessage(status ?? null)}</AiSay>
@@ -1111,8 +1129,8 @@ function ErrorBox({ status, onRetry, fallbackHref }: { status: number | null | u
         <button type="button" className="tb-cta small" onClick={onRetry}>
           {SEARCH_RETRY_LABEL}
         </button>
-        <a className="tb-link" href={fallbackHref} target="_blank" rel="noopener noreferrer">
-          트립닷컴에서 바로 보기 <IconOut />
+        <a className="tb-btn tb-err-sub" href={fallbackHref} target="_blank" rel="noopener noreferrer">
+          {fallbackLabel} <IconOut />
         </a>
       </div>
     </div>
@@ -1151,7 +1169,7 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
   usePriceVersion(); // 예약처 시트·미리 조회로 맞춘 금액이 오면 다시 그린다
   const q = m.query;
   if (m.status === "loading") return <Searching text={`${q.place} 숙소를 찾고 있어요`} />;
-  if (m.status === "error") return <ErrorBox status={m.err} onRetry={onRetry} fallbackHref={sellerSearchUrl("trip", q.place, q)} />;
+  if (m.status === "error") return <ErrorBox status={m.err} onRetry={onRetry} fallbackHref={sellerSearchUrl("agoda", q.place, q)} fallbackLabel="아고다에서 보기" />;
   const options = m.options ?? [];
   const nights = nightsOf(q);
   if (!options.length) return <AiSay>이 조건으로는 숙소를 찾지 못했어요. 지역 이름을 조금 넓게(예: “오사카”) 적거나 날짜를 바꿔 보세요.</AiSay>;
@@ -1234,7 +1252,7 @@ function FlightResult({ m, onAll, onRefine, onRetry, onPrefill }: MsgProps & { m
   const q = m.query;
   const route = `${cityOf(q.fromLabel || q.from)} → ${cityOf(q.toLabel || q.to)}`;
   if (m.status === "loading") return <Searching text={`${route} 항공편을 찾고 있어요`} />;
-  if (m.status === "error") return <ErrorBox status={m.err} onRetry={onRetry} fallbackHref={flightLink(q)} />;
+  if (m.status === "error") return <ErrorBox status={m.err} onRetry={onRetry} fallbackHref={flightLink(q)} fallbackLabel="트립닷컴에서 보기" />;
   const options = m.options ?? [];
   if (!options.length) return <AiSay>이 날짜에는 항공편을 찾지 못했어요. 날짜나 공항을 바꿔 보세요.</AiSay>;
   const picks = (m.picks ?? []).map((p) => ({ ...p, o: options[p.n - 1] })).filter((p) => p.o);
@@ -1296,10 +1314,6 @@ function My({ saved, profile, onTaste, onOpen, onSave, onHome, onFlight, onMoreS
         </button>
       </section>
       <MyTrips saved={saved} onOpen={onOpen} onSave={onSave} onHome={onHome} onFlight={onFlight} onMoreStays={onMoreStays} />
-      <div className="tb-soon-box">
-        <span className="tb-tag ac">곧 열려요</span>
-        <p>지난 여행 사진 모아 보기를 준비하고 있어요.</p>
-      </div>
     </main>
   );
 }

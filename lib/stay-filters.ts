@@ -44,7 +44,7 @@ export function applyFilter(list: HotelOption[], f: StayFilter, cost: (h: HotelO
 
 export type FilterCounts = {
   stars: { n: number; count: number }[];
-  bands: { id: string; label: string; count: number }[];
+  bands: { id: string; label: string; min: number; max: number; count: number }[];
   ratings: { min: number; count: number }[];
   kinds: { name: string; count: number }[];
   amenities: { name: string; count: number }[];
@@ -61,7 +61,7 @@ export function countFilters(list: HotelOption[], cost: (h: HotelOption) => numb
   };
   return {
     stars: [1, 2, 3, 4, 5].map((n) => ({ n, count: list.filter((h) => starOf(h) === n).length })),
-    bands: PRICE_BANDS.map((b) => ({ id: b.id, label: b.label, count: list.filter((h) => inBand(cost(h), nights, b)).length })),
+    bands: PRICE_BANDS.map((b) => ({ ...b, count: list.filter((h) => inBand(cost(h), nights, b)).length })),
     ratings: RATING_STEPS.map((min) => ({ min, count: list.filter((h) => (h.rating ?? 0) >= min).length })),
     kinds: tally(list.map((h) => h.kind)),
     // 조식·무료 취소는 따로 묻는다

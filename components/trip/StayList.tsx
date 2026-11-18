@@ -9,6 +9,7 @@ import { activeCount, applyFilter, countFilters, EMPTY_FILTER, type StayFilter }
 import { guestText, isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
 import { shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
 import { changeText, priceChange, savedBaseFor } from "./saved-price";
+import { AiSortInfo } from "./AiSortInfo";
 import { FilterBar, FilterPanel, SORTS, type Sort } from "./StayFilters";
 import { IconBack, IconHeart, IconSpark } from "./icons";
 
@@ -142,7 +143,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
         </div>
       )}
       <div className={side ? "tb-fbar-wrap has-side" : "tb-fbar-wrap"}>
-        <FilterBar c={counts} f={f} set={setF} sort={sort} setSort={setSort} />
+        <FilterBar c={counts} f={f} set={setF} sort={sort} setSort={setSort} nights={nights} />
       </div>
       </div>
       <div className={side ? "tb-results-body" : undefined}>
@@ -157,7 +158,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
                 </button>
               ))}
             </section>
-            <FilterPanel c={counts} f={f} set={setF} />
+            <FilterPanel c={counts} f={f} set={setF} nights={nights} />
             {activeCount(f) > 0 && (
               <button type="button" className="tb-freset" onClick={() => setF(EMPTY_FILTER)}>
                 필터 모두 해제
@@ -169,6 +170,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
           <p className="tb-results-note">
             숙소 {shown.length}곳 · {aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}곳에 표시했어요`} · {nights}박 총액
           </p>
+          {sort === "ai" && <AiSortInfo kind="stay" />}
           {reorderable && (
             <button type="button" className="tb-reorder" onClick={() => setRankPicks({ key: searchKey, tokens: picks.map((p) => p.token) })}>
               추천순으로 보기
