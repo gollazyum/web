@@ -4138,3 +4138,220 @@
   font-style: normal;
   font-weight: 600;
 }
+
+/* ---------- 모바일(≤640px) 'AI 추천 3곳' 고정 띠 (PC는 그대로: 띠를 숨기고 ⓘ는 결과 안내 아래) ---------- */
+.tb-top3 {
+  display: none;
+}
+@media (max-width: 640px) {
+  .tb-pc-only {
+    display: none;
+  }
+  .tb-top3 {
+    display: block;
+    padding: 12px 0 4px;
+    border-bottom: 8px solid var(--tb-soft);
+  }
+  .tb-top3-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 20px;
+  }
+  .tb-top3-head h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .tb-top3-head .tb-ainfo {
+    margin: 0;
+  }
+  .tb-top3-head .tb-ainfo summary {
+    font-size: 12.5px;
+  }
+  .tb-top3-head .tb-ainfo[open] p {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    z-index: 5;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  }
+  .tb-top3-row {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding: 8px 20px 12px;
+  }
+  .tb-top3-row::-webkit-scrollbar {
+    display: none;
+  }
+  .tb-app .tb-top3-card {
+    flex: 0 0 74%;
+    height: 112px; /* 응답 전후 같은 높이 */
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 12px;
+    border: 1px solid var(--tb-line);
+    border-radius: 14px;
+    background: var(--tb-card);
+    text-align: left;
+    scroll-snap-align: start;
+    overflow: hidden;
+  }
+  .tb-top3-card.skel {
+    border: 0;
+    background: linear-gradient(90deg, var(--tb-soft), var(--tb-card), var(--tb-soft));
+    background-size: 200% 100%;
+    animation: tb-shine 1.2s infinite linear;
+  }
+  .tb-top3-rank {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tb-sub);
+  }
+  .tb-top3-card strong {
+    font-size: 14.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tb-top3-price {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+  }
+  .tb-top3-price b {
+    font-weight: 700;
+    color: var(--tb-accent);
+  }
+  .tb-top3-price small {
+    font-size: 12px;
+    color: var(--tb-sub);
+  }
+  .tb-top3-why {
+    font-size: 12.5px;
+    color: var(--tb-sub);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* 항공 카드 위 AI 이유 줄: 처음부터 2줄 높이, 3줄 이상은 말줄임 (줄 수가 바뀌며 아래 카드를 밀지 않게) */
+.tb-fcard-band {
+  line-height: 1.45;
+}
+.tb-fcard-band.ai-band {
+  min-height: calc(2 * 1.45em + 18px);
+}
+.tb-fcard-band span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  /* 휴대폰은 AI 추천 3편을 위 띠에서 보여 주므로, 목록 카드에는 AI 줄을 늦게 끼워 넣지 않는다 */
+  .tb-fcard-band.ai-band {
+    display: none;
+  }
+  .tb-top3.flight .tb-top3-card {
+    height: 104px;
+  }
+}
+
+/* AI 채팅: 추천 응답 전 회색 카드 (응답 뒤 카드와 비슷한 높이) */
+.tb-hcard.skel {
+  min-height: 360px;
+  border: 0;
+  background: linear-gradient(90deg, var(--tb-soft), var(--tb-card), var(--tb-soft));
+  background-size: 200% 100%;
+  animation: tb-shine 1.2s infinite linear;
+}
+
+/* 'ⓘ AI 추천은 어떻게 정하나요?' 좌우 여백 (휴대폰) */
+@media (max-width: 640px) {
+  .tb-results-main > .tb-ainfo,
+  .tb-pc-only + .tb-ainfo {
+    padding: 0 20px;
+  }
+  .tb-top3-head .tb-ainfo summary {
+    padding: 0;
+  }
+}
+@media (max-width: 640px) {
+  .tb-top3 {
+    position: relative;
+  }
+}
+
+/* ---------- 모바일(≤640px) 예상과 확인한 금액이 다를 때 알림: 강조색 대신 차분한 주황 바탕, 12px ---------- */
+.tb-estnote {
+  display: none;
+}
+@media (max-width: 640px) {
+  .tb-app .tb-was.tb-pc-only {
+    display: none;
+  }
+  .tb-estnote {
+    display: inline-block;
+    align-self: flex-start;
+    margin-top: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--tb-star) 14%, white);
+    color: var(--tb-ink);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .tb-seller-title + .tb-estnote {
+    margin: 0 0 8px;
+  }
+}
+
+/* ---------- 모바일(≤640px) 항공 카드: 경유 대기 줄, 오는 편 자리 (PC는 그대로) ---------- */
+.tb-leg-wait {
+  display: none;
+}
+@media (max-width: 640px) {
+  .tb-leg-wait {
+    display: block;
+    width: fit-content;
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--tb-sub);
+  }
+  .tb-leg-wait.long {
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--tb-star) 14%, white);
+    color: var(--tb-ink);
+    font-weight: 500;
+  }
+  /* 오는 편을 불러오는 동안 한 방향 줄과 같은 높이를 잡아 두어, 불러온 뒤 카드가 늘어나지 않게 한다 */
+  .tb-leg-none.wait {
+    min-height: 91.5px; /* 직항 한 방향 줄 높이 (390px에서 잰 값) */
+  }
+}
+
+/* 아주 좁은 화면(≤320px): 로고 옆 '가칭' 표시를 숨긴다 */
+@media (max-width: 320px) {
+  .tb-logo em {
+    display: none;
+  }
+}
+
+/* 모바일 AI 채팅: 목록 아래 여백 = 입력칸 묶음 높이(78px) - 탭 막대와 겹치는 8px + 여유 16px + 안전 영역 */
+@media (max-width: 640px) {
+  .tb-msgs {
+    padding-bottom: calc(86px + env(safe-area-inset-bottom));
+  }
+}

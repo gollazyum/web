@@ -151,14 +151,14 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
         : phase === "start" || !start
           ? prompts[0]
           : `${shortLabel(start)} 입력됨 · ${prompts[1]}`;
-  // 시트 머리줄: 고른 날짜가 있으면 그 날짜를, 없을 때만 '체크인 입력'처럼 다음에 고를 것을 보여 준다
+  // 시트 머리줄: 고른 날짜가 있으면 그 날짜를, 아무것도 고르지 않았으면 '날짜 선택'
   const sheetHead = single
-    ? start ? dot(start) : `${labels[0]} 입력`
+    ? start ? dot(start) : "날짜 선택"
     : start && end
       ? `${dot(start)} – ${dot(end)} · ${unit(span)}`
       : start && phase === "end"
         ? `${dot(start)} – ${labels[1]} 입력`
-        : `${labels[0]} 입력`;
+        : "날짜 선택";
 
   function month(m: Date) {
     const y = m.getFullYear();

@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { tripUrl, type FlightOption } from "@/lib/flights";
 import { hhmm, paxOf, paxText, won, type FlightQuery } from "@/lib/trip";
 import { cityForCode, loadAirports } from "@/lib/airports";
 import { applyFlightFilter, EMPTY_FLIGHT_FILTER, flightFacets, flightFilterCount, type Facet, type FlightFacets, type FlightFilter } from "@/lib/flight-filters";
-import { dayShift, durText, legDate, perPerson, stopText, waits } from "@/lib/flight-legs";
+import { dayShift, durText, legDate, perPerson, stopText, waitLines, waits } from "@/lib/flight-legs";
 import { searchFlightReturns } from "./api";
 import { IconBack, IconOut } from "./icons";
 import { AiSortInfo } from "./AiSortInfo";
@@ -42,6 +42,33 @@ function useReturns(token?: string): RetState | undefined {
   );
 }
 
+// 왕복 카드가 화면에 잠깐(0.3초) 머물면 오는 편을 미리 찾는다 (AI 3편은 결과가 오자마자 찾는다)
+function useLazyReturns<T extends Element>(q: FlightQuery, token?: string) {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!q.ret || !token || !el || RET.has(token) || typeof IntersectionObserver === "undefined") return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        clearTimeout(timer);
+        if (!e.isIntersecting) return;
+        timer = setTimeout(() => {
+          io.disconnect();
+          loadReturns(q, token);
+        }, 300);
+      },
+      { threshold: 0.5 },
+    );
+    io.observe(el);
+    return () => {
+      clearTimeout(timer);
+      io.disconnect();
+    };
+  }, [token, q.ret]); // eslint-disable-line react-hooks/exhaustive-deps
+  return ref;
+}
+
 // 한 방향 줄: 날짜 · 출발 → 도착 (+1일) · 공항 · 시간 · 직항/경유 · 항공사
 const apt = (cityOf: (c: string) => string, code: string) => (cityOf(code) === code ? code : `${cityOf(code)} (${code})`);
 
@@ -72,6 +99,13 @@ function Leg({ label, o, cityOf }: { label: string; o: FlightOption; cityOf: (c:
           <span className="tb-apt">{apt(cityOf, o.toId)}</span>
         </span>
       </span>
+      {/* 모바일: 경유지마다 대기 시간 한 줄 (6시간 넘으면 주황, 밤을 보내면 한마디 더) */}
+      {waitLines(o, cityOf).map((w, i) => (
+        <span key={i} className={`tb-leg-wait${w.long ? " long" : ""}`}>
+          {w.text}
+          {w.night ? " · 공항에서 밤을 보내요" : ""}
+        </span>
+      ))}
     </span>
   );
 }
@@ -95,12 +129,14 @@ export function FlightCard({ o, q, reason, rank, tag }: { o: FlightOption; q: Fl
   const ret = useReturns(q.ret ? o.token : undefined);
   const back = ret?.status === "done" ? ret.list[0] : undefined;
   const cityOf = useCityOf();
+  const ref = useLazyReturns<HTMLDivElement>(q, o.token);
+  const noBack = !o.token || ret?.status === "fail" || (ret?.status === "done" && !back);
   return (
-    <div className={`tb-fcard${reason ? " ai" : ""}`}>
+    <div ref={ref} className={`tb-fcard${reason ? " ai" : ""}`}>
       {(reason || tag) && (
-        <div className="tb-fcard-band">
+        <div className={`tb-fcard-band${reason ? " ai-band" : ""}`}>
           {rank ? <b>{rank}</b> : null}
-          {reason || tag}
+          <span>{reason || tag}</span>
         </div>
       )}
       <button type="button" className="tb-fcard-body" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={`${o.airlines.join(", ")} ${hhmm(o.departTime)} 출발 항공편 상세 보기`}>
@@ -109,12 +145,12 @@ export function FlightCard({ o, q, reason, rank, tag }: { o: FlightOption; q: Fl
           (back ? (
             <Leg label="오는 편" o={back} cityOf={cityOf} />
           ) : (
-            <span className="tb-leg tb-leg-none">
+            <span className={`tb-leg tb-leg-none${noBack ? "" : " wait"}`}>
               <span className="tb-leg-head">
                 <b>오는 편</b>
                 {legDate(`${q.ret} `)}
               </span>
-              <span className="tb-leg-msg">{ret?.status === "loading" ? "오는 편을 찾는 중이에요" : "오는 편은 트립닷컴에서 확인해 주세요"}</span>
+              <span className="tb-leg-msg">{noBack ? "오는 편은 트립닷컴에서 확인해 주세요" : "오는 편 불러오는 중"}</span>
             </span>
           ))}
         <span className="tb-fcard-foot">
@@ -231,7 +267,7 @@ export function FlightDetail({ open, o, q, onClose }: { open: boolean; o: Flight
 
 type Sort = "ai" | "price" | "early" | "short";
 const SORTS: { id: Sort; label: string }[] = [
-  { id: "ai", label: "AI 추천순" },
+  { id: "ai", label: "기본순" }, // 검색 결과가 온 순서 그대로 (AI 추천 3편은 띠·카드 위 줄로 따로 보여 준다)
   { id: "price", label: "낮은 가격순" },
   { id: "early", label: "이른 출발순" },
   { id: "short", label: "짧은 비행순" },
@@ -280,6 +316,39 @@ function FlightFilterPanel({ c, f, set }: { c: FlightFacets; f: FlightFilter; se
 
 // 항공권 결과 목록 (v7 05와 같은 틀). AI가 먼저 본 3편이 맨 위.
 // P1-5: PC(1280px 이상)는 왼쪽에 정렬·필터, 휴대폰은 '필터' 버튼 → 시트. 필터 항목마다 편 수와 가장 낮은 총액
+// 휴대폰: 목록 위 높이 고정 'AI 추천 3편' 띠. AI 응답 전에는 같은 높이의 회색 자리만
+function FlightTop3({ list, reasons, pending, q }: { list: FlightOption[]; reasons: Map<FlightOption, { reason: string; rank: number }>; pending: boolean; q: FlightQuery }) {
+  const cityOf = useCityOf();
+  if (!pending && !list.length) return null;
+  return (
+    <section className="tb-top3 flight" aria-label="AI 추천 3편" aria-busy={pending}>
+      <div className="tb-top3-head">
+        <h2>AI 추천 3편</h2>
+        <AiSortInfo kind="flight" />
+      </div>
+      <div className="tb-top3-row">
+        {pending
+          ? [0, 1, 2].map((i) => <div key={i} className="tb-top3-card skel" aria-hidden />)
+          : list.map((o, i) => (
+              <div key={i} className="tb-top3-card">
+                <span className="tb-top3-rank">
+                  {i + 1}위 · {o.airlines.join(", ")}
+                </span>
+                <strong>
+                  {hhmm(o.departTime)} {cityOf(o.fromId)} → {hhmm(o.arriveTime)} {cityOf(o.toId)}
+                </strong>
+                <span className="tb-top3-price">
+                  <b>{won(o.price)}</b>
+                  <small> · {paxOf(q)}명 {q.ret ? "왕복" : "편도"}</small>
+                </span>
+                {reasons.get(o)?.reason && <span className="tb-top3-why">{reasons.get(o)!.reason}</span>}
+              </div>
+            ))}
+      </div>
+    </section>
+  );
+}
+
 export function FlightBrowser({ data, aiPending, onBack, bare, notice }: { data: FlightData; aiPending?: boolean; onBack: () => void; bare?: boolean; notice?: string }) {
   const { query: q, options, picks } = data;
   const [f, setF] = useState<FlightFilter>(EMPTY_FLIGHT_FILTER);
@@ -288,16 +357,24 @@ export function FlightBrowser({ data, aiPending, onBack, bare, notice }: { data:
   const [sort, setSort] = useState<Sort>("ai");
   const cityOf = useCityOf();
   const side = !bare;
-  const reason = useMemo(() => new Map(picks.map((p, i) => [options[p.n - 1], { reason: p.reason, rank: i + 1 }])), [picks, options]);
+  // AI 응답 전에는 어떤 카드에도 AI 순위·이유를 달지 않는다 (임시로 달았다 옮겨 가며 화면이 흔들리지 않게)
+  const aiPicks = aiPending ? [] : picks;
+  const reason = useMemo(() => new Map(aiPicks.map((p, i) => [options[p.n - 1], { reason: p.reason, rank: i + 1 }])), [aiPicks, options]);
+  const top3 = aiPicks.slice(0, 3).map((p) => options[p.n - 1]).filter(Boolean);
+  // 왕복이면 AI 3편의 오는 편을 결과가 오자마자 찾아 둔다
+  const top3Key = top3.map((o) => o.token ?? "").join(",");
+  useEffect(() => {
+    if (q.ret) top3.forEach((o) => o.token && loadReturns(q, o.token));
+  }, [top3Key, q.ret]); // eslint-disable-line react-hooks/exhaustive-deps
   const facets = useMemo(() => flightFacets(options, f, cityOf), [options, f, cityOf]);
   const draftFacets = useMemo(() => flightFacets(options, draft, cityOf), [options, draft, cityOf]);
   const shown = useMemo(() => {
     const list = applyFlightFilter(options, f);
     if (sort === "early") return [...list].sort((a, b) => a.departTime.localeCompare(b.departTime));
     if (sort === "short") return [...list].sort((a, b) => a.minutes - b.minutes);
-    if (sort === "ai") return [...list].sort((a, b) => (reason.get(a)?.rank ?? 99) - (reason.get(b)?.rank ?? 99) || a.price - b.price);
+    if (sort === "ai") return list; // 기본순: 받은 순서 그대로라 AI 결과가 와도 자리가 바뀌지 않는다
     return [...list].sort((a, b) => a.price - b.price);
-  }, [options, f, sort, reason]);
+  }, [options, f, sort]);
   const low = Math.min(...options.map((o) => o.price));
   const n = flightFilterCount(f);
 
@@ -372,9 +449,13 @@ export function FlightBrowser({ data, aiPending, onBack, bare, notice }: { data:
         )}
         <div className={side ? "tb-results-main" : undefined}>
           <p className="tb-results-note">
-            항공편 {shown.length}편 · {aiPending ? "AI가 조건에 맞는 편을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}편을 먼저 보여드려요`} · {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액, 세금 포함
+            항공편 {shown.length}편 · <span className="tb-pc-only">{aiPending ? "AI가 조건에 맞는 편을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}편에 표시했어요`} · </span>
+            {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액, 세금 포함
           </p>
-          {sort === "ai" && <AiSortInfo kind="flight" />}
+          <span className="tb-pc-only">
+            <AiSortInfo kind="flight" />
+          </span>
+          {!bare && <FlightTop3 list={top3} reasons={reason} pending={!!aiPending} q={q} />}
           <div className="tb-rlist pad">
             {shown.map((o, i) => {
               const r = reason.get(o);

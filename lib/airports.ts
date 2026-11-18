@@ -46,12 +46,29 @@ function cityName(a: Airport): string {
   return a[4] || a[2] || a[1];
 }
 
+// 자주 찾는 공항의 한국어 이름. 없으면 한국어 도시 이름 + '공항', 그것도 없으면 영어 이름
+const KO_AIRPORT: Record<string, string> = {
+  ICN: "인천국제공항", GMP: "김포국제공항", PUS: "김해국제공항", CJU: "제주국제공항", TAE: "대구국제공항", CJJ: "청주국제공항",
+  NRT: "나리타국제공항", HND: "하네다공항", KIX: "간사이국제공항", ITM: "이타미공항", UKB: "고베공항", NGO: "주부국제공항",
+  FUK: "후쿠오카공항", CTS: "신치토세공항", OKA: "나하공항", KOJ: "가고시마공항", KMJ: "구마모토공항", HIJ: "히로시마공항",
+  TPE: "타오위안국제공항", TSA: "쑹산공항", KHH: "가오슝국제공항", HKG: "홍콩국제공항", MFM: "마카오국제공항",
+  PVG: "푸둥국제공항", SHA: "훙차오국제공항", PEK: "서우두국제공항", PKX: "다싱국제공항",
+  BKK: "수완나품공항", DMK: "돈므앙공항", HKT: "푸껫국제공항", CNX: "치앙마이국제공항",
+  SGN: "떤선녓국제공항", HAN: "노이바이국제공항", DAD: "다낭국제공항", CXR: "깜란국제공항", PQC: "푸꾸옥국제공항",
+  SIN: "창이공항", KUL: "쿠알라룸푸르국제공항", BKI: "코타키나발루국제공항", MNL: "니노이아키노국제공항", CEB: "막탄세부국제공항",
+  DPS: "응우라라이국제공항", CGK: "수카르노하타국제공항", GUM: "괌국제공항", SPN: "사이판국제공항",
+};
+
+function airportName(a: Airport): string {
+  return KO_AIRPORT[a[0]] ?? (a[4] ? `${a[4]} 공항` : a[1]);
+}
+
 function airportPlace(a: Airport, d: Data, child = false): Place {
   const country = d.countries[a[3]] ?? a[3];
   return {
     kind: "airport",
     code: a[0],
-    title: `${a[1]} (${a[0]})`,
+    title: `${airportName(a)} (${a[0]})`,
     sub: `${cityName(a)}, ${country}`,
     label: `${cityName(a)} (${a[0]})`,
     child,

@@ -39,9 +39,9 @@ export function rankNotes(picks: HotelOption[], taste: string, prices: Priced[])
     const met = wants.filter((w) => wantMet(h, w.label, w.amenity));
     const facts: string[] = [];
     if (met.length) facts.push(`취향 ${met.map((w) => w.label).join("·")} 맞음`);
-    if (n > 1 && ratings[i] > 0 && ratings[i] === maxR && unique(ratings, maxR)) facts.push(`평점 ${n}곳 중 가장 높음`);
-    if (n > 1 && reviews[i] > 0 && reviews[i] === maxV && unique(reviews, maxV)) facts.push(`리뷰 수 가장 많음`);
-    if (n > 1 && Number.isFinite(costs[i]) && costs[i] === minC && unique(costs, minC)) facts.push(prices[i].verified ? "확인한 가격 가장 낮음" : "예상 가격 가장 낮음");
+    if (n > 1 && ratings[i] > 0 && ratings[i] === maxR && unique(ratings, maxR)) facts.push(`추천 ${n}곳 중 평점이 가장 높아요`);
+    if (n > 1 && reviews[i] > 0 && reviews[i] === maxV && unique(reviews, maxV)) facts.push(`추천 ${n}곳 중 리뷰가 가장 많아요`);
+    if (n > 1 && Number.isFinite(costs[i]) && costs[i] === minC && unique(costs, minC)) facts.push(prices[i].verified ? `추천 ${n}곳 중 확인한 가격이 가장 낮아요` : `추천 ${n}곳 중 예상 가격이 가장 낮아요`);
     if (!facts.length && h.rating) facts.push(`평점 ${h.rating.toFixed(1)}${h.reviews ? ` · 리뷰 ${h.reviews.toLocaleString("ko-KR")}개` : ""}`);
     const unknown = wants.filter((w) => !wantMet(h, w.label, w.amenity)).map((w) => w.label);
     if (near && !h.near) unknown.push("역까지 거리");

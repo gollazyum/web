@@ -78,14 +78,14 @@ export function usePriceVersion(): number {
 
 // 카드에 보여 줄 금액. verified: 시트 1위 총액과 같은 값, none: 허용 예약처 0곳, checking: 예약처 가격을 받는 중
 // verified가 아니면 검색 목록에 같이 온 '예상' 금액이다 (예약처마다 달라질 수 있어 화면에 '예상'을 크게 붙인다)
-export type ShownPrice = { value: number | null; verified: boolean; none: boolean; count: number | null; checking?: boolean; seller?: HotelSellerKey; fc?: boolean; was?: number }; // was: 검색 때 보였던 예상 금액 (확인한 금액과 다를 때만)
+export type ShownPrice = { value: number | null; verified: boolean; none: boolean; count: number | null; checking?: boolean; seller?: HotelSellerKey; fc?: boolean; was?: number; at?: number }; // at: 예약처 가격을 확인한 시각, was: 검색 때 보였던 예상 금액 (확인한 금액과 다를 때만)
 
 export function shownPrice(h: HotelOption, q: StayQuery): ShownPrice {
   const v = getVerified(h.token, q);
   if (v) {
     const est = stayTotal(h, nightsOf(q))?.value ?? null;
     const was = est !== null && v.total !== null && Math.abs(est - v.total) >= 100 ? est : undefined;
-    return { value: v.total, verified: v.total !== null, none: v.total === null, count: v.count, seller: v.seller, fc: v.fc, ...(was ? { was } : {}) };
+    return { value: v.total, verified: v.total !== null, none: v.total === null, count: v.count, seller: v.seller, fc: v.fc, at: v.at, ...(was ? { was } : {}) };
   }
   return { value: stayTotal(h, nightsOf(q))?.value ?? null, verified: false, none: false, count: null, checking: checking.has(keyOf(h.token, q)) };
 }

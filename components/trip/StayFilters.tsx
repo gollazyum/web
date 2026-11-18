@@ -7,7 +7,7 @@ import { Sheet } from "./Sheet";
 
 export type Sort = "ai" | "price" | "priceDesc" | "stars" | "rating";
 export const SORTS: { id: Sort; label: string }[] = [
-  { id: "ai", label: "AI 추천순" },
+  { id: "ai", label: "기본순" }, // 검색 결과가 온 순서 그대로 (AI 추천 3곳은 위 띠·배지로 따로 보여 준다)
   { id: "price", label: "낮은 요금순" },
   { id: "priceDesc", label: "높은 요금순" },
   { id: "stars", label: "성급순 (5~1)" },
@@ -199,7 +199,7 @@ export function FilterBar({ c, f, set, sort, setSort, nights = 1 }: { c: FilterC
           <i className="tb-caret" aria-hidden />
         </button>
         <button type="button" aria-pressed={sort !== "ai"} onClick={() => setOpen("sort")}>
-          {sort === "ai" ? "정렬 기준" : SORTS.find((s) => s.id === sort)!.label}
+          정렬: {SORTS.find((s) => s.id === sort)!.label}
           <i className="tb-caret" aria-hidden />
         </button>
       </div>

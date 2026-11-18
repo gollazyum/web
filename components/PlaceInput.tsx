@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { loadAirports, searchCities } from "@/lib/airports";
 import type { PlaceHit } from "@/lib/places";
 import { useLayerFocus, useSearchLayer } from "@/lib/useSheet";
+import { IconBed, IconPin } from "@/components/trip/icons";
 
 type Props = {
   value: string;
@@ -186,7 +187,7 @@ export function PlaceInput({ value, onChange, onPicked, label = "어디로 가�
               }}
             >
               <span className="airport-icon" aria-hidden="true">
-                {p.kind === "hotel" ? "🏨" : "📍"}
+                {p.kind === "hotel" ? <IconBed size={18} /> : <IconPin size={18} />}
               </span>
               <span className="airport-text">
                 <b>{p.name}</b>

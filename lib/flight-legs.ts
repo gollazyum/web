@@ -42,3 +42,35 @@ export function waits(o: Pick<FlightOption, "segments" | "layovers">): { at: Fli
   }
   return out;
 }
+
+// 대기 시간 글: 90 → "1시간 30분", 45 → "45분"
+export const waitText = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ""}` : `${m}분`);
+
+export const LONG_WAIT = 6 * 60; // 이보다 길면 주황으로 알린다
+export const TOO_LONG_WAIT = 12 * 60; // 이보다 긴 대기가 있으면 AI 추천 후보에서 뺀다
+
+// 가장 긴 대기(분). 직항이면 0
+export const maxWait = (o: Pick<FlightOption, "segments" | "layovers">) => Math.max(0, ...waits(o).map((w) => w.mins));
+
+const at0 = (t: string) => Date.parse(t.replace(" ", "T") + ":00Z");
+
+// 대기 중 0~5시가 2시간 이상 겹치면 공항에서 밤을 보내는 것으로 본다
+export function overnight(arrive: string, mins: number): boolean {
+  const a = at0(arrive);
+  if (Number.isNaN(a) || mins <= 0) return false;
+  const b = a + mins * 60000;
+  let night = 0;
+  for (let d = Math.floor(a / 864e5) * 864e5; d < b; d += 864e5) night += Math.max(0, Math.min(b, d + 5 * 3600000) - Math.max(a, d));
+  return night >= 2 * 3600000;
+}
+
+// 카드에 한 줄씩: "싱가포르(SIN)에서 2시간 10분 대기". long: 6시간 넘음, night: 공항에서 밤을 보냄
+export function waitLines(o: Pick<FlightOption, "segments" | "layovers">, cityOf: (code: string) => string = (c) => c): { text: string; long: boolean; night: boolean }[] {
+  return waits(o)
+    .filter((w) => w.mins > 0)
+    .map((w) => {
+      const code = w.at.toId;
+      const name = cityOf(code);
+      return { text: `${name && name !== code ? name : w.at.toName || code}(${code})에서 ${waitText(w.mins)} 대기`, long: w.mins > LONG_WAIT, night: overnight(w.at.arriveTime, w.mins) };
+    });
+}

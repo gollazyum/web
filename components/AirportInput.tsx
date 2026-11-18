@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { loadAirports, searchPlaces, type Place } from "@/lib/airports";
 import { useLayerFocus, useSearchLayer } from "@/lib/useSheet";
+import { IconPin, IconPlane } from "@/components/trip/icons";
 
 type Props = {
   label: string;
@@ -144,7 +145,7 @@ export function AirportInput({ label, placeholder, text, onChange, onPicked, inp
               }}
             >
               <span className="airport-icon" aria-hidden="true">
-                {p.kind === "city" ? "📍" : "✈️"}
+                {p.kind === "city" ? <IconPin size={18} /> : <IconPlane size={18} />}
               </span>
               <span className="airport-text">
                 <b>{p.title}</b>
