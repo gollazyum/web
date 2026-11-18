@@ -231,8 +231,10 @@ export async function POST(req: Request) {
   if (body.mode === "pick") {
     const input = pickInput(body);
     if (!input) return jsonError(400, "bad_request");
-    const raw = await jsonReply<{ picks: Pick[]; note: string }>(PICK_SYSTEM, input, PICK_SCHEMA);
-    if (!raw || !Array.isArray(raw.picks)) return jsonError(502, "ai_failed");
+    let why = "";
+    const raw = await jsonReply<{ picks: Pick[]; note: string }>(PICK_SYSTEM, input, PICK_SCHEMA, 4000, (w) => (why = w));
+    // 실패 이유를 응답 머리에 짧게 남긴다 (브라우저 개발자 도구에서 원인을 볼 수 있게)
+    if (!raw || !Array.isArray(raw.picks)) return jsonError(502, "ai_failed", why || "bad_shape");
     const out: PickResult = {
       picks: raw.picks.slice(0, TOP_PICKS).map((p) => ({ n: Number(p.n), reason: body.kind === "stay" ? stayReason(p.reason) : cleanCopy(p.reason, 80) })),
       note: cleanCopy(raw.note, 120),

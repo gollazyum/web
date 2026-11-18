@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { tripUrl, type FlightOption } from "@/lib/flights";
 import { hhmm, paxOf, paxText, won, type FlightQuery } from "@/lib/trip";
 import { cityForCode, loadAirports } from "@/lib/airports";
@@ -17,16 +17,26 @@ export function flightLink(q: FlightQuery) {
   return tripUrl(q.from, q.to, q.depart, q.ret, q.adults, q.children ?? 0, q.cabin ?? "y");
 }
 
-// 오는 편 후보: 가는 편 토큰마다 한 번만 찾고, 같은 카드·상세가 함께 쓴다
-type RetState = { status: "loading" } | { status: "done"; list: FlightOption[] } | { status: "fail" };
+// 오는 편 후보: 가는 편 토큰마다 한 번만 찾고, 같은 카드·상세가 함께 쓴다.
+// 미리 부르는 건 AI 3편과 목록 위 4편뿐. 5초가 지나도 안 오면 'slow'로 바꿔 '다시 불러오기'를 보여 준다 (요청은 그대로 기다려, 늦게 오면 그때 보인다)
+type RetState = { status: "loading" } | { status: "slow" } | { status: "done"; list: FlightOption[] } | { status: "fail" };
 const RET = new Map<string, RetState>();
 const retSubs = new Set<() => void>();
 const retEmit = () => retSubs.forEach((f) => f());
-function loadReturns(q: FlightQuery, token: string) {
-  if (RET.has(token)) return;
+const RET_SLOW_MS = 5000;
+function loadReturns(q: FlightQuery, token: string, again = false) {
+  const now = RET.get(token);
+  if (now && !(again && (now.status === "fail" || now.status === "slow"))) return;
   RET.set(token, { status: "loading" });
   retEmit();
+  const slow = setTimeout(() => {
+    if (RET.get(token)?.status !== "loading") return;
+    RET.set(token, { status: "slow" });
+    retEmit();
+  }, RET_SLOW_MS);
   searchFlightReturns(q, token).then((r) => {
+    clearTimeout(slow);
+    if (RET.get(token)?.status === "done") return;
     RET.set(token, r.ok ? { status: "done", list: r.data.options } : { status: "fail" });
     retEmit();
   });
@@ -40,33 +50,6 @@ function useReturns(token?: string): RetState | undefined {
     () => (token ? RET.get(token) : undefined),
     () => undefined,
   );
-}
-
-// 왕복 카드가 화면에 잠깐(0.3초) 머물면 오는 편을 미리 찾는다 (AI 3편은 결과가 오자마자 찾는다)
-function useLazyReturns<T extends Element>(q: FlightQuery, token?: string) {
-  const ref = useRef<T>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!q.ret || !token || !el || RET.has(token) || typeof IntersectionObserver === "undefined") return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const io = new IntersectionObserver(
-      ([e]) => {
-        clearTimeout(timer);
-        if (!e.isIntersecting) return;
-        timer = setTimeout(() => {
-          io.disconnect();
-          loadReturns(q, token);
-        }, 300);
-      },
-      { threshold: 0.5 },
-    );
-    io.observe(el);
-    return () => {
-      clearTimeout(timer);
-      io.disconnect();
-    };
-  }, [token, q.ret]); // eslint-disable-line react-hooks/exhaustive-deps
-  return ref;
 }
 
 // 한 방향 줄: 날짜 · 출발 → 도착 (+1일) · 공항 · 시간 · 직항/경유 · 항공사
@@ -124,15 +107,21 @@ function PriceLines({ o, q }: { o: FlightOption; q: FlightQuery }) {
 }
 
 // v4 10번 카드 → P0-4: 왕복은 '가는 편 / 오는 편' 두 줄. 누르면 상세 시트
-export function FlightCard({ o, q, reason, rank, tag }: { o: FlightOption; q: FlightQuery; reason?: string; rank?: number; tag?: string }) {
+// eager: 오는 편을 바로 불러 둘 카드 (AI 3편, 목록 위 4편). 나머지는 '오는 편 불러오기'를 누르거나 상세를 열 때 부른다
+export function FlightCard({ o, q, reason, rank, tag, eager }: { o: FlightOption; q: FlightQuery; reason?: string; rank?: number; tag?: string; eager?: boolean }) {
   const [open, setOpen] = useState(false);
   const ret = useReturns(q.ret ? o.token : undefined);
   const back = ret?.status === "done" ? ret.list[0] : undefined;
   const cityOf = useCityOf();
-  const ref = useLazyReturns<HTMLDivElement>(q, o.token);
-  const noBack = !o.token || ret?.status === "fail" || (ret?.status === "done" && !back);
+  useEffect(() => {
+    if (eager && q.ret && o.token) loadReturns(q, o.token);
+  }, [eager, q.ret, o.token]); // eslint-disable-line react-hooks/exhaustive-deps
+  const loading = ret?.status === "loading";
+  // 오는 편을 보여 줄 수 없을 때: 토큰 없음·실패·5초 넘음·결과 없음·아직 안 부름
+  const noBack = !loading && !back;
+  const canLoad = q.ret && !!o.token && (!ret || ret.status === "fail" || ret.status === "slow");
   return (
-    <div ref={ref} className={`tb-fcard${reason ? " ai" : ""}`}>
+    <div className={`tb-fcard${reason ? " ai" : ""}`}>
       {(reason || tag) && (
         <div className={`tb-fcard-band${reason ? " ai-band" : ""}`}>
           {rank ? <b>{rank}</b> : null}
@@ -145,12 +134,12 @@ export function FlightCard({ o, q, reason, rank, tag }: { o: FlightOption; q: Fl
           (back ? (
             <Leg label="오는 편" o={back} cityOf={cityOf} />
           ) : (
-            <span className={`tb-leg tb-leg-none${noBack ? "" : " wait"}`}>
+            <span className="tb-leg tb-leg-none wait">
               <span className="tb-leg-head">
                 <b>오는 편</b>
                 {legDate(`${q.ret} `)}
               </span>
-              <span className="tb-leg-msg">{noBack ? "오는 편은 트립닷컴에서 확인해 주세요" : "오는 편 불러오는 중"}</span>
+              <span className="tb-leg-msg">{noBack ? "오는 편은 상세에서 확인해요" : "오는 편 불러오는 중"}</span>
             </span>
           ))}
         <span className="tb-fcard-foot">
@@ -158,9 +147,16 @@ export function FlightCard({ o, q, reason, rank, tag }: { o: FlightOption; q: Fl
           <PriceLines o={back ?? o} q={q} />
         </span>
       </button>
-      <a className="tb-fbook" href={flightLink(q)} target="_blank" rel="noopener noreferrer">
-        트립닷컴에서 이 날짜 보기 <IconOut />
-      </a>
+      <div className="tb-fbook-row">
+        <a className="tb-fbook" href={flightLink(q)} target="_blank" rel="noopener noreferrer">
+          트립닷컴에서 이 날짜 보기 <IconOut />
+        </a>
+        {canLoad && (
+          <button type="button" className="tb-ret-again" onClick={() => loadReturns(q, o.token!, true)}>
+            {ret ? "다시 불러오기" : "오는 편 불러오기"}
+          </button>
+        )}
+      </div>
       <FlightDetail open={open} o={o} q={q} onClose={() => setOpen(false)} />
     </div>
   );
@@ -218,7 +214,7 @@ function LegDetail({ label, o }: { label: string; o: FlightOption }) {
 export function FlightDetail({ open, o, q, onClose }: { open: boolean; o: FlightOption; q: FlightQuery; onClose: () => void }) {
   const ret = useReturns(q.ret ? o.token : undefined);
   useEffect(() => {
-    if (open && q.ret && o.token) loadReturns(q, o.token);
+    if (open && q.ret && o.token) loadReturns(q, o.token, true);
   }, [open, q, o.token]);
   const backs = ret?.status === "done" ? ret.list.slice(0, 3) : [];
   return (
@@ -233,7 +229,7 @@ export function FlightDetail({ open, o, q, onClose }: { open: boolean; o: Flight
             <h3>
               오는 편 <span>{legDate(`${q.ret} `)}</span>
             </h3>
-            {ret?.status === "loading" && <p className="tb-checking">오는 편을 찾는 중이에요</p>}
+            {(ret?.status === "loading" || ret?.status === "slow") && <p className="tb-checking">오는 편을 찾는 중이에요</p>}
             {(!o.token || ret?.status === "fail" || (ret?.status === "done" && !backs.length)) && <p className="tb-fd-note">오는 편은 트립닷컴에서 확인해 주세요</p>}
             {backs.map((b, i) => (
               <div key={i} className="tb-fd-back">
@@ -317,14 +313,14 @@ function FlightFilterPanel({ c, f, set }: { c: FlightFacets; f: FlightFilter; se
 // 항공권 결과 목록 (v7 05와 같은 틀). AI가 먼저 본 3편이 맨 위.
 // P1-5: PC(1280px 이상)는 왼쪽에 정렬·필터, 휴대폰은 '필터' 버튼 → 시트. 필터 항목마다 편 수와 가장 낮은 총액
 // 휴대폰: 목록 위 높이 고정 'AI 추천 3편' 띠. AI 응답 전에는 같은 높이의 회색 자리만
-function FlightTop3({ list, reasons, pending, q }: { list: FlightOption[]; reasons: Map<FlightOption, { reason: string; rank: number }>; pending: boolean; q: FlightQuery }) {
+function FlightTop3({ list, reasons, pending, q, off }: { list: FlightOption[]; reasons: Map<FlightOption, { reason: string; rank: number }>; pending: boolean; q: FlightQuery; off?: boolean }) {
   const cityOf = useCityOf();
   if (!pending && !list.length) return null;
   return (
-    <section className="tb-top3 flight" aria-label="AI 추천 3편" aria-busy={pending}>
+    <section className="tb-top3 flight" aria-label={off ? "낮은 가격 3편" : "AI 추천 3편"} aria-busy={pending}>
       <div className="tb-top3-head">
-        <h2>AI 추천 3편</h2>
-        <AiSortInfo kind="flight" />
+        <h2>{off ? "낮은 가격 3편" : "AI 추천 3편"}</h2>
+        {!off && <AiSortInfo kind="flight" />}
       </div>
       <div className="tb-top3-row">
         {pending
@@ -349,7 +345,7 @@ function FlightTop3({ list, reasons, pending, q }: { list: FlightOption[]; reaso
   );
 }
 
-export function FlightBrowser({ data, aiPending, onBack, bare, notice }: { data: FlightData; aiPending?: boolean; onBack: () => void; bare?: boolean; notice?: string }) {
+export function FlightBrowser({ data, aiPending, aiOff, onBack, bare, notice }: { data: FlightData; aiPending?: boolean; aiOff?: boolean; onBack: () => void; bare?: boolean; notice?: string }) {
   const { query: q, options, picks } = data;
   const [f, setF] = useState<FlightFilter>(EMPTY_FLIGHT_FILTER);
   const [draft, setDraft] = useState<FlightFilter>(EMPTY_FLIGHT_FILTER);
@@ -359,9 +355,11 @@ export function FlightBrowser({ data, aiPending, onBack, bare, notice }: { data:
   const side = !bare;
   // AI 응답 전에는 어떤 카드에도 AI 순위·이유를 달지 않는다 (임시로 달았다 옮겨 가며 화면이 흔들리지 않게)
   const aiPicks = aiPending ? [] : picks;
-  const reason = useMemo(() => new Map(aiPicks.map((p, i) => [options[p.n - 1], { reason: p.reason, rank: i + 1 }])), [aiPicks, options]);
+  // aiOff: AI가 실패해 낮은 가격순 3편만 띠에 둔다 (카드에는 AI 순위·이유를 달지 않는다)
+  const bandWhy = useMemo(() => new Map(aiPicks.map((p, i) => [options[p.n - 1], { reason: p.reason, rank: i + 1 }])), [aiPicks, options]);
+  const reason = aiOff ? new Map<FlightOption, { reason: string; rank: number }>() : bandWhy;
   const top3 = aiPicks.slice(0, 3).map((p) => options[p.n - 1]).filter(Boolean);
-  // 왕복이면 AI 3편의 오는 편을 결과가 오자마자 찾아 둔다
+  // 왕복이면 AI 3편(띠)의 오는 편을 결과가 오자마자 찾아 둔다. 카드는 목록 위 4편만 (eager)
   const top3Key = top3.map((o) => o.token ?? "").join(",");
   useEffect(() => {
     if (q.ret) top3.forEach((o) => o.token && loadReturns(q, o.token));
@@ -455,11 +453,11 @@ export function FlightBrowser({ data, aiPending, onBack, bare, notice }: { data:
           <span className="tb-pc-only">
             <AiSortInfo kind="flight" />
           </span>
-          {!bare && <FlightTop3 list={top3} reasons={reason} pending={!!aiPending} q={q} />}
+          {!bare && <FlightTop3 list={top3} reasons={bandWhy} pending={!!aiPending} q={q} off={aiOff} />}
           <div className="tb-rlist pad">
             {shown.map((o, i) => {
               const r = reason.get(o);
-              return <FlightCard key={`${o.departTime}-${o.airlines.join()}-${o.price}-${i}`} o={o} q={q} reason={r?.reason} rank={r?.rank} tag={!r && o.price === low ? "찾은 항공편 중 가장 낮아요" : undefined} />;
+              return <FlightCard key={`${o.departTime}-${o.airlines.join()}-${o.price}-${i}`} o={o} q={q} reason={r?.reason} rank={r?.rank} tag={!r && o.price === low ? "찾은 항공편 중 가장 낮아요" : undefined} eager={i < 4} />;
             })}
             {!shown.length && <p className="tb-note">조건에 맞는 항공편이 없어요. 필터를 하나 풀어 보세요.</p>}
             <p className="tb-note">

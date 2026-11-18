@@ -9,46 +9,56 @@ import { guestText, nightsOf, won, type StayQuery } from "@/lib/trip";
 import type { TripItem } from "@/lib/trips";
 import { stayPrices } from "./api";
 import { setVerified, shownPrice } from "./prices";
-import { changeText, MIN_DIFF, priceChange, savedBaseFor } from "./saved-price";
+import { changeText, MIN_DIFF, savedBaseFor } from "./saved-price";
 import { IconOut } from "./icons";
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
 const hq = (q: StayQuery) => ({ q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, rooms: q.rooms, childAges: q.childAges });
 
-// 누를 때 한 번만 예약처 가격을 받는다 (같은 조건은 이 탭에 30분 캐시). 계속 조회하거나 서버에서 따로 지켜보지 않는다
+// 누를 때마다 저장된 조건으로 예약처 가격을 새로 받는다 (이 탭·서버에 저장된 값을 쓰지 않는다). 계속 조회하거나 서버에서 따로 지켜보지 않는다
+// null: 불러오지 못함, []: 이 날짜에 이 숙소 가격이 없음
 async function recheck(token: string, name: string, q: StayQuery): Promise<SellerRow[] | null> {
-  const r = await stayPrices(token, q, name);
+  const r = await stayPrices(token, q, name, true);
   if (!r.ok) return null;
   const rows = sellerRows(r.data.sources, nightsOf(q), name, hq(q));
   setVerified(token, q, rows); // 마이 카드 금액도 맞춘다
   return rows;
 }
 
+const hm = (at: number) => {
+  const d = new Date(at);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+
+// 숙소 한 곳의 결과 한 줄: 담을 때 금액과 견준 차이 + 확인 시각
+type Line = { token: string; name: string; text: string; tone: "down" | "up" | "same" | "none" };
+export function recheckLine(name: string, base: { price: number | null; verified: boolean } | undefined, rows: SellerRow[] | null, at: number): Omit<Line, "token"> {
+  if (rows === null) return { name, text: "지금은 가격을 불러오지 못했어요", tone: "none" };
+  if (!rows.length) return { name, text: "이 날짜엔 이 숙소를 찾지 못했어요", tone: "none" };
+  const now = rows[0].cost;
+  const when = ` · ${hm(at)} 확인`;
+  if (!base || base.price === null) return { name, text: `지금 ${won(now)}${when}`, tone: "same" };
+  const diff = now - base.price;
+  const est = base.verified ? "" : " (담을 때는 예상 금액)";
+  if (Math.abs(diff) < MIN_DIFF) return { name, text: `담을 때와 같아요 · ${won(now)}${when}${est}`, tone: "same" };
+  return { name, text: `${won(Math.abs(diff))} ${diff < 0 ? "내렸어요" : "올랐어요"} · 지금 ${won(now)}${when}${est}`, tone: diff < 0 ? "down" : "up" };
+}
+
 // 마이 여행 아래: '이 조건으로 가격 다시 보기' + '공유 링크 복사'
 export function TripActions<T extends TripItem>({ items, place, checkIn, checkOut, adults }: { items: T[]; place: string; checkIn: string; checkOut: string; adults: number }) {
-  const [state, setState] = useState<"idle" | "loading" | { text: string }>("idle");
+  const [state, setState] = useState<"idle" | "loading" | { lines: Line[] }>("idle");
   const [copied, setCopied] = useState<string | null>(null);
 
   async function again() {
     setState("loading");
-    let changed = 0;
-    let same = 0;
-    let failed = 0;
-    let skipped = 0;
-    await Promise.all(
-      items.map(async (s) => {
+    const lines = await Promise.all(
+      items.map(async (s): Promise<Line> => {
+        const base = savedBaseFor(s.hotel.token, s.query);
         const rows = await recheck(s.hotel.token, s.hotel.name, s.query);
-        if (!rows) return void failed++;
-        const diff = priceChange(savedBaseFor(s.hotel.token, s.query), { value: rows[0]?.cost ?? null, verified: true, none: !rows.length });
-        if (diff !== null) changed++;
-        else if (savedBaseFor(s.hotel.token, s.query)?.verified) same++;
-        else skipped++;
+        return { token: s.hotel.token, ...recheckLine(s.hotel.name, base, rows, Date.now()) };
       }),
     );
-    const parts = [changed ? `${changed}곳은 담을 때와 가격이 달라졌어요` : same ? "담을 때와 가격이 같아요" : "가격을 다시 확인했어요"];
-    if (skipped) parts.push(`${skipped}곳은 담을 때 예상 금액이라 견주지 않았어요`);
-    if (failed) parts.push(`${failed}곳은 지금 확인하지 못했어요`);
-    setState({ text: parts.join(" · ") });
+    setState({ lines });
   }
 
   async function share() {
@@ -92,7 +102,16 @@ export function TripActions<T extends TripItem>({ items, place, checkIn, checkOu
           <i aria-hidden /> 예약처 가격을 확인하는 중
         </p>
       )}
-      {typeof state === "object" && <p className="tb-trip-msg" role="status">{state.text}</p>}
+      {typeof state === "object" && (
+        <ul className="tb-recheck" role="status">
+          {state.lines.map((l) => (
+            <li key={l.token}>
+              <strong>{l.name}</strong>
+              <span className={`tb-pchg ${l.tone}`}>{l.text}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       {copied && <p className="tb-trip-msg" role="status">{copied}</p>}
     </div>
   );

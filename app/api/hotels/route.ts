@@ -18,7 +18,7 @@ const STARS = /^[2-5](,[2-5]){0,3}$/;
 
 function parseQuery(body: unknown) {
   if (!body || typeof body !== "object") return null;
-  const { q, checkIn, checkOut, adults, token, page, stars, childAges } = body as Record<string, unknown>;
+  const { q, checkIn, checkOut, adults, token, page, stars, childAges, fresh } = body as Record<string, unknown>;
   // P1-4: 아동 나이 (0~17세, 최대 6명)
   if (childAges !== undefined && (!Array.isArray(childAges) || childAges.length > 6 || !childAges.every((a) => Number.isInteger(a) && a >= 0 && a <= 17))) return null;
   if (typeof q !== "string" || !q.trim() || q.length > 100) return null;
@@ -29,7 +29,7 @@ function parseQuery(body: unknown) {
   if (page !== undefined && (typeof page !== "string" || !page || page.length > 500)) return null;
   // stars: 성급만 다시 찾을 때 "4" 또는 "4,5" (검색이 2~5성만 받는다)
   if (stars !== undefined && (typeof stars !== "string" || !STARS.test(stars))) return null;
-  return { q: normalizeText(q), checkIn, checkOut, adults, childAges: (childAges as number[] | undefined) ?? [], token: token as string | undefined, page: page as string | undefined, stars: stars as string | undefined };
+  return { q: normalizeText(q), checkIn, checkOut, adults, childAges: (childAges as number[] | undefined) ?? [], token: token as string | undefined, page: page as string | undefined, stars: stars as string | undefined, fresh: fresh === true };
 }
 
 type Rate = { extracted_lowest?: number };
@@ -239,7 +239,7 @@ export async function POST(req: Request) {
   }
   if (q.token) {
     params.property_token = q.token;
-    return serpSearch(req, params, shapePrices);
+    return serpSearch(req, params, shapePrices, undefined, { fresh: q.fresh }); // fresh: 다시 확인할 때는 저장된 가격을 쓰지 않는다
   }
   // 성급 필터를 누른 사람만: 그 성급만 한 번 찾는다 (검색 1번 요금). 다음 쪽도 같은 성급
   if (q.stars) params.hotel_class = q.stars;
