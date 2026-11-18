@@ -9,6 +9,8 @@ import { dayShift, durText, legDate, perPerson, stopText, waitLines, waits } fro
 import { searchFlightReturns } from "./api";
 import { IconBack, IconOut } from "./icons";
 import { AiSortInfo } from "./AiSortInfo";
+import { AiOffNote } from "./AiOffNote";
+import { SortInfo } from "./SortInfo";
 import { Sheet } from "./Sheet";
 
 export type FlightData = { query: FlightQuery; options: FlightOption[]; picks: { n: number; reason: string }[] };
@@ -315,9 +317,9 @@ function FlightTop3({ list, reasons, pending, q, off }: { list: FlightOption[]; 
   const cityOf = useCityOf();
   if (!pending && !list.length) return null;
   return (
-    <section className="tb-top3 flight" aria-label={off ? "낮은 가격 3편" : "AI 추천 3편"} aria-busy={pending}>
+    <section className="tb-top3 flight" aria-label={off ? "확인한 낮은 가격 3편" : "AI 추천 3편"} aria-busy={pending}>
       <div className="tb-top3-head">
-        <h2>{off ? "낮은 가격 3편" : "AI 추천 3편"}</h2>
+        <h2>{off ? "확인한 낮은 가격 3편" : "AI 추천 3편"}</h2>
         {!off && <AiSortInfo kind="flight" />}
       </div>
       <div className="tb-top3-row">
@@ -335,7 +337,7 @@ function FlightTop3({ list, reasons, pending, q, off }: { list: FlightOption[]; 
                   <b>{won(o.price)}</b>
                   <small> · {paxOf(q)}명 {q.ret ? "왕복" : "편도"}</small>
                 </span>
-                {reasons.get(o)?.reason && <span className="tb-top3-why">{reasons.get(o)!.reason}</span>}
+                {!off && reasons.get(o)?.reason && <span className="tb-top3-why">{reasons.get(o)!.reason}</span>}
               </div>
             ))}
       </div>
@@ -343,7 +345,7 @@ function FlightTop3({ list, reasons, pending, q, off }: { list: FlightOption[]; 
   );
 }
 
-export function FlightBrowser({ data, aiPending, aiOff, onBack, bare, notice }: { data: FlightData; aiPending?: boolean; aiOff?: boolean; onBack: () => void; bare?: boolean; notice?: string }) {
+export function FlightBrowser({ data, aiPending, aiOff, onAiRetry, onBack, bare, notice }: { data: FlightData; aiPending?: boolean; aiOff?: boolean; onAiRetry?: () => void; onBack: () => void; bare?: boolean; notice?: string }) {
   const { query: q, options, picks } = data;
   const [f, setF] = useState<FlightFilter>(EMPTY_FLIGHT_FILTER);
   const [draft, setDraft] = useState<FlightFilter>(EMPTY_FLIGHT_FILTER);
@@ -434,6 +436,7 @@ export function FlightBrowser({ data, aiPending, aiOff, onBack, bare, notice }: 
                   <i aria-hidden />
                 </button>
               ))}
+              <SortInfo kind="flight" />
             </section>
             <FlightFilterPanel c={facets} f={f} set={setF} />
             {n > 0 && (
@@ -445,12 +448,11 @@ export function FlightBrowser({ data, aiPending, aiOff, onBack, bare, notice }: 
         )}
         <div className={side ? "tb-results-main" : undefined}>
           <p className="tb-results-note">
-            항공편 {shown.length}편 · <span className="tb-pc-only">{aiPending ? "AI가 조건에 맞는 편을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}편에 표시했어요`} · </span>
+            항공편 {shown.length}편 · <span className="tb-pc-only">{aiPending ? "AI가 조건에 맞는 편을 살펴보는 중이에요" : aiOff ? `확인한 낮은 가격 ${Math.min(3, picks.length)}편을 위에 모았어요` : `AI 추천 ${Math.min(3, picks.length)}편에 표시했어요`} · </span>
             {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액, 세금 포함
           </p>
-          <span className="tb-pc-only">
-            <AiSortInfo kind="flight" />
-          </span>
+          <span className="tb-pc-only">{!aiOff && <AiSortInfo kind="flight" />}</span>
+          {!bare && aiOff && !aiPending && <AiOffNote onRetry={onAiRetry} />}
           {!bare && <FlightTop3 list={top3} reasons={bandWhy} pending={!!aiPending} q={q} off={aiOff} />}
           <div className="tb-rlist pad">
             {shown.map((o, i) => {

@@ -210,6 +210,18 @@ function pickInput(body: Record<string, unknown>): string | null {
   return `[취향] ${taste || "따로 없음"}${budget ? `\n[예산] 숙박 총액 ${budget.toLocaleString("ko-KR")}원 이하` : ""}\n\n[목록] ${head}\n${items.join("\n")}`;
 }
 
+// 상태 확인: 브라우저로 /api/trip-ai 를 열면 AI 연결이 되는지 짧게 알려 준다 (아주 작은 요청 1번. 키 값·요청 내용은 보이지 않는다)
+const CHECK_SCHEMA = { type: "object", additionalProperties: false, required: ["ok"], properties: { ok: { type: "boolean" } } } as const;
+export async function GET(req: Request) {
+  if (!process.env.ANTHROPIC_API_KEY) return Response.json({ ok: false, why: "not_configured" }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  if (rateLimited(req)) return Response.json({ ok: false, why: "rate_limited" }, { status: 429, headers: { "Cache-Control": "no-store" } });
+  let why = "";
+  const started = Date.now();
+  const raw = await jsonReply<{ ok: boolean }>("Answer with ok true.", "ping", CHECK_SCHEMA, 200, (w) => (why = w));
+  const ms = Date.now() - started;
+  return Response.json(raw ? { ok: true, ms } : { ok: false, why: why || "bad_shape", ms }, { status: raw ? 200 : 502, headers: { "Cache-Control": "no-store" } });
+}
+
 export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) return jsonError(503, "not_configured");
   if (rateLimited(req)) return jsonError(429, "rate_limited");
@@ -223,8 +235,9 @@ export async function POST(req: Request) {
     // 이어서 말할 때(예: "조식 있는 곳만") 지금 보고 있는 검색 조건을 같이 받는다
     const context = str(typeof body.context === "string" ? body.context : "", 400);
     const user = `[오늘] ${today}${context ? `\n[지금 보고 있는 검색] ${context}` : ""}\n\n[사용자] ${text}`;
-    const raw = await jsonReply<RawParse>(PARSE_SYSTEM, user, PARSE_SCHEMA);
-    if (!raw) return jsonError(502, "ai_failed");
+    let why = "";
+    const raw = await jsonReply<RawParse>(PARSE_SYSTEM, user, PARSE_SCHEMA, 4000, (w) => (why = w));
+    if (!raw) return jsonError(502, "ai_failed", why || "unknown");
     return Response.json(shapeParse(raw, today));
   }
 
@@ -246,8 +259,9 @@ export async function POST(req: Request) {
     const facts = typeof body.facts === "string" ? body.facts.trim().slice(0, 1500) : "";
     const question = str(body.question, 200);
     if (!facts || !question) return jsonError(400, "bad_request");
-    const raw = await jsonReply<{ answer: string }>(HOTEL_SYSTEM, `[숙소 정보]\n${facts}\n\n[질문] ${question}`, HOTEL_SCHEMA, 800);
-    if (!raw || typeof raw.answer !== "string") return jsonError(502, "ai_failed");
+    let why = "";
+    const raw = await jsonReply<{ answer: string }>(HOTEL_SYSTEM, `[숙소 정보]\n${facts}\n\n[질문] ${question}`, HOTEL_SCHEMA, 800, (w) => (why = w));
+    if (!raw || typeof raw.answer !== "string") return jsonError(502, "ai_failed", why || "bad_shape");
     return Response.json({ answer: cleanCopy(raw.answer, 400) });
   }
 

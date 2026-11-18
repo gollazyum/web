@@ -11,6 +11,8 @@ import { SIMILAR_EVENT, takeSimilar } from "./similar";
 import { shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
 import { changeText, priceChange, savedBaseFor } from "./saved-price";
 import { AiSortInfo } from "./AiSortInfo";
+import { AiOffNote } from "./AiOffNote";
+import { SortInfo } from "./SortInfo";
 import { FilterBar, FilterPanel, SORTS, type Sort } from "./StayFilters";
 import { IconBack, IconHeart, IconSpark } from "./icons";
 
@@ -31,6 +33,8 @@ type Props = {
   more?: "more" | "loading" | "error" | "end"; // 목록 끝에서 더 불러오기
   onMore?: () => void;
   onStars?: (stars: number[]) => void; // 고른 성급이 바뀌면 그 성급만 다시 찾는다
+  aiOff?: boolean; // AI가 두 번 다 실패: 확인한 가격 기준 3곳 (AI 칩·이유 없이)
+  onAiRetry?: () => void;
 };
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
@@ -40,7 +44,7 @@ const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋�
 
 // v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다.
 // 필터: 휴대폰·좁은 PC는 위쪽 3버튼(조건 검색/요금/정렬 기준), 넓은 PC(1280px 이상)는 같은 항목을 왼쪽에 늘 보이게
-export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars, notice }: Props) {
+export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars, notice, aiOff, onAiRetry }: Props) {
   // 목록 끝이 화면에 가까워지면 다음 쪽을 부른다 (필터로 목록이 짧아져도 같은 기준)
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -72,7 +76,8 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   }, [starKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // AI 응답 전에는 어떤 카드에도 'AI 추천'·순위·이유를 달지 않는다 (임시로 달았다 옮겨 가며 화면이 흔들리지 않게)
   const aiPicks = aiPending ? [] : picks;
-  const reasons = useMemo(() => new Map(aiPicks.map((p) => [p.token, p.reason])), [aiPicks]);
+  // AI가 실패해 가격 기준으로 둔 3곳에는 'AI 추천' 칩·이유를 달지 않는다
+  const reasons = useMemo(() => new Map(aiOff ? [] : aiPicks.map((p) => [p.token, p.reason])), [aiPicks, aiOff]);
   const pv = usePriceVersion(); // 예약처 시트·미리 조회로 맞춘 금액이 오면 다시 계산
   // 정렬·요금 필터·'최저가' 배지는 예약처에서 확인한 금액만 쓴다 (확인 전 예상 금액은 쓰지 않는다)
   const cost = (h: HotelOption) => verifiedCost(h, query);
@@ -86,10 +91,11 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   const counts = useMemo(() => countFilters(options, cost, nights), [options, pv, nights]); // eslint-disable-line react-hooks/exhaustive-deps
   // AI 3곳: 왜 1·2·3위인지 + 확인하지 못한 조건 (받은 데이터끼리만 견준다)
   const notes = useMemo(() => {
+    if (aiOff) return new Map<string, RankNote>();
     const top = aiPicks.slice(0, 3).map((p) => options.find((o) => o.token === p.token)).filter((h): h is HotelOption => !!h);
     const ns = rankNotes(top, query.taste ?? "", top.map((h) => shownPrice(h, query)));
     return new Map(top.map((h, i) => [h.token, ns[i]]));
-  }, [aiPicks, options, pv, query]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [aiPicks, aiOff, options, pv, query]); // eslint-disable-line react-hooks/exhaustive-deps
   const top3 = useMemo(() => aiPicks.slice(0, 3).map((p) => options.find((o) => o.token === p.token)).filter((h): h is HotelOption => !!h), [aiPicks, options]);
 
   // 한 번 보여 준 카드 순서는 바꾸지 않는다 (P0-2). '관련도순'은 검색 결과가 온 순서 그대로라 AI 추천이 늦게 와도 자리가 그대로다.
@@ -164,6 +170,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
                   <i aria-hidden />
                 </button>
               ))}
+              <SortInfo kind="stay" />
             </section>
             <FilterPanel c={counts} f={f} set={setF} nights={nights} />
             {activeCount(f) > 0 && (
@@ -174,13 +181,14 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
           </aside>
         )}
         <div className={side ? "tb-results-main" : undefined}>
-          {!bare && <AiTop3 hotels={top3} reasons={reasons} pending={aiPending} query={query} onOpen={onOpen} />}
+          {!bare && aiOff && !aiPending && <AiOffNote onRetry={onAiRetry} />}
+          {!bare && <AiTop3 hotels={top3} reasons={reasons} pending={aiPending} off={aiOff} query={query} onOpen={onOpen} />}
           <p className="tb-results-note">
-            숙소 {shown.length}곳 · <span className="tb-pc-only">{aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : `AI 추천 ${Math.min(3, picks.length)}곳에 표시했어요`} · </span>
+            숙소 {shown.length}곳 · <span className="tb-pc-only">{aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : aiOff ? `확인한 낮은 가격 ${Math.min(3, picks.length)}곳을 위에 모았어요` : `AI 추천 ${Math.min(3, picks.length)}곳에 표시했어요`} · </span>
             {nights}박 총액
           </p>
           <span className="tb-pc-only">
-            <AiSortInfo kind="stay" />
+            {!aiOff && <AiSortInfo kind="stay" />}
           </span>
           <div className="tb-rlist">
             {shown.map((h) => (
@@ -230,15 +238,15 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
 const dealPct = (h: HotelOption) => h.deal.match(/(?:평소보다|가격 대비) (\d+)% 저렴/)?.[1] ?? null;
 
 // 휴대폰: 결과 맨 위 높이 고정 'AI 추천 3곳' 가로 띠. AI 응답 전에는 같은 높이의 회색 자리만 (화면이 밀리지 않게)
-function AiTop3({ hotels, reasons, pending, query, onOpen }: { hotels: HotelOption[]; reasons: Map<string, string>; pending: boolean; query: StayQuery; onOpen: (h: HotelOption) => void }) {
+function AiTop3({ hotels, reasons, pending, off, query, onOpen }: { hotels: HotelOption[]; reasons: Map<string, string>; pending: boolean; off?: boolean; query: StayQuery; onOpen: (h: HotelOption) => void }) {
   usePriceVersion();
   const nights = nightsOf(query);
   if (!pending && !hotels.length) return null;
   return (
-    <section className="tb-top3" aria-label="AI 추천 3곳" aria-busy={pending}>
+    <section className="tb-top3" aria-label={off ? "확인한 낮은 가격 3곳" : "AI 추천 3곳"} aria-busy={pending}>
       <div className="tb-top3-head">
-        <h2>AI 추천 3곳</h2>
-        <AiSortInfo kind="stay" />
+        <h2>{off ? "확인한 낮은 가격 3곳" : "AI 추천 3곳"}</h2>
+        {!off && <AiSortInfo kind="stay" />}
       </div>
       <div className="tb-top3-row">
         {pending
