@@ -41,7 +41,11 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // 화면 문구용 글꼴 (scripts/build-ui-font.py): 이름에 내용 해시가 있어 오래 캐시해도 된다
+      { source: "/fonts/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
+    ];
   },
   // 공유 미리보기를 만드는 봇에게는 og 태그를 <head>에 바로 넣어 보낸다 (스트리밍하면 못 읽는다).
   // 카카오톡(kakaotalk-scrap), 네이버(Yeti), 페이스북·트위터·슬랙 등
