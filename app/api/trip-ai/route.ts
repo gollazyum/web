@@ -1,5 +1,7 @@
 import { jsonError, jsonReply, rateLimited } from "@/lib/claudeChat";
 import { brand } from "@/lib/brand";
+import { unstable_cache } from "next/cache";
+import { COMPARE_FLIGHTS, COMPARE_STAYS } from "@/lib/ai-compare-cases";
 import { ASK_SLOTS, cleanCopy, isDate, stayReason, MAX_QUESTIONS, TOP_PICKS, type AskQuestion, type ParseResult, type Pick, type PickResult } from "@/lib/trip";
 
 // 탐색 탭 AI. 두 가지 일을 한다.
@@ -214,6 +216,7 @@ function pickInput(body: Record<string, unknown>): string | null {
 const CHECK_SCHEMA = { type: "object", additionalProperties: false, required: ["ok"], properties: { ok: { type: "boolean" } } } as const;
 export async function GET(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) return Response.json({ ok: false, why: "not_configured" }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  if (new URL(req.url).searchParams.get("compare") === "1") return compareResponse();
   if (rateLimited(req)) return Response.json({ ok: false, why: "rate_limited" }, { status: 429, headers: { "Cache-Control": "no-store" } });
   let why = "";
   const started = Date.now();
@@ -266,4 +269,98 @@ export async function POST(req: Request) {
   }
 
   return jsonError(400, "bad_request");
+}
+
+// ---------- 모델 비교 테스트 (임시): /api/trip-ai?compare=1 ----------
+// 고정된 문장 6개·숙소 취향 5개·항공 취향 2개를 Opus 5.5 / Sonnet 5.5 / Haiku 5.5로 한 번씩 돌려 결과·시간·비용을 나란히 보여 준다.
+// 입력이 고정이고 결과를 하루 동안 저장해 두므로(서버 공용 캐시) 여러 번 열어도 AI 비용은 처음 한 번만 든다. 비교가 끝나면 지운다
+const COMPARE_MODELS = [
+  { id: "claude-opus-5-5", label: "Opus 5.5 (지금)", inUsd: 4, outUsd: 20, fallback: true },
+  { id: "claude-sonnet-5-5", label: "Sonnet 5.5", inUsd: 2, outUsd: 10, fallback: true },
+  { id: "claude-haiku-5-5", label: "Haiku 5.5", inUsd: 0.1, outUsd: 0.5, fallback: false },
+] as const;
+const COMPARE_TODAY = "2026-11-18";
+const PARSE_CASES = [
+  "오사카 12월 5일부터 2박 둘이서 역 가까운 곳",
+  "부모님 모시고 후쿠오카 온천 여행 1월 중순에 3박",
+  "다음 달 도쿄 혼자 출장, 신주쿠 쪽 깔끔한 비즈니스 호텔",
+  "인천에서 방콕 가는 비행기 12월 20일 출발 27일 귀국 2명",
+  "아이 둘 데리고 다낭 리조트, 수영장 좋은 곳으로 4박 정도",
+  "삿포로 눈축제 보러 가고 싶은데 언제 가야 해요?",
+];
+const STAY_TASTES = ["역에서 가깝고 깔끔한 곳", "가족 여행, 아이 친화", "가성비 좋은 곳", "후기 좋은 고급 호텔", "대욕장이나 온천 있는 곳"];
+const FLIGHT_TASTES = ["직항, 오전 출발", "가장 싼 편"];
+
+type CaseOut = { ok: boolean; why?: string; ms: number; cost: number; inTok: number; outTok: number; result?: unknown };
+type CompareRow = { kind: "parse" | "stay" | "flight"; input: string; out: Record<string, CaseOut> };
+
+async function runCase<T>(model: (typeof COMPARE_MODELS)[number], system: string, user: string, schema: Record<string, unknown>, maxTokens: number): Promise<CaseOut & { raw?: T }> {
+  let why = "";
+  let usage = { input: 0, output: 0 };
+  const t = Date.now();
+  const raw = await jsonReply<T>(system, user, schema, maxTokens, (w) => (why = w), { model: model.id, fallback: model.fallback, onUsage: (u) => (usage = u) });
+  const cost = (usage.input * model.inUsd + usage.output * model.outUsd) / 1e6;
+  return { ok: !!raw, why: raw ? undefined : why, ms: Date.now() - t, cost, inTok: usage.input, outTok: usage.output, raw: raw ?? undefined };
+}
+
+async function runCompare(): Promise<{ at: string; rows: CompareRow[] }> {
+  const jobs: { row: number; model: (typeof COMPARE_MODELS)[number]; run: () => Promise<CaseOut> }[] = [];
+  const rows: CompareRow[] = [];
+  for (const text of PARSE_CASES) {
+    const row = rows.push({ kind: "parse", input: text, out: {} }) - 1;
+    for (const model of COMPARE_MODELS)
+      jobs.push({
+        row,
+        model,
+        run: async () => {
+          const r = await runCase<RawParse>(model, PARSE_SYSTEM, `[오늘] ${COMPARE_TODAY}\n\n[사용자] ${text}`, PARSE_SCHEMA, 4000);
+          const p = r.raw ? shapeParse(r.raw, COMPARE_TODAY) : null;
+          const b = p ? (p.kind === "flight" ? p.flight : p.stay) : null;
+          return { ...r, raw: undefined, result: p && b ? { kind: p.kind, ...(p.kind === "flight" ? { from: p.flight.from, to: p.flight.to, depart: p.flight.depart, ret: p.flight.ret } : { place: p.stay.place, checkIn: p.stay.checkIn, checkOut: p.stay.checkOut }), adults: b.adults, taste: b.taste, asks: p.questions.map((q) => q.q), reply: p.reply } : undefined };
+        },
+      });
+  }
+  const picks: { kind: "stay" | "flight"; taste: string; items: Record<string, unknown>[]; names: string[] }[] = [
+    ...STAY_TASTES.map((taste) => ({ kind: "stay" as const, taste, items: COMPARE_STAYS, names: COMPARE_STAYS.map((h) => h.name) })),
+    ...FLIGHT_TASTES.map((taste) => ({ kind: "flight" as const, taste, items: COMPARE_FLIGHTS, names: COMPARE_FLIGHTS.map((f) => `${f.airlines} ${f.depart}→${f.arrive} ${f.stops ? `경유 ${f.stops}` : "직항"} ₩${f.price.toLocaleString("ko-KR")}`) })),
+  ];
+  for (const c of picks) {
+    const row = rows.push({ kind: c.kind, input: c.taste, out: {} }) - 1;
+    const input = pickInput({ kind: c.kind, taste: c.taste, items: c.items })!;
+    for (const model of COMPARE_MODELS)
+      jobs.push({
+        row,
+        model,
+        run: async () => {
+          const r = await runCase<{ picks: Pick[]; note: string }>(model, PICK_SYSTEM, input, PICK_SCHEMA, 4000);
+          const ps = r.raw && Array.isArray(r.raw.picks) ? r.raw.picks.slice(0, TOP_PICKS) : null;
+          return { ...r, raw: undefined, ok: !!ps, result: ps ? { picks: ps.map((p) => ({ name: c.names[Number(p.n) - 1] ?? `(없는 번호 ${p.n})`, reason: c.kind === "stay" ? stayReason(p.reason) : cleanCopy(p.reason, 80) })), note: cleanCopy(r.raw!.note, 120) } : undefined };
+        },
+      });
+  }
+  // 39번을 한꺼번에 보낸다 (가장 느린 한 번만큼만 걸리게)
+  let next = 0;
+  const worker = async () => {
+    while (next < jobs.length) {
+      const j = jobs[next++];
+      rows[j.row].out[j.model.label] = await j.run();
+    }
+  };
+  await Promise.all(Array.from({ length: jobs.length }, worker));
+  // 전부 실패했으면(크레딧·키 문제 등) 저장하지 않고 이유를 알려 준다 (고친 뒤 다시 열면 새로 돌린다)
+  const outs = rows.flatMap((r) => Object.values(r.out));
+  if (!outs.some((o) => o.ok)) throw new Error(outs.find((o) => o.why)?.why ?? "all_failed");
+  return { at: new Date().toISOString(), rows };
+}
+
+const cachedCompare = unstable_cache(runCompare, ["ai-compare-v1"], { revalidate: 86400 });
+
+async function compareResponse(): Promise<Response> {
+  let data: Awaited<ReturnType<typeof runCompare>>;
+  try {
+    data = await cachedCompare();
+  } catch (e) {
+    return Response.json({ ok: false, why: e instanceof Error ? e.message.slice(0, 60) : "all_failed" }, { status: 502, headers: { "Cache-Control": "no-store" } });
+  }
+  return Response.json({ models: COMPARE_MODELS.map((m) => m.label), ...data }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -100,7 +100,9 @@ export function streamReply(system: string, messages: Anthropic.Beta.BetaMessage
 
 // 정해진 JSON 모양으로 한 번 답을 받는다 (스트리밍 없음). 실패·거절이면 null
 // onFail: 왜 실패했는지 짧은 이유 (refusal, max_tokens, api_529, timeout, bad_json 등). 키나 요청 내용은 담지 않는다
-export async function jsonReply<T>(system: string, user: string, schema: Record<string, unknown>, maxTokens = 4000, onFail?: (why: string) => void): Promise<T | null> {
+// opts: 모델 비교 테스트용. model을 바꾸고, 쓴 토큰 수를 onUsage로 받는다 (평소에는 비워 둔다)
+export type ReplyOpts = { model?: string; fallback?: boolean; onUsage?: (u: { input: number; output: number; model: string }) => void };
+export async function jsonReply<T>(system: string, user: string, schema: Record<string, unknown>, maxTokens = 4000, onFail?: (why: string) => void, opts: ReplyOpts = {}): Promise<T | null> {
   client ??= new Anthropic();
   const started = Date.now();
   const fail = (why: string) => {
@@ -111,10 +113,10 @@ export async function jsonReply<T>(system: string, user: string, schema: Record<
   try {
     const res = await client.beta.messages.create(
       {
-        model: MODEL,
+        model: opts.model ?? MODEL,
         max_tokens: maxTokens,
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
+        // 거절되면 다른 Claude 모델이 이어받기 (Haiku는 이 기능이 없어 끈다)
+        ...(opts.fallback === false ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }),
         output_config: { effort: "low", format: { type: "json_schema", schema } },
         system,
         messages: [{ role: "user", content: user }],
@@ -122,6 +124,7 @@ export async function jsonReply<T>(system: string, user: string, schema: Record<
       // 함수 최대 60초 안에 끝나도록: 한 번 25초, SDK 재시도 1번까지 (429·5xx·연결 오류만 다시 보냄)
       { timeout: 25_000, maxRetries: 1 },
     );
+    opts.onUsage?.({ input: res.usage.input_tokens + (res.usage.cache_read_input_tokens ?? 0) + (res.usage.cache_creation_input_tokens ?? 0), output: res.usage.output_tokens, model: res.model });
     if (res.stop_reason === "refusal" || res.stop_reason === "max_tokens") return fail(String(res.stop_reason));
     const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("");
     try {
