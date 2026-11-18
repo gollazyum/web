@@ -5,6 +5,7 @@ import { brand, brandCssVars, cssVarName } from "@/lib/brand";
 import { site } from "@/lib/site";
 import {
   stayReason,
+  pickNote,
   cleanCopy,
   fallbackFlightPicks,
   fallbackStayPicks,
@@ -168,5 +169,14 @@ describe("stayReason", () => {
     expect(stayReason("후기 4.5점에 698개 후기, 총액 167,193원으로 예산 안이에요.")).toBe("");
     expect(stayReason("20만 원 이하로 묵을 수 있어요")).toBe("");
     expect(stayReason("4성급에 대욕장이 있어요")).toBe("4성급에 대욕장이 있어요");
+  });
+  it("와이파이·지도 이야기는 이유로 쓰지 않아요", () => {
+    expect(stayReason("무료 와이파이와 피트니스를 갖춘 4성급이에요.")).toBe("");
+    expect(stayReason("Wi-Fi가 빨라요")).toBe("");
+    expect(stayReason("역 거리는 지도에서 확인해 주세요")).toBe("");
+  });
+  it("pickNote는 지도 안내를 비워요", () => {
+    expect(pickNote("역 거리는 지도에서 확인해 주세요.")).toBe("");
+    expect(pickNote("역 거리는 예약 사이트에서 확인해 주세요.")).toBe("역 거리는 예약 사이트에서 확인해 주세요.");
   });
 });
