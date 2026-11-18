@@ -4019,3 +4019,122 @@
   font-size: 13px;
   color: var(--tb-sub);
 }
+
+/* 마이 맨 아래 '기록 지우기' */
+.tb-clear {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--tb-line);
+}
+.tb-clear p {
+  margin: 0 0 12px;
+  line-height: 1.6;
+  color: var(--tb-sub);
+  font-size: 14px;
+}
+.tb-clear-ask p {
+  color: var(--tb-ink);
+  font-weight: 600;
+}
+
+/* 없는 도시로 찾았을 때: 안내 + 인기 여행지 칩 (줄바꿈) */
+.tb-unknown {
+  padding: 20px 16px;
+}
+.tb-unknown p {
+  margin: 0 0 12px;
+  font-weight: 600;
+  color: var(--tb-ink);
+}
+.tb-unknown .tb-pop-row {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+/* 결과 검색 칸 아래 한 줄: 주소의 날짜를 고친 이유 */
+.tb-fixnote {
+  margin: 8px 0 4px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--tb-sub);
+}
+
+/* 예상 금액이 확인한 금액으로 바뀐 카드: 검색 때 금액 한 줄 (회색) */
+.tb-app .tb-was {
+  display: block;
+  font-size: 12px;
+  color: var(--tb-mute);
+  font-weight: 500;
+}
+
+/* AI 채팅: 답을 정한 질문 카드는 한 줄로 접는다 */
+.tb-app .tb-ask-fold {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--tb-line);
+  border-radius: 20px;
+  background: var(--tb-card);
+  font-size: 14px;
+  color: var(--tb-ink);
+  text-align: left;
+}
+.tb-ask-fold span {
+  color: var(--tb-sub);
+  flex: none;
+}
+.tb-ask-fold b {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tb-ask-fold .tb-caret {
+  flex: none;
+  margin-left: 2px;
+}
+
+.tb-msgs .tb-result {
+  scroll-margin-top: 80px;
+}
+
+/* 사진이 없는 숙소: 빈 자리 + '사진 없음' 작게 */
+.tb-nophoto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  background: var(--tb-soft);
+}
+.tb-nophoto small {
+  font-size: 12px;
+  color: var(--tb-mute);
+}
+
+/* 홈 신뢰 칸 아래: 실제로 견주는 예약처 */
+.tb-trust-sellers {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--tb-sub);
+  word-break: keep-all;
+}
+
+/* 검색 결과에 '평소보다 N% 저렴'이 온 숙소만 */
+.tb-app .tb-deal {
+  display: inline-block;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--tb-soft);
+  color: var(--tb-ink);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+}

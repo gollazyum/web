@@ -9,7 +9,7 @@ import { stayPrices } from "./api";
 // 카드 금액 ↔ 예약처 시트 1위 총액 맞추기.
 // 시트(또는 미리 조회)에서 허용 예약처 가격을 받으면 그 1위 총액을 여기 적어 두고, 목록 카드는 이 값을 먼저 쓴다.
 // 같은 탭에서는 sessionStorage에 30분 남겨 새로고침해도 맞춘 금액이 유지된다
-export type Verified = { total: number | null; count: number; at: number; seller?: HotelSellerKey }; // total null: 비교할 수 있는 예약처 0곳, seller: 1위 예약처
+export type Verified = { total: number | null; count: number; at: number; seller?: HotelSellerKey; fc?: boolean }; // total null: 비교할 수 있는 예약처 0곳, seller: 1위 예약처, fc: 무료 취소라고 온 예약처가 있음
 
 const KEEP_MS = 30 * 60 * 1000;
 const PREFIX = "tb-verified-v2:";
@@ -35,11 +35,11 @@ export function getVerified(token: string, q: Pick<StayQuery, "checkIn" | "check
   }
 }
 
-export function setVerified(token: string, q: Pick<StayQuery, "checkIn" | "checkOut" | "adults">, rows: { cost: number; key: HotelSellerKey }[]) {
+export function setVerified(token: string, q: Pick<StayQuery, "checkIn" | "checkOut" | "adults">, rows: { cost: number; key: HotelSellerKey; freeCancel?: boolean }[]) {
   const k = keyOf(token, q);
-  const v: Verified = { total: rows[0]?.cost ?? null, count: rows.length, at: Date.now(), seller: rows[0]?.key };
+  const v: Verified = { total: rows[0]?.cost ?? null, count: rows.length, at: Date.now(), seller: rows[0]?.key, ...(rows.some((r) => r.freeCancel) ? { fc: true } : {}) };
   const old = mem.get(k);
-  if (old && old.total === v.total && old.count === v.count && old.seller === v.seller) return;
+  if (old && old.total === v.total && old.count === v.count && old.seller === v.seller && old.fc === v.fc) return;
   mem.set(k, v);
   try {
     sessionStorage.setItem(PREFIX + k, JSON.stringify(v));
@@ -78,11 +78,15 @@ export function usePriceVersion(): number {
 
 // 카드에 보여 줄 금액. verified: 시트 1위 총액과 같은 값, none: 허용 예약처 0곳, checking: 예약처 가격을 받는 중
 // verified가 아니면 검색 목록에 같이 온 '예상' 금액이다 (예약처마다 달라질 수 있어 화면에 '예상'을 크게 붙인다)
-export type ShownPrice = { value: number | null; verified: boolean; none: boolean; count: number | null; checking?: boolean; seller?: HotelSellerKey };
+export type ShownPrice = { value: number | null; verified: boolean; none: boolean; count: number | null; checking?: boolean; seller?: HotelSellerKey; fc?: boolean; was?: number }; // was: 검색 때 보였던 예상 금액 (확인한 금액과 다를 때만)
 
 export function shownPrice(h: HotelOption, q: StayQuery): ShownPrice {
   const v = getVerified(h.token, q);
-  if (v) return { value: v.total, verified: v.total !== null, none: v.total === null, count: v.count, seller: v.seller };
+  if (v) {
+    const est = stayTotal(h, nightsOf(q))?.value ?? null;
+    const was = est !== null && v.total !== null && Math.abs(est - v.total) >= 100 ? est : undefined;
+    return { value: v.total, verified: v.total !== null, none: v.total === null, count: v.count, seller: v.seller, fc: v.fc, ...(was ? { was } : {}) };
+  }
   return { value: stayTotal(h, nightsOf(q))?.value ?? null, verified: false, none: false, count: null, checking: checking.has(keyOf(h.token, q)) };
 }
 
@@ -116,9 +120,9 @@ export function prefetchPrices(list: HotelOption[], q: StayQuery) {
   }
 }
 
-// 카드가 화면에 잠깐(0.7초) 머물면 그때 예약처 가격을 받는다. 스쳐 지나가는 카드는 부르지 않는다.
+// 카드가 화면에 잠깐(0.3초) 머물면 그때 예약처 가격을 받는다. 스쳐 지나가는 카드는 부르지 않는다.
 // IntersectionObserver가 없는 브라우저는 미리 받지 않고, 카드를 눌러 시트를 열 때 받는다
-const DWELL_MS = 700;
+const DWELL_MS = 300;
 export function useLazyPrice<T extends Element>(h: HotelOption | undefined, q: StayQuery, on: boolean) {
   const ref = useRef<T>(null);
   const token = h?.token;
@@ -135,7 +139,7 @@ export function useLazyPrice<T extends Element>(h: HotelOption | undefined, q: S
           prefetchPrices([h], q);
         }, DWELL_MS);
       },
-      { threshold: 0.6 },
+      { threshold: 0.5 },
     );
     io.observe(el);
     return () => {

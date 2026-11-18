@@ -46,7 +46,7 @@ export const roomsOf = (q: Guests) => Math.max(1, q.rooms ?? 1);
 export const kidsOf = (q: Guests) => q.childAges ?? [];
 export function guestText(q: Guests): string {
   const k = kidsOf(q).length;
-  return [`성인 ${q.adults}`, k ? `아동 ${k}` : "", roomsOf(q) > 1 ? `객실 ${roomsOf(q)}` : ""].filter(Boolean).join(" · ");
+  return [`성인 ${q.adults}`, k ? `아동 ${k}` : "", `객실 ${roomsOf(q)}개`].filter(Boolean).join(" · ");
 }
 export const paxOf = (q: Pax) => q.adults + (q.children ?? 0);
 export function paxText(q: Pax): string {

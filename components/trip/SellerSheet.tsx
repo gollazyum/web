@@ -152,7 +152,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
         </div>
       )}
       <div className={`tb-seller-head${photos.length > 1 ? " under" : ""}`}>
-        {photos.length > 1 ? null : hotel.image ? <img src={hotel.image} alt="" className="tb-seller-img" /> : <div className="tb-seller-img" />}
+        {photos.length > 1 ? null : hotel.image ? <img src={hotel.image} alt="" className="tb-seller-img" /> : <div className="tb-seller-img tb-nophoto"><small>사진 없음</small></div>}
         <div>
           <h2>{hotel.name}</h2>
           <p>
