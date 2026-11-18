@@ -4355,3 +4355,48 @@
     padding-bottom: calc(86px + env(safe-area-inset-bottom));
   }
 }
+
+/* 마이 '가격 다시 보기' 결과: 숙소마다 한 줄 */
+.tb-recheck {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tb-recheck li {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+.tb-recheck .tb-pchg {
+  margin-top: 4px;
+}
+.tb-recheck .tb-pchg.none {
+  color: var(--tb-sub);
+  background: var(--tb-soft);
+}
+
+/* 항공 카드 아래 줄: 예약 링크 + (필요할 때) 오는 편 불러오기. 버튼이 생겨도 줄 높이는 그대로 */
+.tb-fbook-row {
+  display: flex;
+  align-items: stretch;
+  background: var(--tb-soft);
+}
+.tb-fbook-row .tb-fbook {
+  flex: 1;
+  min-width: 0;
+}
+.tb-app .tb-ret-again {
+  flex: none;
+  padding: 0 14px;
+  min-height: 44px;
+  border: 0;
+  border-left: 1px solid var(--tb-line);
+  background: transparent;
+  color: var(--tb-ink);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}

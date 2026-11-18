@@ -113,6 +113,7 @@ export async function serpSearch<T>(
   params: Record<string, string>,
   shape: (json: Record<string, unknown>, extra: Record<string, unknown> | null) => T,
   extra?: Record<string, string> | ((json: Record<string, unknown>) => Record<string, string> | null),
+  opts: { fresh?: boolean } = {},
 ): Promise<Response> {
   const key = process.env.SERPAPI_API_KEY;
   if (!key) return Response.json({ error: "not_configured" }, { status: 503 });
@@ -121,7 +122,7 @@ export async function serpSearch<T>(
   // 요청 헤더는 캐시 함수 밖에서 읽는다 (Next 캐시 안에서는 요청 데이터를 못 쓴다)
   const ip = ipOf(req);
   try {
-    const { data, hit } = await cached<T>(ck, TRAVEL_CACHE_SEC, async () => {
+    const load = async (): Promise<T | NoStore<T>> => {
       if (rateLimited(ip)) throw new SearchFail("rate_limited");
       const json = await call(params, key);
       let more: Record<string, unknown> | null = null;
@@ -136,7 +137,13 @@ export async function serpSearch<T>(
       }
       const data = shape(json, more);
       return partial ? new NoStore(data) : data;
-    });
+    };
+    // fresh: '가격 다시 보기'처럼 지금 값을 꼭 새로 받아야 할 때는 저장된 응답을 쓰지 않는다
+    if (opts.fresh) {
+      const out = await load();
+      return Response.json(out instanceof NoStore ? out.data : out, { headers: { "x-cache": "BYPASS" } });
+    }
+    const { data, hit } = await cached<T>(ck, TRAVEL_CACHE_SEC, load);
     return Response.json(data, { headers: { "x-cache": hit ? "HIT" : "MISS" } });
   } catch (e) {
     if (e instanceof SearchFail) return failResponse(e.kind);

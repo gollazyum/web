@@ -7,7 +7,7 @@ import { labelForCode, loadAirports, searchCities, searchPlaces } from "@/lib/ai
 import { unknownPlace } from "@/lib/place-check";
 import { brand, BRAND_AI_NAME, BRAND_NAME } from "@/lib/brand";
 import { today as localToday } from "@/lib/dates";
-import { HOTEL_SELLERS_SHOWN, sellerDef, sellerSearchUrl } from "@/lib/hotel-sellers";
+import { HOTEL_SELLERS_LIVE, HOTEL_SELLERS_PENDING, sellerDef, sellerSearchUrl } from "@/lib/hotel-sellers";
 import type { HotelOption } from "@/lib/hotels";
 import { criteriaWeights, EMPTY_PROFILE, profileLines, readSaved, TASTE_KEY, withProfile, type TasteProfile, type TasteSaved, type TasteStatus } from "@/lib/taste";
 import { site } from "@/lib/site";
@@ -17,6 +17,7 @@ import type { FlightOption } from "@/lib/flights";
 import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
 import { dateFixText, flightHref, parseHomeSearch, stayHref, TAB_PATH, tabOf, type Tab } from "@/lib/trip-url";
 import { maxWait, TOO_LONG_WAIT, waitText } from "@/lib/flight-legs";
+import { adultsIn, datesIn, placeIn } from "@/lib/chat-parse";
 import {
   fallbackFlightPicks,
   fallbackStayPicks,
@@ -79,7 +80,7 @@ type Msg =
   // home: 홈 검색 카드에서 찾은 결과 (대화에는 보이지 않는다). aiPending: 규칙으로 먼저 보여 주고 AI 결과를 기다리는 중
   // next·pages·more: 스크롤 끝에서 다음 쪽 더 불러오기 (next가 없으면 끝)
   | { id: string; t: "stay"; home?: boolean; query: StayQuery; status: Status; err?: number | null; options?: HotelOption[]; picks?: StayPick[]; aiPending?: boolean; note?: string; unknown?: boolean; next?: string | null; pages?: number; more?: "loading" | "error"; cls?: string; base?: { options: HotelOption[]; next: string | null; pages: number } }
-  | { id: string; t: "flight"; home?: boolean; query: FlightQuery; status: Status; err?: number | null; options?: FlightOption[]; picks?: { n: number; reason: string }[]; aiPending?: boolean; note?: string };
+  | { id: string; t: "flight"; home?: boolean; query: FlightQuery; status: Status; err?: number | null; options?: FlightOption[]; picks?: { n: number; reason: string }[]; aiPending?: boolean; note?: string; aiOff?: boolean }; // aiOff: AI가 두 번 다 실패해 가격순 3편을 보여 줌
 
 type StayMsg = Extract<Msg, { t: "stay" }>;
 type FlightMsg = Extract<Msg, { t: "flight" }>;
@@ -425,6 +426,11 @@ export function TripApp() {
       const okIdx = list.map((f, i) => (maxWait(f) <= TOO_LONG_WAIT ? i : -1)).filter((i) => i >= 0);
       const idx = okIdx.length ? okIdx : list.map((_, i) => i);
       const ai = await pickFlights(idx.map((i) => list[i]), want);
+      if (!ai.ok) {
+        // 다시 불러도 실패하면 AI 요약 없이 낮은 가격순 3편
+        const cheap = [...idx].sort((a, b) => list[a].price - list[b].price).slice(0, 3);
+        return patch(id, { picks: cheap.map((i) => ({ n: i + 1, reason: flightFactReason(list[i], want) })), aiPending: false, aiOff: true, note: "" });
+      }
       const aiPicks = (ai.ok ? ai.data.picks : []).map((p) => ({ ...p, n: Number.isInteger(p.n) && p.n >= 1 && p.n <= idx.length ? idx[p.n - 1] + 1 : 0 }));
       // AI 이유 끝에 경유 대기 시간을 붙인다 (이미 말했으면 그대로)
       const picks = mergePicks(aiPicks, fb, list.length, (n) => flightFactReason(list[n - 1], want)).map((p) => {
@@ -501,6 +507,14 @@ export function TripApp() {
     [runFlight],
   );
 
+  // 문장에서 바로 뽑은 숙소 조건 (AI 응답을 기다리지 않고 쓸 수 있는 것만)
+  function localStay(said: string): Partial<StayQuery> {
+    const place = placeIn(said);
+    const d = datesIn(said, localToday());
+    const adults = adultsIn(said);
+    return { ...(place ? { place } : {}), ...(d?.checkIn && d.checkOut ? d : {}), adults: adults || 2, budget: 0, taste: place ? said.replace(place, "").replace(/\d{1,2}\s*월(\s*\d{1,2}\s*일)?|\d{1,2}\s*박|[,·]/g, " ").replace(/\s+/g, " ").trim().slice(0, 100) : said.slice(0, 200) };
+  }
+
   // ---------- AI 채팅: 자유 문장 ----------
   async function send(raw: string) {
     const said = raw.trim();
@@ -517,9 +531,15 @@ export function TripApp() {
       if (base?.t === "stay" && base.options) return runStay({ ...base.query, taste: joinTaste(base.query.taste, said.slice(0, 100)) }, { reuse: base.options });
       if (base?.t === "flight" && base.options) return runFlight({ ...base.query, taste: joinTaste(base.query.taste, said.slice(0, 100)) }, { reuse: base.options });
       const flightish = /항공|비행|왕복|편도|출국/.test(said);
+      // 숙소: 문장에서 도시·날짜를 뽑아 둘 다 있으면 바로 찾고, 모자라면 뽑은 값을 채운 입력 시트를 연다
+      const local = localStay(said);
+      if (!flightish && stayReady(local, localToday())) {
+        push({ id: uid(), t: "ai", text: `${local.place} ${mdw(local.checkIn)}–${mdw(local.checkOut)} 조건으로 찾아볼게요.` });
+        return goStay(local);
+      }
       push({ id: uid(), t: "ai", text: r.status === 429 ? "질문이 많아서 잠시 쉬어야 해요. 조건을 직접 넣어 주시면 바로 찾아볼게요." : "조건을 직접 넣어 주시면 바로 찾아볼게요." });
       if (flightish) setFlightSheet({ taste: said.slice(0, 200) });
-      else setStaySheet({ taste: said.slice(0, 200) });
+      else setStaySheet(local);
       return;
     }
     const p = r.data;
@@ -531,8 +551,14 @@ export function TripApp() {
     if (p.kind === "stay") {
       const b = base?.t === "stay" ? base : undefined;
       const parsed = keep(p.stay);
-      const stay: Partial<StayQuery> = { ...(b ? b.query : {}), ...parsed, taste: b && !parsed.place ? joinTaste(b.query.taste, parsed.taste ?? "") : (parsed.taste ?? "") };
-      if (p.questions.length) return push({ id: uid(), t: "ask", kind: "stay", reply: p.reply, stay, flight: {}, questions: p.questions, answers: {}, done: false });
+      // AI가 도시·날짜를 빠뜨렸으면 문장에서 직접 뽑은 값으로 채운다 (이어서 말할 때는 보고 있는 검색 조건이 먼저)
+      const local = b ? {} : keep(localStay(said));
+      const stay: Partial<StayQuery> = { ...(b ? b.query : {}), ...local, ...parsed, taste: b && !parsed.place ? joinTaste(b.query.taste, parsed.taste ?? "") : (parsed.taste ?? local.taste ?? "") };
+      if (!stay.adults) stay.adults = 2;
+      // 도시·날짜가 다 있으면 되묻지 않고 바로 찾는다 (취향·예산 질문은 결과를 본 뒤 칩으로 다듬을 수 있다)
+      const ready = stayReady(stay, localToday());
+      const questions = p.questions.filter((q) => !(q.slot === "place" && stay.place) && !(q.slot === "dates" && stay.checkIn && stay.checkOut) && !(q.slot === "adults" && stay.adults));
+      if (questions.length && !ready) return push({ id: uid(), t: "ask", kind: "stay", reply: p.reply, stay, flight: {}, questions, answers: {}, done: false });
       if (p.reply) push({ id: uid(), t: "ai", text: p.reply });
       return goStay(stay, b);
     }
@@ -761,7 +787,10 @@ export function TripApp() {
                 ))}
               </ul>
               {/* 실제로 가격을 받아 견주는 예약처 (lib/hotel-sellers.ts 허용 목록과 같다) */}
-              <p className="tb-trust-sellers">비교하는 예약처: {HOTEL_SELLERS_SHOWN.map((k) => sellerDef(k).ko).join(" · ")}</p>
+              <p className="tb-trust-sellers">
+                비교하는 예약처: {HOTEL_SELLERS_LIVE.map((k) => sellerDef(k).ko).join(" · ")}
+                {HOTEL_SELLERS_PENDING.length > 0 && <small> · 국내 예약처는 준비 중이에요</small>}
+              </p>
               <section className="tb-sec">
                 <h2>인기 여행지</h2>
                 <div className="tb-places">
@@ -1010,7 +1039,7 @@ function AllList({ m, saved, onSave, onOpen, onClose, onMore, onStars }: { m: St
       {open && m.t === "stay" && (
         <StayList bare query={m.query} options={m.options ?? []} picks={m.picks ?? []} aiPending={!!m.aiPending} saved={saved} onSave={(h) => onSave(h, m.query)} onOpen={(h) => onOpen(h, m.query)} onBack={onClose} more={moreOf(m)} onMore={() => onMore(m.id)} onStars={(s) => onStars(m.id, s)} />
       )}
-      {open && m.t === "flight" && <FlightBrowser bare data={{ query: m.query, options: m.options ?? [], picks: m.picks ?? [] }} aiPending={m.aiPending} onBack={onClose} />}
+      {open && m.t === "flight" && <FlightBrowser bare data={{ query: m.query, options: m.options ?? [], picks: m.picks ?? [] }} aiPending={m.aiPending} aiOff={m.aiOff} onBack={onClose} />}
     </Sheet>
   );
 }
@@ -1144,7 +1173,7 @@ function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onPlace, onMore
     );
   return (
     <main>
-      <FlightBrowser data={{ query: m.query, options: m.options, picks: m.picks ?? [] }} aiPending={m.aiPending} onBack={onBack} notice={fixNote} />
+      <FlightBrowser data={{ query: m.query, options: m.options, picks: m.picks ?? [] }} aiPending={m.aiPending} aiOff={m.aiOff} onBack={onBack} notice={fixNote} />
     </main>
   );
 }
@@ -1429,11 +1458,19 @@ function FlightResult({ m, onAll, onRefine, onRetry, onPrefill }: MsgProps & { m
   return (
     <div className="tb-result">
       <AiSay>
-        {route} {options.length}편 중에 <b>{picks.length}편</b>을 먼저 보여드릴게요. 가격은 {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액이에요.{m.note ? ` ${m.note}` : ""}
+        {m.aiOff ? (
+          <>
+            {route} {options.length}편 중에 낮은 가격순 <b>{picks.length}편</b>이에요. 가격은 {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액이에요.
+          </>
+        ) : (
+          <>
+            {route} {options.length}편 중에 <b>{picks.length}편</b>을 먼저 보여드릴게요. 가격은 {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액이에요.{m.note ? ` ${m.note}` : ""}
+          </>
+        )}
       </AiSay>
       <div className="tb-cards">
         {picks.map((p, i) => (
-          <FlightCard key={`${p.n}`} o={p.o} q={q} reason={p.reason} rank={i + 1} />
+          <FlightCard key={`${p.n}`} o={p.o} q={q} reason={m.aiOff ? undefined : p.reason} rank={m.aiOff ? undefined : i + 1} tag={m.aiOff ? p.reason : undefined} eager />
         ))}
       </div>
       <div className="tb-follow">

@@ -88,9 +88,9 @@ export const searchStaysPage = (q: StayQuery, page: string, stars?: string) => {
 const kids = (q: { childAges?: number[] }) => (q.childAges?.length ? { childAges: q.childAges } : {});
 const pax = (q: { children?: number; cabin?: string }) => ({ ...(q.children ? { children: q.children } : {}), ...(q.cabin && q.cabin !== "y" ? { cabin: q.cabin } : {}) });
 
-// fresh: '다시 검색'을 눌렀을 때만 캐시를 건너뛴다
+// fresh: '다시 검색'·'가격 다시 보기'를 눌렀을 때만 이 탭과 서버의 저장된 가격을 건너뛴다
 export const stayPrices = (token: string, q: StayQuery, name: string, fresh = false) => {
-  const body = { q: name.slice(0, 100), checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...kids(q), token };
+  const body = { q: name.slice(0, 100), checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...kids(q), token, ...(fresh ? { fresh: true } : {}) };
   return cached(`price:${token}:${q.checkIn}:${q.checkOut}:${q.adults}:${(q.childAges ?? []).join(".")}`, () => post<HotelPrices>("/api/hotels", body), fresh);
 };
 
@@ -142,7 +142,14 @@ export const pickStays = (list: HotelOption[], taste: string, budget: number) =>
     })),
   });
 
-export const pickFlights = (list: FlightOption[], taste: string) =>
+// 항공 AI: 실패하면(사용량 초과·설정 없음 제외) 한 번만 다시 부른다
+export async function pickFlights(list: FlightOption[], taste: string) {
+  const first = await pickFlightsOnce(list, taste);
+  if (first.ok || first.status === 429 || first.status === 503 || first.status === 400) return first;
+  return pickFlightsOnce(list, taste);
+}
+
+const pickFlightsOnce = (list: FlightOption[], taste: string) =>
   pickCached({
     mode: "pick",
     kind: "flight",

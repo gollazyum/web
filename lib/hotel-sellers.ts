@@ -140,6 +140,12 @@ const OFFICIAL_WORD = /official|공식/i;
 // 인터파크·마이리얼트립·호텔 공식 사이트는 정의만 남기고 보여 주지 않는다
 export const HOTEL_SELLERS_SHOWN: readonly HotelSellerKey[] = ["booking", "agoda", "yeogi", "yanolja", "hotels", "expedia", "trip"];
 
+// 허용 목록 중 지금 검색 결과에 가격이 실제로 들어오지 않는 국내 예약처 (들어오면 여기서 빼면 홈 안내에도 바로 보인다)
+export const HOTEL_SELLERS_PENDING: readonly HotelSellerKey[] = ["yeogi", "yanolja"];
+
+// 홈 '비교하는 예약처'에 쓰는 목록: 결과 패널에 실제로 가격이 오는 곳만 (허용 목록 - 준비 중)
+export const HOTEL_SELLERS_LIVE: readonly HotelSellerKey[] = HOTEL_SELLERS_SHOWN.filter((k) => !HOTEL_SELLERS_PENDING.includes(k));
+
 // 판매처 이름·공식 플래그·링크로 허용 목록 중 하나를 찾는다. 없거나 지금 보여 주지 않는 곳이면 null (결과에서 뺀다)
 export function hotelSellerKey(name: string | null | undefined, official = false, link?: string | null): HotelSellerKey | null {
   const key = anySellerKey(name, official, link);

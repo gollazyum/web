@@ -42,8 +42,8 @@ export function parseMessages(body: unknown): Anthropic.Beta.BetaMessageParam[] 
   return messages;
 }
 
-export function jsonError(status: number, error: string) {
-  return Response.json({ error }, { status });
+export function jsonError(status: number, error: string, why?: string) {
+  return Response.json(why ? { error, why } : { error }, { status, headers: why ? { "x-ai-fail": why } : undefined });
 }
 
 // system과 대화 기록으로 Claude를 부르고, 답을 받는 대로 글자 흐름으로 보낸다
@@ -99,8 +99,15 @@ export function streamReply(system: string, messages: Anthropic.Beta.BetaMessage
 }
 
 // 정해진 JSON 모양으로 한 번 답을 받는다 (스트리밍 없음). 실패·거절이면 null
-export async function jsonReply<T>(system: string, user: string, schema: Record<string, unknown>, maxTokens = 4000): Promise<T | null> {
+// onFail: 왜 실패했는지 짧은 이유 (refusal, max_tokens, api_529, timeout, bad_json 등). 키나 요청 내용은 담지 않는다
+export async function jsonReply<T>(system: string, user: string, schema: Record<string, unknown>, maxTokens = 4000, onFail?: (why: string) => void): Promise<T | null> {
   client ??= new Anthropic();
+  const started = Date.now();
+  const fail = (why: string) => {
+    console.error(`trip ai fail: ${why} after ${Date.now() - started}ms`);
+    onFail?.(why);
+    return null;
+  };
   try {
     const res = await client.beta.messages.create(
       {
@@ -114,12 +121,19 @@ export async function jsonReply<T>(system: string, user: string, schema: Record<
       },
       { timeout: 45_000 },
     );
-    if (res.stop_reason === "refusal" || res.stop_reason === "max_tokens") return null;
+    if (res.stop_reason === "refusal" || res.stop_reason === "max_tokens") return fail(String(res.stop_reason));
     const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("");
-    return JSON.parse(text) as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return fail("bad_json");
+    }
   } catch (error) {
-    if (error instanceof Anthropic.APIError) console.error(`trip ai api error ${error.status}:`, error.message);
-    else console.error("trip ai error:", error instanceof Error ? error.name : "unknown");
-    return null;
+    if (error instanceof Anthropic.APIConnectionTimeoutError) return fail("timeout");
+    if (error instanceof Anthropic.APIError) {
+      console.error(`trip ai api error ${error.status}:`, error.message);
+      return fail(`api_${error.status ?? "x"}`);
+    }
+    return fail(error instanceof Error ? error.name : "unknown");
   }
 }
