@@ -36,10 +36,20 @@ export function flightHref(q: FlightQuery): string {
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+// fixed: 날짜를 고친 이유. past 지난 날짜, order 오는 날이 가는 날보다 빠름(또는 같음), invalid 없는 날짜
+export type DateFix = "past" | "order" | "invalid";
 export type HomeSearch =
-  | { kind: "stay"; query: StayQuery; fixed?: boolean }
-  | { kind: "flight"; query: Omit<FlightQuery, "fromLabel" | "toLabel">; fixed?: boolean }
+  | { kind: "stay"; query: StayQuery; fixed?: DateFix }
+  | { kind: "flight"; query: Omit<FlightQuery, "fromLabel" | "toLabel">; fixed?: DateFix; same?: true }
   | null;
+
+// 날짜를 고친 이유와 실제로 바꾼 날짜를 한 줄로 (검색 칸 아래에 보여 준다)
+export function dateFixText(fix: DateFix, a: string, b?: string): string {
+  const md = (x: string) => `${Number(x.slice(5, 7))}월 ${Number(x.slice(8, 10))}일`;
+  const range = !b ? md(a) : a.slice(5, 7) === b.slice(5, 7) ? `${md(a)}–${Number(b.slice(8, 10))}일` : `${md(a)}–${md(b)}`;
+  const why = fix === "past" ? "날짜가 지나서" : fix === "order" ? "오는 날이 가는 날보다 빨라서" : "주소의 날짜를 읽을 수 없어서";
+  return `${why} ${range}로 바꿨어요`;
+}
 
 // 실제로 있는 날짜인지 (2026-02-30 같은 건 아니다)
 const realDate = (s: string) => {
@@ -49,7 +59,7 @@ const realDate = (s: string) => {
 };
 
 // 주소의 검색 조건 읽기. 모양이 틀리면 null (그때는 빈 검색 화면)
-// today를 주면 지났거나 틀린 날짜를 고쳐서 돌려준다 (fixed: true)
+// today를 주면 지났거나 틀린 날짜를 고쳐서 돌려준다 (fixed: 고친 이유). 출발·도착 공항이 같으면 same: true (검색하지 않고 안내)
 export function parseHomeSearch(search: string, today?: string): HomeSearch {
   const sp = new URLSearchParams(search);
   const one = (k: string) => (sp.get(k) ?? "").trim();
@@ -69,8 +79,14 @@ export function parseHomeSearch(search: string, today?: string): HomeSearch {
     const depart = one("depart");
     const ret = one("return");
     const adults = Number(one("adults") || 1);
-    if (!/^[A-Z]{3}$/.test(from) || !/^[A-Z]{3}$/.test(to) || from === to) return null;
+    if (!/^[A-Z]{3}$/.test(from) || !/^[A-Z]{3}$/.test(to)) return null;
     if (!Number.isInteger(adults) || adults < 1 || adults > 9) return null;
+    if (from === to) {
+      if (!today) return null;
+      const d0 = realDate(depart) && depart >= today ? depart : "";
+      const r0 = d0 && realDate(ret) && ret > d0 ? ret : "";
+      return { kind: "flight", query: { from, to, depart: d0, ret: r0, adults, taste }, same: true };
+    }
     if (!today) {
       if (!DATE.test(depart) || (ret && (!DATE.test(ret) || ret < depart))) return null;
       return { kind: "flight", query: { from, to, depart, ret, adults, taste, ...childOk, ...cabinOk } };
@@ -78,15 +94,15 @@ export function parseHomeSearch(search: string, today?: string): HomeSearch {
     // P1-3: 지났거나 틀린 날짜는 도시는 그대로 두고 날짜만 고친다 (화면에 한 줄 알린다)
     let d = depart;
     let r = ret;
-    let fixed = false;
+    let fixed: DateFix | undefined;
     if (!realDate(d) || d < today) {
       const gap = realDate(ret) && realDate(depart) && ret >= depart ? Math.min(daysBetween(depart, ret), 30) : 4;
       d = addDays(today, 21);
       r = ret ? addDays(d, gap) : "";
-      fixed = true;
+      fixed = realDate(depart) ? "past" : "invalid";
     } else if (ret && (!realDate(ret) || ret < d)) {
       r = addDays(d, 4);
-      fixed = true;
+      fixed = realDate(ret) ? "order" : "invalid";
     }
     return { kind: "flight", query: { from, to, depart: d, ret: r, adults, taste, ...childOk, ...cabinOk }, ...(fixed ? { fixed } : {}) };
   }
@@ -104,15 +120,15 @@ export function parseHomeSearch(search: string, today?: string): HomeSearch {
   }
   let ci = checkIn;
   let co = checkOut;
-  let fixed = false;
+  let fixed: DateFix | undefined;
   if (!realDate(ci) || ci < today) {
     const n = realDate(checkIn) && realDate(checkOut) && checkOut > checkIn ? Math.min(daysBetween(checkIn, checkOut), 30) : 2;
     ci = addDays(today, 21);
     co = addDays(ci, n);
-    fixed = true;
+    fixed = realDate(checkIn) ? "past" : "invalid";
   } else if (!realDate(co) || co <= ci) {
     co = addDays(ci, 2);
-    fixed = true;
+    fixed = realDate(checkOut) ? "order" : "invalid";
   }
   return { kind: "stay", query: { place, checkIn: ci, checkOut: co, adults, budget: b, taste, ...roomsOk, ...agesOk }, ...(fixed ? { fixed } : {}) };
 }

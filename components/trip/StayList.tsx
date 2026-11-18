@@ -16,6 +16,7 @@ import { IconBack, IconHeart, IconSpark } from "./icons";
 export type StayPick = { token: string; reason: string };
 
 type Props = {
+  notice?: string; // 검색 칸 아래 한 줄 (예: 주소의 날짜를 고친 이유)
   query: StayQuery;
   options: HotelOption[];
   picks: StayPick[];
@@ -38,7 +39,7 @@ const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋�
 
 // v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다.
 // 필터: 휴대폰·좁은 PC는 위쪽 3버튼(조건 검색/요금/정렬 기준), 넓은 PC(1280px 이상)는 같은 항목을 왼쪽에 늘 보이게
-export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars }: Props) {
+export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars, notice }: Props) {
   // 목록 끝이 화면에 가까워지면 다음 쪽을 부른다 (필터로 목록이 짧아져도 같은 기준)
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -142,6 +143,11 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
           </button>
         </div>
       )}
+      {notice && (
+        <p className="tb-fixnote" role="status">
+          {notice}
+        </p>
+      )}
       <div className={side ? "tb-fbar-wrap has-side" : "tb-fbar-wrap"}>
         <FilterBar c={counts} f={f} set={setF} sort={sort} setSort={setSort} nights={nights} />
       </div>
@@ -220,6 +226,9 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   );
 }
 
+// '평소보다 N% 저렴'(또는 '일반적인 가격 대비 N% 저렴')이 검색 결과에 같이 온 숙소만 배지로 (없으면 만들지 않는다)
+const dealPct = (h: HotelOption) => h.deal.match(/(?:평소보다|가격 대비) (\d+)% 저렴/)?.[1] ?? null;
+
 export function StayRow({ h, query, reason, note, cheapest, saved, active, onSave, onOpen }: { h: HotelOption; query: StayQuery; reason?: string; note?: RankNote; cheapest?: boolean; saved: boolean; active?: boolean; onSave?: () => void; onOpen: () => void }) {
   usePriceVersion();
   const nights = nightsOf(query);
@@ -253,7 +262,8 @@ export function StayRow({ h, query, reason, note, cheapest, saved, active, onSav
             {h.reviews ? <span>리뷰 {h.reviews.toLocaleString("ko-KR")}</span> : null}
           </span>
         ) : null}
-        {stayFactLine(h) && <span className="tb-fact">{stayFactLine(h)}</span>}
+        {stayFactLine(h, t.fc) && <span className="tb-fact">{stayFactLine(h, t.fc)}</span>}
+        {dealPct(h) && <em className="tb-deal">평소보다 {dealPct(h)}%↓</em>}
         {reason && !isPlainReason(reason) && (
           <span className="tb-why">
             <IconSpark size={15} /> {reason}
@@ -269,15 +279,26 @@ export function StayRow({ h, query, reason, note, cheapest, saved, active, onSav
 
 // 카드 위쪽 큰 사진. 휴대폰은 손가락으로 옆으로 넘기고, PC는 마우스를 올리면 나오는 화살표로 넘긴다
 // 숙소 상세(big)는 사진 한 장씩, 화살표를 늘 보이고 '1/8'을 함께 보여 준다
+// 사진이 없거나 모두 못 받으면 깨진 그림 대신 빈 자리에 '사진 없음'을 작게
+export function NoPhoto({ onOpen }: { onOpen?: () => void }) {
+  return (
+    <div className="tb-nophoto" onClick={onOpen} aria-hidden>
+      <small>사진 없음</small>
+    </div>
+  );
+}
+
 export function PhotoStrip({ images, name, onOpen, max = 5, big }: { images: string[]; name: string; onOpen?: () => void; max?: number; big?: boolean }) {
-  const list = images.slice(0, max);
+  const [bad, setBad] = useState<string[]>([]); // 받지 못한 사진은 빼고 넘긴다
+  const list = images.slice(0, max).filter((src) => !bad.includes(src));
   const ref = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState(0);
+  const drop = (src: string) => setBad((b) => (b.includes(src) ? b : [...b, src]));
   const go = (d: number) => {
     const el = ref.current;
     if (el) el.scrollTo({ left: el.clientWidth * Math.max(0, Math.min(list.length - 1, at + d)), behavior: "smooth" });
   };
-  if (!list.length) return null;
+  if (!list.length) return <NoPhoto onOpen={onOpen} />;
   return (
     <>
       <div
@@ -291,7 +312,17 @@ export function PhotoStrip({ images, name, onOpen, max = 5, big }: { images: str
         aria-label={`${name} 사진 ${list.length}장`}
       >
         {list.map((src, i) => (
-          <img key={src + i} src={src} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} />
+          <img
+            key={src + i}
+            src={src}
+            alt=""
+            loading="lazy"
+            onError={() => drop(src)}
+            // 화면이 열리기 전에 이미 실패한 사진도 뺀다
+            ref={(el) => {
+              if (el && el.complete && !el.naturalWidth && el.currentSrc) drop(src);
+            }}
+          />
         ))}
       </div>
       {list.length > 1 && (
@@ -373,6 +404,7 @@ export function PriceBlock({ p, nights }: { p: ReturnType<typeof shownPrice>; ni
       <strong>{p.value !== null ? won(p.value) : "가격 확인"}</strong>
       <small>{nights}박 · 세금 포함</small>
       {perNight}
+      {p.was !== undefined && <small className="tb-was">검색 때 {won(p.was)} → 다시 확인한 금액</small>}
       <em className="tb-cmp">{p.count ? `예약처 ${p.count}곳 가격 보기` : "예약처별 가격 보기"} &gt;</em>
     </span>
   );

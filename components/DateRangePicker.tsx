@@ -146,11 +146,19 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
   const status =
     single
       ? start ? `${shortLabel(start)} 출발` : prompts[0]
-      : phase === "start" || !start
-      ? prompts[0]
-      : end
+      : start && end
         ? `${shortLabel(start)} → ${shortLabel(end)} · ${unit(span)}`
-        : `${shortLabel(start)} 입력됨 · ${prompts[1]}`;
+        : phase === "start" || !start
+          ? prompts[0]
+          : `${shortLabel(start)} 입력됨 · ${prompts[1]}`;
+  // 시트 머리줄: 고른 날짜가 있으면 그 날짜를, 없을 때만 '체크인 입력'처럼 다음에 고를 것을 보여 준다
+  const sheetHead = single
+    ? start ? dot(start) : `${labels[0]} 입력`
+    : start && end
+      ? `${dot(start)} – ${dot(end)} · ${unit(span)}`
+      : start && phase === "end"
+        ? `${dot(start)} – ${labels[1]} 입력`
+        : `${labels[0]} 입력`;
 
   function month(m: Date) {
     const y = m.getFullYear();
@@ -241,7 +249,7 @@ export function DateRangePicker({ start, end, onChange, labels, prompts, endPlac
           {sheet ? (
             <>
               <div className="dp-sheet-head">
-                <strong>{phase === "start" || !start ? labels[0] : labels[1]} 입력</strong>
+                <strong aria-live="polite">{sheetHead}</strong>
                 <button type="button" className="filters-close" aria-label="달력 닫기" onClick={() => setOpen(false)}>
                   ✕
                 </button>

@@ -62,7 +62,9 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
 
   useImperativeHandle(ref, () => ({
     searchStay(place: string) {
-      const q = { ...s, place };
+      // 폼 날짜가 지났으면 기본 날짜(3주 뒤 2박)로 바로 찾는다
+      const [d1, d2] = defaultDates();
+      const q = s.checkIn < t ? { ...s, place, checkIn: d1, checkOut: d2 } : { ...s, place };
       setS(q);
       if (kind !== "stay") onKind("stay");
       startStay(q);
@@ -83,7 +85,7 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
     e.preventDefault();
     if (kind === "stay") return startStay(s);
     if (!f.from || !f.to) return setErr("출발·도착은 목록에 뜬 도시나 공항을 눌러 주세요.");
-    if (f.from === f.to) return setErr("출발과 도착이 같아요. 도착 도시를 바꿔 주세요.");
+    if (f.from === f.to) return setErr("출발지와 도착지가 같아요. 도착 도시를 바꿔 주세요.");
     const ret = oneWay ? "" : f.ret;
     if (f.depart < t) return setErr("가는 날이 지났어요. 오늘 이후 날짜로 바꿔 주세요.");
     if (!oneWay && !ret) return setErr("오는 날을 넣어 주세요.");
@@ -181,36 +183,23 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
           </div>
         </>
       )}
-      {(err || (kind === "flight" && f.from && f.from === f.to)) && <p className="tb-err" role="alert">{err || "출발과 도착이 같아요. 도착 도시를 바꿔 주세요."}</p>}
+      {(err || (kind === "flight" && f.from && f.from === f.to)) && <p className="tb-err" role="alert">{err || "출발지와 도착지가 같아요. 도착 도시를 바꿔 주세요."}</p>}
       <button type="submit" className="tb-cta">
         검색
       </button>
-      {/* P1-1: 검색칸 아래 인기 여행지(숙소)·인기 노선(항공). 누르면 기본 날짜로 바로 찾는다 */}
-      <div className="tb-pop" aria-label={kind === "stay" ? "인기 여행지" : "인기 노선"} role="group">
-        <small>{kind === "stay" ? "인기 여행지" : "인천 출발 인기 노선"}</small>
-        <div className="tb-pop-row">
-          {kind === "stay"
-            ? HOME_PLACES.map((p) => (
-                <button
-                  key={p.name}
-                  type="button"
-                  onClick={() => {
-                    const [d1, d2] = defaultDates();
-                    const q = { ...s, place: p.name, checkIn: d1, checkOut: d2 };
-                    setS(q);
-                    startStay(q);
-                  }}
-                >
-                  {p.name}
-                </button>
-              ))
-            : HOME_ROUTES.map((r) => (
-                <button key={r.to} type="button" onClick={() => searchRoute(r)}>
-                  인천 → {r.name}
-                </button>
-              ))}
+      {/* P1-1: 항공은 검색칸 아래 인천 출발 인기 노선(누르면 기본 날짜로 바로 찾기). 숙소 인기 여행지는 홈의 사진 카드 한 곳에만 둔다 */}
+      {kind === "flight" && (
+        <div className="tb-pop" aria-label="인기 노선" role="group">
+          <small>인천 출발 인기 노선</small>
+          <div className="tb-pop-row">
+            {HOME_ROUTES.map((r) => (
+              <button key={r.to} type="button" onClick={() => searchRoute(r)}>
+                인천 → {r.name}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </form>
   );
 }

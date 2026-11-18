@@ -2,11 +2,12 @@ import type { HotelOption } from "./hotels";
 import { hasBreakfast, hasFreeCancel } from "./stay-filters";
 import { stayWants } from "./trip";
 
-// 카드 한 줄: 가까운 역·장소까지 시간 · 무료 취소. 검색 결과에 실제로 온 값만 쓰고, 둘 다 없으면 빈 문자열(화면에서 숨김)
-export function stayFactLine(h: HotelOption): string {
+// 카드 한 줄: 가까운 역·장소까지 시간 · 무료 취소. 검색 결과나 예약처 가격 확인에 실제로 온 값만 쓰고, 둘 다 없으면 빈 문자열(화면에서 숨김)
+// sellerFreeCancel: 예약처 가격을 확인했을 때 무료 취소라고 온 예약처가 있었는지 (prices.ts ShownPrice.fc)
+export function stayFactLine(h: HotelOption, sellerFreeCancel?: boolean): string {
   const parts: string[] = [];
   if (h.near) parts.push(`${h.near.name}까지 ${h.near.how} ${h.near.mins}분`);
-  if (h.freeCancel) parts.push("무료 취소 가능한 예약처 있음");
+  if (hasFreeCancel(h) || sellerFreeCancel) parts.push("무료 취소 가능한 예약처 있음");
   return parts.join(" · ");
 }
 

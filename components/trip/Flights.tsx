@@ -280,7 +280,7 @@ function FlightFilterPanel({ c, f, set }: { c: FlightFacets; f: FlightFilter; se
 
 // 항공권 결과 목록 (v7 05와 같은 틀). AI가 먼저 본 3편이 맨 위.
 // P1-5: PC(1280px 이상)는 왼쪽에 정렬·필터, 휴대폰은 '필터' 버튼 → 시트. 필터 항목마다 편 수와 가장 낮은 총액
-export function FlightBrowser({ data, aiPending, onBack, bare }: { data: FlightData; aiPending?: boolean; onBack: () => void; bare?: boolean }) {
+export function FlightBrowser({ data, aiPending, onBack, bare, notice }: { data: FlightData; aiPending?: boolean; onBack: () => void; bare?: boolean; notice?: string }) {
   const { query: q, options, picks } = data;
   const [f, setF] = useState<FlightFilter>(EMPTY_FLIGHT_FILTER);
   const [draft, setDraft] = useState<FlightFilter>(EMPTY_FLIGHT_FILTER);
@@ -323,6 +323,11 @@ export function FlightBrowser({ data, aiPending, onBack, bare }: { data: FlightD
               </span>
             </button>
           </div>
+        )}
+        {notice && (
+          <p className="tb-fixnote" role="status">
+            {notice}
+          </p>
         )}
         <div className={side ? "tb-fbar-wrap has-side" : "tb-fbar-wrap"}>
           <div className="tb-chiprow">

@@ -134,12 +134,13 @@ export async function airportsFor(code: string): Promise<string> {
   return code;
 }
 
-// 주소에 코드만 있을 때 입력칸에 보여 줄 이름 ("서울 모든 공항 (SEL)", "도쿄 (NRT)")
+// 주소에 코드만 있을 때 입력칸·결과 머리에 보여 줄 이름 ("서울 모든 공항 (SEL)", "인천 (ICN)", "도쿄 나리타 (NRT)").
+// 카드와 같은 이름(cityForCode)을 써서 검색 칸·결과 머리·카드가 같은 이름이 되게 한다
 export function labelForCode(d: Data, code: string): string {
   const metro = d.metros.find((m) => m[0] === code);
   if (metro) return `${metro[2] || metro[1]} 모든 공항 (${code})`;
-  const a = d.airports.find((x) => x[0] === code);
-  return a ? `${cityName(a)} (${code})` : code;
+  const city = cityForCode(d, code);
+  return city === code ? code : `${city} (${code})`;
 }
 
 // 공항 코드 → 도시 이름 ("ICN" → "인천", "TYO" → "도쿄"). 모르면 코드 그대로
