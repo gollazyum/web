@@ -4450,3 +4450,95 @@
   line-height: 1.5;
   color: var(--tb-sub);
 }
+
+/* AI 요약이 실패했을 때 결과 위 한 줄 + '다시 시도' (숙소·항공·채팅 공통) */
+.tb-aioff {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--tb-soft);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--tb-sub);
+}
+.tb-results-main > .tb-aioff {
+  margin: 8px 16px;
+}
+.tb-aioff-retry {
+  flex: none;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--tb-line);
+  background: var(--tb-card);
+  color: var(--tb-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* 채팅 추천 카드: 순위와 '확인한 가격 중 최저'는 따로. 최저 배지는 ♡와 겹치지 않게 사진 왼쪽 아래 */
+.tb-hcard-img .tb-tag.low {
+  top: auto;
+  bottom: 10px;
+  white-space: nowrap;
+}
+.tb-tag.low .short {
+  display: none;
+}
+@media (max-width: 640px) {
+  /* 채팅의 가로 카드 줄도 결과 띠처럼 좌우 20px, 스냅 위치도 20px 안쪽 */
+  .tb-hcards {
+    scroll-padding: 0 20px;
+  }
+  .tb-hcards::after {
+    flex-basis: 10px;
+  }
+  .tb-hcard-img .tb-tag.low {
+    left: 8px;
+    bottom: 8px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 360px) {
+  .tb-hcard-img .tb-tag.low .full {
+    display: none;
+  }
+  .tb-hcard-img .tb-tag.low .short {
+    display: inline;
+  }
+}
+
+/* AI 채팅: 마지막 카드·'한눈에 보기'가 입력창에 가리지 않게. --tb-dock-h = 입력창이 화면 아래를 가리는 높이 (TripApp이 잰다) */
+.tb-msgs > * {
+  scroll-margin-bottom: calc(var(--tb-dock-h, 96px) + 16px);
+}
+@media (max-width: 640px) {
+  .tb-msgs {
+    padding-bottom: calc(var(--tb-dock-h, 86px) + 16px); /* 잰 값에 탭 막대·안전 영역이 이미 들어 있다 */
+  }
+}
+
+/* PC 정렬 칸 '관련도순' 기준 ⓘ */
+.tb-sortinfo {
+  margin: 6px 0 2px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--tb-sub);
+}
+.tb-sortinfo summary {
+  cursor: pointer;
+  list-style: none;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+.tb-sortinfo summary::-webkit-details-marker {
+  display: none;
+}
+.tb-sortinfo p {
+  margin: 2px 0 6px;
+}

@@ -50,6 +50,7 @@ import { SearchCard, type SearchCardHandle, type SearchKind } from "./SearchCard
 import { Sheet } from "./Sheet";
 import type { StayPick } from "./StayList";
 import { requestSimilar } from "./similar";
+import { AiOffNote } from "./AiOffNote";
 import { rankNotes, stayFactLine, type RankNote } from "@/lib/stay-facts";
 import { getVerified, prefetchPrices, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
 import { setSavedList, type SavedBase } from "./saved-price";
@@ -103,7 +104,7 @@ type Msg =
     }
   // home: 홈 검색 카드에서 찾은 결과 (대화에는 보이지 않는다). aiPending: 규칙으로 먼저 보여 주고 AI 결과를 기다리는 중
   // next·pages·more: 스크롤 끝에서 다음 쪽 더 불러오기 (next가 없으면 끝)
-  | { id: string; t: "stay"; home?: boolean; query: StayQuery; status: Status; err?: number | null; options?: HotelOption[]; picks?: StayPick[]; aiPending?: boolean; note?: string; unknown?: boolean; next?: string | null; pages?: number; more?: "loading" | "error"; cls?: string; base?: { options: HotelOption[]; next: string | null; pages: number } }
+  | { id: string; t: "stay"; home?: boolean; query: StayQuery; status: Status; err?: number | null; options?: HotelOption[]; picks?: StayPick[]; aiPending?: boolean; note?: string; unknown?: boolean; next?: string | null; pages?: number; more?: "loading" | "error"; cls?: string; base?: { options: HotelOption[]; next: string | null; pages: number }; aiOff?: boolean }
   | { id: string; t: "flight"; home?: boolean; query: FlightQuery; status: Status; err?: number | null; options?: FlightOption[]; picks?: { n: number; reason: string }[]; aiPending?: boolean; note?: string; aiOff?: boolean }; // aiOff: AI가 두 번 다 실패해 가격순 3편을 보여 줌
 
 type StayMsg = Extract<Msg, { t: "stay" }>;
@@ -294,6 +295,9 @@ export function TripApp() {
 
   const patch = useCallback((id: string, p: Partial<Msg>) => setMsgs((list) => list.map((m) => (m.id === id ? ({ ...m, ...p } as Msg) : m))), []);
   const push = useCallback((m: Msg) => setMsgs((list) => [...list, m]), []);
+  // AI가 두 번 다 실패한 결과마다 'AI만 다시 부르기' (검색은 다시 하지 않는다)
+  const aiRetry = useRef(new Map<string, () => void>());
+  const retryAi = useCallback((id: string) => aiRetry.current.get(id)?.(), []);
 
   // 다른 페이지 메뉴에서 /?tab=stay, /?tab=flight 로 오면 그 검색 탭을 연다
   useEffect(() => {
@@ -308,17 +312,42 @@ export function TripApp() {
   }, [pathname]);
 
   const chatLen = msgs.filter((m) => !("home" in m && m.home)).length;
+  // 입력창이 화면 아래를 가리는 높이를 재서 CSS 변수로 둔다 (대화 아래 여백·scroll-margin-bottom에 같은 값)
+  // 휴대폰: 탭 막대 위에 떠 있는 입력창 → 화면 아래에서 입력창 윗변까지. PC: 아래에 붙는 입력창 높이
+  useEffect(() => {
+    if (tab !== "chat") return;
+    const dock = document.querySelector<HTMLElement>(".tb-dock");
+    if (!dock) return;
+    const set = () => {
+      const fixed = getComputedStyle(dock).position === "fixed";
+      const h = Math.round(fixed ? window.innerHeight - dock.getBoundingClientRect().top : dock.offsetHeight);
+      document.documentElement.style.setProperty("--tb-dock-h", `${Math.max(0, h)}px`);
+    };
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(dock);
+    window.addEventListener("resize", set);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", set);
+    };
+  }, [tab]);
   useEffect(() => {
     if (tab === "chat") endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [chatLen, tab]);
-  // 대화의 마지막 추천 결과가 나오면 그 결과의 맨 위(추천 3곳)가 보이게 올린다
+  // 대화의 마지막 추천 결과가 나오면: 결과 전체(추천 3곳 + 한눈에 보기)가 입력창 위에 다 들어가면 결과 끝을 입력창 위에 맞추고,
+  // 다 안 들어가면 결과 맨 위(추천 3곳)부터 보이게 올린다
   const lastChat = [...msgs].reverse().find((m) => !("home" in m && m.home));
-  const lastDone = lastChat && (lastChat.t === "stay" || lastChat.t === "flight") && lastChat.status === "done" ? lastChat.id : "";
+  const lastDone = lastChat && (lastChat.t === "stay" || lastChat.t === "flight") && lastChat.status === "done" ? `${lastChat.id}:${lastChat.aiPending ? 1 : 0}` : "";
   useEffect(() => {
     if (tab !== "chat" || !lastDone) return;
     const r = requestAnimationFrame(() => {
-      const list = document.querySelectorAll(".tb-msgs .tb-result");
-      list[list.length - 1]?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const list = document.querySelectorAll<HTMLElement>(".tb-msgs .tb-result");
+      const el = list[list.length - 1];
+      if (!el) return;
+      const css = getComputedStyle(el);
+      const room = window.innerHeight - (parseFloat(css.scrollMarginTop) || 0) - (parseFloat(css.scrollMarginBottom) || 0);
+      el.scrollIntoView({ behavior: "smooth", block: el.offsetHeight <= room ? "end" : "start" });
     });
     return () => cancelAnimationFrame(r);
   }, [lastDone, tab]);
@@ -385,13 +414,28 @@ export function TripApp() {
         prefetchPrices(memoPicks.slice(0, 1).map((p) => head[p.n - 1]), query);
         return;
       }
-      const ai = await pickStays(head, want, query.budget);
-      const picks = mergePicks(ai.ok ? ai.data.picks : [], fb, head.length, (n) => stayFactReason(head[n - 1], want));
-      if (ai.ok) writePickMemo(query, want, { picks: toPicks(picks), note: ai.data.note ?? "" });
-      patch(id, { picks: toPicks(picks), aiPending: false, note: [overNote, ai.ok ? ai.data.note : ""].filter(Boolean).join(" ") });
-      // AI 추천 1위만 예약처 가격을 미리 받아 카드 금액을 시트 1위 총액과 맞춰 둔다.
-      // 2·3위는 카드가 화면에 보이거나 눌렀을 때 받는다 (검색 한 번당 가격 조회를 줄이기 위해)
-      prefetchPrices(picks.slice(0, 1).map((p) => head[p.n - 1]), query);
+      const askAi = async () => {
+        const ai = await pickStays(head, want, query.budget); // 실패하면 api 쪽에서 한 번 다시 부른다
+        if (!ai.ok) {
+          // 그래도 실패: AI 없이 검색 때 받은 총액이 낮은 3곳 (총액이 없는 곳은 뒤로). '다시 시도'는 AI만 다시 부른다
+          const cheap = head.map((h, i) => ({ i, v: h.total && h.total > 0 ? h.total : Infinity })).sort((a, b) => a.v - b.v).slice(0, 3);
+          aiRetry.current.set(id, () => {
+            patch(id, { aiPending: true, aiOff: false });
+            void askAi();
+          });
+          patch(id, { picks: toPicks(cheap.map((c) => ({ n: c.i + 1, reason: stayFactReason(head[c.i], want) }))), aiPending: false, aiOff: true, note: overNote });
+          prefetchPrices(cheap.slice(0, 1).map((c) => head[c.i]), query);
+          return;
+        }
+        aiRetry.current.delete(id);
+        const picks = mergePicks(ai.data.picks, fb, head.length, (n) => stayFactReason(head[n - 1], want));
+        writePickMemo(query, want, { picks: toPicks(picks), note: ai.data.note ?? "" });
+        patch(id, { picks: toPicks(picks), aiPending: false, aiOff: false, note: [overNote, ai.data.note].filter(Boolean).join(" ") });
+        // AI 추천 1위만 예약처 가격을 미리 받아 카드 금액을 시트 1위 총액과 맞춰 둔다.
+        // 2·3위는 카드가 화면에 보이거나 눌렀을 때 받는다 (검색 한 번당 가격 조회를 줄이기 위해)
+        prefetchPrices(picks.slice(0, 1).map((p) => head[p.n - 1]), query);
+      };
+      await askAi();
     },
     [patch, push],
   );
@@ -458,19 +502,27 @@ export function TripApp() {
       // 12시간 넘게 기다리는 항공편은 AI 후보에서 뺀다 (모두 그렇다면 그대로). 받은 번호는 원래 목록 번호로 되돌린다
       const okIdx = list.map((f, i) => (maxWait(f) <= TOO_LONG_WAIT ? i : -1)).filter((i) => i >= 0);
       const idx = okIdx.length ? okIdx : list.map((_, i) => i);
+      const askAi = async () => {
       const ai = await pickFlights(idx.map((i) => list[i]), want);
       if (!ai.ok) {
-        // 다시 불러도 실패하면 AI 요약 없이 낮은 가격순 3편
+        // 다시 불러도 실패하면 AI 요약 없이 낮은 가격순 3편. '다시 시도'는 AI만 다시 부른다
         const cheap = [...idx].sort((a, b) => list[a].price - list[b].price).slice(0, 3);
+        aiRetry.current.set(id, () => {
+          patch(id, { aiPending: true, aiOff: false });
+          void askAi();
+        });
         return patch(id, { picks: cheap.map((i) => ({ n: i + 1, reason: flightFactReason(list[i], want) })), aiPending: false, aiOff: true, note: "" });
       }
-      const aiPicks = (ai.ok ? ai.data.picks : []).map((p) => ({ ...p, n: Number.isInteger(p.n) && p.n >= 1 && p.n <= idx.length ? idx[p.n - 1] + 1 : 0 }));
+      aiRetry.current.delete(id);
+      const aiPicks = ai.data.picks.map((p) => ({ ...p, n: Number.isInteger(p.n) && p.n >= 1 && p.n <= idx.length ? idx[p.n - 1] + 1 : 0 }));
       // AI 이유 끝에 경유 대기 시간을 붙인다 (이미 말했으면 그대로)
       const picks = mergePicks(aiPicks, fb, list.length, (n) => flightFactReason(list[n - 1], want)).map((p) => {
         const w = maxWait(list[p.n - 1]);
         return w > 0 && !/대기/.test(p.reason) ? { ...p, reason: `${p.reason} · 대기 ${waitText(w)}` } : p;
       });
-      patch(id, { picks, aiPending: false, note: ai.ok ? ai.data.note : "" });
+      patch(id, { picks, aiPending: false, aiOff: false, note: ai.data.note });
+      };
+      await askAi();
     },
     [patch, push],
   );
@@ -735,7 +787,7 @@ export function TripApp() {
     const shown = (tab === "home" && homeMsg?.t === "stay" && homeMsg.query.place === query.place) || (tab === "chat" && !!listId);
     if (!shown) goHome(stayHref(query));
   };
-  const sellerReason = seller ? [...msgs].reverse().flatMap((m) => (m.t === "stay" && m.query.place === seller.query.place ? (m.picks ?? []) : [])).find((p) => p.token === seller.hotel.token)?.reason : undefined;
+  const sellerReason = seller ? [...msgs].reverse().flatMap((m) => (m.t === "stay" && !m.aiOff && m.query.place === seller.query.place ? (m.picks ?? []) : [])).find((p) => p.token === seller.hotel.token)?.reason : undefined;
   // PC: 결과가 있으면 오른쪽 패널이 비지 않게 맨 위 숙소(AI 추천 1위)를 먼저 열어 둔다
   const panelMsg = (tab === "home" ? homeMsg : [...chatMsgs].reverse().find((x) => x.t === "stay")) as StayMsg | FlightMsg | undefined;
   // AI 답이 온 뒤에 추천 1번을 연다 (그 전에 규칙으로 정한 곳을 열었다가 바뀌지 않게)
@@ -763,6 +815,7 @@ export function TripApp() {
               onOpen={(h) => homeMsg.t === "stay" && setSeller({ hotel: h, query: homeMsg.query })}
               active={activeToken}
               onRetry={() => (homeMsg.t === "stay" ? runStay(homeMsg.query, { home: true }) : runFlight(homeMsg.query, { home: true }))}
+              onAiRetry={() => retryAi(homeMsg.id)}
               fixNote={dateFix && homeHrefOf(homeMsg) === dateFix.href ? dateFix.text : ""}
               onPlace={(place) => {
                 if (homeMsg.t !== "stay") return;
@@ -918,6 +971,7 @@ export function TripApp() {
                     onAll={() => setListId(m.id)}
                     onRefine={(id, label) => (m.t === "stay" || m.t === "flight") && refine(m, id, label)}
                     onRetry={() => (m.t === "stay" ? runStay(m.query) : m.t === "flight" ? runFlight(m.query) : undefined)}
+                    onAiRetry={() => retryAi(m.id)}
                     onSay={send}
                     onPrefill={prefill}
                   />
@@ -1074,7 +1128,7 @@ function AllList({ m, saved, onSave, onOpen, onClose, onMore, onStars }: { m: St
   return (
     <Sheet open={open} onClose={onClose} label="전체 목록" tall>
       {open && m.t === "stay" && (
-        <StayList bare query={m.query} options={m.options ?? []} picks={m.picks ?? []} aiPending={!!m.aiPending} saved={saved} onSave={(h) => onSave(h, m.query)} onOpen={(h) => onOpen(h, m.query)} onBack={onClose} more={moreOf(m)} onMore={() => onMore(m.id)} onStars={(s) => onStars(m.id, s)} />
+        <StayList bare query={m.query} options={m.options ?? []} picks={m.picks ?? []} aiPending={!!m.aiPending} aiOff={m.aiOff} saved={saved} onSave={(h) => onSave(h, m.query)} onOpen={(h) => onOpen(h, m.query)} onBack={onClose} more={moreOf(m)} onMore={() => onMore(m.id)} onStars={(s) => onStars(m.id, s)} />
       )}
       {open && m.t === "flight" && <FlightBrowser bare data={{ query: m.query, options: m.options ?? [], picks: m.picks ?? [] }} aiPending={m.aiPending} aiOff={m.aiOff} onBack={onClose} />}
     </Sheet>
@@ -1158,7 +1212,7 @@ const EMPTY_QUERY: StayQuery = { place: "", checkIn: "2000-01-01", checkOut: "20
 // 목록 끝 상태: 더 불러올 수 있음 / 불러오는 중 / 실패 / 끝
 const moreOf = (m: StayMsg): "more" | "loading" | "error" | "end" => (m.more === "loading" ? "loading" : m.more === "error" ? "error" : m.next && (m.pages ?? 0) < MORE_PAGES ? "more" : "end");
 
-function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onPlace, onMore, onStars, active, fixNote }: { fixNote?: string; m: StayMsg | FlightMsg; saved: Set<string>; onBack: () => void; onSave: (h: HotelOption) => void; onOpen: (h: HotelOption) => void; onRetry: () => void; onPlace: (name: string) => void; onMore: () => void; onStars: (s: number[]) => void; active?: string }) {
+function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onAiRetry, onPlace, onMore, onStars, active, fixNote }: { fixNote?: string; onAiRetry: () => void; m: StayMsg | FlightMsg; saved: Set<string>; onBack: () => void; onSave: (h: HotelOption) => void; onOpen: (h: HotelOption) => void; onRetry: () => void; onPlace: (name: string) => void; onMore: () => void; onStars: (s: number[]) => void; active?: string }) {
   const title = m.t === "stay" ? m.query.place : `${cityOf(m.query.fromLabel || m.query.from)} → ${cityOf(m.query.toLabel || m.query.to)}`;
   if (m.status !== "done" || !m.options?.length)
     return (
@@ -1205,12 +1259,12 @@ function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onPlace, onMore
   if (m.t === "stay")
     return (
       <main>
-        <StayList query={m.query} options={m.options} picks={m.picks ?? []} aiPending={!!m.aiPending} saved={saved} onSave={onSave} onOpen={onOpen} onBack={onBack} active={active} more={moreOf(m)} onMore={onMore} onStars={onStars} notice={fixNote} />
+        <StayList query={m.query} options={m.options} picks={m.picks ?? []} aiPending={!!m.aiPending} aiOff={m.aiOff} onAiRetry={onAiRetry} saved={saved} onSave={onSave} onOpen={onOpen} onBack={onBack} active={active} more={moreOf(m)} onMore={onMore} onStars={onStars} notice={fixNote} />
       </main>
     );
   return (
     <main>
-      <FlightBrowser data={{ query: m.query, options: m.options, picks: m.picks ?? [] }} aiPending={m.aiPending} aiOff={m.aiOff} onBack={onBack} notice={fixNote} />
+      <FlightBrowser data={{ query: m.query, options: m.options, picks: m.picks ?? [] }} aiPending={m.aiPending} aiOff={m.aiOff} onAiRetry={onAiRetry} onBack={onBack} notice={fixNote} />
     </main>
   );
 }
@@ -1250,6 +1304,7 @@ type MsgProps = {
   onAll: () => void;
   onRefine: (id: StayRefineId | FlightRefineId, label: string) => void;
   onRetry: () => void;
+  onAiRetry: () => void; // AI 요약만 다시 부르기
   onSay: (t: string) => void;
   onPrefill: (k: SearchKind, q: Partial<StayQuery> | Partial<FlightQuery>) => void;
   active?: string; // PC 패널에 열려 있는 숙소
@@ -1348,13 +1403,19 @@ function ErrorBox({ status, onRetry, fallbackHref, fallbackLabel }: { status: nu
 }
 
 // AI 추천 카드 한 장. 화면에 보이면 예약처 가격을 받아 금액을 시트 1위 총액과 맞춘다
-function PickCard({ p, i, of, note, t, isLow, q, nights, saved: on, active, onSave, onOpenHotel }: { p: { token: string; reason: string; h: HotelOption }; i: number; of: number; note?: RankNote; t: ReturnType<typeof shownPrice>; isLow: boolean; q: StayQuery; nights: number; saved: boolean; active: boolean; onSave: (h: HotelOption) => void; onOpenHotel: (h: HotelOption) => void }) {
+function PickCard({ p, i, of, off, note, t, isLow, q, nights, saved: on, active, onSave, onOpenHotel }: { p: { token: string; reason: string; h: HotelOption }; i: number; of: number; off?: boolean; note?: RankNote; t: ReturnType<typeof shownPrice>; isLow: boolean; q: StayQuery; nights: number; saved: boolean; active: boolean; onSave: (h: HotelOption) => void; onOpenHotel: (h: HotelOption) => void }) {
   const ref = useLazyPrice<HTMLElement>(p.h, q, true);
   return (
     <article ref={ref} className={`tb-hcard${active ? " on" : ""}`}>
       <div className="tb-hcard-img">
         <PhotoStrip images={p.h.image ? [p.h.image] : []} name={p.h.name} max={1} />
-        <em className="tb-tag wt">{isLow && of > 1 && t.verified ? `${i + 1} · 최저가` : `${i + 1}`}</em>
+        <em className="tb-tag wt">{i + 1}</em>
+        {isLow && of > 1 && t.verified && (
+          <em className="tb-tag low">
+            <span className="full">확인한 가격 중 최저</span>
+            <span className="short">확인 최저</span>
+          </em>
+        )}
         <button type="button" className={`tb-love${on ? " on" : ""}`} aria-pressed={on} aria-label={on ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={() => onSave(p.h)}>
           <IconHeart size={18} on={on} />
         </button>
@@ -1363,7 +1424,7 @@ function PickCard({ p, i, of, note, t, isLow, q, nights, saved: on, active, onSa
         <strong>{p.h.name}</strong>
         <span className="tb-hcard-meta">{[p.h.rating ? `★ ${p.h.rating.toFixed(1)}` : "", p.h.stars ? `${p.h.stars}성급` : p.h.kind].filter(Boolean).join(" · ")}</span>
         {stayFactLine(p.h, t.fc) && <span className="tb-fact">{stayFactLine(p.h, t.fc)}</span>}
-        {!isPlainReason(p.reason) && (
+        {!off && !isPlainReason(p.reason) && (
           <span className="tb-why">
             <IconSpark size={14} /> {p.reason}
           </span>
@@ -1375,7 +1436,7 @@ function PickCard({ p, i, of, note, t, isLow, q, nights, saved: on, active, onSa
   );
 }
 
-function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, onPrefill, active }: MsgProps & { m: StayMsg }) {
+function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, onAiRetry, onPrefill, active }: MsgProps & { m: StayMsg }) {
   usePriceVersion(); // 예약처 시트·미리 조회로 맞춘 금액이 오면 다시 그린다
   const q = m.query;
   if (m.status === "loading") return <Searching text={`${q.place} 숙소를 찾고 있어요`} />;
@@ -1407,13 +1468,23 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
     );
   return (
     <div className="tb-result">
-      <AiSay>
-        {options.length}곳 중에 말씀하신 조건에 맞는 <b>{picks.length}곳</b>을 먼저 보여드릴게요.
-        {m.note ? ` ${m.note}` : ""}
-      </AiSay>
+      {m.aiOff ? (
+        <>
+          <AiSay>
+            조건 일부를 확인하지 못했어요. 확인한 가격 기준으로 <b>{picks.length}곳</b>을 먼저 보여 드릴게요.
+            {m.note ? ` ${m.note}` : ""}
+          </AiSay>
+          <AiOffNote onRetry={onAiRetry} />
+        </>
+      ) : (
+        <AiSay>
+          {options.length}곳 중에 말씀하신 조건에 맞는 <b>{picks.length}곳</b>을 먼저 보여드릴게요.
+          {m.note ? ` ${m.note}` : ""}
+        </AiSay>
+      )}
       <div className="tb-hcards">
         {picks.map((p, i) => (
-          <PickCard key={p.token} p={p} i={i} of={picks.length} note={notes[i]} t={prices[i]} isLow={lowOnce && totals[i] === low} q={q} nights={nights} saved={saved.has(p.token)} active={active === p.token} onSave={onSave} onOpenHotel={onOpenHotel} />
+          <PickCard key={p.token} p={p} i={i} of={picks.length} off={m.aiOff} note={m.aiOff ? undefined : notes[i]} t={prices[i]} isLow={lowOnce && totals[i] === low} q={q} nights={nights} saved={saved.has(p.token)} active={active === p.token} onSave={onSave} onOpenHotel={onOpenHotel} />
         ))}
       </div>
       {picks.length > 1 && (
@@ -1471,7 +1542,7 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
   );
 }
 
-function FlightResult({ m, onAll, onRefine, onRetry, onPrefill }: MsgProps & { m: FlightMsg }) {
+function FlightResult({ m, onAll, onRefine, onRetry, onAiRetry, onPrefill }: MsgProps & { m: FlightMsg }) {
   const q = m.query;
   const route = `${cityOf(q.fromLabel || q.from)} → ${cityOf(q.toLabel || q.to)}`;
   if (m.status === "loading") return <Searching text={`${route} 항공편을 찾고 있어요`} />;
@@ -1497,7 +1568,7 @@ function FlightResult({ m, onAll, onRefine, onRetry, onPrefill }: MsgProps & { m
       <AiSay>
         {m.aiOff ? (
           <>
-            {route} {options.length}편 중에 낮은 가격순 <b>{picks.length}편</b>이에요. 가격은 {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액이에요.
+            조건 일부를 확인하지 못했어요. 확인한 가격 기준으로 <b>{picks.length}편</b>을 먼저 보여 드릴게요. 가격은 {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액이에요.
           </>
         ) : (
           <>
@@ -1505,6 +1576,7 @@ function FlightResult({ m, onAll, onRefine, onRetry, onPrefill }: MsgProps & { m
           </>
         )}
       </AiSay>
+      {m.aiOff && <AiOffNote onRetry={onAiRetry} />}
       <div className="tb-cards">
         {picks.map((p, i) => (
           <FlightCard key={`${p.n}`} o={p.o} q={q} reason={m.aiOff ? undefined : p.reason} rank={m.aiOff ? undefined : i + 1} tag={m.aiOff ? p.reason : undefined} eager />

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
+import { LateScript } from "@/components/site/LateScript";
 import { ogImage, site } from "@/lib/site";
 // 본문 글꼴 Pretendard 굵기 400·500·600 (P2). 화면 문구 글자는 굵기마다 작은 파일 하나(public/fonts, scripts/build-ui-font.py)로,
 // 숙소 이름처럼 그때그때 오는 글자만 분할 폰트에서 받는다 (scripts/build-pretendard-css.mjs 로 만든다).
@@ -9,6 +9,8 @@ import uiFont from "@/scripts/pretendard-ui.json";
 import "./globals.css";
 // 휴대폰(640px 이하) 전용 보정. 기존 스타일 뒤에 불러와 덮어쓴다
 import "./mobile.css";
+
+const TP_DATA = { "cmp-ab": "2" };
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -62,8 +64,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
-        {/* Travelpayouts Drive: 제휴 링크 자동 변환 */}
-        <Script id="travelpayouts-drive" src="https://emrldtp.com/NTkxMzAz.js?t=591303" strategy="lazyOnload" data-cmp-ab="2" />
+        {/* Travelpayouts Drive: 제휴 링크 자동 변환. 첫 화면 긴 작업(TBT)에 끼지 않게 첫 터치나 6초 뒤에 붙인다 */}
+        <LateScript id="travelpayouts-drive" src="https://emrldtp.com/NTkxMzAz.js?t=591303" data={TP_DATA} />
       </body>
     </html>
   );

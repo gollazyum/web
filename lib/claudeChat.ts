@@ -119,7 +119,8 @@ export async function jsonReply<T>(system: string, user: string, schema: Record<
         system,
         messages: [{ role: "user", content: user }],
       },
-      { timeout: 45_000 },
+      // 함수 최대 60초 안에 끝나도록: 한 번 25초, SDK 재시도 1번까지 (429·5xx·연결 오류만 다시 보냄)
+      { timeout: 25_000, maxRetries: 1 },
     );
     if (res.stop_reason === "refusal" || res.stop_reason === "max_tokens") return fail(String(res.stop_reason));
     const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("");
@@ -132,8 +133,18 @@ export async function jsonReply<T>(system: string, user: string, schema: Record<
     if (error instanceof Anthropic.APIConnectionTimeoutError) return fail("timeout");
     if (error instanceof Anthropic.APIError) {
       console.error(`trip ai api error ${error.status}:`, error.message);
-      return fail(`api_${error.status ?? "x"}`);
+      return fail(apiWhy(error));
     }
     return fail(error instanceof Error ? error.name : "unknown");
   }
+}
+
+// API 오류를 짧은 이유로: api_401_authentication_error, api_400_credit(크레딧 부족), api_404_not_found_error(모델 이름) 등.
+// 오류 본문의 type과 몇 가지 낱말만 본다. 키나 요청 내용은 담지 않는다
+export function apiWhy(error: InstanceType<typeof Anthropic.APIError>): string {
+  const body = error.error as { error?: { type?: unknown; message?: unknown } } | undefined;
+  const type = typeof body?.error?.type === "string" ? body.error.type.replace(/[^a-z_]/g, "").slice(0, 40) : "";
+  const msg = typeof body?.error?.message === "string" ? body.error.message.toLowerCase() : String(error.message).toLowerCase();
+  const hint = /credit balance|billing/.test(msg) ? "credit" : /spend|usage limit|workspace limit/.test(msg) ? "limit" : /model/.test(msg) && error.status === 404 ? "model" : "";
+  return ["api", String(error.status ?? "x"), hint || type].filter(Boolean).join("_");
 }

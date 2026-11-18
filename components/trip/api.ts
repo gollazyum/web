@@ -127,7 +127,14 @@ const pickCached = (body: Record<string, unknown>) => {
   return cached(key, () => post<PickResult>("/api/trip-ai", body));
 };
 
-export const pickStays = (list: HotelOption[], taste: string, budget: number) =>
+// AI가 실패하면(사용량 초과·설정 없음·잘못된 요청 제외) 한 번만 다시 부른다. 그래도 실패하면 화면이 확인한 가격 기준 3곳으로 바꾼다
+export async function pickStays(list: HotelOption[], taste: string, budget: number) {
+  const first = await pickStaysOnce(list, taste, budget);
+  if (first.ok || first.status === 429 || first.status === 503 || first.status === 400) return first;
+  return pickStaysOnce(list, taste, budget);
+}
+
+const pickStaysOnce = (list: HotelOption[], taste: string, budget: number) =>
   pickCached({
     mode: "pick",
     kind: "stay",
