@@ -1,8 +1,6 @@
 import { jsonError, jsonReply, rateLimited } from "@/lib/claudeChat";
 import { brand } from "@/lib/brand";
-import { unstable_cache } from "next/cache";
-import { COMPARE_FLIGHTS, COMPARE_STAYS } from "@/lib/ai-compare-cases";
-import { ASK_SLOTS, cleanCopy, isDate, stayReason, MAX_QUESTIONS, TOP_PICKS, type AskQuestion, type ParseResult, type Pick, type PickResult } from "@/lib/trip";
+import { ASK_SLOTS, cleanCopy, isDate, pickNote, stayReason, MAX_QUESTIONS, TOP_PICKS, type AskQuestion, type ParseResult, type Pick, type PickResult } from "@/lib/trip";
 
 // 탐색 탭 AI. 두 가지 일을 한다.
 // - mode "parse": 자유 문장을 숙소/항공 검색 조건으로 바꾸고, 빠진 조건은 칩 질문(최대 3개)으로 되묻는다
@@ -26,7 +24,7 @@ ${RULES}
 - kind: 숙소 이야기면 "stay", 항공편 이야기면 "flight", 둘 다 아니거나 여행 상담이면 "other". 둘 다 말하면 먼저 말한 쪽.
 - 아는 조건만 채워. 모르는 칸은 빈 문자열("")이나 0으로 둬. 지어내지 마.
 - 날짜는 YYYY-MM-DD. 오늘 날짜를 기준으로 "12월 첫 주말", "다음 주 금요일"을 실제 날짜로 바꿔. 지난 날짜는 쓰지 마. 몇 박인지 말했으면 체크아웃을 계산해.
-- 숙소 place: 도시·동네 이름 그대로("오사카 난바"). 온천처럼 지역을 안 말했으면 비워 두고 되물어.
+- 숙소 place: 사용자가 말한 도시·동네 이름 그대로("오사카", "도쿄 신주쿠"). 말하지 않은 동네를 덧붙이지 마. 온천처럼 지역을 안 말했으면 비워 두고 되물어.
 - 숙소 budget: 숙박 전체 총액 상한(원). "1박 15만 원"이면 박수를 곱해. 모르면 0.
 - 항공 from/to: IATA 공항 코드나 도시 코드(서울 SEL, 인천 ICN, 김포 GMP, 부산 PUS, 도쿄 TYO, 오사카 OSA, 후쿠오카 FUK, 삿포로 CTS, 오키나와 OKA, 방콕 BKK, 다낭 DAD, 타이베이 TPE, 홍콩 HKG, 싱가포르 SIN). fromLabel/toLabel은 한국어 이름("인천", "오사카 간사이"). 출발지를 말 안 했으면 비우고 되물어.
 - oneWay: 편도라고 했을 때만 true. 왕복이고 돌아오는 날을 모르면 ret을 비우고 되물어.
@@ -151,11 +149,11 @@ ${RULES}
 
 할 일
 - picks: 목록 번호 n과 이유 reason. 정확히 ${TOP_PICKS}개(목록이 더 적으면 전부). 같은 번호를 두 번 쓰지 마.
-- reason은 25자 안팎 한 문장. 목록에 있는 사실(후기 점수, 성급, 편의시설, 총액, 시간, 직항 여부)만 근거로 써. 위치·역 거리·방 크기·조용함처럼 목록에 없는 건 지어내지 마.
+- reason은 25자 안팎 한 문장. 목록에 있는 사실(후기 점수, 성급, 편의시설, 총액, 시간, 직항 여부)만 근거로 써. 위치·역 거리·방 크기·조용함처럼 목록에 없는 건 지어내지 마. 와이파이처럼 거의 모든 숙소에 있는 시설은 이유로 쓰지 마.
 - 숙소 카드 윗줄에 후기 점수·리뷰 수·성급 숫자가 이미 보여. reason에서 그 숫자를 그대로 되풀이하지 말고, 편의시설·취향 조건·"후기 만족도가 높아요"처럼 말로 풀어 써.
 - 숙소 reason에는 금액(원)과 "예산 안" 같은 가격 판단을 쓰지 마. 카드 금액은 예약처 가격을 확인한 뒤 바뀌어서 이유와 어긋나. 숙소는 후기·성급·편의시설로 써. 항공편은 금액을 써도 돼.
 - 예산이 있으면 예산 안의 곳을 먼저. 예산 안에 없으면 가장 가까운 곳을 쓰고 note에 짧게 알려.
-- 취향 조건이 목록 정보로 확인되지 않으면 note에 "역 거리는 지도에서 확인해 주세요"처럼 한 문장으로 알려. 따로 할 말이 없으면 note는 "".`;
+- 취향 조건이 목록 정보로 확인되지 않으면 note에 "역 거리는 예약 사이트에서 확인해 주세요"처럼 한 문장으로 알려. 이 앱에는 지도가 없으니 "지도"라는 말은 쓰지 마. 따로 할 말이 없으면 note는 "".`;
 
 const PICK_SCHEMA = {
   type: "object",
@@ -216,7 +214,6 @@ function pickInput(body: Record<string, unknown>): string | null {
 const CHECK_SCHEMA = { type: "object", additionalProperties: false, required: ["ok"], properties: { ok: { type: "boolean" } } } as const;
 export async function GET(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) return Response.json({ ok: false, why: "not_configured" }, { status: 503, headers: { "Cache-Control": "no-store" } });
-  if (new URL(req.url).searchParams.get("compare") === "1") return compareResponse();
   if (rateLimited(req)) return Response.json({ ok: false, why: "rate_limited" }, { status: 429, headers: { "Cache-Control": "no-store" } });
   let why = "";
   const started = Date.now();
@@ -253,7 +250,7 @@ export async function POST(req: Request) {
     if (!raw || !Array.isArray(raw.picks)) return jsonError(502, "ai_failed", why || "bad_shape");
     const out: PickResult = {
       picks: raw.picks.slice(0, TOP_PICKS).map((p) => ({ n: Number(p.n), reason: body.kind === "stay" ? stayReason(p.reason) : cleanCopy(p.reason, 80) })),
-      note: cleanCopy(raw.note, 120),
+      note: pickNote(raw.note),
     };
     return Response.json(out);
   }
@@ -269,98 +266,4 @@ export async function POST(req: Request) {
   }
 
   return jsonError(400, "bad_request");
-}
-
-// ---------- 모델 비교 테스트 (임시): /api/trip-ai?compare=1 ----------
-// 고정된 문장 6개·숙소 취향 5개·항공 취향 2개를 Opus 5.5 / Sonnet 5.5 / Haiku 5.5로 한 번씩 돌려 결과·시간·비용을 나란히 보여 준다.
-// 입력이 고정이고 결과를 하루 동안 저장해 두므로(서버 공용 캐시) 여러 번 열어도 AI 비용은 처음 한 번만 든다. 비교가 끝나면 지운다
-const COMPARE_MODELS = [
-  { id: "claude-opus-5-5", label: "Opus 5.5 (지금)", inUsd: 4, outUsd: 20, fallback: true },
-  { id: "claude-sonnet-5-5", label: "Sonnet 5.5", inUsd: 2, outUsd: 10, fallback: true },
-  { id: "claude-haiku-5-5", label: "Haiku 5.5", inUsd: 0.1, outUsd: 0.5, fallback: false },
-] as const;
-const COMPARE_TODAY = "2026-11-18";
-const PARSE_CASES = [
-  "오사카 12월 5일부터 2박 둘이서 역 가까운 곳",
-  "부모님 모시고 후쿠오카 온천 여행 1월 중순에 3박",
-  "다음 달 도쿄 혼자 출장, 신주쿠 쪽 깔끔한 비즈니스 호텔",
-  "인천에서 방콕 가는 비행기 12월 20일 출발 27일 귀국 2명",
-  "아이 둘 데리고 다낭 리조트, 수영장 좋은 곳으로 4박 정도",
-  "삿포로 눈축제 보러 가고 싶은데 언제 가야 해요?",
-];
-const STAY_TASTES = ["역에서 가깝고 깔끔한 곳", "가족 여행, 아이 친화", "가성비 좋은 곳", "후기 좋은 고급 호텔", "대욕장이나 온천 있는 곳"];
-const FLIGHT_TASTES = ["직항, 오전 출발", "가장 싼 편"];
-
-type CaseOut = { ok: boolean; why?: string; ms: number; cost: number; inTok: number; outTok: number; result?: unknown };
-type CompareRow = { kind: "parse" | "stay" | "flight"; input: string; out: Record<string, CaseOut> };
-
-async function runCase<T>(model: (typeof COMPARE_MODELS)[number], system: string, user: string, schema: Record<string, unknown>, maxTokens: number): Promise<CaseOut & { raw?: T }> {
-  let why = "";
-  let usage = { input: 0, output: 0 };
-  const t = Date.now();
-  const raw = await jsonReply<T>(system, user, schema, maxTokens, (w) => (why = w), { model: model.id, fallback: model.fallback, onUsage: (u) => (usage = u) });
-  const cost = (usage.input * model.inUsd + usage.output * model.outUsd) / 1e6;
-  return { ok: !!raw, why: raw ? undefined : why, ms: Date.now() - t, cost, inTok: usage.input, outTok: usage.output, raw: raw ?? undefined };
-}
-
-async function runCompare(): Promise<{ at: string; rows: CompareRow[] }> {
-  const jobs: { row: number; model: (typeof COMPARE_MODELS)[number]; run: () => Promise<CaseOut> }[] = [];
-  const rows: CompareRow[] = [];
-  for (const text of PARSE_CASES) {
-    const row = rows.push({ kind: "parse", input: text, out: {} }) - 1;
-    for (const model of COMPARE_MODELS)
-      jobs.push({
-        row,
-        model,
-        run: async () => {
-          const r = await runCase<RawParse>(model, PARSE_SYSTEM, `[오늘] ${COMPARE_TODAY}\n\n[사용자] ${text}`, PARSE_SCHEMA, 4000);
-          const p = r.raw ? shapeParse(r.raw, COMPARE_TODAY) : null;
-          const b = p ? (p.kind === "flight" ? p.flight : p.stay) : null;
-          return { ...r, raw: undefined, result: p && b ? { kind: p.kind, ...(p.kind === "flight" ? { from: p.flight.from, to: p.flight.to, depart: p.flight.depart, ret: p.flight.ret } : { place: p.stay.place, checkIn: p.stay.checkIn, checkOut: p.stay.checkOut }), adults: b.adults, taste: b.taste, asks: p.questions.map((q) => q.q), reply: p.reply } : undefined };
-        },
-      });
-  }
-  const picks: { kind: "stay" | "flight"; taste: string; items: Record<string, unknown>[]; names: string[] }[] = [
-    ...STAY_TASTES.map((taste) => ({ kind: "stay" as const, taste, items: COMPARE_STAYS, names: COMPARE_STAYS.map((h) => h.name) })),
-    ...FLIGHT_TASTES.map((taste) => ({ kind: "flight" as const, taste, items: COMPARE_FLIGHTS, names: COMPARE_FLIGHTS.map((f) => `${f.airlines} ${f.depart}→${f.arrive} ${f.stops ? `경유 ${f.stops}` : "직항"} ₩${f.price.toLocaleString("ko-KR")}`) })),
-  ];
-  for (const c of picks) {
-    const row = rows.push({ kind: c.kind, input: c.taste, out: {} }) - 1;
-    const input = pickInput({ kind: c.kind, taste: c.taste, items: c.items })!;
-    for (const model of COMPARE_MODELS)
-      jobs.push({
-        row,
-        model,
-        run: async () => {
-          const r = await runCase<{ picks: Pick[]; note: string }>(model, PICK_SYSTEM, input, PICK_SCHEMA, 4000);
-          const ps = r.raw && Array.isArray(r.raw.picks) ? r.raw.picks.slice(0, TOP_PICKS) : null;
-          return { ...r, raw: undefined, ok: !!ps, result: ps ? { picks: ps.map((p) => ({ name: c.names[Number(p.n) - 1] ?? `(없는 번호 ${p.n})`, reason: c.kind === "stay" ? stayReason(p.reason) : cleanCopy(p.reason, 80) })), note: cleanCopy(r.raw!.note, 120) } : undefined };
-        },
-      });
-  }
-  // 39번을 한꺼번에 보낸다 (가장 느린 한 번만큼만 걸리게)
-  let next = 0;
-  const worker = async () => {
-    while (next < jobs.length) {
-      const j = jobs[next++];
-      rows[j.row].out[j.model.label] = await j.run();
-    }
-  };
-  await Promise.all(Array.from({ length: jobs.length }, worker));
-  // 전부 실패했으면(크레딧·키 문제 등) 저장하지 않고 이유를 알려 준다 (고친 뒤 다시 열면 새로 돌린다)
-  const outs = rows.flatMap((r) => Object.values(r.out));
-  if (!outs.some((o) => o.ok)) throw new Error(outs.find((o) => o.why)?.why ?? "all_failed");
-  return { at: new Date().toISOString(), rows };
-}
-
-const cachedCompare = unstable_cache(runCompare, ["ai-compare-v1"], { revalidate: 86400 });
-
-async function compareResponse(): Promise<Response> {
-  let data: Awaited<ReturnType<typeof runCompare>>;
-  try {
-    data = await cachedCompare();
-  } catch (e) {
-    return Response.json({ ok: false, why: e instanceof Error ? e.message.slice(0, 60) : "all_failed" }, { status: 502, headers: { "Cache-Control": "no-store" } });
-  }
-  return Response.json({ models: COMPARE_MODELS.map((m) => m.label), ...data }, { headers: { "Cache-Control": "no-store" } });
 }

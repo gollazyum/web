@@ -127,10 +127,18 @@ export function cleanCopy(text: string, max = 300): string {
 }
 
 // 숙소 카드 금액은 예약처 가격 확인 뒤 바뀐다. 이유에 금액·예산 판단이 들어가면 카드와 어긋나니 비우고, 화면이 사실 기반 이유로 채운다
+// 와이파이는 거의 모든 숙소에 있어 이유가 되지 않고, 앱에 지도가 없어 "지도에서 확인" 같은 말도 비운다
 const MONEY = /\d[\d,.]*\s*(만\s*)?원|예산/;
+const NOT_A_REASON = /와이파이|wi-?fi|지도/i;
 export function stayReason(text: unknown): string {
   const out = cleanCopy(typeof text === "string" ? text : "", 80);
-  return MONEY.test(out) ? "" : out;
+  return MONEY.test(out) || NOT_A_REASON.test(out) ? "" : out;
+}
+
+// AI 3곳 아래 한 줄 안내. 앱에 지도가 없으니 "지도"가 나오면 비운다
+export function pickNote(text: unknown): string {
+  const out = cleanCopy(typeof text === "string" ? text : "", 120);
+  return /지도/.test(out) ? "" : out;
 }
 
 // ---------- 숙소 3곳 먼저 (AI가 없을 때 쓰는 규칙) ----------

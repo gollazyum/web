@@ -6,7 +6,9 @@ import { compareFallback, PREF_CHIPS, type Facts } from "@/lib/prefs";
 // 가장 잘 맞는 호텔 하나와 이유 3줄을 JSON으로 받는다. 표는 화면이 원본 숫자로 그리므로 여기서는 결론만 만든다
 export const runtime = "nodejs";
 
-const MODEL = "claude-opus-5-5";
+// Haiku 5.5: 2026-11-19 같은 질문 13개 비교에서 결과는 비슷하고 비용은 약 40분의 1이라 바꿨다.
+// Haiku는 서버 자동 대체(server-side-fallback)를 지원하지 않아 그 설정은 뺐다. 실패하면 화면이 규칙 결과로 대신한다
+const MODEL = "claude-haiku-5-5";
 const KEYS = ["A", "B", "C"] as const;
 
 const SYSTEM = `너는 여행 데이터 플랫폼 Gollazyum의 AI 도우미 "Gollazyum AI"야. 사용자가 보관함에 담은 호텔 2~3곳 중 사용자가 정한 선호 기준에 가장 잘 맞는 한 곳을 정해. 자기 이름은 "Gollazyum AI"이고, "로보티", "Roboti", "AI 인사이트", "AI Insight"라고 부르지 마.
@@ -129,8 +131,6 @@ export async function POST(req: Request) {
     const res = await client.beta.messages.create({
       model: MODEL,
       max_tokens: 600,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
       output_config: { effort: "low" },
       system: SYSTEM,
       messages: [{ role: "user", content: ask }],
