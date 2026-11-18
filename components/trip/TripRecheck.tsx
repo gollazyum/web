@@ -5,7 +5,7 @@ import { sellerRows, type SellerRow } from "@/lib/hotels";
 import { linkRel, sellerDef } from "@/lib/hotel-sellers";
 import { stayHref } from "@/lib/trip-url";
 import { decodeTrip, sharePath, type SharedTrip as Shared } from "@/lib/trip-share";
-import { nightsOf, won, type StayQuery } from "@/lib/trip";
+import { guestText, nightsOf, won, type StayQuery } from "@/lib/trip";
 import type { TripItem } from "@/lib/trips";
 import { stayPrices } from "./api";
 import { setVerified, shownPrice } from "./prices";
@@ -52,11 +52,14 @@ export function TripActions<T extends TripItem>({ items, place, checkIn, checkOu
   }
 
   async function share() {
+    const g = items[0]?.query;
     const t: Shared = {
       place,
       checkIn,
       checkOut,
       adults,
+      rooms: g?.rooms,
+      childAges: g?.childAges,
       hotels: items.map((s) => {
         const p = shownPrice(s.hotel, s.query);
         return { token: s.hotel.token, name: s.hotel.name, price: p.none ? null : p.value, verified: p.verified };
@@ -101,7 +104,7 @@ export function SharedTripView({ code }: { code: string | null }) {
   const [rows, setRows] = useState<Record<string, SellerRow[] | null> | null>(null);
   const [loading, setLoading] = useState(false);
   if (!t) return null;
-  const q: StayQuery = { place: t.place, checkIn: t.checkIn, checkOut: t.checkOut, adults: t.adults, budget: 0, taste: "" };
+  const q: StayQuery = { place: t.place, checkIn: t.checkIn, checkOut: t.checkOut, adults: t.adults, rooms: t.rooms, childAges: t.childAges, budget: 0, taste: "" };
   const nights = nightsOf(q);
 
   async function again() {
@@ -118,7 +121,7 @@ export function SharedTripView({ code }: { code: string | null }) {
         <div>
           <strong>공유받은 여행 · {t.place}</strong>
           <span>
-            {md(t.checkIn)} – {md(t.checkOut)} · {nights}박 · 성인 {t.adults}
+            {md(t.checkIn)} – {md(t.checkOut)} · {nights}박 · {guestText(q)}
           </span>
         </div>
       </header>

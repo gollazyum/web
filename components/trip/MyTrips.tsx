@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { today as localToday } from "@/lib/dates";
 import { daysUntil, groupTrips, TRIP_CHECK_KEY, TRIP_CHECKS, type Trip, type TripCheckId, type TripChecks, type TripItem } from "@/lib/trips";
-import { nightsOf } from "@/lib/trip";
+import { guestText, nightsOf } from "@/lib/trip";
 import { StayRow } from "./StayList";
 import { IconBed, IconPlane } from "./icons";
 import { TripActions } from "./TripRecheck";
@@ -79,7 +79,7 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
                 <div>
                   <strong>{t.city}</strong>
                   <span>
-                    {md(t.checkIn)} – {md(t.checkOut)} · {nightsOf({ checkIn: t.checkIn, checkOut: t.checkOut })}박 · 성인 {t.adults}
+                    {md(t.checkIn)} – {md(t.checkOut)} · {nightsOf({ checkIn: t.checkIn, checkOut: t.checkOut })}박 · {guestText(t.items[0]?.query ?? t)}
                   </span>
                 </div>
                 {!t.past && <em className="tb-dday">{d > 0 ? `D-${d}` : d === 0 ? "오늘 출발" : "여행 중"}</em>}
@@ -94,7 +94,7 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
                     <StayRow h={s.hotel} query={s.query} saved onSave={() => onSave(s)} onOpen={() => onOpen(s)} />
                     {(s.query.checkIn !== t.checkIn || s.query.checkOut !== t.checkOut || s.query.place !== t.city) && (
                       <p className="tb-saved-q">
-                        {s.query.place} · {md(s.query.checkIn)}–{md(s.query.checkOut)} · 성인 {s.query.adults}
+                        {s.query.place} · {md(s.query.checkIn)}–{md(s.query.checkOut)} · {guestText(s.query)}
                       </p>
                     )}
                   </div>

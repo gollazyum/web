@@ -25,3 +25,17 @@ describe("여행 공유 링크", () => {
     expect(decodeTrip(encodeTrip({ ...T, hotels: [] }))).toBeNull();
   });
 });
+
+describe("공유 링크 인원", () => {
+  it("객실·아동 나이를 담고 되살린다", () => {
+    const t = { place: "오사카", checkIn: "2026-12-09", checkOut: "2026-12-11", adults: 2, rooms: 2, childAges: [5, 0], hotels: [{ token: "a", name: "A", price: 100000, verified: true }] };
+    const back = decodeTrip(encodeTrip(t));
+    expect(back?.rooms).toBe(2);
+    expect(back?.childAges).toEqual([5, 0]);
+  });
+  it("인원보다 객실이 많거나 나이가 틀리면 버린다", () => {
+    const base = { place: "오사카", checkIn: "2026-12-09", checkOut: "2026-12-11", adults: 1, hotels: [{ token: "a", name: "A", price: null, verified: false }] };
+    expect(decodeTrip(encodeTrip({ ...base, rooms: 2 }))).toBeNull();
+    expect(decodeTrip(encodeTrip({ ...base, childAges: [18] }))).toBeNull();
+  });
+});
