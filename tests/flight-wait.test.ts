@@ -11,3 +11,15 @@ describe("경유 대기 줄 (모바일 P1-3)", () => {
     expect(overnight("2026-12-08 02:00", 300)).toBe(true);
   });
 });
+
+import { airlineKo } from "@/lib/flight-filters";
+describe("항공사 한국어 이름 (B7)", () => {
+  it("표기가 조금 달라도 같은 이름", () => {
+    expect(airlineKo("Trinity Airways")).toBe("트리니티항공");
+    expect(airlineKo("TRINITY AIRWAYS Co., Ltd.")).toBe("트리니티항공");
+    expect(airlineKo("ZIPAIR Tokyo")).toBe("집에어 도쿄");
+    expect(airlineKo("Zipair Tokyo Inc.")).toBe("집에어 도쿄");
+    expect(airlineKo("ZIPAIR")).toBe("집에어");
+    expect(airlineKo("집에어 도쿄")).toBe("집에어 도쿄");
+  });
+});

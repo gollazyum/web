@@ -7,6 +7,7 @@ import { sellerDef } from "@/lib/hotel-sellers";
 import { rankNotes, stayFactLine, type RankNote } from "@/lib/stay-facts";
 import { activeCount, applyFilter, countFilters, EMPTY_FILTER, type StayFilter } from "@/lib/stay-filters";
 import { guestText, isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
+import { SIMILAR_EVENT, takeSimilar } from "./similar";
 import { shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
 import { changeText, priceChange, savedBaseFor } from "./saved-price";
 import { AiSortInfo } from "./AiSortInfo";
@@ -57,9 +58,8 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   // 시트의 '비슷한 숙소 보기': 같은 성급만 남기고 목록 맨 위로 (성급을 모르면 조건 없이 목록만)
   useEffect(() => {
     const take = () => {
-      const n = similarStars;
+      const n = takeSimilar();
       if (n === null) return;
-      similarStars = null;
       setF({ ...EMPTY_FILTER, stars: n ? [n] : [] });
       window.scrollTo({ top: 0 });
     };
@@ -92,7 +92,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   }, [aiPicks, options, pv, query]); // eslint-disable-line react-hooks/exhaustive-deps
   const top3 = useMemo(() => aiPicks.slice(0, 3).map((p) => options.find((o) => o.token === p.token)).filter((h): h is HotelOption => !!h), [aiPicks, options]);
 
-  // 한 번 보여 준 카드 순서는 바꾸지 않는다 (P0-2). '기본순'은 검색 결과가 온 순서 그대로라 AI 추천이 늦게 와도 자리가 그대로다.
+  // 한 번 보여 준 카드 순서는 바꾸지 않는다 (P0-2). '관련도순'은 검색 결과가 온 순서 그대로라 AI 추천이 늦게 와도 자리가 그대로다.
   // 순서는 새 검색, 정렬·필터를 바꿀 때, 더 불러온 숙소가 붙을 때(뒤에만 붙는다)에만 바뀐다. 예약처 가격이 와도 자리는 그대로다
   const searchKey = `${query.place}|${query.checkIn}|${query.checkOut}|${guestText(query)}|${(query.childAges ?? []).join(".")}|${query.taste ?? ""}`;
   const prevOrder = useRef<{ key: string; order: string[] }>({ key: "", order: [] });
@@ -283,7 +283,7 @@ export function StayRow({ h, query, reason, note, cheapest, saved, active, onSav
       <div className="tb-srow-img">
         <PhotoStrip images={h.images.length ? h.images : h.image ? [h.image] : []} name={h.name} onOpen={onOpen} />
         {reason ? <em className="tb-tag ac">AI 추천</em> : null}
-        {cheapest && t.verified ? <em className={`tb-tag low${reason ? " second" : ""}`}>가장 낮은 가격</em> : null}
+        {cheapest && t.verified ? <em className={`tb-tag low${reason ? " second" : ""}`}>확인한 가격 중 최저</em> : null}
         {onSave && (
           <button type="button" className={`tb-love${saved ? " on" : ""}`} aria-pressed={saved} aria-label={saved ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={onSave}>
             <IconHeart size={18} on={saved} />
@@ -415,13 +415,6 @@ export function PriceChange({ diff }: { diff: number }) {
 // 카드 금액 영역 (P0-3).
 // 확인 전: 회색·한 단계 얇은 금액 + '예상' 꼬리표, 아래 줄 'N박 · 예약처 확인 전 금액' (받는 중이면 '예약처 가격을 확인하는 중')
 // 확인 후: 예약처 시트 1위 총액과 같은 금액 + '확인한 최저가 · 아고다' 칩
-// 예약처 0곳 숙소에서 '비슷한 숙소 보기'를 누르면 열려 있는(또는 곧 열릴) 목록이 이 성급으로 거른다 (0: 성급 모름)
-let similarStars: number | null = null;
-const SIMILAR_EVENT = "tb-similar";
-export function requestSimilar(stars: number) {
-  similarStars = stars;
-  window.dispatchEvent(new Event(SIMILAR_EVENT));
-}
 
 // 모바일: '예상' 금액과 예약처에서 확인한 금액이 다르면 차분한 주황 바탕으로 작게 알린다 (PC는 회색 '검색 때' 줄)
 export function EstNote({ est, cost, at }: { est: number | null; cost: number; at: number }) {

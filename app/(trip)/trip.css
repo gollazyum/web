@@ -4125,6 +4125,9 @@
   color: var(--tb-sub);
   word-break: keep-all;
 }
+.tb-trust-sellers.sub {
+  margin-top: 2px;
+}
 
 /* 검색 결과에 '평소보다 N% 저렴'이 온 숙소만 */
 .tb-app .tb-deal {
@@ -4399,4 +4402,51 @@
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+/* 모바일(≤640px): '확인한 가격 중 최저' 배지는 ♡에 가리지 않게 사진 왼쪽 아래로 */
+@media (max-width: 640px) {
+  .tb-srow-img .tb-tag.low,
+  .tb-srow-img .tb-tag.low.second {
+    top: auto;
+    bottom: 8px;
+    left: 8px;
+    max-width: calc(100% - 16px);
+    white-space: nowrap;
+    font-size: 11px;
+  }
+}
+
+/* 모바일 'AI 추천 3곳/3편' 띠: 좌우 20px 여백(스냅 위치 포함), 이유는 2줄까지, 높이 고정 */
+@media (max-width: 640px) {
+  .tb-top3-row {
+    padding-left: 20px;
+    padding-right: 20px;
+    scroll-padding: 0 20px;
+  }
+  .tb-top3-row::after {
+    content: "";
+    flex: 0 0 10px; /* 마지막 카드 오른쪽에도 여백 (가로 스크롤에서 padding-right가 빠지는 브라우저 대비) */
+  }
+  .tb-app .tb-top3-card {
+    height: 132px;
+  }
+  .tb-app .tb-top3.flight .tb-top3-card {
+    height: 124px;
+  }
+  .tb-top3-why {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.4;
+  }
+}
+
+/* 정렬 시트: 기준 설명 한 줄 */
+.tb-sort-note {
+  margin: -4px 0 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tb-sub);
 }

@@ -144,6 +144,28 @@ const AIRLINE_KO: Record<string, string> = {
   "miat mongolian airlines": "몽골항공",
 };
 
+// 같은 항공사가 'ZIPAIR', 'Zipair Tokyo Inc.'처럼 조금씩 다르게 와도 같은 한국어 이름이 되도록 다듬어서 찾는다
+const norm = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[.,]/g, " ")
+    .replace(/\b(co|ltd|inc|corp|corporation|limited|company)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+const AIRLINE_KO_NORM = new Map(Object.entries(AIRLINE_KO).map(([k, v]) => [norm(k), v]));
+const AIRLINE_KO_HINT: [RegExp, string][] = [
+  [/^zipair tokyo/, "집에어 도쿄"],
+  [/^zipair/, "집에어"],
+  [/^trinity air/, "트리니티항공"],
+];
+
 export function airlineKo(name: string): string {
-  return AIRLINE_KO[name.trim().toLowerCase()] ?? name;
+  if (/[가-힣]/.test(name)) return name; // 이미 한국어
+  const n = norm(name);
+  return AIRLINE_KO[name.trim().toLowerCase()] ?? AIRLINE_KO_NORM.get(n) ?? AIRLINE_KO_HINT.find(([re]) => re.test(n))?.[1] ?? name;
+}
+
+// 화면에 쓰기 전에 항공편의 항공사 이름을 모두 한국어로 맞춘다 (카드·필터·상세가 같은 이름을 쓰게)
+export function koAirlines<T extends FlightOption>(o: T): T {
+  return { ...o, airlines: [...new Set(o.airlines.map(airlineKo))], segments: o.segments.map((s) => ({ ...s, airline: airlineKo(s.airline) })) };
 }

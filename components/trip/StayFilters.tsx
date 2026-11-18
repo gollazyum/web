@@ -7,7 +7,7 @@ import { Sheet } from "./Sheet";
 
 export type Sort = "ai" | "price" | "priceDesc" | "stars" | "rating";
 export const SORTS: { id: Sort; label: string }[] = [
-  { id: "ai", label: "기본순" }, // 검색 결과가 온 순서 그대로 (AI 추천 3곳은 위 띠·배지로 따로 보여 준다)
+  { id: "ai", label: "관련도순" }, // 검색 결과가 온 순서 그대로 (AI 추천 3곳은 위 띠·배지로 따로 보여 준다)
   { id: "price", label: "낮은 요금순" },
   { id: "priceDesc", label: "높은 요금순" },
   { id: "stars", label: "성급순 (5~1)" },
@@ -247,6 +247,7 @@ export function FilterBar({ c, f, set, sort, setSort, nights = 1 }: { c: FilterC
 
       <Sheet open={open === "sort"} onClose={() => setOpen(null)} label="정렬 기준">
         <h2 className="tb-fsheet-title">정렬 기준</h2>
+        <p className="tb-sort-note">관련도순은 목적지 검색 결과가 온 순서 그대로예요. 저희는 광고나 제휴 수수료로 순서를 바꾸지 않아요. AI 추천 3곳은 목록 위에 따로 보여 드려요.</p>
         <div className="tb-sortlist">
           {SORTS.map((s) => (
             <button

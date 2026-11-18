@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { tripUrl, type FlightOption } from "@/lib/flights";
+import { flightLink, type FlightOption } from "@/lib/flights";
 import { hhmm, paxOf, paxText, won, type FlightQuery } from "@/lib/trip";
 import { cityForCode, loadAirports } from "@/lib/airports";
 import { applyFlightFilter, EMPTY_FLIGHT_FILTER, flightFacets, flightFilterCount, type Facet, type FlightFacets, type FlightFilter } from "@/lib/flight-filters";
@@ -13,9 +13,7 @@ import { Sheet } from "./Sheet";
 
 export type FlightData = { query: FlightQuery; options: FlightOption[]; picks: { n: number; reason: string }[] };
 
-export function flightLink(q: FlightQuery) {
-  return tripUrl(q.from, q.to, q.depart, q.ret, q.adults, q.children ?? 0, q.cabin ?? "y");
-}
+export { flightLink };
 
 // 오는 편 후보: 가는 편 토큰마다 한 번만 찾고, 같은 카드·상세가 함께 쓴다.
 // 미리 부르는 건 AI 3편과 목록 위 4편뿐. 5초가 지나도 안 오면 'slow'로 바꿔 '다시 불러오기'를 보여 준다 (요청은 그대로 기다려, 늦게 오면 그때 보인다)
@@ -263,7 +261,7 @@ export function FlightDetail({ open, o, q, onClose }: { open: boolean; o: Flight
 
 type Sort = "ai" | "price" | "early" | "short";
 const SORTS: { id: Sort; label: string }[] = [
-  { id: "ai", label: "기본순" }, // 검색 결과가 온 순서 그대로 (AI 추천 3편은 띠·카드 위 줄로 따로 보여 준다)
+  { id: "ai", label: "관련도순" }, // 검색 결과가 온 순서 그대로 (AI 추천 3편은 띠·카드 위 줄로 따로 보여 준다)
   { id: "price", label: "낮은 가격순" },
   { id: "early", label: "이른 출발순" },
   { id: "short", label: "짧은 비행순" },
@@ -370,7 +368,7 @@ export function FlightBrowser({ data, aiPending, aiOff, onBack, bare, notice }: 
     const list = applyFlightFilter(options, f);
     if (sort === "early") return [...list].sort((a, b) => a.departTime.localeCompare(b.departTime));
     if (sort === "short") return [...list].sort((a, b) => a.minutes - b.minutes);
-    if (sort === "ai") return list; // 기본순: 받은 순서 그대로라 AI 결과가 와도 자리가 바뀌지 않는다
+    if (sort === "ai") return list; // 관련도순: 받은 순서 그대로라 AI 결과가 와도 자리가 바뀌지 않는다
     return [...list].sort((a, b) => a.price - b.price);
   }, [options, f, sort]);
   const low = Math.min(...options.map((o) => o.price));

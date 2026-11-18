@@ -1,3 +1,4 @@
+import type { FlightQuery as TripFlightQuery } from "./trip";
 // 항공권 검색 결과 모양과 Trip.com 예약 링크. 서버(app/api/flights)와 화면(FlightSearch)이 같이 쓴다.
 
 export type FlightQuery = {
@@ -81,4 +82,9 @@ export function tripUrl(from: string, to: string, depart: string, ret: string, a
   });
   if (ret) q.set("rdate", ret);
   return `https://kr.trip.com/flights/showfarefirst?${q}`;
+}
+
+// 트립닷컴 항공 검색 주소 (화면 어디서나 같은 조건으로)
+export function flightLink(q: Pick<TripFlightQuery, "from" | "to" | "depart" | "ret" | "adults" | "children" | "cabin">) {
+  return tripUrl(q.from, q.to, q.depart, q.ret, q.adults, q.children ?? 0, q.cabin ?? "y");
 }
