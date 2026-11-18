@@ -3,6 +3,7 @@
 
 import { findBannedWords } from "./brand-mode";
 import type { FlightOption } from "./flights";
+import { maxWait, TOO_LONG_WAIT, waitText } from "./flight-legs";
 import type { HotelOption } from "./hotels";
 
 export type StayQuery = {
@@ -259,6 +260,8 @@ export function flightFactReason(o: FlightOption, taste: string): string {
   if (hits.length) parts.push(hits.map((w) => w.label).join("·"));
   else parts.push(o.stops.length ? `경유 ${o.stops.length}회` : "직항");
   if (o.minutes) parts.push(`${Math.floor(o.minutes / 60)}시간 ${o.minutes % 60}분`);
+  const w = maxWait(o);
+  if (w > 0) parts.push(`대기 ${waitText(w)}`);
   return parts.join(" · ");
 }
 
@@ -267,11 +270,14 @@ export function fallbackFlightPicks(list: FlightOption[], taste: string): Pick[]
   const prices = list.map((o) => o.price);
   const lo = Math.min(...prices);
   const hi = Math.max(...prices);
-  const scored = list.map((o, i) => {
+  // 12시간 넘게 기다리는 항공편은 후보에서 뺀다 (모두 그렇다면 그대로 둔다)
+  const ok = list.some((o) => maxWait(o) <= TOO_LONG_WAIT);
+  const scored = list.flatMap((o, i) => {
+    if (ok && maxWait(o) > TOO_LONG_WAIT) return [];
     const hits = wants.filter((w) => w.test(o)).length;
     const priceRank = hi > lo ? (o.price - lo) / (hi - lo) : 0;
     const score = hits * 3 - priceRank * 2 - o.stops.length * 0.8 - o.minutes / 600;
-    return { n: i + 1, score };
+    return [{ n: i + 1, score }];
   });
   return scored
     .sort((a, b) => b.score - a.score)

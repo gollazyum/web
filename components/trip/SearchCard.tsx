@@ -3,11 +3,12 @@
 import { useEffect, useImperativeHandle, useState } from "react";
 import { AirportInput } from "@/components/AirportInput";
 import { PlaceInput } from "@/components/PlaceInput";
-import { daysBetween, today as localToday } from "@/lib/dates";
+import { addDays, daysBetween, today as localToday } from "@/lib/dates";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import type { FlightQuery, StayQuery } from "@/lib/trip";
 import { HOME_PLACES } from "@/lib/home-places";
 import { HOME_ROUTES } from "@/lib/home-info";
+import { addRecent, readRecent, recentLabel, RECENT_MAX, type Recent } from "@/lib/recent-search";
 import { defaultDates } from "./InputSheets";
 import { FlightPaxPicker, StayGuestPicker } from "./GuestPicker";
 import { IconBed, IconCalendar, IconPlane } from "./icons";
@@ -25,7 +26,7 @@ type Props = {
 };
 
 // 바깥(인기 여행지 칩)에서 검색 버튼과 같은 흐름으로 숙소 검색을 시작할 때 쓴다
-export type SearchCardHandle = { searchStay: (place: string) => void };
+export type SearchCardHandle = { searchStay: (place: string) => void; searchFlightTo: (city: string) => boolean };
 
 const nights = (a: string, b: string) => daysBetween(a, b);
 const kd = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
@@ -49,6 +50,34 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
     if (flight.ret === "" && flight.depart) setOneWay(true);
   }, [flight]);
   useEffect(() => setErr(""), [kind]);
+  // 최근 검색 칩 (브라우저에 저장된 조건). 처음 그릴 때는 인기 칩이고, 화면이 뜬 뒤 최근 검색이 있으면 바꾼다
+  const [recent, setRecent] = useState<Recent[]>([]);
+  useEffect(() => setRecent(readRecent(kind).slice(0, RECENT_MAX)), [kind]);
+  const go = {
+    stay: (q: StayQuery) => {
+      addRecent({ kind: "stay", q });
+      onStay(q);
+    },
+    flight: (q: FlightQuery) => {
+      addRecent({ kind: "flight", q });
+      onFlight(q);
+    },
+  };
+  // 최근 검색을 누르면 그 조건으로 바로 찾는다. 날짜가 지났으면 기본 날짜(3주 뒤)로 같은 박 수만큼
+  function searchRecent(r: Recent) {
+    const [d1] = defaultDates();
+    const shift = (from: string, to: string) => (to ? addDays(d1, Math.max(0, daysBetween(from, to))) : "");
+    setErr("");
+    if (r.kind === "stay") {
+      const q = r.q.checkIn < t ? { ...r.q, checkIn: d1, checkOut: shift(r.q.checkIn, r.q.checkOut) } : r.q;
+      setS(q);
+      return go.stay(q);
+    }
+    const q = r.q.depart < t ? { ...r.q, depart: d1, ret: shift(r.q.depart, r.q.ret) } : r.q;
+    setF(q);
+    setOneWay(!q.ret);
+    go.flight(q);
+  }
 
   // 숙소 검색: 검색 버튼과 인기 여행지 칩이 같이 쓴다 (날짜·인원은 지금 폼 값 그대로)
   function startStay(q: StayQuery) {
@@ -57,7 +86,7 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
     if (q.childAges?.some((a) => a < 0)) return setErr("아동 나이를 알려 주세요. 인원 칸을 누르면 넣을 수 있어요.");
     if (q.checkIn < t) return setErr("체크인 날짜가 지났어요. 오늘 이후 날짜로 바꿔 주세요.");
     if (q.checkOut <= q.checkIn) return setErr("체크아웃은 체크인 다음 날 이후여야 해요.");
-    onStay({ ...q, place: q.place.trim() });
+    go.stay({ ...q, place: q.place.trim() });
   }
 
   useImperativeHandle(ref, () => ({
@@ -69,6 +98,13 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
       if (kind !== "stay") onKind("stay");
       startStay(q);
     },
+    // 항공 탭의 사진 카드: '인천 → 그 도시' 왕복을 기본 날짜로 찾는다 (노선을 모르는 도시면 false)
+    searchFlightTo(city: string) {
+      const r = HOME_ROUTES.find((x) => x.name === city);
+      if (!r) return false;
+      searchRoute(r);
+      return true;
+    },
   }));
 
   // 인기 노선: 인천 출발 왕복, 기본 날짜로 바로 찾는다
@@ -78,7 +114,7 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
     setF(q);
     setOneWay(false);
     setErr("");
-    onFlight(q);
+    go.flight(q);
   }
 
   function submit(e: React.FormEvent) {
@@ -90,7 +126,7 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
     if (f.depart < t) return setErr("가는 날이 지났어요. 오늘 이후 날짜로 바꿔 주세요.");
     if (!oneWay && !ret) return setErr("오는 날을 넣어 주세요.");
     if (!oneWay && ret < f.depart) return setErr("오는 날이 가는 날보다 빨라요. 날짜를 바꿔 주세요.");
-    onFlight({ ...f, ret });
+    go.flight({ ...f, ret });
   }
 
   return (
@@ -187,14 +223,36 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
       <button type="submit" className="tb-cta">
         검색
       </button>
-      {/* P1-1: 항공은 검색칸 아래 인천 출발 인기 노선(누르면 기본 날짜로 바로 찾기). 숙소 인기 여행지는 홈의 사진 카드 한 곳에만 둔다 */}
-      {kind === "flight" && (
+      {/* P1-4: 검색칸 아래 칩은 '최근 검색'(이 브라우저에 저장된 조건). 없을 때만 인기 칩 (아래 사진 카드 8장은 그대로 '인기 여행지') */}
+      {recent.length > 0 ? (
+        <div className="tb-pop" aria-label="최근 검색" role="group">
+          <small>최근 검색</small>
+          <div className="tb-pop-row">
+            {recent.map((r) => (
+              <button key={recentLabel(r)} type="button" onClick={() => searchRecent(r)}>
+                {recentLabel(r)}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : kind === "flight" ? (
         <div className="tb-pop" aria-label="인기 노선" role="group">
           <small>인천 출발 인기 노선</small>
           <div className="tb-pop-row">
             {HOME_ROUTES.map((r) => (
               <button key={r.to} type="button" onClick={() => searchRoute(r)}>
                 인천 → {r.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="tb-pop" aria-label="인기 여행지" role="group">
+          <small>인기 여행지</small>
+          <div className="tb-pop-row">
+            {HOME_PLACES.slice(0, 6).map((p) => (
+              <button key={p.name} type="button" onClick={() => startStay({ ...s, place: p.name, ...(s.checkIn < t ? { checkIn: a, checkOut: b } : {}) })}>
+                {p.name}
               </button>
             ))}
           </div>

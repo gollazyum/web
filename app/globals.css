@@ -847,6 +847,8 @@ a {
 .field .airport-icon {
   font-size: 16px;
   flex: none;
+  display: inline-flex;
+  color: var(--tb-sub);
 }
 .field .airport-text {
   display: flex;
@@ -5340,4 +5342,18 @@ body:has(.compare-bar) .hcards {
   font-weight: 700;
   font-size: 14.5px;
   cursor: pointer;
+}
+
+/* 약관·개인정보·404 머리글: 메뉴 글자가 두 줄로 꺾이지 않게, 아주 좁은 화면(≤320px)에서는 '가칭' 표시를 숨긴다 */
+.pg-nav a,
+.pg-logo strong {
+  white-space: nowrap;
+}
+@media (max-width: 320px) {
+  .pg-logo em {
+    display: none;
+  }
+  .pg-nav a {
+    padding: 0 8px;
+  }
 }

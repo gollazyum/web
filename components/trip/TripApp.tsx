@@ -16,6 +16,7 @@ import { HOME_FAQ, HOME_TRUST } from "@/lib/home-info";
 import type { FlightOption } from "@/lib/flights";
 import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
 import { dateFixText, flightHref, parseHomeSearch, stayHref, TAB_PATH, tabOf, type Tab } from "@/lib/trip-url";
+import { maxWait, TOO_LONG_WAIT, waitText } from "@/lib/flight-legs";
 import {
   fallbackFlightPicks,
   fallbackStayPicks,
@@ -50,7 +51,7 @@ import { SellerBody, SellerSheet } from "./SellerSheet";
 import { Sheet } from "./Sheet";
 import { Onboarding } from "./Onboarding";
 import { SharedTripView } from "./TripRecheck";
-import { PhotoStrip, PriceBlock, RankLines, StayList, StayRow, type StayPick } from "./StayList";
+import { PhotoStrip, PriceBlock, RankLines, requestSimilar, StayList, StayRow, type StayPick } from "./StayList";
 import { rankNotes, stayFactLine, type RankNote } from "@/lib/stay-facts";
 import { getVerified, prefetchPrices, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
 import { setSavedList, type SavedBase } from "./saved-price";
@@ -342,8 +343,17 @@ export function TripApp() {
       patch(id, { status: "done", options, picks: toPicks(fb), aiPending: !o.local, note: overNote });
       setActiveId(id);
       if (o.local) return; // 받은 목록 안에서 다시 거른 결과는 예약처 가격도 새로 부르지 않는다 (이미 받은 금액만 씀)
+      // 같은 조건(도시·날짜·인원·취향·예산)이면 저장해 둔 AI 결과를 그대로 써서 다시 열어도 순위가 바뀌지 않게 한다
+      const memo = readPickMemo(query, want);
+      const memoPicks = memo?.picks.map((p) => ({ n: head.findIndex((h) => h.token === p.token) + 1, reason: p.reason })).filter((p) => p.n > 0);
+      if (memo && memoPicks && memoPicks.length === memo.picks.length) {
+        patch(id, { picks: toPicks(memoPicks), aiPending: false, note: [overNote, memo.note].filter(Boolean).join(" ") });
+        prefetchPrices(memoPicks.slice(0, 1).map((p) => head[p.n - 1]), query);
+        return;
+      }
       const ai = await pickStays(head, want, query.budget);
       const picks = mergePicks(ai.ok ? ai.data.picks : [], fb, head.length, (n) => stayFactReason(head[n - 1], want));
+      if (ai.ok) writePickMemo(query, want, { picks: toPicks(picks), note: ai.data.note ?? "" });
       patch(id, { picks: toPicks(picks), aiPending: false, note: [overNote, ai.ok ? ai.data.note : ""].filter(Boolean).join(" ") });
       // AI 추천 1위만 예약처 가격을 미리 받아 카드 금액을 시트 1위 총액과 맞춰 둔다.
       // 2·3위는 카드가 화면에 보이거나 눌렀을 때 받는다 (검색 한 번당 가격 조회를 줄이기 위해)
@@ -411,8 +421,16 @@ export function TripApp() {
       setActiveId(id);
       if (o.local) return;
       const list = options;
-      const ai = await pickFlights(options, want);
-      const picks = mergePicks(ai.ok ? ai.data.picks : [], fb, list.length, (n) => flightFactReason(list[n - 1], want));
+      // 12시간 넘게 기다리는 항공편은 AI 후보에서 뺀다 (모두 그렇다면 그대로). 받은 번호는 원래 목록 번호로 되돌린다
+      const okIdx = list.map((f, i) => (maxWait(f) <= TOO_LONG_WAIT ? i : -1)).filter((i) => i >= 0);
+      const idx = okIdx.length ? okIdx : list.map((_, i) => i);
+      const ai = await pickFlights(idx.map((i) => list[i]), want);
+      const aiPicks = (ai.ok ? ai.data.picks : []).map((p) => ({ ...p, n: Number.isInteger(p.n) && p.n >= 1 && p.n <= idx.length ? idx[p.n - 1] + 1 : 0 }));
+      // AI 이유 끝에 경유 대기 시간을 붙인다 (이미 말했으면 그대로)
+      const picks = mergePicks(aiPicks, fb, list.length, (n) => flightFactReason(list[n - 1], want)).map((p) => {
+        const w = maxWait(list[p.n - 1]);
+        return w > 0 && !/대기/.test(p.reason) ? { ...p, reason: `${p.reason} · 대기 ${waitText(w)}` } : p;
+      });
       patch(id, { picks, aiPending: false, note: ai.ok ? ai.data.note : "" });
     },
     [patch, push],
@@ -649,6 +667,15 @@ export function TripApp() {
   const split = wide && ((tab === "home" && homeMsg?.t === "stay") || tab === "chat");
   const activeToken = seller?.hotel.token;
   // 열려 있는 숙소가 AI 추천 3곳 중 하나면 그 이유를 상세에도 보여 준다 (가장 최근 결과 기준)
+  // 예약처 0곳 숙소의 '비슷한 숙소 보기': 같은 검색(같은 지역) 목록에서 같은 성급만 보여 준다. 목록이 없는 탭이면 그 지역 검색을 연다
+  const similar = () => {
+    if (!seller) return;
+    const { hotel, query } = seller;
+    setSeller(null);
+    requestSimilar(hotel.stars ? Math.round(hotel.stars) : 0);
+    const shown = (tab === "home" && homeMsg?.t === "stay" && homeMsg.query.place === query.place) || (tab === "chat" && !!listId);
+    if (!shown) goHome(stayHref(query));
+  };
   const sellerReason = seller ? [...msgs].reverse().flatMap((m) => (m.t === "stay" && m.query.place === seller.query.place ? (m.picks ?? []) : [])).find((p) => p.token === seller.hotel.token)?.reason : undefined;
   // PC: 결과가 있으면 오른쪽 패널이 비지 않게 맨 위 숙소(AI 추천 1위)를 먼저 열어 둔다
   const panelMsg = (tab === "home" ? homeMsg : [...chatMsgs].reverse().find((x) => x.t === "stay")) as StayMsg | FlightMsg | undefined;
@@ -739,7 +766,7 @@ export function TripApp() {
                 <h2>인기 여행지</h2>
                 <div className="tb-places">
                   {HOME_PLACES.map((p) => (
-                    <button key={p.name} type="button" onClick={() => searchRef.current?.searchStay(p.name)}>
+                    <button key={p.name} type="button" onClick={() => (kind === "flight" && searchRef.current?.searchFlightTo(p.name)) || searchRef.current?.searchStay(p.name)}>
                       <img
                         src={photoUrl(p.photo, 400, 520)}
                         alt=""
@@ -866,7 +893,7 @@ export function TripApp() {
           <aside className="tb-panel" aria-label="숙소 상세">
             {seller ? (
               <>
-                <SellerBody hotel={seller.hotel} query={seller.query} reason={sellerReason} saved={savedSet.has(seller.hotel.token)} onSave={() => save(seller.hotel, seller.query)} onGo={(text) => setToast({ text, go: true })} />
+                <SellerBody hotel={seller.hotel} query={seller.query} reason={sellerReason} onSimilar={similar} saved={savedSet.has(seller.hotel.token)} onSave={() => save(seller.hotel, seller.query)} onGo={(text) => setToast({ text, go: true })} />
               </>
             ) : (
               <div className="tb-panel-empty">
@@ -969,6 +996,7 @@ export function TripApp() {
         onClose={() => setSeller(null)}
         onGo={(text) => setToast({ text, go: true })}
         reason={sellerReason}
+        onSimilar={similar}
       />
     </div>
   );
@@ -985,6 +1013,27 @@ function AllList({ m, saved, onSave, onOpen, onClose, onMore, onStars }: { m: St
       {open && m.t === "flight" && <FlightBrowser bare data={{ query: m.query, options: m.options ?? [], picks: m.picks ?? [] }} aiPending={m.aiPending} onBack={onClose} />}
     </Sheet>
   );
+}
+
+// AI 추천 결과를 같은 검색 조건마다 이 브라우저에 하루 저장 (마이 '기록 지우기'로 지워진다)
+const PICK_MEMO = "tb-ai-pick-v1:";
+const PICK_KEEP_MS = 24 * 60 * 60 * 1000;
+type PickMemo = { at: number; picks: StayPick[]; note: string };
+const pickMemoKey = (q: StayQuery, want: string) => `${PICK_MEMO}${q.place}|${q.checkIn}|${q.checkOut}|${guestText(q)}|${(q.childAges ?? []).join(".")}|${q.budget}|${want}`;
+function readPickMemo(q: StayQuery, want: string): PickMemo | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(pickMemoKey(q, want)) ?? "null") as PickMemo | null;
+    return v && Date.now() - v.at < PICK_KEEP_MS && v.picks?.length ? v : null;
+  } catch {
+    return null;
+  }
+}
+function writePickMemo(q: StayQuery, want: string, v: Omit<PickMemo, "at">) {
+  try {
+    localStorage.setItem(pickMemoKey(q, want), JSON.stringify({ ...v, at: Date.now() }));
+  } catch {
+    // 저장소를 못 쓰면 이번 화면에서만
+  }
 }
 
 // 공항·도시 목록, 인기 여행지, 나라 이름에 있는 말이면 '아는 곳'
@@ -1278,10 +1327,22 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
   const notes = rankNotes(picks.map((p) => p.h), q.taste ?? "", prices);
   const bestRating = Math.max(...picks.map((p) => p.h.rating ?? 0));
   const short = (n: string) => (n.length > 9 ? `${n.slice(0, 8)}…` : n);
+  // AI 응답 전에는 임시 순위를 보여 주지 않고 같은 자리에 회색 카드만 (응답 뒤 다른 숙소로 바뀌며 흔들리지 않게)
+  if (m.aiPending)
+    return (
+      <div className="tb-result">
+        <AiSay>{options.length}곳을 찾았어요. 말씀하신 조건에 맞는 3곳을 살펴보는 중이에요.</AiSay>
+        <div className="tb-hcards" aria-busy>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="tb-hcard skel" aria-hidden />
+          ))}
+        </div>
+      </div>
+    );
   return (
     <div className="tb-result">
       <AiSay>
-        {options.length}곳 중에 말씀하신 조건에 맞는 <b>{picks.length}곳</b>을 먼저 보여드릴게요.{m.aiPending ? " 더 맞는 곳이 있는지 살펴보는 중이에요." : ""}
+        {options.length}곳 중에 말씀하신 조건에 맞는 <b>{picks.length}곳</b>을 먼저 보여드릴게요.
         {m.note ? ` ${m.note}` : ""}
       </AiSay>
       <div className="tb-hcards">
@@ -1352,6 +1413,19 @@ function FlightResult({ m, onAll, onRefine, onRetry, onPrefill }: MsgProps & { m
   const options = m.options ?? [];
   if (!options.length) return <AiSay>이 날짜에는 항공편을 찾지 못했어요. 날짜나 공항을 바꿔 보세요.</AiSay>;
   const picks = (m.picks ?? []).map((p) => ({ ...p, o: options[p.n - 1] })).filter((p) => p.o);
+  if (m.aiPending)
+    return (
+      <div className="tb-result">
+        <AiSay>
+          {route} {options.length}편을 찾았어요. 말씀하신 조건에 맞는 3편을 살펴보는 중이에요.
+        </AiSay>
+        <div className="tb-cards" aria-busy>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="tb-srow skel" aria-hidden />
+          ))}
+        </div>
+      </div>
+    );
   return (
     <div className="tb-result">
       <AiSay>

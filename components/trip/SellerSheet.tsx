@@ -5,14 +5,14 @@ import { sellerRows, type HotelOption, type ReviewTopic, type SellerRow } from "
 import { distText, nearby } from "@/lib/landmarks";
 import { positivePct } from "@/lib/prefs";
 import { agodaAffiliateOn } from "@/lib/affiliate";
-import { linkRel, sellerDef, withRo } from "@/lib/hotel-sellers";
+import { linkRel, sellerDef, sellerSearchUrl, withRo } from "@/lib/hotel-sellers";
 import { topicKo } from "@/lib/hotelText";
-import { guestText, isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
+import { guestText, isPlainReason, nightsOf, stayTotal, won, type StayQuery } from "@/lib/trip";
 import { searchErrorMessage } from "@/lib/search-error";
 import { askHotel, stayPrices } from "./api";
 import { setChecking, setVerified } from "./prices";
 import { priceChange, savedBaseFor } from "./saved-price";
-import { PhotoStrip, PriceChange } from "./StayList";
+import { EstNote, PhotoStrip, PriceChange } from "./StayList";
 import { Sheet } from "./Sheet";
 import { IconHeart, IconOut, IconSpark, IconUp } from "./icons";
 
@@ -24,6 +24,7 @@ type Props = {
   onClose: () => void;
   onGo?: (text: string) => void; // 예약 사이트로 넘어갈 때 잠깐 띄우는 안내
   reason?: string; // AI 추천 이유 (추천 3곳일 때만)
+  onSimilar?: () => void; // 예약처 0곳일 때 '비슷한 숙소 보기' (같은 지역·성급)
 };
 
 // 판매처 표시용 색 (첫 글자 배지). 로고 이미지는 쓰지 않는다
@@ -60,10 +61,10 @@ const hm = (at: number) => {
 };
 
 // 예약처별 결제 총액. 열 때 그 숙소의 예약처 가격을 한 번 더 받아 온다 (같은 조건은 이 탭에 30분 캐시)
-export function SellerSheet({ hotel, query, saved, onSave, onClose, onGo, reason }: Props) {
+export function SellerSheet({ hotel, query, saved, onSave, onClose, onGo, reason, onSimilar }: Props) {
   return (
     <Sheet open={!!hotel} onClose={onClose} label="숙소 상세" tall>
-      {hotel && <SellerBody key={hotel.token} hotel={hotel} query={query} saved={saved} onSave={onSave} onGo={onGo} reason={reason} />}
+      {hotel && <SellerBody key={hotel.token} hotel={hotel} query={query} saved={saved} onSave={onSave} onGo={onGo} reason={reason} onSimilar={onSimilar} />}
     </Sheet>
   );
 }
@@ -94,7 +95,7 @@ function factsOf(h: HotelOption, q: StayQuery, nights: number, rows: SellerRow[]
 // 담아 둔 숙소: 지금 예약처 1위 총액과 담을 때 금액의 차이 (확인 총액끼리만)
 const sellerDiff = (token: string, q: StayQuery, cost: number) => priceChange(savedBaseFor(token, q), { value: cost, verified: true, none: false });
 
-export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
+export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimilar }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
   const [state, setState] = useState<{ token: string; rows: SellerRow[] | null; status: number | null | "ok"; at: number; topics?: ReviewTopic[] | null } | null>(null);
   const [qa, setQa] = useState<{ token: string; list: { q: string; a: string | null }[] }>({ token: hotel.token, list: [] });
   const [ask, setAsk] = useState("");
@@ -179,6 +180,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
         <h3>예약처별 결제 총액</h3>
         {state?.at ? <span>{hm(state.at)} 확인</span> : null}
       </div>
+      {rows?.length && state?.status === "ok" ? <EstNote est={stayTotal(hotel, nights)?.value ?? null} cost={rows[0].cost} at={state.at} /> : null}
       {saved && rows?.length && state?.status === "ok" && sellerDiff(hotel.token, query, rows[0].cost) !== null ? (
         <PriceChange diff={sellerDiff(hotel.token, query, rows[0].cost)!} />
       ) : null}
@@ -222,8 +224,16 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason }: Omit<P
         </div>
       ) : (
         <div className="tb-seller-none">
-          <p>지금 비교할 수 있는 예약 사이트가 없어요</p>
-          <button type="button" className="tb-cta small" onClick={() => setAgain((n) => n + 1)}>
+          <p>지금 비교할 수 있는 예약처 가격이 없어요</p>
+          <a className="tb-cta small" href={sellerSearchUrl("agoda", hotel.name, query)} target="_blank" rel={linkRel("agoda")} onClick={() => onGo?.("아고다로 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요")}>
+            아고다에서 이 숙소 찾아보기 ↗
+          </a>
+          {onSimilar && (
+            <button type="button" className="tb-btn" onClick={onSimilar}>
+              비슷한 숙소 보기(같은 지역·성급)
+            </button>
+          )}
+          <button type="button" className="tb-link" onClick={() => setAgain((n) => n + 1)}>
             다시 검색
           </button>
         </div>
