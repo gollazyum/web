@@ -223,36 +223,14 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
       <button type="submit" className="tb-cta">
         검색
       </button>
-      {/* P1-4: 검색칸 아래 칩은 '최근 검색'(이 브라우저에 저장된 조건). 없을 때만 인기 칩 (아래 사진 카드 8장은 그대로 '인기 여행지') */}
-      {recent.length > 0 ? (
+      {/* 검색칸 아래 칩은 '최근 검색'(이 브라우저에 저장된 조건)만. 인기 여행지는 아래 사진 카드 한 곳에만 둔다 (누르면 바로 검색, 항공 탭이면 인천 출발 항공 검색) */}
+      {recent.length > 0 && (
         <div className="tb-pop" aria-label="최근 검색" role="group">
           <small>최근 검색</small>
           <div className="tb-pop-row">
             {recent.map((r) => (
               <button key={recentLabel(r)} type="button" onClick={() => searchRecent(r)}>
                 {recentLabel(r)}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : kind === "flight" ? (
-        <div className="tb-pop" aria-label="인기 노선" role="group">
-          <small>인천 출발 인기 노선</small>
-          <div className="tb-pop-row">
-            {HOME_ROUTES.map((r) => (
-              <button key={r.to} type="button" onClick={() => searchRoute(r)}>
-                인천 → {r.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="tb-pop" aria-label="인기 여행지" role="group">
-          <small>인기 여행지</small>
-          <div className="tb-pop-row">
-            {HOME_PLACES.slice(0, 6).map((p) => (
-              <button key={p.name} type="button" onClick={() => startStay({ ...s, place: p.name, ...(s.checkIn < t ? { checkIn: a, checkOut: b } : {}) })}>
-                {p.name}
               </button>
             ))}
           </div>

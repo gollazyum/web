@@ -45,20 +45,44 @@ import {
   type StayQuery,
 } from "@/lib/trip";
 import { parseText, pickFlights, pickStays, searchFlights, searchStays, searchStaysPage } from "./api";
-import { FlightBrowser, FlightCard, flightLink } from "./Flights";
 import { FlightSheet, StaySheet } from "./InputSheets";
 import { SearchCard, type SearchCardHandle, type SearchKind } from "./SearchCard";
-import { SellerBody, SellerSheet } from "./SellerSheet";
 import { Sheet } from "./Sheet";
-import { Onboarding } from "./Onboarding";
-import { SharedTripView } from "./TripRecheck";
-import { PhotoStrip, PriceBlock, RankLines, requestSimilar, StayList, StayRow, type StayPick } from "./StayList";
+import type { StayPick } from "./StayList";
+import { requestSimilar } from "./similar";
 import { rankNotes, stayFactLine, type RankNote } from "@/lib/stay-facts";
 import { getVerified, prefetchPrices, shownPrice, useLazyPrice, usePriceVersion } from "./prices";
 import { setSavedList, type SavedBase } from "./saved-price";
-import { MyTrips } from "./MyTrips";
-import { ClearHistory } from "./ClearHistory";
 import type { Trip } from "@/lib/trips";
+import { flightLink } from "@/lib/flights";
+import dynamic from "next/dynamic";
+
+// 홈 첫 화면(검색 칸·인기 여행지)에 필요 없는 코드는 따로 나눠, 처음 열 때 받는 자바스크립트를 줄인다 (C12).
+// 결과 목록·상세·마이 화면 코드는 그 화면을 처음 그릴 때 받고, 사람이 화면을 만지면 미리 받아 둔다 (warmChunks)
+const lazy = <P,>(load: () => Promise<React.ComponentType<P>>) => dynamic(load, { ssr: false });
+const loadStayList = () => import("./StayList");
+const loadFlights = () => import("./Flights");
+const loadSeller = () => import("./SellerSheet");
+const StayList = lazy(() => loadStayList().then((m) => m.StayList));
+const PhotoStrip = lazy(() => loadStayList().then((m) => m.PhotoStrip));
+const PriceBlock = lazy(() => loadStayList().then((m) => m.PriceBlock));
+const RankLines = lazy(() => loadStayList().then((m) => m.RankLines));
+const FlightBrowser = lazy(() => loadFlights().then((m) => m.FlightBrowser));
+const FlightCard = lazy(() => loadFlights().then((m) => m.FlightCard));
+const SellerBody = lazy(() => loadSeller().then((m) => m.SellerBody));
+const SellerSheet = lazy(() => loadSeller().then((m) => m.SellerSheet));
+const Onboarding = lazy(() => import("./Onboarding").then((m) => m.Onboarding));
+const SharedTripView = lazy(() => import("./TripRecheck").then((m) => m.SharedTripView));
+const MyTrips = lazy(() => import("./MyTrips").then((m) => m.MyTrips));
+const ClearHistory = lazy(() => import("./ClearHistory").then((m) => m.ClearHistory));
+let warmed = false;
+function warmChunks() {
+  if (warmed) return;
+  warmed = true;
+  void loadStayList();
+  void loadFlights();
+  void loadSeller();
+}
 import { IconBack, IconBed, IconChatStar, IconClose, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
 
 type Status = "loading" | "done" | "error";
@@ -206,6 +230,15 @@ export function TripApp() {
   // 탭은 주소가 정한다 (/ 홈, /chat AI 채팅, /now 지금, /my 마이). 뒤로 가기·새로 고침·공유가 그대로 된다
   const pathname = usePathname();
   const router = useRouter();
+  // 사람이 화면을 처음 만지면(누르기·입력·스크롤) 결과 화면 코드를 미리 받아 둔다. 첫 화면을 그리는 동안에는 받지 않는다
+  useEffect(() => {
+    const go = () => warmChunks();
+    const opts = { once: true, passive: true } as const;
+    const evs = ["pointerdown", "keydown", "touchstart", "scroll"] as const;
+    evs.forEach((e) => window.addEventListener(e, go, opts));
+    if (/[?&](q|from)=/.test(window.location.search) || window.location.pathname !== "/") warmChunks();
+    return () => evs.forEach((e) => window.removeEventListener(e, go));
+  }, []);
   const tab = tabOf(pathname);
   // 홈 주소 뒤의 검색 조건 (?q=…). 홈에서 찾으면 주소에 담고, 뒤로 가기로 빼면 검색 화면으로 돌아간다
   const [search, setSearch] = useState("");
@@ -707,9 +740,15 @@ export function TripApp() {
   const panelMsg = (tab === "home" ? homeMsg : [...chatMsgs].reverse().find((x) => x.t === "stay")) as StayMsg | FlightMsg | undefined;
   // AI 답이 온 뒤에 추천 1번을 연다 (그 전에 규칙으로 정한 곳을 열었다가 바뀌지 않게)
   const firstStay = split && panelMsg?.t === "stay" && panelMsg.status === "done" && !panelMsg.aiPending && panelMsg.options?.length ? (panelMsg.options.find((o) => o.token === panelMsg.picks?.[0]?.token) ?? panelMsg.options[0]) : null;
+  // 새 검색 결과가 오면(아동·객실이 다른 조건 포함) 이전 검색에서 열어 둔 숙소 대신 새 결과의 1번을 연다 (패널 머리 인원이 결과 머리와 같게).
+  // 같은 결과 안에서 사람이 연 숙소는 그대로 둔다
+  const panelFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!seller && firstStay && panelMsg?.t === "stay") setSeller({ hotel: firstStay, query: panelMsg.query });
-  }, [seller, firstStay, panelMsg]);
+    if (panelMsg?.t !== "stay" || !firstStay) return;
+    const fresh = panelFor.current !== panelMsg.id;
+    if (!seller || (fresh && split && stayHref(seller.query) !== stayHref(panelMsg.query))) setSeller({ hotel: firstStay, query: panelMsg.query });
+    panelFor.current = panelMsg.id;
+  }, [seller, firstStay, panelMsg, split]);
 
   return (
     <div className="tb-app">
@@ -787,10 +826,8 @@ export function TripApp() {
                 ))}
               </ul>
               {/* 실제로 가격을 받아 견주는 예약처 (lib/hotel-sellers.ts 허용 목록과 같다) */}
-              <p className="tb-trust-sellers">
-                비교하는 예약처: {HOTEL_SELLERS_LIVE.map((k) => sellerDef(k).ko).join(" · ")}
-                {HOTEL_SELLERS_PENDING.length > 0 && <small> · 국내 예약처는 준비 중이에요</small>}
-              </p>
+              <p className="tb-trust-sellers">비교하는 예약처: {HOTEL_SELLERS_LIVE.map((k) => sellerDef(k).ko).join(" · ")}</p>
+              {HOTEL_SELLERS_PENDING.length > 0 && <p className="tb-trust-sellers sub">국내 예약처는 준비 중이에요</p>}
               <section className="tb-sec">
                 <h2>인기 여행지</h2>
                 <div className="tb-places">

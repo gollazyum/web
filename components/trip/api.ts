@@ -1,5 +1,6 @@
 "use client";
 
+import { koAirlines } from "@/lib/flight-filters";
 import type { FlightResults } from "@/lib/flights";
 import type { HotelPrices, HotelResults } from "@/lib/hotels";
 import type { FlightQuery, ParseResult, PickResult, StayQuery } from "@/lib/trip";
@@ -98,14 +99,19 @@ export async function searchFlights(q: FlightQuery) {
   // 도시 코드(SEL, OSA)는 그 도시 공항들로 바꿔 보낸다
   const [from, to] = await Promise.all([airportsFor(q.from), airportsFor(q.to)]);
   const body = { from, to, depart: q.depart, ret: q.ret, adults: q.adults, ...pax(q) };
-  return cached(`flight:${JSON.stringify(body)}`, () => post<FlightResults>("/api/flights", body));
+  return koFlights(await cached(`flight:${JSON.stringify(body)}`, () => post<FlightResults>("/api/flights", body)));
+}
+
+// 저장된 예전 응답·새로 생긴 표기까지 항공사 이름을 한국어로 맞춘다
+function koFlights<R extends Res<FlightResults>>(r: R): R {
+  return r.ok ? { ...r, data: { ...r.data, options: r.data.options.map(koAirlines) } } : r;
 }
 
 // 왕복: 가는 편 하나의 토큰으로 오는 편 후보를 한 번 찾는다 (카드 상세를 열 때만)
 export async function searchFlightReturns(q: FlightQuery, token: string) {
   const [from, to] = await Promise.all([airportsFor(q.from), airportsFor(q.to)]);
   const body = { from, to, depart: q.depart, ret: q.ret, adults: q.adults, ...pax(q), token };
-  return cached(`flightret:${token}`, () => post<FlightResults>("/api/flights", body));
+  return koFlights(await cached(`flightret:${token}`, () => post<FlightResults>("/api/flights", body)));
 }
 
 export const parseText = (text: string, today: string, context: string) => post<ParseResult>("/api/trip-ai", { mode: "parse", text, today, context });

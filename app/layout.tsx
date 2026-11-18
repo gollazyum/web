@@ -5,6 +5,7 @@ import { ogImage, site } from "@/lib/site";
 // 숙소 이름처럼 그때그때 오는 글자만 분할 폰트에서 받는다 (scripts/build-pretendard-css.mjs 로 만든다).
 // font-display: swap 이라 폰트가 늦으면 시스템 글꼴(Apple SD Gothic Neo, 맑은 고딕)로 먼저 보인다
 import "./pretendard.css";
+import uiFont from "@/scripts/pretendard-ui.json";
 import "./globals.css";
 // 휴대폰(640px 이하) 전용 보정. 기존 스타일 뒤에 불러와 덮어쓴다
 import "./mobile.css";
@@ -53,10 +54,16 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" suppressHydrationWarning>
+      <head>
+        {/* 화면 문구용 작은 글꼴 3개를 CSS와 함께 바로 받기 시작한다. 시스템 글꼴로 먼저 그렸다가 바뀌며 줄이 밀리는 흔들림(CLS)을 줄인다 */}
+        {Object.values(uiFont.files).map((href) => (
+          <link key={href} rel="preload" href={href} as="font" type="font/woff2" crossOrigin="anonymous" />
+        ))}
+      </head>
       <body>
         {children}
         {/* Travelpayouts Drive: 제휴 링크 자동 변환 */}
-        <Script id="travelpayouts-drive" src="https://emrldtp.com/NTkxMzAz.js?t=591303" strategy="afterInteractive" data-cmp-ab="2" />
+        <Script id="travelpayouts-drive" src="https://emrldtp.com/NTkxMzAz.js?t=591303" strategy="lazyOnload" data-cmp-ab="2" />
       </body>
     </html>
   );
