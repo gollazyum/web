@@ -3952,3 +3952,70 @@
   color: var(--tb-ink) !important;
   font-weight: 600;
 }
+
+/* 마이: 가격 다시 보기 · 공유 링크 · 공유받은 여행 */
+.tb-trip-actions {
+  margin: 4px 0 8px;
+}
+.tb-trip-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+.tb-trip-actions-row .tb-btn {
+  background: var(--tb-ink);
+  color: #fff;
+}
+.tb-trip-actions-row .tb-btn.ghost {
+  background: var(--tb-card);
+  color: var(--tb-ink);
+  border: 1px solid var(--tb-line);
+  text-decoration: none;
+}
+.tb-trip-actions-row .tb-btn:disabled {
+  opacity: 0.6;
+}
+.tb-shared {
+  margin-bottom: 20px;
+  border: 1.5px solid var(--tb-accent);
+}
+.tb-shared-list {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tb-shared-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--tb-line);
+}
+.tb-shared-list small {
+  color: var(--tb-sub);
+  font-size: 13px;
+}
+.tb-shared-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.tb-shared-now .tb-book {
+  margin-left: auto;
+}
+.tb-rank,
+.tb-unk {
+  font-size: 12px;
+  line-height: 1.35;
+}
+.tb-trip-msg {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--tb-sub);
+}
