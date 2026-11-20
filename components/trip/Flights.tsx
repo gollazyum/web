@@ -345,10 +345,11 @@ function FlightTop3({ list, reasons, pending, q, off }: { list: FlightOption[]; 
   );
 }
 
-export function FlightBrowser({ data, aiPending, aiOff, onAiRetry, onBack, bare, notice }: { data: FlightData; aiPending?: boolean; aiOff?: boolean; onAiRetry?: () => void; onBack: () => void; bare?: boolean; notice?: string }) {
+// initFilter: 홈 입력 시트에서 고른 빠른 조건 (처음 한 번만)
+export function FlightBrowser({ data, aiPending, aiOff, onAiRetry, onBack, bare, notice, initFilter }: { data: FlightData; aiPending?: boolean; aiOff?: boolean; onAiRetry?: () => void; onBack: () => void; bare?: boolean; notice?: string; initFilter?: FlightFilter }) {
   const { query: q, options, picks } = data;
-  const [f, setF] = useState<FlightFilter>(EMPTY_FLIGHT_FILTER);
-  const [draft, setDraft] = useState<FlightFilter>(EMPTY_FLIGHT_FILTER);
+  const [f, setF] = useState<FlightFilter>(initFilter ?? EMPTY_FLIGHT_FILTER);
+  const [draft, setDraft] = useState<FlightFilter>(initFilter ?? EMPTY_FLIGHT_FILTER);
   const [sheet, setSheet] = useState(false);
   const [sort, setSort] = useState<Sort>("ai");
   const cityOf = useCityOf();

@@ -10,11 +10,12 @@ type Props = {
   onClose: () => void;
   label: string; // 화면 읽기 도구용 제목
   tall?: boolean; // 화면 대부분을 덮는 시트
+  title?: React.ReactNode; // 머리(고정)에 보이는 제목. 닫기 버튼과 같은 줄
   children: React.ReactNode;
 };
 
 // 휴대폰: 아래에서 올라오는 시트 / PC: 가운데 창. 뒤로가기·Esc로 닫힌다
-export function Sheet({ open, onClose, label, tall, children }: Props) {
+export function Sheet({ open, onClose, label, tall, title, children }: Props) {
   useSheet(open, onClose);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -41,6 +42,7 @@ export function Sheet({ open, onClose, label, tall, children }: Props) {
         {/* 위는 고정(손잡이·닫기), 아래만 스크롤: 내용이 둥근 모서리 밖으로 나가거나 닫기 버튼이 사라지지 않게 */}
         <div className="tb-sheet-head">
           <div className="tb-grab" aria-hidden />
+          {title && <strong className="tb-sheet-title">{title}</strong>}
           <button type="button" className="tb-round tb-sheet-x" onClick={onClose} aria-label="닫기">
             <IconClose size={20} />
           </button>
