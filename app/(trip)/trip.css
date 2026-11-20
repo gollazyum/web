@@ -4934,27 +4934,6 @@ html.tb-big .tb-app {
   font-size: 11px;
 }
 
-/* 보조 칩: 가로로 넘겨 보기, 오른쪽 끝 여백 16px */
-.tb-help-chips {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  margin: 16px -20px 0;
-  padding: 0 16px 4px 20px;
-  scrollbar-width: none;
-}
-.tb-help-chips::after {
-  content: "";
-  flex: 0 0 1px;
-}
-.tb-help-chips::-webkit-scrollbar {
-  display: none;
-}
-.tb-help-chips .tb-chip {
-  background: var(--tb-card) !important;
-  border: 1px solid var(--tb-line);
-}
-
 /* 최근 확인한 최저 가격 */
 .tb-snaps {
   display: flex;
@@ -5083,9 +5062,8 @@ html.tb-big .tb-app {
   .tb-tile.soon .tb-tile-icon {
     margin-bottom: 8px;
   }
-  .tb-help-chips {
-    margin: 32px 0 0;
-    padding: 0;
-    flex-wrap: wrap;
+  /* 배경 사진 바로 아래 첫 제목이 사진에 붙지 않게 */
+  .tb-hero + .tb-sec h2 {
+    margin-top: 44px;
   }
 }

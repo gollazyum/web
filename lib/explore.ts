@@ -81,8 +81,3 @@ export const EXPLORE_STAGES: { id: ExploreStage; label: string; cards: HelpCard[
   },
 ];
 
-// 홈 보조 칩 3개: 둘러보기 카드와 같은 질문 (chip은 칩 글자)
-const CHIP: Record<string, string> = { outfit: "날씨별 옷차림·준비물", pass: "교통패스 손익 계산", sos: "비상시 대처 가이드" };
-export const HOME_HELP: (HelpCard & { chip: string })[] = EXPLORE_STAGES.flatMap((s) => s.cards)
-  .filter((c) => CHIP[c.id])
-  .map((c) => ({ ...c, chip: CHIP[c.id] }));

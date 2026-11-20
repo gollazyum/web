@@ -48,7 +48,6 @@ import { parseText, pickFlights, pickStays, searchFlights, searchStays, searchSt
 import { FlightSheet, StaySheet } from "./InputSheets";
 import type { SearchKind } from "./SearchCard";
 import { HomeSheet } from "./HomeSheet";
-import { HOME_HELP } from "@/lib/explore";
 import { flightFilterOf, optsParam, readOpts, stayFilterOf } from "@/lib/home-opts";
 import { agoText, readActive, readSnaps, saveActive, writeSnap, type Snapshot } from "@/lib/home-snapshot";
 import { addRecent } from "@/lib/recent-search";
@@ -948,14 +947,6 @@ export function TripApp() {
                     <small>내 예산 안에서 가장 합리적인 조합</small>
                   </button>
                 </div>
-              </div>
-              {/* 보조 칩: 둘러보기 도움 카드와 같은 질문으로 AI 채팅을 연다 */}
-              <div className="tb-help-chips" role="group" aria-label="여행 도움">
-                {HOME_HELP.map((c) => (
-                  <button key={c.id} type="button" className="tb-chip" onClick={() => send(c.prompt, true)}>
-                    <span aria-hidden>{c.emoji}</span> {c.chip}
-                  </button>
-                ))}
               </div>
               {snaps.length > 0 && (
                 <section className="tb-sec">
