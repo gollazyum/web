@@ -1,5 +1,5 @@
 // 마이의 담아 둔 여행을 로그인 없이 다시 여는 공유 링크.
-// 서버에 아무것도 저장하지 않고, 목적지·날짜·인원·숙소(이름·토큰·공유할 때 금액)를 주소(/my?trip=…)에 담는다
+// 서버에 아무것도 저장하지 않고, 목적지·날짜·인원·숙소(이름·토큰·공유할 때 금액)를 주소(/trips?trip=…, 예전 /my?trip=… 도 열린다)에 담는다
 export type SharedHotel = { token: string; name: string; price: number | null; verified: boolean };
 export type SharedTrip = { place: string; checkIn: string; checkOut: string; adults: number; rooms?: number; childAges?: number[]; hotels: SharedHotel[] };
 
@@ -58,4 +58,4 @@ export function decodeTrip(code: string | null | undefined): SharedTrip | null {
   }
 }
 
-export const sharePath = (t: SharedTrip) => `/my?trip=${encodeTrip(t)}`;
+export const sharePath = (t: SharedTrip) => `/trips?trip=${encodeTrip(t)}`;

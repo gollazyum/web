@@ -84,7 +84,10 @@ function warmChunks() {
   void loadFlights();
   void loadSeller();
 }
-import { IconBack, IconBed, IconChatStar, IconClose, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
+import { IconBack, IconBag, IconBed, IconChatStar, IconClose, IconCompass, IconGrid, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
+import { Explore } from "./Explore";
+import { MySettings } from "./MySettings";
+import { bumpAiCount } from "@/lib/ui-prefs";
 
 type Status = "loading" | "done" | "error";
 
@@ -228,7 +231,7 @@ const cityOf = (label: string) => label.replace(/\s*\([A-Z]{3}\)\s*$/, "");
 const Orb = ({ size = 32, calm }: { size?: number; calm?: boolean }) => <span className={calm ? "tb-orb calm" : "tb-orb"} style={{ width: size, height: size }} aria-hidden />;
 
 export function TripApp() {
-  // 탭은 주소가 정한다 (/ 홈, /chat AI 채팅, /now 지금, /my 마이). 뒤로 가기·새로 고침·공유가 그대로 된다
+  // 탭은 주소가 정한다 (/ 홈, /explore 둘러보기, /chat AI 채팅, /trips 내 여행, /my 마이). 뒤로 가기·새로 고침·공유가 그대로 된다
   const pathname = usePathname();
   const router = useRouter();
   // 사람이 화면을 처음 만지면(누르기·입력·스크롤) 결과 화면 코드를 미리 받아 둔다. 첫 화면을 그리는 동안에는 받지 않는다
@@ -299,6 +302,10 @@ export function TripApp() {
   const aiRetry = useRef(new Map<string, () => void>());
   const retryAi = useCallback((id: string) => aiRetry.current.get(id)?.(), []);
 
+  // 예전 공유 링크(/my?trip=…)는 담은 숙소가 옮겨 간 내 여행 탭으로 보낸다
+  useEffect(() => {
+    if (tab === "my" && /[?&]trip=/.test(window.location.search)) router.replace(`${TAB_PATH.trips}${window.location.search}`, { scroll: false });
+  }, [tab, router]);
   // 다른 페이지 메뉴에서 /?tab=stay, /?tab=flight 로 오면 그 검색 탭을 연다
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
@@ -601,9 +608,11 @@ export function TripApp() {
   }
 
   // ---------- AI 채팅: 자유 문장 ----------
-  async function send(raw: string) {
+  // help: 둘러보기 도움 카드에서 온 질문 (AI를 못 쓰면 숙소 입력 시트 대신 다시 눌러 달라고만 한다)
+  async function send(raw: string, help = false) {
     const said = raw.trim();
     if (!said || busy) return;
+    bumpAiCount(localToday()); // 마이 '오늘 AI 상담 이용 현황'
     setText("");
     setTab("chat");
     push({ id: uid(), t: "user", text: said });
@@ -611,6 +620,10 @@ export function TripApp() {
     setBusy(true);
     const r = await parseText(said, localToday(), contextOf(base));
     setBusy(false);
+    if (!r.ok && help) {
+      push({ id: uid(), t: "ai", text: r.status === 429 ? "질문이 많아서 잠시 쉬어야 해요. 조금 뒤에 다시 물어봐 주세요." : "지금은 답을 불러오지 못했어요. 잠시 뒤에 다시 물어봐 주세요." });
+      return;
+    }
     if (!r.ok) {
       // AI를 못 쓰면: 보고 있는 결과가 있으면 같은 목록 안에서 취향만 더해 다시 정리하고(검색 없음), 없으면 입력 시트로 이어 준다
       if (base?.t === "stay" && base.options) return runStay({ ...base.query, taste: joinTaste(base.query.taste, said.slice(0, 100)) }, { reuse: base.options });
@@ -1000,14 +1013,9 @@ export function TripApp() {
           </main>
         )}
 
-        {tab === "now" && (
-          <Soon
-            title="지금"
-            lead="여행 중에 쓰는 도구를 준비하고 있어요."
-            items={["오늘 날씨와 다음 일정을 한눈에", "메뉴판을 찍으면 우리말로 풀어 보기", "현지 가격을 원화로 바로 보기"]}
-          />
-        )}
-        {tab === "my" && <My saved={saved} profile={taste.profile} onTaste={() => setOnb(true)} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => goHome("/")} onFlight={tripFlight} onMoreStays={(t) => goHome(stayHref({ place: t.city, checkIn: t.checkIn, checkOut: t.checkOut, adults: t.adults, budget: 0, taste: "" }))} />}
+        {tab === "explore" && <Explore onAsk={(prompt) => send(prompt, true)} />}
+        {tab === "trips" && <MyTripsTab saved={saved} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => goHome("/")} onFlight={tripFlight} onMoreStays={(t) => goHome(stayHref({ place: t.city, checkIn: t.checkIn, checkOut: t.checkOut, adults: t.adults, budget: 0, taste: "" }))} />}
+        {tab === "my" && <My profile={taste.profile} onTaste={() => setOnb(true)} onTrips={() => setTab("trips")} />}
 
         {split && (
           <aside className="tb-panel" aria-label="숙소 상세">
@@ -1031,11 +1039,13 @@ export function TripApp() {
             <strong>{BRAND_NAME}</strong>
             {brand.tentative && <em>가칭</em>}
           </span>
+          {/* 5탭: 홈 · 둘러보기 · (가운데 둥근 버튼) AI 채팅 · 내 여행 · 마이. PC에서는 위쪽 머리글 메뉴가 된다 */}
           {(
             [
               { id: "home", label: "홈", icon: <IconHome size={24} /> },
-              { id: "chat", label: "AI 채팅", icon: <IconChatStar size={24} /> },
-              // P2: '지금' 탭은 여행 중 기능이 준비될 때까지 숨긴다 (/now 는 홈으로 보낸다)
+              { id: "explore", label: "둘러보기", icon: <IconGrid size={24} /> },
+              { id: "chat", label: "AI 채팅", icon: <IconCompass size={26} /> },
+              { id: "trips", label: "내 여행", icon: <IconBag size={24} /> },
               { id: "my", label: "마이", icon: <IconUser size={24} /> },
             ] as { id: Tab; label: string; icon: React.ReactNode; soon?: boolean }[]
           ).map((it) => (
@@ -1053,7 +1063,7 @@ export function TripApp() {
                 }
               }}
             >
-              {it.icon}
+              {it.id === "chat" ? <i className="tb-fab">{it.icon}</i> : it.icon}
               <span>{it.label}</span>
               {it.soon && <em className="tb-soon-dot">곧</em>}
             </Link>
@@ -1074,7 +1084,7 @@ export function TripApp() {
               type="button"
               onClick={() => {
                 setToast(null);
-                setTab("my");
+                setTab("trips");
               }}
             >
               보기
@@ -1601,38 +1611,41 @@ function FlightResult({ m, onAll, onRefine, onRetry, onAiRetry, onPrefill }: Msg
   );
 }
 
-// ---------- 지금 · 마이 ----------
-function Soon({ title, lead, items }: { title: string; lead: string; items: string[] }) {
+// ---------- 내 여행 · 마이 ----------
+// 내 여행: 맨 위에 예약 내역 캡처 입구(곧 열려요), 그 아래 공유받은 여행과 담아 둔 숙소
+function MyTripsTab({ saved, onOpen, onSave, onHome, onFlight, onMoreStays }: { saved: Saved[]; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void; onFlight: (t: Trip) => void; onMoreStays: (t: Trip) => void }) {
+  const [shared, setShared] = useState<string | null>(null);
+  useEffect(() => setShared(new URLSearchParams(window.location.search).get("trip")), []);
+  const [soon, setSoon] = useState(false);
   return (
     <main className="tb-page">
-      <h1>{title}</h1>
-      <span className="tb-tag ac">곧 열려요</span>
-      <p className="tb-lead">{lead}</p>
-      <ul className="tb-soon-list">
-        {items.map((i) => (
-          <li key={i}>{i}</li>
-        ))}
-      </ul>
+      <h1>내 여행</h1>
+      <button type="button" className="tb-capture" onClick={() => setSoon(true)} aria-describedby={soon ? "tb-capture-soon" : undefined}>
+        <span className="tb-capture-plus" aria-hidden>
+          <IconPlus size={22} />
+        </span>
+        <span>
+          <strong>예약 내역 캡처로 무료취소·날씨 알림 등록</strong>
+          <small>예약 확인 화면을 올리면 일정이 자동으로 채워져요</small>
+        </span>
+        <em className="tb-tag ac">곧 열려요</em>
+      </button>
+      {soon && (
+        <p id="tb-capture-soon" className="tb-capture-soon" role="status">
+          예약 내역 캡처 등록은 곧 열려요. 지금은 숙소의 ♡를 눌러 여행을 담아 둘 수 있어요.
+        </p>
+      )}
+      <SharedTripView code={shared} />
+      <MyTrips saved={saved} onOpen={onOpen} onSave={onSave} onHome={onHome} onFlight={onFlight} onMoreStays={onMoreStays} />
     </main>
   );
 }
 
-function My({ saved, profile, onTaste, onOpen, onSave, onHome, onFlight, onMoreStays }: { saved: Saved[]; profile: TasteProfile | null; onTaste: () => void; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void; onFlight: (t: Trip) => void; onMoreStays: (t: Trip) => void }) {
-  const summary = profileLines(profile).join("\n");
-  const [shared, setShared] = useState<string | null>(null);
-  useEffect(() => setShared(new URLSearchParams(window.location.search).get("trip")), []);
+function My({ profile, onTaste, onTrips }: { profile: TasteProfile | null; onTaste: () => void; onTrips: () => void }) {
   return (
     <main className="tb-page">
       <h1>마이</h1>
-      <SharedTripView code={shared} />
-      <section className="tb-taste-box">
-        <h2 className="tb-h2">내 여행 취향</h2>
-        <p>{summary || "아직 알려 주신 취향이 없어요. 설정하면 AI 추천 3곳이 취향에 맞춰져요."}</p>
-        <button type="button" className="tb-btn" onClick={onTaste}>
-          {summary ? "취향 다시 설정하기" : "취향 설정하기"}
-        </button>
-      </section>
-      <MyTrips saved={saved} onOpen={onOpen} onSave={onSave} onHome={onHome} onFlight={onFlight} onMoreStays={onMoreStays} />
+      <MySettings tasteSummary={profileLines(profile).join("\n")} onTaste={onTaste} onTrips={onTrips} />
       <ClearHistory />
       <TripFooter />
     </main>

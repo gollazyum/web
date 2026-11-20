@@ -74,3 +74,6 @@ export const IconChatStar = ({ size }: P) => (
 export const IconSort = ({ size }: P) => (
   <svg {...base(size)}><path d="M7 4v16M3.5 7.5 7 4l3.5 3.5M17 20V4M13.5 16.5 17 20l3.5-3.5" /></svg>
 );
+export const IconGrid = ({ size }: P) => (
+  <svg {...base(size)}><rect x="4" y="4" width="7" height="7" rx="2" /><rect x="13" y="4" width="7" height="7" rx="2" /><rect x="4" y="13" width="7" height="7" rx="2" /><rect x="13" y="13" width="7" height="7" rx="2" /></svg>
+);

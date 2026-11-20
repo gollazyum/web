@@ -5218,7 +5218,7 @@ body:has(.compare-bar) .hcards {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #b8d4ff, #3a5bff 55%, #1b2a8c);
+  background: radial-gradient(circle at 30% 30%, #a9b9d8, #1b2a4a 58%, #0d162b);
 }
 .pg-nav {
   display: flex;
@@ -5227,6 +5227,8 @@ body:has(.compare-bar) .hcards {
 .pg-nav a {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-width: 44px;
   min-height: 44px;
   padding: 0 10px;
   border-radius: 10px;
@@ -5237,6 +5239,25 @@ body:has(.compare-bar) .hcards {
 }
 .pg-nav a:hover {
   background: #f3f3f6;
+}
+/* 약관·개인정보 머리글 메뉴 5개: 좁은 휴대폰에서는 둘러보기·내 여행을 줄여 한 줄에 맞춘다 */
+@media (max-width: 520px) {
+  .pg-logo em {
+    display: none;
+  }
+  .pg-nav {
+    gap: 0;
+  }
+  .pg-nav a {
+    padding: 0 6px;
+    font-size: 13.5px;
+  }
+}
+@media (max-width: 400px) {
+  .pg-nav a[href="/explore"],
+  .pg-nav a[href="/trips"] {
+    display: none;
+  }
 }
 .pg .legal {
   flex: 1;

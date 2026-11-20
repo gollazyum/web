@@ -4,13 +4,15 @@ import type { FlightQuery, StayQuery } from "./trip";
 // 탭 주소와 홈 검색 주소.
 // 홈 검색 결과는 주소에 조건을 담아(/?q=오사카&checkin=…) 그대로 공유하고, 뒤로 가기로 검색 화면에 돌아올 수 있다.
 // 이름은 예전 /hotels, /flights 주소와 같게 둬서 옛 링크도 그대로 열린다
-export type Tab = "home" | "chat" | "now" | "my";
+// 2026-11-20 5탭: 홈 · 둘러보기 · (가운데) AI 채팅 · 내 여행 · 마이. 예전 /now 주소는 둘러보기로 보낸다
+export type Tab = "home" | "explore" | "chat" | "trips" | "my";
 
-export const TAB_PATH: Record<Tab, string> = { home: "/", chat: "/chat", now: "/now", my: "/my" };
+export const TAB_PATH: Record<Tab, string> = { home: "/", explore: "/explore", chat: "/chat", trips: "/trips", my: "/my" };
 
 export function tabOf(pathname: string): Tab {
+  if (pathname.startsWith("/explore")) return "explore";
   if (pathname.startsWith("/chat")) return "chat";
-  if (pathname.startsWith("/now")) return "now";
+  if (pathname.startsWith("/trips")) return "trips";
   if (pathname.startsWith("/my")) return "my";
   return "home";
 }

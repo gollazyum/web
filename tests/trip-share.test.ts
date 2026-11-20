@@ -15,7 +15,7 @@ const T: SharedTrip = {
 describe("여행 공유 링크", () => {
   it("담은 그대로 다시 읽는다 (한글 포함)", () => {
     expect(decodeTrip(encodeTrip(T))).toEqual(T);
-    expect(sharePath(T)).toMatch(/^\/my\?trip=[A-Za-z0-9_-]+$/);
+    expect(sharePath(T)).toMatch(/^\/trips\?trip=[A-Za-z0-9_-]+$/);
   });
   it("모양이 틀리면 null", () => {
     expect(decodeTrip("")).toBeNull();

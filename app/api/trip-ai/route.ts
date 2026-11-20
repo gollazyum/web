@@ -34,7 +34,10 @@ ${RULES}
   - slot은 ${ASK_SLOTS.join(", ")} 중 하나. q는 짧은 질문 ("어디서 출발하세요?").
   - options는 2~4개. label은 칩 글자(짧게), value는 그 칸에 들어갈 값:
     place/to/from: place는 도시·동네 이름, from/to는 코드 ("ICN") / dates: "YYYY-MM-DD~YYYY-MM-DD" (편도 항공이면 "YYYY-MM-DD~") / adults: "2" / budget: 숙박 총액 원 "400000" / taste: 취향 짧은 말 ("대욕장")
-- reply: kind가 stay·flight면 되묻기 앞에 붙일 한 문장 ("좋아요! 딱 맞게 찾으려고 두 가지만 여쭤볼게요." 또는 질문이 없으면 "이 조건으로 찾아볼게요."). other면 그 질문에 대한 짧은 답(3문장 이내)으로, 숙소·항공편 찾기로 이어지게.`;
+- reply: kind가 stay·flight면 되묻기 앞에 붙일 한 문장 ("좋아요! 딱 맞게 찾으려고 두 가지만 여쭤볼게요." 또는 질문이 없으면 "이 조건으로 찾아볼게요."). other면 그 질문에 대한 짧은 답(3문장 이내)으로, 숙소·항공편 찾기로 이어지게.
+  - 단, 여행 준비(옷차림·준비물·교통패스), 여행 중 문제(분실·아플 때·대사관·환전·체크인), 여행 후 정리(무료 취소·가격 하락 확인) 같은 도움 질문이면 숙소 찾기로 돌리지 말고 바로 쓸 수 있는 핵심을 "- "로 시작하는 짧은 줄 3~6개로 답해 (줄마다 줄바꿈).
+  - 도시·날짜를 모르면 일반적인 기준으로 답하고 마지막 줄에 도시·날짜를 알려 주면 더 맞춰 드린다고 해.
+  - 오늘 기온·환율 숫자·운영 시간·전화번호처럼 확인하지 않은 사실은 지어내지 말고, 어디서 확인하면 되는지만 알려 줘. 위급하면 현지 긴급 번호와 영사콜센터(+82-2-3210-0404)를 안내해.`;
 
 const PARSE_SCHEMA = {
   type: "object",
@@ -104,6 +107,15 @@ const int = (v: unknown, lo: number, hi: number) => (typeof v === "number" && Nu
 const code = (v: unknown) => (typeof v === "string" && /^[A-Za-z]{3}$/.test(v.trim()) ? v.trim().toUpperCase() : "");
 const date = (v: unknown, today: string) => (isDate(v) && v >= today ? v : "");
 
+function cleanLines(text: unknown): string {
+  return String(text ?? "")
+    .split(/\n+/)
+    .map((l) => cleanCopy(l, 160))
+    .filter(Boolean)
+    .slice(0, 8)
+    .join("\n");
+}
+
 function shapeParse(raw: RawParse, today: string): ParseResult {
   const questions: AskQuestion[] = (Array.isArray(raw.questions) ? raw.questions : [])
     .filter((q) => q && ASK_SLOTS.includes(q.slot))
@@ -120,7 +132,8 @@ function shapeParse(raw: RawParse, today: string): ParseResult {
   const kind = raw.kind === "stay" || raw.kind === "flight" ? raw.kind : "other";
   return {
     kind,
-    reply: cleanCopy(raw.reply, 400),
+    // 여행 도움 답(other)은 줄 단위로 다듬어 줄바꿈을 살린다. 금지어가 든 줄만 빠진다
+    reply: kind === "other" ? cleanLines(raw.reply) : cleanCopy(raw.reply, 400),
     stay: {
       place: str(raw.place, 60),
       checkIn: date(raw.checkIn, today),

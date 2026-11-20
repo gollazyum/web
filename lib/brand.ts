@@ -8,18 +8,21 @@ export const brand = {
   tentative: true,
   aiName: "여행비서 AI",
   legalName: "Gollazyum",
+  // 2026-11-20 색 공식 60:30:10 — 웜 오프화이트 바탕(60) · 잉크 네이비(30) · 시그니처 오렌지(10)
+  // 오렌지(price)는 1위 최저 금액 숫자에만 쓴다. 일반 카드·2위 이하 금액·버튼에는 쓰지 않는다
   colors: {
-    bg: "#FFFFFF",
-    card: "#FFFFFF",
-    soft: "#F4F4F6", // 칩·입력칸·보조 버튼 바탕
-    soft2: "#EBEBEF",
-    ink: "#0B0B0F", // 글자·검정 버튼
-    sub: "#6B6B73",
-    mute: "#74747C", // 흰 바탕 대비 4.6:1 (글자 읽기 기준 4.5:1 이상)
-    line: "#E7E7EC",
-    accent: "#3A5BFF", // 하나뿐인 강조색 (AI 표시·선택)
-    accentDark: "#2742D9",
-    accentSoft: "#ECF0FF",
+    bg: "#FAF8F5", // 웜 오프화이트 바탕
+    card: "#FFFFFF", // 카드 표면 (모서리 20px)
+    soft: "#F2F0EC", // 칩·입력칸·보조 버튼 바탕
+    soft2: "#E8E5DF",
+    ink: "#1B2A4A", // 잉크 네이비: 글자·헤더·주 버튼·선택 탭
+    sub: "#5D6475",
+    mute: "#666D7D", // 오프화이트 바탕 대비 4.9:1 (글자 읽기 기준 4.5:1 이상)
+    line: "#E6E2DB",
+    accent: "#1B2A4A", // 선택·AI 표시 (네이비 계열로 통일)
+    accentDark: "#14203A",
+    accentSoft: "#ECEFF5",
+    price: "#FF5A1F", // 시그니처 오렌지: 1위 최저 금액 숫자 전용
     good: "#0E9F6E",
     goodSoft: "#E3F7EE",
     warn: "#E5484D",
@@ -31,7 +34,7 @@ export const brand = {
 // 가칭 서비스명·상단 아이콘. 이름이 정해지면 여기 두 줄만 바꾼다
 export const BRAND_NAME: string = brand.appName;
 export const BRAND_AI_NAME: string = brand.aiName;
-export const BRAND_ICON = "orb" as const; // 파란 구체 (components/trip의 .tb-orb)
+export const BRAND_ICON = "orb" as const; // 네이비 구체 (components/trip의 .tb-orb)
 
 export type BrandColorKey = keyof typeof brand.colors;
 
@@ -40,8 +43,8 @@ export function cssVarName(key: string): string {
   return `--tb-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
 }
 
-// 일괄 교체용 대표 색 3개. --tb-bg·--tb-ink·--tb-accent는 이 셋을 따라간다
-const CORE_VARS: Partial<Record<BrandColorKey, string>> = { bg: "--bg", ink: "--primary", accent: "--accent" };
+// 일괄 교체용 대표 색 3개 (--bg 바탕, --primary 네이비, --accent 오렌지). --tb-bg·--tb-ink·--tb-price는 이 셋을 따라간다
+const CORE_VARS: Partial<Record<BrandColorKey, string>> = { bg: "--bg", ink: "--primary", price: "--accent" };
 
 // :root에 넣을 CSS 변수 묶음
 export function brandCssVars(): string {
