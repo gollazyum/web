@@ -10,6 +10,9 @@ import { topicKo } from "@/lib/hotelText";
 import { guestText, isPlainReason, nightsOf, stayTotal, won, type StayQuery } from "@/lib/trip";
 import { searchErrorMessage } from "@/lib/search-error";
 import { askHotel, stayPrices } from "./api";
+import { checkInput } from "@/lib/checkpoints";
+import { CheckBox } from "./CheckBox";
+import { useCheckpoints } from "./useCheckpoints";
 import { setChecking, setVerified } from "./prices";
 import { priceChange, savedBaseFor } from "./saved-price";
 import { EstNote, PhotoStrip, PriceChange } from "./StayList";
@@ -132,6 +135,11 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
   const failed = state && state.status !== "ok";
   const list = qa.token === hotel.token ? qa.list : [];
   const waiting = list.some((x) => x.a === null);
+  // 솔직 체크포인트: 예약처 가격 확인이 끝난 뒤(후기 주제·무료 취소까지 받은 뒤) 한 번 만든다
+  const loaded = !!rows && state?.token === hotel.token;
+  const input = loaded ? checkInput(hotel, query, { fc: rows.some((r) => r.freeCancel), price: rows.length ? (failed ? "estimate" : "verified") : "none", topics: state?.topics ?? null }) : null;
+  const checkItems = input ? [{ h: hotel, withTopics: input.topics.length > 0, input }] : [];
+  const check = useCheckpoints(checkItems, query, loaded).get(hotel.token);
   const photos = (hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : []).slice(0, 8);
 
   async function send(raw: string) {
@@ -176,6 +184,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
           </span>
         </p>
       )}
+      {loaded ? <CheckBox c={check ?? null} fc={!!input?.freeCancel} /> : null}
       <div className="tb-seller-title">
         <h3>예약처별 결제 총액</h3>
         {state?.at ? <span>{hm(state.at)} 확인</span> : null}
@@ -198,6 +207,16 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
           ))}
         </div>
       ) : rows.length ? (
+        <>
+        {(() => {
+          // 1위 요금이 무료 취소가 아니면, 무료 취소 요금 중 가장 낮은 곳을 따로 알려 준다 (예약처마다 가장 싼 요금 하나만 받는다)
+          const fc = rows[0].freeCancel ? null : rows.find((r) => r.freeCancel);
+          return fc ? (
+            <p className="tb-fc-note">
+              무료 취소 요금은 <b>{sellerDef(fc.key).ko}</b> {won(fc.cost)}부터예요 <small>(+{won(fc.cost - rows[0].cost)})</small>
+            </p>
+          ) : null;
+        })()}
         <div className="tb-rows">
           {rows.map((s, i) => {
             const ko = sellerDef(s.key).ko;
@@ -209,7 +228,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
                 <div className="tb-row-name">
                   <strong>{ko}</strong>
                   {s.approx && <small>1박 요금 × {nights}박</small>}
-                  {s.freeCancel && <small className="tb-free">무료 취소 가능</small>}
+                  {s.freeCancel ? <small className="tb-free">무료 취소 가능</small> : i === 0 ? <small>환불 조건은 결제 화면에서 확인</small> : null}
                 </div>
                 <div className={`tb-row-price${i === 0 ? " best" : ""}`}>
                   {i === 0 && rows.length > 1 && <em className="tb-low">가장 낮아요</em>}
@@ -222,6 +241,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
             );
           })}
         </div>
+        </>
       ) : (
         <div className="tb-seller-none">
           <p>지금 비교할 수 있는 예약처 가격이 없어요</p>

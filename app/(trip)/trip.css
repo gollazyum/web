@@ -5067,3 +5067,86 @@ html.tb-big .tb-app {
     margin-top: 44px;
   }
 }
+
+/* 솔직 체크포인트 (숙소 상세 · 추천 3곳 카드 한 줄) */
+.tb-honest {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--tb-line);
+  border-radius: 16px;
+  background: var(--tb-card);
+}
+.tb-honest h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--tb-ink);
+}
+.tb-honest-pro,
+.tb-honest-list li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0 0 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--tb-ink);
+}
+.tb-honest-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tb-honest-pro b,
+.tb-honest-list b,
+.tb-honest-line b {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+.tb-honest-pro b {
+  background: var(--tb-accent-soft);
+  color: var(--tb-ink);
+}
+.tb-honest-list b,
+.tb-honest-line b {
+  background: var(--tb-soft);
+  color: var(--tb-sub);
+}
+.tb-honest-pro span,
+.tb-honest-list span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tb-honest small,
+.tb-honest-wait {
+  display: block;
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--tb-mute);
+}
+.tb-honest-line {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--tb-sub);
+  overflow-wrap: anywhere;
+}
+.tb-honest-line b {
+  margin-right: 4px;
+  padding: 0 6px;
+}
+.tb-fc-note {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--tb-soft);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--tb-ink);
+}
+.tb-fc-note small {
+  color: var(--tb-sub);
+}

@@ -5,7 +5,10 @@ import type { HotelOption } from "@/lib/hotels";
 import { isShownAmenity } from "@/lib/hotelText";
 import { sellerDef } from "@/lib/hotel-sellers";
 import { rankNotes, stayFactLine, type RankNote } from "@/lib/stay-facts";
-import { activeCount, applyFilter, countFilters, EMPTY_FILTER, type StayFilter } from "@/lib/stay-filters";
+import { checkInput, priceState, type Checkpoints } from "@/lib/checkpoints";
+import { CheckLine } from "./CheckBox";
+import { useCheckpoints } from "./useCheckpoints";
+import { activeCount, applyFilter, countFilters, EMPTY_FILTER, hasFreeCancel, type StayFilter } from "@/lib/stay-filters";
 import { guestText, isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
 import { SIMILAR_EVENT, takeSimilar } from "./similar";
 import { shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
@@ -98,6 +101,13 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
     return new Map(top.map((h, i) => [h.token, ns[i]]));
   }, [aiPicks, aiOff, options, pv, query]); // eslint-disable-line react-hooks/exhaustive-deps
   const top3 = useMemo(() => aiPicks.slice(0, 3).map((p) => options.find((o) => o.token === p.token)).filter((h): h is HotelOption => !!h), [aiPicks, options]);
+  // 솔직 체크포인트: 위 3곳만. AI가 실패한 화면이면 규칙으로만 만든다
+  const checks = useCheckpoints(
+    top3.map((h) => { const p = shownPrice(h, query); return { h, input: checkInput(h, query, { fc: p.fc, price: priceState(p) }) }; }),
+    query,
+    !aiPending,
+    aiOff,
+  );
 
   // 한 번 보여 준 카드 순서는 바꾸지 않는다 (P0-2). '관련도순'은 검색 결과가 온 순서 그대로라 AI 추천이 늦게 와도 자리가 그대로다.
   // 순서는 새 검색, 정렬·필터를 바꿀 때, 더 불러온 숙소가 붙을 때(뒤에만 붙는다)에만 바뀐다. 예약처 가격이 와도 자리는 그대로다
@@ -199,6 +209,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
                 query={query}
                 reason={reasons.get(h.token)}
                 note={notes.get(h.token)}
+                check={checks.get(h.token)}
                 cheapest={cheapest === h.token}
                 saved={saved.has(h.token)}
                 active={active === h.token}
@@ -281,7 +292,7 @@ function AiTop3({ hotels, reasons, pending, off, query, onOpen }: { hotels: Hote
   );
 }
 
-export function StayRow({ h, query, reason, note, cheapest, saved, active, onSave, onOpen }: { h: HotelOption; query: StayQuery; reason?: string; note?: RankNote; cheapest?: boolean; saved: boolean; active?: boolean; onSave?: () => void; onOpen: () => void }) {
+export function StayRow({ h, query, reason, note, check, cheapest, saved, active, onSave, onOpen }: { h: HotelOption; query: StayQuery; reason?: string; note?: RankNote; check?: Checkpoints; cheapest?: boolean; saved: boolean; active?: boolean; onSave?: () => void; onOpen: () => void }) {
   usePriceVersion();
   const nights = nightsOf(query);
   const t = shownPrice(h, query);
@@ -322,6 +333,7 @@ export function StayRow({ h, query, reason, note, cheapest, saved, active, onSav
           </span>
         )}
         {note && <RankLines note={note} />}
+        <CheckLine c={check} fc={hasFreeCancel(h) || !!t.fc} />
         <PriceBlock p={t} nights={nights} />
         {diff !== null && <PriceChange diff={diff} />}
       </button>

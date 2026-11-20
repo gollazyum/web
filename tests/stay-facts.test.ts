@@ -8,7 +8,7 @@ const P = (value: number, verified = true) => ({ value, verified, none: false })
 describe("카드 한 줄 사실", () => {
   it("값이 있을 때만", () => {
     expect(stayFactLine(h({}))).toBe("");
-    expect(stayFactLine(h({ near: { name: "난바역", how: "도보", mins: 4 }, freeCancel: true }))).toBe("난바역까지 도보 4분 · 무료 취소 가능한 예약처 있음");
+    expect(stayFactLine(h({ near: { name: "난바역", how: "도보", mins: 4 }, freeCancel: true }))).toBe("난바역까지 도보 4분 · 무료 취소 요금 있음");
   });
 });
 
