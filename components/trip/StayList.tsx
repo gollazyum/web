@@ -35,6 +35,7 @@ type Props = {
   onStars?: (stars: number[]) => void; // 고른 성급이 바뀌면 그 성급만 다시 찾는다
   aiOff?: boolean; // AI가 두 번 다 실패: 확인한 가격 기준 3곳 (AI 칩·이유 없이)
   onAiRetry?: () => void;
+  initFilter?: StayFilter; // 홈 입력 시트에서 고른 빠른 조건 (처음 한 번만)
 };
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
@@ -44,7 +45,7 @@ const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋�
 
 // v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다.
 // 필터: 휴대폰·좁은 PC는 위쪽 3버튼(조건 검색/요금/정렬 기준), 넓은 PC(1280px 이상)는 같은 항목을 왼쪽에 늘 보이게
-export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars, notice, aiOff, onAiRetry }: Props) {
+export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars, notice, aiOff, onAiRetry, initFilter }: Props) {
   // 목록 끝이 화면에 가까워지면 다음 쪽을 부른다 (필터로 목록이 짧아져도 같은 기준)
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -57,7 +58,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   const nights = nightsOf(query);
   const side = !bare;
   const [sort, setSort] = useState<Sort>("ai");
-  const [f, setF] = useState<StayFilter>(EMPTY_FILTER);
+  const [f, setF] = useState<StayFilter>(initFilter ?? EMPTY_FILTER);
   const starKey = [...f.stars].sort().join(",");
   // 시트의 '비슷한 숙소 보기': 같은 성급만 남기고 목록 맨 위로 (성급을 모르면 조건 없이 목록만)
   useEffect(() => {

@@ -23,6 +23,9 @@ type Props = {
   onStay: (q: StayQuery) => void;
   onFlight: (q: FlightQuery) => void;
   ref?: React.Ref<SearchCardHandle>;
+  fixed?: boolean; // 홈 입력 시트 안: 숙소/항공 전환 탭 없이 한 가지만
+  cta?: string; // 아래 주 버튼 글자 (기본 '검색')
+  children?: React.ReactNode; // 주 버튼 위에 넣는 칸 (예산·빠른 조건·한 줄 요청)
 };
 
 // 바깥(인기 여행지 칩)에서 검색 버튼과 같은 흐름으로 숙소 검색을 시작할 때 쓴다
@@ -33,7 +36,7 @@ const kd = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8,
 // "12월 5일 – 7일", 달이 바뀌면 "12월 30일 – 1월 2일"
 const dateText = (a: string, b?: string) => (!b ? kd(a) : a.slice(5, 7) === b.slice(5, 7) ? `${kd(a)} – ${Number(b.slice(8, 10))}일` : `${kd(a)} – ${kd(b)}`);
 // v7 04: 홈 검색 카드 (숙소 / 항공권 / 투어). 내가 직접 조건을 넣고 찾는 게 기본
-export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }: Props) {
+export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref, fixed, cta = "검색", children }: Props) {
   const [a, b] = defaultDates();
   const t = localToday();
   const [s, setS] = useState<StayQuery>({ place: "", checkIn: a, checkOut: b, adults: 2, budget: 0, taste: "" });
@@ -130,7 +133,8 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
   }
 
   return (
-    <form className="tb-search" onSubmit={submit}>
+    <form className={`tb-search${fixed ? " fixed" : ""}`} onSubmit={submit}>
+      {!fixed && (
       <div className="tb-search-tabs" role="tablist">
         <button type="button" role="tab" aria-selected={kind === "stay"} onClick={() => onKind("stay")}>
           <IconBed size={20} /> 숙소
@@ -139,6 +143,7 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
           <IconPlane size={20} /> 항공권
         </button>
       </div>
+      )}
 
       {kind === "stay" ? (
         <>
@@ -220,8 +225,9 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref }
         </>
       )}
       {(err || (kind === "flight" && f.from && f.from === f.to)) && <p className="tb-err" role="alert">{err || "출발지와 도착지가 같아요. 도착 도시를 바꿔 주세요."}</p>}
+      {children}
       <button type="submit" className="tb-cta">
-        검색
+        {cta}
       </button>
       {/* 검색칸 아래 칩은 '최근 검색'(이 브라우저에 저장된 조건)만. 인기 여행지는 아래 사진 카드 한 곳에만 둔다 (누르면 바로 검색, 항공 탭이면 인천 출발 항공 검색) */}
       {recent.length > 0 && (
