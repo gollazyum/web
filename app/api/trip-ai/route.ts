@@ -1,10 +1,12 @@
 import { jsonError, jsonReply, rateLimited } from "@/lib/claudeChat";
 import { brand } from "@/lib/brand";
+import { checkFacts, readCheckInput, shapeCheck } from "@/lib/checkpoints";
 import { ASK_SLOTS, cleanCopy, isDate, pickNote, stayReason, MAX_QUESTIONS, TOP_PICKS, type AskQuestion, type ParseResult, type Pick, type PickResult } from "@/lib/trip";
 
 // 탐색 탭 AI. 두 가지 일을 한다.
 // - mode "parse": 자유 문장을 숙소/항공 검색 조건으로 바꾸고, 빠진 조건은 칩 질문(최대 3개)으로 되묻는다
 // - mode "pick": 이미 받아 온 검색 결과(번호 목록) 안에서 취향에 맞는 3곳과 한 줄 이유를 준다. 가격 검색은 하지 않는다
+// - mode "check": AI 추천 3곳·숙소 상세의 '솔직 체크포인트'(장점 1줄 + 결제 전 확인 1~2줄). 받은 데이터로만 쓴다
 // - mode "hotel": 숙소 상세에서 그 숙소 하나에 대한 질문에 화면 정보만으로 답한다
 // API 키는 Vercel 환경변수 ANTHROPIC_API_KEY 에만 둔다. 키가 없거나 AI가 실패하면 화면이 규칙 기반으로 대신한다
 export const runtime = "nodejs";
@@ -204,6 +206,38 @@ const HOTEL_SCHEMA = {
   properties: { answer: { type: "string" } },
 } as const;
 
+// mode "check": 숙소마다 장점 한 줄과 결제 전에 확인할 점 1~2줄. 사실 목록 밖의 말은 쓰지 않는다
+const CHECK_SYSTEM = `너는 여행 앱 "${brand.appName}"의 "${brand.aiName}"야. 숙소마다 [사실]만 보고 솔직한 요약을 써.
+
+${RULES}
+
+할 일 (숙소마다, 받은 순서대로)
+- pros: 이 숙소의 가장 분명한 장점 한 줄 (40자 이내). 위치·성급·후기 점수·후기 주제 좋아요 비율·편의시설 중 [사실]에 있는 것만.
+- checks: 결제 전에 확인할 점 1~2줄 (각 40자 이내). 후기 주제 좋아요 비율이 낮은 것(60% 미만)이 있으면 숫자 그대로 먼저 써.
+- 무료 취소가 "확인 안 됨"이면 "무료 취소 여부는 결제 화면에서 확인이 필요해요"라고 써. 조식 포함은 늘 모르는 정보야. "포함"이라고 하지 마.
+- 숙박세 지역이 "예"면 "현장 결제 숙박세가 별도로 부과될 수 있어요"를 넣어.
+- [사실]에 없는 것(소음, 엘리베이터, 방 크기, 체크인 시간, 주차, 금액, 할인, 가성비 등)은 절대 지어내지 마. 금액·예산 이야기는 하지 마.
+- 와이파이는 장점으로 쓰지 마.`;
+
+const CHECKS_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["items"],
+  properties: {
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["pros", "checks"],
+        properties: { pros: { type: "string" }, checks: { type: "array", items: { type: "string" } } },
+      },
+    },
+  },
+} as const;
+
+const MAX_CHECK = 3;
+
 const MAX_ITEMS = 40;
 
 function pickInput(body: Record<string, unknown>): string | null {
@@ -266,6 +300,17 @@ export async function POST(req: Request) {
       note: pickNote(raw.note),
     };
     return Response.json(out);
+  }
+
+  if (body.mode === "check") {
+    const list = (Array.isArray(body.items) ? body.items : []).slice(0, MAX_CHECK).map(readCheckInput);
+    if (!list.length || list.some((c) => !c)) return jsonError(400, "bad_request");
+    const inputs = list as NonNullable<(typeof list)[number]>[];
+    const user = inputs.map((c, i) => `[숙소 ${i + 1}]\n${checkFacts(c)}`).join("\n\n");
+    let why = "";
+    const raw = await jsonReply<{ items: { pros: string; checks: string[] }[] }>(CHECK_SYSTEM, user, CHECKS_SCHEMA, 1500, (w) => (why = w));
+    if (!raw || !Array.isArray(raw.items)) return jsonError(502, "ai_failed", why || "bad_shape");
+    return Response.json({ items: inputs.map((c, i) => shapeCheck(raw.items[i] ?? null, c)) });
   }
 
   if (body.mode === "hotel") {

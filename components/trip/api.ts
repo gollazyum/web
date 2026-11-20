@@ -180,3 +180,6 @@ const pickFlightsOnce = (list: FlightOption[], taste: string) =>
 
 // 숙소 상세 'AI에게 물어보기': facts는 화면에 보이는 그 숙소 정보 (글)
 export const askHotel = (facts: string, question: string) => post<{ answer: string }>("/api/trip-ai", { mode: "hotel", facts, question });
+
+// 솔직 체크포인트 (AI 추천 3곳·숙소 상세에서만). 숙소 최대 3곳을 한 번에 보낸다
+export const askChecks = (items: unknown[]) => post<{ items: { pros: string; checks: string[]; ai: boolean }[] }>("/api/trip-ai", { mode: "check", items });

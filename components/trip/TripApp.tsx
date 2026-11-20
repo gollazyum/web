@@ -56,6 +56,10 @@ import { Sheet } from "./Sheet";
 import type { StayPick } from "./StayList";
 import { requestSimilar } from "./similar";
 import { AiOffNote } from "./AiOffNote";
+import { checkInput, priceState, type Checkpoints } from "@/lib/checkpoints";
+import { hasFreeCancel } from "@/lib/stay-filters";
+import { CheckLine } from "./CheckBox";
+import { useCheckpoints } from "./useCheckpoints";
 import { rankNotes, stayFactLine, type RankNote } from "@/lib/stay-facts";
 import { getVerified, prefetchPrices, shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
 import { setSavedList, type SavedBase } from "./saved-price";
@@ -1507,7 +1511,17 @@ function ErrorBox({ status, onRetry, fallbackHref, fallbackLabel }: { status: nu
 }
 
 // AI 추천 카드 한 장. 화면에 보이면 예약처 가격을 받아 금액을 시트 1위 총액과 맞춘다
-function PickCard({ p, i, of, off, note, t, isLow, q, nights, saved: on, active, onSave, onOpenHotel }: { p: { token: string; reason: string; h: HotelOption }; i: number; of: number; off?: boolean; note?: RankNote; t: ReturnType<typeof shownPrice>; isLow: boolean; q: StayQuery; nights: number; saved: boolean; active: boolean; onSave: (h: HotelOption) => void; onOpenHotel: (h: HotelOption) => void }) {
+// 추천 3곳의 솔직 체크포인트 (3곳을 한 번에 요청). AI가 이미 실패한 결과면 규칙으로만 만든다
+function PickChecks({ hotels, q, off, children }: { hotels: HotelOption[]; q: StayQuery; off: boolean; children: (checks: Map<string, Checkpoints>) => React.ReactNode }) {
+  const items = hotels.slice(0, 3).map((h) => {
+    const p = shownPrice(h, q);
+    return { h, input: checkInput(h, q, { fc: p.fc, price: priceState(p) }) };
+  });
+  const checks = useCheckpoints(items, q, true, off);
+  return <>{children(checks)}</>;
+}
+
+function PickCard({ p, i, of, off, note, check, t, isLow, q, nights, saved: on, active, onSave, onOpenHotel }: { p: { token: string; reason: string; h: HotelOption }; i: number; of: number; off?: boolean; note?: RankNote; check?: Checkpoints; t: ReturnType<typeof shownPrice>; isLow: boolean; q: StayQuery; nights: number; saved: boolean; active: boolean; onSave: (h: HotelOption) => void; onOpenHotel: (h: HotelOption) => void }) {
   const ref = useLazyPrice<HTMLElement>(p.h, q, true);
   return (
     <article ref={ref} className={`tb-hcard${active ? " on" : ""}`}>
@@ -1534,6 +1548,7 @@ function PickCard({ p, i, of, off, note, t, isLow, q, nights, saved: on, active,
           </span>
         )}
         {note && <RankLines note={note} />}
+        <CheckLine c={check} fc={hasFreeCancel(p.h) || !!t.fc} />
         <PriceBlock p={t} nights={nights} />
       </button>
     </article>
@@ -1587,9 +1602,13 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
         </AiSay>
       )}
       <div className="tb-hcards">
-        {picks.map((p, i) => (
-          <PickCard key={p.token} p={p} i={i} of={picks.length} off={m.aiOff} note={m.aiOff ? undefined : notes[i]} t={prices[i]} isLow={lowOnce && totals[i] === low} q={q} nights={nights} saved={saved.has(p.token)} active={active === p.token} onSave={onSave} onOpenHotel={onOpenHotel} />
-        ))}
+        <PickChecks hotels={picks.map((p) => p.h)} q={q} off={!!m.aiOff}>
+          {(checks) =>
+            picks.map((p, i) => (
+              <PickCard key={p.token} p={p} i={i} of={picks.length} off={m.aiOff} note={m.aiOff ? undefined : notes[i]} check={checks.get(p.token)} t={prices[i]} isLow={lowOnce && totals[i] === low} q={q} nights={nights} saved={saved.has(p.token)} active={active === p.token} onSave={onSave} onOpenHotel={onOpenHotel} />
+            ))
+          }
+        </PickChecks>
       </div>
       {picks.length > 1 && (
         <table className="tb-compare">
