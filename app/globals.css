@@ -35,13 +35,21 @@ body {
   color: var(--text);
   background: var(--white);
   line-height: 1.6;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   word-break: keep-all;
   -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: inherit;
+}
+
+/* 가격 숫자는 폭을 맞춰 예약처별 금액이 세로로 반듯하게 맞도록 */
+[class*="price"],
+[class*="total"],
+.tb-srow,
+.tb-row {
+  font-variant-numeric: tabular-nums;
 }
 
 .wrap {
