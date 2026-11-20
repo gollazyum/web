@@ -7,7 +7,7 @@ import { stayWants } from "./trip";
 export function stayFactLine(h: HotelOption, sellerFreeCancel?: boolean): string {
   const parts: string[] = [];
   if (h.near) parts.push(`${h.near.name}까지 ${h.near.how} ${h.near.mins}분`);
-  if (hasFreeCancel(h) || sellerFreeCancel) parts.push("무료 취소 가능한 예약처 있음");
+  if (hasFreeCancel(h) || sellerFreeCancel) parts.push("무료 취소 요금 있음");
   return parts.join(" · ");
 }
 

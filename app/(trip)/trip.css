@@ -5138,3 +5138,15 @@ html.tb-big .tb-app {
   margin-right: 4px;
   padding: 0 6px;
 }
+.tb-fc-note {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--tb-soft);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--tb-ink);
+}
+.tb-fc-note small {
+  color: var(--tb-sub);
+}
