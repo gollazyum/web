@@ -1,10 +1,10 @@
 /* 여행 앱 화면 (components/trip). 색은 lib/brand.ts → CSS 변수 --tb-* 로만 쓴다.
-   v7 시안: 흰 바탕 + 검정 버튼 + 파란 강조 하나. 휴대폰 기준, PC에서는 가운데 640px 기둥 */
+   2026-11-20: 웜 오프화이트 바탕 + 잉크 네이비(글자·주 버튼·선택 탭) + 오렌지는 1위 최저 금액 숫자에만. 휴대폰 기준, PC에서는 가운데 640px 기둥 */
 
 .tb-app {
   overflow-x: clip; /* PC 홈 배경 사진(화면 너비 가득)이 가로 스크롤을 만들지 않게 */
   --tb-r: 20px;
-  --tb-shadow: 0 8px 28px rgba(11, 11, 15, 0.08);
+  --tb-shadow: 0 8px 28px rgba(27, 42, 74, 0.08);
   min-height: 100dvh;
   background: var(--tb-bg);
   color: var(--tb-ink);
@@ -53,7 +53,7 @@
   flex: none;
   border-radius: 50%;
   position: relative;
-  background: radial-gradient(circle at 30% 30%, #b8d4ff, var(--tb-accent) 55%, #1b2a8c);
+  background: radial-gradient(circle at 30% 30%, #a9b9d8, var(--tb-ink) 58%, #0d162b);
   box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--tb-accent) 70%, transparent);
 }
 .tb-orb::after {
@@ -200,13 +200,15 @@
   display: flex;
   justify-content: space-around;
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--tb-line);
 }
 .tb-tab {
   position: relative;
-  width: 80px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 88px;
   min-height: 44px;
   justify-content: center;
   text-decoration: none;
@@ -226,9 +228,24 @@
 .tb-tab[aria-current="page"] {
   color: var(--tb-ink) !important;
 }
-/* AI 채팅 아이콘은 지금 보고 있을 때만 파란색 (늘 파랗면 선택된 탭처럼 보인다) */
-.tb-tab.ai[aria-current="page"] svg {
-  color: var(--tb-ink);
+/* 가운데 AI 채팅: 탭 막대 위로 살짝 올라온 네이비 원형 버튼 (보이는 원 52px) */
+.tb-tab.ai {
+  justify-content: flex-end;
+}
+.tb-fab {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-top: -26px;
+  border-radius: 50%;
+  background: var(--tb-ink);
+  color: #fff;
+  box-shadow: 0 8px 18px -8px rgba(27, 42, 74, 0.6), 0 0 0 4px var(--tb-card);
+  font-style: normal;
+}
+.tb-tab.ai[aria-current="page"] .tb-fab {
+  box-shadow: 0 8px 18px -8px rgba(27, 42, 74, 0.6), 0 0 0 4px var(--tb-card), 0 0 0 6px color-mix(in srgb, var(--tb-ink) 25%, transparent);
 }
 .tb-soon-dot {
   position: absolute;
@@ -960,6 +977,7 @@
 .tb-ai-text {
   font-size: 16px;
   line-height: 1.6;
+  white-space: pre-line; /* 여행 도움 답은 줄마다 나눠 보여 준다 */
 }
 .tb-col {
   display: flex;
@@ -1115,7 +1133,7 @@
   width: 26%;
 }
 .tb-compare td.best {
-  color: var(--tb-accent);
+  color: var(--tb-price); /* 추천 3곳 중 가장 낮은 총액 = 오렌지 */
   font-weight: 800;
 }
 .tb-cards {
@@ -2790,7 +2808,7 @@
   font-size: 18px;
 }
 .tb-row-price.best strong {
-  color: var(--tb-accent);
+  color: var(--tb-price); /* 예약처 비교 1위 최저 금액 숫자 = 오렌지 (여기와 위 비교표에만 쓴다) */
 }
 
 /* 결과 필터 (아고다 방식). 휴대폰·좁은 PC: 위쪽 3버튼 → 필터 전체 화면·요금·정렬 시트. 넓은 PC: 같은 항목이 왼쪽에 고정 */
@@ -4541,4 +4559,316 @@
 }
 .tb-sortinfo p {
   margin: 2px 0 6px;
+}
+
+/* ---------- 2026-11-20 5탭 (홈 · 둘러보기 · AI 채팅 · 내 여행 · 마이) ---------- */
+/* 카드 표면은 흰색, 바탕은 웜 오프화이트 */
+.tb-tag.ac {
+  color: var(--tb-ink);
+}
+.tb-btn.soft {
+  background: var(--tb-soft) !important;
+  color: var(--tb-ink) !important;
+}
+.tb-btn.ghost {
+  background: var(--tb-card);
+  color: var(--tb-ink);
+  border: 1px solid var(--tb-line);
+}
+
+/* 세그먼트 스위치 (둘러보기 여행 전·중·후, 마이 글자 크기) */
+.tb-seg {
+  width: 100%;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-top: 6px;
+  border-radius: 14px;
+  background: var(--tb-soft);
+}
+.tb-seg button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 6px;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tb-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tb-seg button[aria-selected="true"],
+.tb-seg button[aria-checked="true"] {
+  background: var(--tb-ink) !important;
+  color: #fff;
+}
+
+/* 둘러보기 */
+.tb-quick-slot {
+  width: 100%;
+  margin-top: 6px;
+  padding: 16px 18px;
+  border-radius: var(--tb-r);
+  background: var(--tb-card);
+  border: 1.5px dashed var(--tb-soft2);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.tb-quick-slot strong {
+  font-size: 17px;
+}
+.tb-quick-slot p {
+  margin: 0;
+  color: var(--tb-sub);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.tb-help-grid {
+  width: 100%;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+.tb-help-card {
+  width: 100%;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--tb-r);
+  background: var(--tb-card) !important;
+  border: 1px solid var(--tb-line) !important;
+  text-align: left;
+}
+.tb-help-emoji {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--tb-soft);
+  font-size: 22px;
+}
+.tb-help-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tb-help-text strong {
+  font-size: 15.5px;
+  line-height: 1.35;
+}
+.tb-help-text small {
+  font-size: 13px;
+  color: var(--tb-sub);
+}
+.tb-help-go {
+  flex: none;
+  color: var(--tb-ink);
+}
+.tb-help-note {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--tb-mute);
+}
+
+/* 내 여행: 예약 내역 캡처 입구 (곧 열려요) */
+.tb-capture {
+  width: 100%;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  margin: 6px 0 4px;
+  border-radius: var(--tb-r);
+  background: var(--tb-card) !important;
+  border: 1.5px dashed var(--tb-soft2) !important;
+  text-align: left;
+}
+.tb-capture > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tb-capture strong {
+  font-size: 15px;
+  line-height: 1.4;
+}
+.tb-capture small {
+  font-size: 13px;
+  color: var(--tb-sub);
+}
+.tb-capture-plus {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tb-soft);
+}
+.tb-capture-soon {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--tb-sub);
+}
+
+/* 마이 설정 */
+.tb-set {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 6px;
+}
+.tb-set-box {
+  padding: 16px 18px;
+  border-radius: var(--tb-r);
+  background: var(--tb-card);
+  border: 1px solid var(--tb-line);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.tb-set-box .tb-h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.tb-set-sub {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--tb-sub);
+  white-space: pre-line;
+}
+.tb-set-row {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--tb-line);
+}
+.tb-set-row:first-of-type {
+  border-top: 0;
+}
+.tb-set-row > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tb-set-row small {
+  font-size: 13px;
+  color: var(--tb-sub);
+  line-height: 1.5;
+}
+.tb-set-row .tb-link {
+  flex: none;
+  min-height: 44px;
+}
+.tb-set .tb-seg {
+  margin-top: 0;
+}
+.tb-set-count {
+  margin: 0;
+  font-size: 15px;
+}
+.tb-set-count strong {
+  font-size: 20px;
+}
+.tb-set-links {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tb-set-links li + li {
+  border-top: 1px solid var(--tb-line);
+}
+.tb-set-links a {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--tb-ink) !important;
+  font-weight: 600;
+}
+.tb-set-links small {
+  color: var(--tb-sub);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* 큰 글씨 보기: 앱 전체를 약 14% 키운다 (본문 14–16px → 약 16–18px). 화면 너비 안에서 다시 배치돼 가로로 넘치지 않는다 */
+html.tb-big .tb-app {
+  zoom: 1.14;
+}
+
+@media (min-width: 1024px) {
+  /* PC 머리글: 가운데 버튼 대신 네이비 알약 메뉴 */
+  .tb-tab {
+    flex: none;
+    max-width: none;
+  }
+  .tb-tab.ai {
+    justify-content: center;
+  }
+  .tb-fab {
+    width: auto;
+    height: auto;
+    margin: 0;
+    background: none;
+    color: inherit;
+    box-shadow: none !important;
+  }
+  .tb-tab.ai[aria-current="page"] {
+    background: var(--tb-ink);
+    color: #fff !important;
+  }
+  .tb-help-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* 달력: 앱 안에서는 파란 그라데이션 대신 네이비 (토요일 파란 글자는 달력 관례라 그대로) */
+.tb-app .dp-day.start span,
+.tb-app .dp-day.end span,
+.tb-app .dp-day.start:hover span,
+.tb-app .dp-day.end:hover span {
+  background: var(--tb-ink);
+  box-shadow: 0 6px 14px -6px rgba(27, 42, 74, 0.6);
+}
+.tb-app .dp-day.in-range::before,
+.tb-app .dp-day.has-range::before,
+.tb-app .dp-day.end::before {
+  background: var(--tb-accent-soft);
+}
+.tb-app .dp-day:hover:not(:disabled) span {
+  box-shadow: inset 0 0 0 1.5px var(--tb-soft2);
+}
+.tb-app .dp-done {
+  background: var(--tb-ink);
+  color: #fff;
+}
+.tb-app .dp-ghost:hover {
+  border-color: var(--tb-soft2);
 }

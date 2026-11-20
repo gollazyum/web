@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-// P2: '지금' 탭(여행 중 도구)은 준비될 때까지 숨긴다. 예전 주소로 오면 홈으로 보낸다
+// 예전 '지금' 탭 주소. 여행 중 도움은 둘러보기 탭(여행 중 해결)으로 옮겼다
 export default function NowPage() {
-  redirect("/");
+  redirect("/explore");
 }

@@ -117,7 +117,7 @@ export function TripActions<T extends TripItem>({ items, place, checkIn, checkOu
   );
 }
 
-// 공유 링크(/my?trip=…)로 들어왔을 때 마이 맨 위에 보이는 여행. 로그인 없이 주소에 담긴 값만 쓴다
+// 공유 링크(/trips?trip=…)로 들어왔을 때 내 여행 맨 위에 보이는 여행. 로그인 없이 주소에 담긴 값만 쓴다
 export function SharedTripView({ code }: { code: string | null }) {
   const t = decodeTrip(code);
   const [rows, setRows] = useState<Record<string, SellerRow[] | null> | null>(null);

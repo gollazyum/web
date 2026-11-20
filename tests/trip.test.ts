@@ -60,8 +60,12 @@ describe("브랜드 설정", () => {
   });
   it("색을 CSS 변수로 내린다", () => {
     expect(cssVarName("accentDark")).toBe("--tb-accent-dark");
-    expect(brandCssVars()).toContain(`--accent:${brand.colors.accent};`);
-    expect(brandCssVars()).toContain("--tb-accent:var(--accent);");
+    // 대표 색 3개: --bg 오프화이트, --primary 네이비, --accent 오렌지(1위 최저 금액 전용)
+    expect(brandCssVars()).toContain("--bg:#FAF8F5;");
+    expect(brandCssVars()).toContain("--primary:#1B2A4A;");
+    expect(brandCssVars()).toContain("--accent:#FF5A1F;");
+    expect(brandCssVars()).toContain("--tb-price:var(--accent);");
+    expect(brandCssVars()).toContain("--tb-ink:var(--primary);");
   });
 });
 

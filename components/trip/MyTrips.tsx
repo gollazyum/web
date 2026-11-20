@@ -42,7 +42,7 @@ type Props<T extends TripItem> = {
   onMoreStays: (t: Trip) => void; // 같은 조건으로 숙소 더 보기
 };
 
-// 마이 탭: 담아 둔 숙소를 여행(도시 + 날짜)으로 묶고, 여행마다 '빠진 건 없나요?' 체크를 둔다. 모두 이 기기에만 저장된다
+// 내 여행 탭: 담아 둔 숙소를 여행(도시 + 날짜)으로 묶고, 여행마다 '빠진 건 없나요?' 체크를 둔다. 모두 이 기기에만 저장된다
 export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onFlight, onMoreStays }: Props<T>) {
   const today = localToday();
   const trips = groupTrips(saved, today);
@@ -51,7 +51,7 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
   if (!trips.length)
     return (
       <>
-        <h2 className="tb-h2">내 여행</h2>
+        <h2 className="tb-h2">담아 둔 숙소</h2>
         <div className="tb-empty tb-empty-trip">
           <TripCardsArt />
           <strong>아직 담아 둔 여행이 없어요</strong>
@@ -65,7 +65,7 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
 
   return (
     <>
-      <h2 className="tb-h2">내 여행</h2>
+      <h2 className="tb-h2">담아 둔 숙소</h2>
       {trips.map((t, i) => {
         const d = daysUntil(t.checkIn, today);
         const c = checks[t.key] ?? {};
