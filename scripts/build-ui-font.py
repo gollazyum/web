@@ -5,7 +5,7 @@
 import glob, hashlib, json, os, re
 from fontTools import subset
 
-WEIGHTS = {400: "Regular", 500: "Medium", 600: "SemiBold"}
+WEIGHTS = {400: "Regular", 500: "Medium", 600: "SemiBold", 700: "Bold", 800: "ExtraBold"}
 SRC = "node_modules/pretendard/dist/web/static/woff2/Pretendard-{}.woff2"
 OUT = "public/fonts/pretendard-ui-{}.{}.woff2"  # 굵기, 내용 해시 (오래 캐시해도 바뀌면 이름이 달라진다)
 

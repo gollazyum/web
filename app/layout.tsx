@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { LateScript } from "@/components/site/LateScript";
 import { ogImage, site } from "@/lib/site";
-// 본문 글꼴 Pretendard 굵기 400·500·600 (P2). 화면 문구 글자는 굵기마다 작은 파일 하나(public/fonts, scripts/build-ui-font.py)로,
+// 본문 글꼴 Pretendard 굵기 400·500·600·700·800. 화면 문구 글자는 굵기마다 작은 파일 하나(public/fonts, scripts/build-ui-font.py)로,
 // 숙소 이름처럼 그때그때 오는 글자만 분할 폰트에서 받는다 (scripts/build-pretendard-css.mjs 로 만든다).
 // font-display: swap 이라 폰트가 늦으면 시스템 글꼴(Apple SD Gothic Neo, 맑은 고딕)로 먼저 보인다
 import "./pretendard.css";
@@ -57,7 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
-        {/* 화면 문구용 작은 글꼴 3개를 CSS와 함께 바로 받기 시작한다. 시스템 글꼴로 먼저 그렸다가 바뀌며 줄이 밀리는 흔들림(CLS)을 줄인다 */}
+        {/* 화면 문구용 작은 글꼴(굵기마다 하나)을 CSS와 함께 바로 받기 시작한다. 시스템 글꼴로 먼저 그렸다가 바뀌며 줄이 밀리는 흔들림(CLS)을 줄인다 */}
         {Object.values(uiFont.files).map((href) => (
           <link key={href} rel="preload" href={href} as="font" type="font/woff2" crossOrigin="anonymous" />
         ))}
