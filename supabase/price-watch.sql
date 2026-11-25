@@ -61,6 +61,10 @@ $$;
 REVOKE EXECUTE ON FUNCTION increment_daily_api_usage(DATE, INT) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION increment_daily_api_usage(DATE, INT) TO service_role;
 
+-- 최근 Supabase 프로젝트는 SQL로 만든 테이블에 서버 키(service_role) 권한을 자동으로 주지 않을 수 있다 (없으면 403)
+GRANT USAGE ON SCHEMA public TO service_role;
+GRANT ALL ON watched_bookings, daily_api_usage TO service_role;
+
 -- 3. 15분마다 가격 확인 (Supabase Cron). 비밀값은 Vault의 cron_secret
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 CREATE EXTENSION IF NOT EXISTS pg_net;
