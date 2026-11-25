@@ -7,6 +7,7 @@ import type { FlightQuery, ParseResult, PickResult, StayQuery } from "@/lib/trip
 import { airportsFor } from "@/lib/airports";
 import { distText, nearby } from "@/lib/landmarks";
 import { hhmm } from "@/lib/trip";
+import { stayCacheSec } from "@/lib/stay-cache";
 import type { FlightOption } from "@/lib/flights";
 import type { HotelOption } from "@/lib/hotels";
 
@@ -23,18 +24,18 @@ async function post<T>(url: string, body: unknown): Promise<Res<T>> {
   }
 }
 
-// 같은 조건의 검색은 이 탭(sessionStorage)에 30분 담아 두고 다시 부르지 않는다. 결과는 20~30곳이라 작다
+// 같은 조건의 검색은 이 탭(sessionStorage)에 30분(숙소는 체크인 7일 이내 60분, 그 밖에는 2시간) 담아 두고 다시 부르지 않는다. 결과는 20~30곳이라 작다
 const CACHE_MS = 30 * 60 * 1000;
 const CACHE_PREFIX = "tb-cache-v1:";
 
 type Cached<T> = { at: number; data: T };
 
-function readCache<T>(key: string): Cached<T> | null {
+function readCache<T>(key: string, ttlMs = CACHE_MS): Cached<T> | null {
   try {
     const raw = sessionStorage.getItem(CACHE_PREFIX + key);
     if (!raw) return null;
     const c = JSON.parse(raw) as Cached<T>;
-    return Date.now() - c.at < CACHE_MS ? c : null;
+    return Date.now() - c.at < ttlMs ? c : null;
   } catch {
     return null;
   }
@@ -59,8 +60,8 @@ function writeCache<T>(key: string, data: T) {
 // 같은 조건을 동시에 부르면(미리 조회 + 시트 열기) 한 번만 보낸다
 const pending = new Map<string, Promise<Res<unknown> & { at?: number }>>();
 
-async function cached<T>(key: string, load: () => Promise<Res<T>>, fresh = false): Promise<Res<T> & { at?: number }> {
-  const hit = fresh ? null : readCache<T>(key);
+async function cached<T>(key: string, load: () => Promise<Res<T>>, fresh = false, ttlMs = CACHE_MS): Promise<Res<T> & { at?: number }> {
+  const hit = fresh ? null : readCache<T>(key, ttlMs);
   if (hit) return { ok: true, data: hit.data, at: hit.at };
   const going = !fresh && pending.get(key);
   if (going) return going as Promise<Res<T> & { at?: number }>;
@@ -76,13 +77,13 @@ async function cached<T>(key: string, load: () => Promise<Res<T>>, fresh = false
 // stars: 성급 필터를 눌렀을 때만 "4" 또는 "4,5"처럼 그 성급만 다시 찾는다
 export const searchStays = (q: StayQuery, stars?: string) => {
   const body = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...kids(q), ...(stars ? { stars } : {}) };
-  return cached(`stay:${JSON.stringify(body)}`, () => post<HotelResults>("/api/hotels", body));
+  return cached(`stay:${JSON.stringify(body)}`, () => post<HotelResults>("/api/hotels", body), false, stayCacheSec(q.checkIn) * 1000);
 };
 
-// 숙소 목록 다음 쪽 (스크롤 끝에서만 부른다. 한 쪽 = 검색 1번). 같은 쪽은 이 탭에 30분 담아 둔다
+// 숙소 목록 다음 쪽 (스크롤 끝에서만 부른다. 한 쪽 = 검색 1번). 같은 쪽은 이 탭에 잠시 담아 둔다
 export const searchStaysPage = (q: StayQuery, page: string, stars?: string) => {
   const body = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...kids(q), page, ...(stars ? { stars } : {}) };
-  return cached(`stay-page:${JSON.stringify(body)}`, () => post<HotelResults>("/api/hotels", body));
+  return cached(`stay-page:${JSON.stringify(body)}`, () => post<HotelResults>("/api/hotels", body), false, stayCacheSec(q.checkIn) * 1000);
 };
 
 // P1-4: 아동·소아·좌석 등급은 있을 때만 보낸다 (없으면 예전과 같은 요청 → 캐시도 그대로)
@@ -92,7 +93,7 @@ const pax = (q: { children?: number; cabin?: string }) => ({ ...(q.children ? { 
 // fresh: '다시 검색'·'가격 다시 보기'를 눌렀을 때만 이 탭과 서버의 저장된 가격을 건너뛴다
 export const stayPrices = (token: string, q: StayQuery, name: string, fresh = false) => {
   const body = { q: name.slice(0, 100), checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...kids(q), token, ...(fresh ? { fresh: true } : {}) };
-  return cached(`price:${token}:${q.checkIn}:${q.checkOut}:${q.adults}:${(q.childAges ?? []).join(".")}`, () => post<HotelPrices>("/api/hotels", body), fresh);
+  return cached(`price:${token}:${q.checkIn}:${q.checkOut}:${q.adults}:${(q.childAges ?? []).join(".")}`, () => post<HotelPrices>("/api/hotels", body), fresh, stayCacheSec(q.checkIn) * 1000);
 };
 
 export async function searchFlights(q: FlightQuery) {
