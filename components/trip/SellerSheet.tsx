@@ -8,6 +8,7 @@ import { positivePct } from "@/lib/prefs";
 import { agodaAffiliateOn } from "@/lib/affiliate";
 import { linkRel, sellerDef, sellerSearchUrl, withRo } from "@/lib/hotel-sellers";
 import { topicKo } from "@/lib/hotelText";
+import { mapUrl, staticMapUrl } from "@/lib/maps";
 import { guestText, isPlainReason, nightsOf, stayTotal, won, type StayQuery } from "@/lib/trip";
 import { searchErrorMessage } from "@/lib/search-error";
 import { askHotel, stayPrices } from "./api";
@@ -142,6 +143,10 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
   const input = loaded ? checkInput(hotel, query, { fc: rows.some((r) => r.freeCancel), price: rows.length ? (failed ? "estimate" : "verified") : "none", topics: state?.topics ?? null }) : null;
   const checkItems = input ? [{ h: hotel, withTopics: input.topics.length > 0, input }] : [];
   const check = useCheckpoints(checkItems, query, loaded).get(hotel.token);
+  // 작은 위치 지도: 토큰이 없거나 이미지가 안 불러지면 글자 링크로 돌아간다
+  const [mapFail, setMapFail] = useState<string | null>(null);
+  const mapSrc = hotel.gps ? staticMapUrl(hotel.gps[0], hotel.gps[1]) : null;
+  const mapImg = mapSrc && mapSrc !== mapFail ? mapSrc : null;
   const photos = (hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : []).slice(0, 8);
 
   async function send(raw: string) {
@@ -170,13 +175,21 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
             {[hotel.stars ? `${hotel.stars}성급` : hotel.kind, `${nights}박`, guestText(query)].filter(Boolean).join(" · ")}
           </p>
           {hotel.rating ? <p className="tb-mute">후기 {hotel.rating.toFixed(1)}점{hotel.reviews ? ` (${hotel.reviews.toLocaleString("ko-KR")})` : ""}</p> : null}
-          {hotel.gps && (
-            <a className="tb-maplink" href={`https://www.openstreetmap.org/?mlat=${hotel.gps[0]}&mlon=${hotel.gps[1]}#map=17/${hotel.gps[0]}/${hotel.gps[1]}`} target="_blank" rel="noopener noreferrer">
+          {hotel.gps && !mapImg && (
+            <a className="tb-maplink" href={mapUrl(hotel.gps[0], hotel.gps[1])} target="_blank" rel="noopener noreferrer">
               지도에서 위치 보기 <IconOut />
             </a>
           )}
         </div>
       </div>
+      {hotel.gps && mapImg ? (
+        <a className="tb-minimap" href={mapUrl(hotel.gps[0], hotel.gps[1])} target="_blank" rel="noopener noreferrer" aria-label="지도에서 위치 크게 보기">
+          <img src={mapImg} alt={`${hotel.name} 위치 지도`} width={600} height={200} loading="lazy" decoding="async" onError={() => setMapFail(mapImg)} />
+          <span>
+            크게 보기 <IconOut />
+          </span>
+        </a>
+      ) : null}
       {reason && !isPlainReason(reason) && (
         <p className="tb-detail-why">
           <IconSpark size={16} />
