@@ -13,7 +13,9 @@ import { AiOffNote } from "./AiOffNote";
 import { SortInfo } from "./SortInfo";
 import { Sheet } from "./Sheet";
 
-export type FlightData = { query: FlightQuery; options: FlightOption[]; picks: { n: number; reason: string }[] };
+export type FlightData = { query: FlightQuery; options: FlightOption[]; picks: { n: number; reason: string }[]; insights?: FlightInsights };
+
+import { FlightTrend, type FlightInsights } from "./FlightTrend";
 
 export { flightLink };
 
@@ -454,6 +456,7 @@ export function FlightBrowser({ data, aiPending, aiOff, onAiRetry, onBack, bare,
           </p>
           <span className="tb-pc-only">{!aiOff && <AiSortInfo kind="flight" />}</span>
           {!bare && aiOff && !aiPending && <AiOffNote onRetry={onAiRetry} />}
+          {!bare && <FlightTrend insights={data.insights} low={low} pax={paxOf(q)} round={!!q.ret} />}
           {!bare && <FlightTop3 list={top3} reasons={bandWhy} pending={!!aiPending} q={q} off={aiOff} />}
           <div className="tb-rlist pad">
             {shown.map((o, i) => {

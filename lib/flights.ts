@@ -42,6 +42,7 @@ export type FlightResults = {
   lowest: number | null;
   level: string | null; // low · typical · high
   typical: [number, number] | null;
+  history?: [number, number][] | null; // 가격 흐름 (시각 초, 원). 응답에 있을 때만
 };
 
 // 결과 페이지 주소 (/flights?from=SEL&to=TYO…). from·to는 고른 도시·공항 코드 하나

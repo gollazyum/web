@@ -49,7 +49,7 @@ type Trip = {
 type SerpFlights = {
   best_flights?: Trip[];
   other_flights?: Trip[];
-  price_insights?: { lowest_price?: number; price_level?: string; typical_price_range?: [number, number] };
+  price_insights?: { lowest_price?: number; price_level?: string; typical_price_range?: [number, number]; price_history?: [number, number][] };
 };
 
 function toOption(t: Trip): FlightOption | null {
@@ -84,6 +84,13 @@ function toOption(t: Trip): FlightOption | null {
   };
 }
 
+// 가격 흐름 (시각 초, 원) — 응답에 온 값만, 이상한 줄은 버린다. 최근 60개까지
+function priceHistory(v: unknown): [number, number][] | null {
+  if (!Array.isArray(v)) return null;
+  const ok = v.filter((x): x is [number, number] => Array.isArray(x) && Number.isFinite(x[0]) && Number.isFinite(x[1]) && x[1] > 0).slice(-60);
+  return ok.length >= 2 ? ok : null;
+}
+
 function shape(raw: Record<string, unknown>): FlightResults {
   const json = raw as SerpFlights;
   const options = [...(json.best_flights ?? []), ...(json.other_flights ?? [])]
@@ -97,6 +104,7 @@ function shape(raw: Record<string, unknown>): FlightResults {
     lowest: insights?.lowest_price ?? options[0]?.price ?? null,
     level: insights?.price_level ?? null,
     typical: insights?.typical_price_range ?? null,
+    history: priceHistory(insights?.price_history),
   };
 }
 
