@@ -39,6 +39,7 @@ type Props = {
   aiOff?: boolean; // AI가 두 번 다 실패: 확인한 가격 기준 3곳 (AI 칩·이유 없이)
   onAiRetry?: () => void;
   initFilter?: StayFilter; // 홈 입력 시트에서 고른 빠른 조건 (처음 한 번만)
+  onMap?: () => void; // [리스트 | 지도] 전환: 가격 핀 지도 열기 (지도는 이때만 불러온다)
 };
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
@@ -48,7 +49,7 @@ const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋�
 
 // v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다.
 // 필터: 휴대폰·좁은 PC는 위쪽 3버튼(조건 검색/요금/정렬 기준), 넓은 PC(1280px 이상)는 같은 항목을 왼쪽에 늘 보이게
-export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars, notice, aiOff, onAiRetry, initFilter }: Props) {
+export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars, notice, aiOff, onAiRetry, initFilter, onMap }: Props) {
   // 목록 끝이 화면에 가까워지면 다음 쪽을 부른다 (필터로 목록이 짧아져도 같은 기준)
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -145,9 +146,12 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
     <div className="tb-results">
       <div className={bare ? "tb-results-head bare" : "tb-results-head"}>
       {bare ? (
-        <h2 className="tb-list-title">
-          {query.place} 전체 {options.length}곳
-        </h2>
+        <div className="tb-list-title-row">
+          <h2 className="tb-list-title">
+            {query.place} 전체 {options.length}곳
+          </h2>
+          {onMap && <ViewSwitch onMap={onMap} />}
+        </div>
       ) : (
         <div className="tb-results-top">
           <button type="button" className="tb-ib" onClick={onBack} aria-label="검색으로 돌아가기">
@@ -159,6 +163,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
               {md(query.checkIn)} – {md(query.checkOut)} · {guestText(query)}
             </span>
           </button>
+          {onMap && <ViewSwitch onMap={onMap} />}
         </div>
       )}
       {notice && (
@@ -242,6 +247,20 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// [리스트 | 지도] 전환. 목록 화면에서는 '리스트'가 눌린 상태
+function ViewSwitch({ onMap }: { onMap: () => void }) {
+  return (
+    <div className="tb-viewsw" role="group" aria-label="보기 방식">
+      <button type="button" aria-pressed>
+        리스트
+      </button>
+      <button type="button" aria-pressed={false} onClick={onMap}>
+        지도
+      </button>
     </div>
   );
 }

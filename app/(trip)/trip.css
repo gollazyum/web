@@ -5756,3 +5756,311 @@ html.tb-big .tb-app {
     margin-right: 0;
   }
 }
+
+/* ---------- 2026-11-25 3차 ②: [리스트 | 지도] · 가격 핀 지도 · AI 추천 PC 55:45 ---------- */
+.tb-viewsw {
+  flex: none;
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 14px;
+  background: var(--tb-soft);
+}
+.tb-viewsw button {
+  min-width: 48px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tb-sub);
+}
+.tb-viewsw button[aria-pressed="true"] {
+  background: var(--tb-card);
+  color: var(--tb-ink);
+  box-shadow: 0 1px 4px rgba(27, 42, 74, 0.12);
+}
+.tb-list-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-right: 56px;
+}
+.tb-list-title-row .tb-list-title {
+  margin-right: 0;
+}
+.tb-pick-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tb-pick-tags em {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--tb-accent-soft);
+  color: var(--tb-ink);
+}
+
+/* 지도 화면 */
+.tb-map-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--tb-bg);
+}
+.tb-map {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.tb-map-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: calc(8px + env(safe-area-inset-top)) 12px 4px;
+}
+.tb-map-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--tb-soft) !important;
+  font-weight: 700;
+}
+.tb-map-count {
+  font-size: 13px;
+  color: var(--tb-sub);
+}
+.tb-map-chips {
+  display: flex;
+  gap: 8px;
+  padding: 6px 12px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tb-map-chips::-webkit-scrollbar {
+  display: none;
+}
+.tb-map-chips .tb-chip {
+  flex: none;
+  min-height: 44px;
+}
+.tb-map-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.tb-map-canvas {
+  position: absolute;
+  inset: 0;
+}
+.tb-map-loading {
+  background: var(--tb-soft);
+}
+.tb-map-empty,
+.tb-map-note {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--tb-sub);
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 10px;
+  padding: 6px 10px;
+  pointer-events: none;
+}
+.tb-map-empty {
+  top: 12px;
+  font-size: 13.5px;
+  color: var(--tb-ink);
+}
+.tb-map-note {
+  bottom: calc(34px + env(safe-area-inset-bottom));
+  right: 96px; /* 오른쪽 아래 Mapbox 표기를 가리지 않게 */
+}
+.tb-map-card {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+}
+.tb-map-card-body {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: var(--tb-r);
+  background: var(--tb-card) !important;
+  box-shadow: var(--tb-shadow), 0 2px 10px rgba(27, 42, 74, 0.12);
+  text-align: left;
+}
+.tb-map-card-body strong {
+  font-size: 16px;
+}
+.tb-map-card-body small {
+  font-size: 12.5px;
+  color: var(--tb-sub);
+}
+.tb-map-card-price b {
+  font-size: 18px;
+  font-weight: 800;
+}
+.tb-map-card-price b.low {
+  color: var(--tb-price);
+}
+.tb-map-off {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 40px 20px;
+  padding: 28px 20px;
+  border-radius: var(--tb-r);
+  background: var(--tb-card);
+  text-align: center;
+}
+.tb-map-off p {
+  margin: 0;
+  color: var(--tb-sub);
+}
+/* 총액 말풍선 핀. 가장 낮은 핀과 누른 핀만 오렌지 */
+.tb-pin {
+  position: relative;
+  min-width: 44px;
+  min-height: 30px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--tb-card) !important;
+  color: var(--tb-ink) !important;
+  border: 1.5px solid var(--tb-ink) !important;
+  font: 700 13px/1.2 inherit;
+  font-family: inherit;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(27, 42, 74, 0.2);
+  cursor: pointer;
+}
+.tb-pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  border-right: 1.5px solid;
+  border-bottom: 1.5px solid;
+  border-color: inherit;
+  transform: translateX(-50%) rotate(45deg);
+}
+.tb-pin.low {
+  border-color: var(--tb-price) !important;
+  color: var(--tb-price) !important;
+}
+.tb-pin.on {
+  background: var(--tb-price) !important;
+  border-color: var(--tb-price) !important;
+  color: #fff !important;
+}
+
+/* PC 오른쪽 패널: [예약처 총액 | 지도] */
+.tb-panel-tabs {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .tb-panel-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 3px;
+    margin: -6px 44px 14px 0;
+    border-radius: 14px;
+    background: var(--tb-soft);
+  }
+  .tb-panel-tabs button {
+    flex: 1;
+    min-height: 44px;
+    border-radius: 11px;
+    font-weight: 700;
+    color: var(--tb-sub);
+  }
+  .tb-panel-tabs button[aria-selected="true"] {
+    background: var(--tb-card);
+    color: var(--tb-ink);
+    box-shadow: 0 1px 4px rgba(27, 42, 74, 0.12);
+  }
+  .tb-panel.map {
+    overflow: hidden;
+    padding: 14px;
+  }
+  .tb-panel.map .tb-panel-tabs {
+    margin-right: 0;
+  }
+  .tb-map.panel {
+    height: calc(100dvh - 190px);
+  }
+  .tb-map.panel .tb-map-top {
+    padding: 0 0 4px;
+  }
+  .tb-map.panel .tb-map-chips {
+    padding: 4px 0 10px;
+    flex-wrap: wrap;
+  }
+  .tb-map.panel .tb-map-body {
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .tb-map.panel .tb-map-card {
+    bottom: 40px;
+  }
+  /* AI 추천: 왼쪽 대화·추천 55 + 오른쪽 패널 45 */
+  .tb-main.split.chat {
+    grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+  }
+  .tb-main.split.chat .tb-hcards {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+/* mapbox-gl.css 가 컨테이너를 position: relative 로 바꾸므로 다시 꽉 채운다 */
+.tb-map-body > .tb-map-canvas,
+.tb-map-body > .tb-map-canvas.mapboxgl-map {
+  position: absolute;
+  inset: 0;
+}
+@media (min-width: 1024px) {
+  .tb-map.panel .tb-map-back {
+    display: none;
+  }
+}
+.tb-map > .tb-map-note {
+  position: static;
+  margin: 0;
+  padding: 8px 14px calc(8px + env(safe-area-inset-bottom));
+  border-radius: 0;
+  background: none;
+  pointer-events: auto;
+}
+.tb-map-card {
+  bottom: 40px;
+}
+.tb-map-card-price .tb-est {
+  margin-right: 4px;
+}
+@media (min-width: 1024px) {
+  .tb-map.panel > .tb-map-note {
+    padding: 8px 2px 0;
+  }
+}
+/* 사진 없는 숙소 상세 머리: 작은 칸 그대로 (넓은 패널에서 늘어나지 않게) */
+.tb-seller-img.tb-nophoto {
+  width: 72px;
+  height: 72px;
+}
