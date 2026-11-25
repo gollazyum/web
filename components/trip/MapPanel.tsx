@@ -14,12 +14,20 @@ import { IconBack } from "./icons";
 // 칩은 받은 목록 안에서만 거른다 (검색 다시 하지 않음)
 const StayMap = dynamic(() => import("./StayMap"), { ssr: false, loading: () => <div className="tb-map-canvas tb-map-loading" aria-hidden /> });
 
+const FAIL_TEXT: Record<string, string> = {
+  "no-token": "까닭: 지도 키가 사이트에 설정되지 않았어요",
+  webgl: "까닭: 이 브라우저에서 지도 그래픽(WebGL)을 쓸 수 없어요",
+  rejected: "까닭: 지도 키가 이 주소에서 허용되지 않았어요",
+  error: "까닭: 지도를 불러오지 못했어요",
+};
+
 type Props = { query: StayQuery; options: HotelOption[]; onOpen: (h: HotelOption) => void; onList: () => void; panel?: boolean };
 
 export function MapPanel({ query, options, onOpen, onList, panel }: Props) {
   usePriceVersion(); // 예약처에서 확인한 금액이 오면 핀 글자를 맞춘다
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim() ?? "";
-  const [failed, setFailed] = useState(() => !token || (typeof document !== "undefined" && !webglOk()));
+  // 지도를 못 여는 까닭 (null이면 지도). 안내 아래에 한 줄로 보여 줘서 설정 문제인지 기기 문제인지 바로 알 수 있게 한다
+  const [failed, setFailed] = useState<string | null>(() => (!token ? "no-token" : typeof document !== "undefined" && !webglOk() ? "webgl" : null));
   const [chips, setChips] = useState<MapChips>(EMPTY_CHIPS);
   const [sel, setSel] = useState<string | null>(null);
   const nights = nightsOf(query);
@@ -68,13 +76,14 @@ export function MapPanel({ query, options, onOpen, onList, panel }: Props) {
         <div className="tb-map-off">
           <strong>이 화면에서는 지도를 열 수 없어요</strong>
           <p>목록에서 같은 숙소와 총액을 볼 수 있어요.</p>
+          <small className="tb-map-why">{FAIL_TEXT[failed] ?? FAIL_TEXT.error}</small>
           <button type="button" className="tb-cta small" onClick={onList}>
             리스트로 보기
           </button>
         </div>
       ) : (
         <div className="tb-map-body">
-          <StayMap token={token} pins={pins} ring={ring} onPick={setSel} onFail={() => setFailed(true)} />
+          <StayMap token={token} pins={pins} ring={ring} onPick={setSel} onFail={(why) => setFailed(why)} />
           {!shown.length && <p className="tb-map-empty">조건에 맞는 숙소가 지도에 없어요. 칩을 하나 풀어 보세요.</p>}
           {pick && (
             <div className="tb-map-card">

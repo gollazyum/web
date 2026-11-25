@@ -10,7 +10,7 @@ import { circleRing } from "@/lib/map-pins";
 // 오른쪽 아래 Mapbox 로고와 © Mapbox © OpenStreetMap 표기는 약관상 필요해 끄지 않는다
 export type MapPin = { token: string; lat: number; lng: number; label: string; low: boolean; on: boolean; name: string };
 
-type Props = { token: string; pins: MapPin[]; ring: [number, number] | null; onPick: (token: string) => void; onFail: () => void };
+type Props = { token: string; pins: MapPin[]; ring: [number, number] | null; onPick: (token: string) => void; onFail: (why: "rejected" | "error") => void };
 
 const RING_SRC = "tb-rings";
 
@@ -36,8 +36,9 @@ export default function StayMap({ token, pins, ring, onPick, onFail }: Props) {
         cooperativeGestures: false,
         language: "ko",
       });
-    } catch {
-      onFail();
+    } catch (e) {
+      console.warn("[map] init", e instanceof Error ? e.message : e);
+      onFail("error");
       return;
     }
     map.current = m;
@@ -45,7 +46,8 @@ export default function StayMap({ token, pins, ring, onPick, onFail }: Props) {
     m.on("error", (e) => {
       // 토큰이 틀렸거나 스타일을 못 받으면 목록으로 돌아간다
       const status = (e.error as { status?: number } | undefined)?.status;
-      if (status === 401 || status === 403) onFail();
+      console.warn("[map] error", status ?? "", e.error?.message ?? "");
+      if (status === 401 || status === 403) onFail("rejected");
     });
     m.on("load", () => {
       m.addSource(RING_SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
