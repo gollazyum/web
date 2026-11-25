@@ -95,6 +95,7 @@ function warmChunks() {
 }
 import { IconBack, IconBed, IconChatStar, IconClose, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
 import { HomeDrops, PriceWatchBox, useDrops } from "./PriceWatch";
+import { BookingWatchBox } from "./BookingWatch";
 import { MySettings } from "./MySettings";
 import { bumpAiCount } from "@/lib/ui-prefs";
 
@@ -1727,6 +1728,7 @@ function MyTripsTab({ saved, onOpen, onSave, onHome, onFlight, onMoreStays }: { 
   return (
     <main className="tb-page">
       <h1>찜·알림</h1>
+      <BookingWatchBox />
       <PriceWatchBox saved={saved} onOpen={onOpen} />
       <SharedTripView code={shared} />
       <MyTrips saved={saved} onOpen={onOpen} onSave={onSave} onHome={onHome} onFlight={onFlight} onMoreStays={onMoreStays} />

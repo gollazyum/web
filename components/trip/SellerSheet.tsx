@@ -18,6 +18,7 @@ import { setChecking, setVerified } from "./prices";
 import { priceChange, savedBaseFor } from "./saved-price";
 import { EstNote, PhotoStrip, PriceChange } from "./StayList";
 import { Sheet } from "./Sheet";
+import { BookedWatch } from "./BookingWatch";
 import { IconHeart, IconOut, IconSpark, IconUp } from "./icons";
 
 type Props = {
@@ -252,6 +253,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
             );
           })}
         </div>
+        {state?.status === "ok" && <BookedWatch hotel={hotel} query={query} rows={rows} />}
         </>
       ) : (
         <div className="tb-seller-none">

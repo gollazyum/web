@@ -1,0 +1,281 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { CAP_MESSAGE, DEVICE_MAX, kstLocalToMs, LATE_MESSAGE, tooLate, watchUntil } from "@/lib/booking-watch";
+import { HOTEL_SELLER_ALLOWLIST, linkRel, sellerDef, sellerSearchUrl, type HotelSellerKey } from "@/lib/hotel-sellers";
+import type { SellerRow } from "@/lib/hotels";
+import { won, type StayQuery } from "@/lib/trip";
+import type { PublicWatch } from "@/lib/booking-watch-server";
+import { IconOut } from "./icons";
+
+// 가격 지킴이 (예약한 숙소 가격 지켜보기) 화면.
+// 로그인 없이 이 기기에서 만든 임의 번호로 등록한 예약을 찾는다. 가격 확인은 서버가 하루 한 번(체크인이 멀면 3.5일에 한 번) 한다
+
+const DEVICE_KEY = "tb-device-v1";
+const subs = new Set<() => void>();
+const changed = () => subs.forEach((f) => f());
+
+function device(create: boolean): string | null {
+  try {
+    const got = localStorage.getItem(DEVICE_KEY);
+    if (got || !create) return got;
+    const id = crypto.randomUUID();
+    localStorage.setItem(DEVICE_KEY, id);
+    return id;
+  } catch {
+    return null;
+  }
+}
+
+async function post<T>(url: string, body: unknown): Promise<{ ok: true; data: T } | { ok: false; message: string }> {
+  try {
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = (await r.json().catch(() => ({}))) as T & { message?: string };
+    return r.ok ? { ok: true, data: j } : { ok: false, message: j.message ?? "지금은 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요" };
+  } catch {
+    return { ok: false, message: "연결이 불안정해요. 잠시 뒤 다시 시도해 주세요" };
+  }
+}
+
+const md = (iso: string) => `${Number(iso.slice(5, 7))}.${Number(iso.slice(8, 10))}`;
+const kstText = (iso: string) => {
+  const d = new Date(Date.parse(iso) + 9 * 3_600_000);
+  return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+};
+const vendorKo = (k: string | null) => (k && HOTEL_SELLER_ALLOWLIST.some((s) => s.key === k) ? sellerDef(k as HotelSellerKey).ko : k ?? "");
+
+// ---------- 비교창: 예약했어요 ----------
+export function BookedWatch({ hotel, query, rows }: { hotel: { token: string; name: string }; query: StayQuery; rows: SellerRow[] }) {
+  const [open, setOpen] = useState(false);
+  const [price, setPrice] = useState(String(rows[0]?.cost ?? ""));
+  const [vendor, setVendor] = useState<string>(rows[0]?.key ?? "");
+  const [fcu, setFcu] = useState("");
+  const [refundable, setRefundable] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  // 객실 2개 이상·아이 포함 검색은 같은 조건의 가격을 정확히 받기 어려워 아직 받지 않는다
+  if ((query.rooms ?? 1) > 1 || (query.childAges?.length ?? 0) > 0) return null;
+
+  const until = watchUntil(query.checkIn, fcu ? kstLocalToMs(fcu) : null);
+  const late = tooLate(query.checkIn, until, Date.now());
+  const n = Number(price.replace(/[^\d]/g, ""));
+
+  async function submit() {
+    if (busy) return;
+    if (!refundable) return setMsg({ ok: false, text: "무료 취소가 되는 예약만 지켜볼 수 있어요. 환불이 안 되면 더 싼 가격으로 다시 예약하기 어려워요" });
+    if (!(n >= 1000)) return setMsg({ ok: false, text: "결제한 총액을 원 단위로 적어 주세요" });
+    if (late) return setMsg({ ok: false, text: LATE_MESSAGE });
+    const id = device(true);
+    if (!id) return setMsg({ ok: false, text: "이 브라우저에서는 저장할 수 없어요" });
+    setBusy(true);
+    const r = await post<{ watch: PublicWatch }>("/api/bookings/watch", {
+      device: id,
+      token: hotel.token,
+      name: hotel.name,
+      place: query.place,
+      checkIn: query.checkIn,
+      checkOut: query.checkOut,
+      adults: query.adults,
+      bookedPrice: n,
+      bookedVendor: vendor || null,
+      freeCancelUntil: fcu || null,
+    });
+    setBusy(false);
+    if (!r.ok) return setMsg({ ok: false, text: r.message });
+    setMsg({ ok: true, text: "가격 지킴이에 등록했어요. 가격이 내리면 찜·알림 탭 맨 위에 알려 드려요" });
+    changed();
+  }
+
+  if (!open)
+    return (
+      <div className="tb-bw-entry">
+        <button type="button" className="tb-btn" onClick={() => setOpen(true)}>
+          이미 예약했어요 · 가격 지켜보기
+        </button>
+        <small>무료 취소 예약이면, 예약한 뒤에 가격이 내려갈 때 알려 드려요</small>
+      </div>
+    );
+  return (
+    <form
+      className="tb-bw-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit();
+      }}
+    >
+      <strong>예약한 내용을 적어 주세요</strong>
+      <label>
+        <span>결제한 총액 ({query.checkIn.slice(5).replace("-", ".")}–{query.checkOut.slice(5).replace("-", ".")}, 세금 포함)</span>
+        <input inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="예: 320000" />
+      </label>
+      <label>
+        <span>예약한 곳</span>
+        <select value={vendor} onChange={(e) => setVendor(e.target.value)}>
+          {HOTEL_SELLER_ALLOWLIST.map((s) => (
+            <option key={s.key} value={s.key}>
+              {s.ko}
+            </option>
+          ))}
+          <option value="">그 밖의 곳</option>
+        </select>
+      </label>
+      <label>
+        <span>무료 취소 마감 (한국 시간, 모르면 비워 두세요)</span>
+        <input type="datetime-local" value={fcu} onChange={(e) => setFcu(e.target.value)} max={`${query.checkIn}T23:59`} />
+      </label>
+      <label className="tb-bw-check">
+        <input type="checkbox" checked={refundable} onChange={(e) => setRefundable(e.target.checked)} />
+        <span>무료 취소가 되는 예약이에요</span>
+      </label>
+      {late ? <p className="tb-bw-msg bad">{LATE_MESSAGE}</p> : <p className="tb-note">마감 6시간 전({kstText(new Date(until).toISOString())})까지 지켜봐요. 마감을 비워 두면 체크인 전날 18시까지예요.</p>}
+      {msg && <p className={`tb-bw-msg${msg.ok ? "" : " bad"}`}>{msg.text}</p>}
+      {!msg?.ok && (
+        <button type="submit" className="tb-cta small" disabled={busy || late}>
+          {busy ? "등록하는 중" : "가격 지킴이 등록"}
+        </button>
+      )}
+    </form>
+  );
+}
+
+// ---------- 찜·알림 탭: 가격 지킴이 목록 ----------
+export function BookingWatchBox() {
+  const [list, setList] = useState<PublicWatch[] | null>(null);
+  const [note, setNote] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      const id = device(false);
+      if (!id) return setList([]); // 등록한 적이 없으면 서버에 묻지 않는다
+      const r = await post<{ watches: PublicWatch[] }>("/api/bookings/list", { device: id });
+      setList(r.ok ? r.data.watches : []);
+    };
+    void load();
+    subs.add(load);
+    return () => {
+      subs.delete(load);
+    };
+  }, []);
+
+  if (!list?.length) return null;
+  const active = list.filter((w) => w.status === "active");
+  const drops = active.filter((w) => w.alerted && w.latest !== null && w.latest < w.bookedPrice);
+
+  async function recheck(w: PublicWatch) {
+    const id = device(false);
+    if (!id || busy) return;
+    setBusy(w.id);
+    const r = await post<{ watch: PublicWatch; message?: string }>(`/api/bookings/${w.id}/recheck`, { device: id });
+    setBusy(null);
+    if (!r.ok) return setNote((n) => ({ ...n, [w.id]: r.message || CAP_MESSAGE }));
+    setList((l) => l?.map((x) => (x.id === w.id ? r.data.watch : x)) ?? null);
+    setNote((n) => ({ ...n, [w.id]: r.data.message ?? "방금 다시 확인했어요" }));
+  }
+  async function stop(w: PublicWatch) {
+    const id = device(false);
+    if (!id) return;
+    const r = await post(`/api/bookings/${w.id}/stop`, { device: id });
+    if (r.ok) setList((l) => l?.filter((x) => x.id !== w.id) ?? null);
+  }
+
+  return (
+    <section className={`tb-watch tb-bw${drops.length ? " down" : ""}`} aria-label="예약한 숙소 가격 지킴이">
+      <div className="tb-watch-head">
+        <strong>{drops.length ? `예약한 뒤 가격이 내렸어요 ${drops.length}곳` : "예약한 숙소 가격 지킴이"}</strong>
+        <small>
+          무료 취소 마감 6시간 전까지 지켜봐요 · 최대 {DEVICE_MAX}개
+        </small>
+      </div>
+      <ul className="tb-bw-list">
+        {list.map((w) => {
+          const diff = w.latest !== null ? w.bookedPrice - w.latest : null;
+          const down = w.status === "active" && w.alerted && diff !== null && diff > 0;
+          const q = { checkIn: w.checkIn, checkOut: w.checkOut, adults: w.adults };
+          const vendorKey = (w.latestVendor && HOTEL_SELLER_ALLOWLIST.some((s) => s.key === w.latestVendor) ? w.latestVendor : null) as HotelSellerKey | null;
+          return (
+            <li key={w.id} className={down ? "down" : ""}>
+              <button type="button" className="tb-bw-row" onClick={() => setOpen(open === w.id ? null : w.id)} aria-expanded={open === w.id}>
+                <span>
+                  <strong>{w.name}</strong>
+                  <small>
+                    {[w.place, `${md(w.checkIn)}–${md(w.checkOut)}`, `성인 ${w.adults}명`].filter(Boolean).join(" · ")}
+                  </small>
+                </span>
+                <span className="tb-watch-price">
+                  {down ? (
+                    <>
+                      <b>{won(w.latest!)}</b>
+                      <em>{won(diff!)}↓</em>
+                    </>
+                  ) : w.status !== "active" ? (
+                    <small>지켜보기 끝</small>
+                  ) : w.checkedAt ? (
+                    <small>아직 내리지 않았어요</small>
+                  ) : (
+                    <small>첫 확인 준비 중</small>
+                  )}
+                </span>
+              </button>
+              {open === w.id && (
+                <div className="tb-bw-detail">
+                  <dl>
+                    <div>
+                      <dt>예약한 총액</dt>
+                      <dd>
+                        {won(w.bookedPrice)}
+                        {w.bookedVendor ? ` · ${vendorKo(w.bookedVendor)}` : ""}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>지금 가장 낮은 총액</dt>
+                      <dd>{w.latest !== null ? `${won(w.latest)}${w.latestVendor ? ` · ${vendorKo(w.latestVendor)}` : ""} (예상)` : "아직 확인 전"}</dd>
+                    </div>
+                    <div>
+                      <dt>마지막 확인</dt>
+                      <dd>{w.checkedAt ? kstText(w.checkedAt) : "곧 확인해요"}</dd>
+                    </div>
+                    <div>
+                      <dt>지켜보기 끝</dt>
+                      <dd>{kstText(w.watchUntil)}</dd>
+                    </div>
+                  </dl>
+                  {down && (
+                    <>
+                      <p className="tb-bw-warn">
+                        {w.latestFreeCancel ? "무료 취소 요금으로 확인했어요." : "무료 취소 여부는 결제 화면에서 확인해 주세요."} 세금·객실 종류·조식 조건이 처음 예약과 같은지 꼭 확인해 주세요.
+                      </p>
+                      <ol className="tb-bw-steps">
+                        <li>새 가격으로 먼저 예약해요</li>
+                        <li>새 예약 확정 메일을 받았는지 확인해요</li>
+                        <li>처음 예약을 직접 취소해요 (무료 취소 마감 전에)</li>
+                      </ol>
+                      <p className="tb-note">대신 예약하거나 취소해 드리지 않아요. 순서를 지키면 방이 없어지는 일을 막을 수 있어요.</p>
+                      {vendorKey && (
+                        <a className="tb-cta small" href={sellerSearchUrl(vendorKey, w.name, q)} target="_blank" rel={linkRel(vendorKey)}>
+                          {sellerDef(vendorKey).ko}에서 새 가격 보기 <IconOut />
+                        </a>
+                      )}
+                    </>
+                  )}
+                  {note[w.id] && <p className="tb-bw-msg">{note[w.id]}</p>}
+                  <div className="tb-bw-actions">
+                    {w.status === "active" && (
+                      <button type="button" className="tb-link" onClick={() => void recheck(w)} disabled={busy === w.id}>
+                        {busy === w.id ? "확인하는 중" : "지금 다시 확인"}
+                      </button>
+                    )}
+                    <button type="button" className="tb-link" onClick={() => void stop(w)}>
+                      {w.status === "active" ? "그만 지켜보기" : "목록에서 지우기"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
