@@ -304,7 +304,7 @@ export function StayRow({ h, query, reason, note, check, cheapest, saved, active
         {reason ? <em className="tb-tag ac">AI 추천</em> : null}
         {cheapest && t.verified ? <em className={`tb-tag low${reason ? " second" : ""}`}>확인한 가격 중 최저</em> : null}
         {onSave && (
-          <button type="button" className={`tb-love${saved ? " on" : ""}`} aria-pressed={saved} aria-label={saved ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={onSave}>
+          <button type="button" className={`tb-love${saved ? " on" : ""}`} aria-pressed={saved} aria-label={saved ? "찜 빼기" : "찜하기"} onClick={onSave}>
             <IconHeart size={18} on={saved} />
           </button>
         )}
@@ -480,6 +480,7 @@ export function PriceBlock({ p, nights }: { p: ReturnType<typeof shownPrice>; ni
       <strong>{p.value !== null ? won(p.value) : "가격 확인"}</strong>
       <small>{nights}박 · 세금 포함</small>
       {perNight}
+      {p.save ? <small className="tb-save-chip">가장 비싼 곳보다 {won(p.save)} 아껴요</small> : null}
       {p.was !== undefined && <small className="tb-was tb-pc-only">검색 때 {won(p.was)} → 다시 확인한 금액</small>}
       {p.was !== undefined && p.value !== null && <EstNote est={p.was} cost={p.value} at={p.at ?? 0} />}
       <em className="tb-cmp">{p.count ? `예약처 ${p.count}곳 가격 보기` : "예약처별 가격 보기"} &gt;</em>

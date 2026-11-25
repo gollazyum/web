@@ -15,9 +15,8 @@ export function PageHeader() {
         </Link>
         <nav className="pg-nav" aria-label="메뉴">
           <Link href="/">홈</Link>
-          <Link href="/explore">둘러보기</Link>
-          <Link href="/chat">AI 채팅</Link>
-          <Link href="/trips">내 여행</Link>
+          <Link href="/chat">AI 추천</Link>
+          <Link href="/trips">찜·알림</Link>
           <Link href="/my">마이</Link>
         </nav>
       </div>

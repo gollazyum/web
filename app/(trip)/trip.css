@@ -5050,7 +5050,7 @@ html.tb-big .tb-app {
 
 @media (min-width: 1024px) {
   .tb-tiles {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
   }
   .tb-tile.soon {
     grid-column: auto;
@@ -5149,4 +5149,132 @@ html.tb-big .tb-app {
 }
 .tb-fc-note small {
   color: var(--tb-sub);
+}
+
+/* ---------- 2026-11-25 돈 아끼는 예약: 아낀 금액 · 찜 가격 변화 · 탭 점 ---------- */
+/* 내림·아낌은 가격 알림과 같은 파란색 (주황은 1위 금액 숫자에만) */
+.tb-save-line {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #e8f0ff;
+  color: #1747c9;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.tb-save-line small {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tb-sub);
+}
+.tb-save-chip {
+  color: #1747c9 !important;
+  font-weight: 700;
+}
+/* 홈 '찜한 숙소 가격이 내려갔어요': 주황은 1위 금액에만 쓰므로 여기 금액은 잉크색 */
+.tb-snap-price .tb-drop-now {
+  color: var(--tb-ink);
+}
+.tb-drop {
+  color: #1747c9 !important;
+  font-weight: 700;
+}
+.tb-tab-dot {
+  position: absolute;
+  top: 2px;
+  left: calc(50% + 8px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1747c9;
+  box-shadow: 0 0 0 2px var(--tb-card);
+}
+.tb-watch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--tb-card);
+  border: 1px solid var(--tb-line);
+}
+.tb-watch.down {
+  border-color: #c9d8ff;
+  background: #f4f7ff;
+}
+.tb-watch-head strong {
+  display: block;
+  font-size: 15px;
+}
+.tb-watch.down .tb-watch-head strong {
+  color: #1747c9;
+}
+.tb-watch-head small {
+  color: var(--tb-sub);
+  font-size: 12.5px;
+}
+.tb-watch-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tb-watch-list button {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--tb-line);
+  background: var(--tb-card);
+  text-align: left;
+  color: var(--tb-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.tb-watch-list button > span:first-child {
+  min-width: 0;
+}
+.tb-watch-list strong {
+  display: block;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tb-watch-list small {
+  color: var(--tb-sub);
+  font-size: 12px;
+}
+.tb-watch-price {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.tb-watch-price b {
+  display: block;
+  font-size: 14px;
+}
+.tb-watch-price em {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1747c9;
+}
+.tb-watch > .tb-link {
+  align-self: flex-start;
+}
+@media (min-width: 1024px) {
+  .tb-tab-dot {
+    top: 8px;
+    left: 30px;
+  }
 }

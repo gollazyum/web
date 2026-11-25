@@ -93,8 +93,8 @@ function warmChunks() {
   void loadFlights();
   void loadSeller();
 }
-import { IconBack, IconBag, IconBed, IconChatStar, IconClose, IconCompass, IconGrid, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
-import { Explore } from "./Explore";
+import { IconBack, IconBed, IconChatStar, IconClose, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
+import { HomeDrops, PriceWatchBox, useDrops } from "./PriceWatch";
 import { MySettings } from "./MySettings";
 import { bumpAiCount } from "@/lib/ui-prefs";
 
@@ -128,7 +128,8 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const SAVED_KEY = "tb-saved-v1";
 const UPGRADE_MS = 30 * 60 * 1000;
 const MORE_PAGES = 5; // 스크롤로 더 불러오는 쪽 수 상한 (검색 한 번당 최대 5번 더, 약 100곳)
-const EXAMPLES = ["부모님이랑 조용한 온천 숙소", "12월 오사카 2박, 역 가까운 곳", "인천에서 다낭 왕복, 오전 출발 직항"];
+// 돈 아끼는 질문 위주 (2026-11-25)
+const EXAMPLES = ["12월 오사카 2박, 30만 원 안에서 역 가까운 곳", "후쿠오카 2박, 무료 취소 되는 곳 중 낮은 순", "인천에서 다낭 왕복, 직항 중 총액 낮은 편"];
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`;
 const DOW = ["일", "월", "화", "수", "목", "금", "토"];
@@ -240,7 +241,7 @@ const cityOf = (label: string) => label.replace(/\s*\([A-Z]{3}\)\s*$/, "");
 const Orb = ({ size = 32, calm }: { size?: number; calm?: boolean }) => <span className={calm ? "tb-orb calm" : "tb-orb"} style={{ width: size, height: size }} aria-hidden />;
 
 export function TripApp() {
-  // 탭은 주소가 정한다 (/ 홈, /explore 둘러보기, /chat AI 채팅, /trips 내 여행, /my 마이). 뒤로 가기·새로 고침·공유가 그대로 된다
+  // 탭은 주소가 정한다 (/ 홈, /chat AI 추천, /trips 찜·알림, /my 마이). 뒤로 가기·새로 고침·공유가 그대로 된다
   const pathname = usePathname();
   const router = useRouter();
   // 사람이 화면을 처음 만지면(누르기·입력·스크롤) 결과 화면 코드를 미리 받아 둔다. 첫 화면을 그리는 동안에는 받지 않는다
@@ -292,6 +293,7 @@ export function TripApp() {
   const [dateFix, setDateFix] = useState<{ href: string; text: string } | null>(null);
   const [listId, setListId] = useState<string | null>(null); // AI 채팅: 전체 목록 바텀시트
   const { saved, toggle, upgrade } = useSaved();
+  const drops = useDrops(saved); // 찜한 숙소 중 가격이 내려간 곳 (찜·알림 탭에서 하루 한 번 확인한 결과)
   setSavedList(saved); // 카드·상세가 담을 때 금액을 찾아볼 수 있게
   const priceVersion = usePriceVersion();
   useEffect(() => {
@@ -783,7 +785,7 @@ export function TripApp() {
     const was = savedSet.has(hotel.token);
     const now = shownPrice(hotel, query);
     toggle(hotel, query, was ? undefined : { price: now.none ? null : now.value, verified: now.verified, at: Date.now() });
-    setToast(was ? null : { text: `${query.place} 숙소를 담았어요` });
+    setToast(was ? null : { text: `${query.place} 숙소를 찜했어요` });
   }
 
   // 홈 검색 칸을 채워서 보여 주기 (인기 여행지·대화의 '이제 항공편 찾기')
@@ -922,10 +924,10 @@ export function TripApp() {
               </header>
               <div className="tb-hero" style={{ "--tb-hero-img": `url(${photoUrl(HOME_HERO_PHOTO, 2000, 760)})` } as React.CSSProperties}>
                 <h1 className="tb-hero-title">
-                  예약처별 총액, 한 화면에서
-                  <small>여러 예약처의 가격을 모아 나란히 보여 드려요</small>
+                  같은 숙소, 더 싸게 예약하세요
+                  <small>예약처 {HOTEL_SELLERS_LIVE.length}곳의 세금 포함 총액을 한 화면에서 견줘 드려요</small>
                 </h1>
-                {/* 3대 타일: 숙소·항공은 조건 입력 시트, 세트는 '곧 열려요' 안내만 */}
+                {/* 타일 2개: 숙소·항공 조건 입력 시트 (항공+숙소 세트 '곧' 타일은 2026-11-25 내렸다) */}
                 <div className="tb-tiles">
                   <button type="button" className="tb-tile" onClick={() => setHomeSheet("stay")}>
                     <span className="tb-tile-icon" aria-hidden>
@@ -938,20 +940,12 @@ export function TripApp() {
                     <span className="tb-tile-icon" aria-hidden>
                       <IconPlane size={26} />
                     </span>
-                    <strong>항공권 최저가</strong>
+                    <strong>항공권 총액 비교</strong>
                     <small>가는 편·오는 편 총액을 한눈에</small>
-                  </button>
-                  <button type="button" className="tb-tile soon" onClick={() => setToast({ text: "항공+숙소 세트 비교 기능은 곧 열려요", go: true })}>
-                    <span className="tb-tile-icon" aria-hidden>
-                      <IconBag size={26} />
-                    </span>
-                    <strong>
-                      항공+숙소 세트 <em className="tb-tag ac">곧</em>
-                    </strong>
-                    <small>내 예산 안에서 가장 합리적인 조합</small>
                   </button>
                 </div>
               </div>
+              <HomeDrops saved={saved} onMore={() => setTab("trips")} />
               {snaps.length > 0 && (
                 <section className="tb-sec">
                   <h2>최근 확인한 최저 가격</h2>
@@ -1036,7 +1030,7 @@ export function TripApp() {
               <Orb size={40} />
               <span>
                 <strong>{BRAND_AI_NAME}</strong>
-                <small>숙소·항공편을 같이 찾아요</small>
+                <small>예산 안에서 아끼는 쪽으로 추천해요</small>
               </span>
               {chatMsgs.length > 0 && (
                 <button
@@ -1055,8 +1049,8 @@ export function TripApp() {
             {chatMsgs.length === 0 ? (
               <div className="tb-chat-empty">
                 <Orb size={56} calm />
-                <h1>어디로, 언제, 누구와 가는지 편하게 말해 주세요</h1>
-                <p>취향에 맞는 곳을 3곳만 먼저 보여드릴게요.</p>
+                <h1>예산과 원하는 조건을 편하게 말해 주세요</h1>
+                <p>예약처 총액을 견줘서 아끼는 쪽으로 3곳만 먼저 추천해 드려요.</p>
                 <div className="tb-examples">
                   {EXAMPLES.map((e) => (
                     <button key={e} type="button" onClick={() => send(e)}>
@@ -1110,7 +1104,6 @@ export function TripApp() {
           </main>
         )}
 
-        {tab === "explore" && <Explore onAsk={(prompt) => send(prompt, true)} />}
         {tab === "trips" && <MyTripsTab saved={saved} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => goHome("/")} onFlight={tripFlight} onMoreStays={(t) => goHome(stayHref({ place: t.city, checkIn: t.checkIn, checkOut: t.checkOut, adults: t.adults, budget: 0, taste: "" }))} />}
         {tab === "my" && <My profile={taste.profile} onTaste={() => setOnb(true)} onTrips={() => setTab("trips")} />}
 
@@ -1136,13 +1129,12 @@ export function TripApp() {
             <strong>{BRAND_NAME}</strong>
             {brand.tentative && <em>가칭</em>}
           </span>
-          {/* 5탭: 홈 · 둘러보기 · (가운데 둥근 버튼) AI 채팅 · 내 여행 · 마이. PC에서는 위쪽 머리글 메뉴가 된다 */}
+          {/* 4탭 (2026-11-25 돈 아끼는 예약에 집중): 홈 · AI 추천 · 찜·알림 · 마이. 모두 같은 크기. PC에서는 위쪽 머리글 메뉴가 된다 */}
           {(
             [
               { id: "home", label: "홈", icon: <IconHome size={24} /> },
-              { id: "explore", label: "둘러보기", icon: <IconGrid size={24} /> },
-              { id: "chat", label: "AI 채팅", icon: <IconCompass size={26} /> },
-              { id: "trips", label: "내 여행", icon: <IconBag size={24} /> },
+              { id: "chat", label: "AI 추천", icon: <IconCompass size={24} /> },
+              { id: "trips", label: "찜·알림", icon: <IconHeart size={24} /> },
               { id: "my", label: "마이", icon: <IconUser size={24} /> },
             ] as { id: Tab; label: string; icon: React.ReactNode; soon?: boolean }[]
           ).map((it) => (
@@ -1150,7 +1142,7 @@ export function TripApp() {
               key={it.id}
               href={it.id === "home" ? (tab === "home" ? "/" : homeHref) : TAB_PATH[it.id]}
               scroll={false}
-              className={`tb-tab${it.id === "chat" ? " ai" : ""}`}
+              className="tb-tab"
               aria-current={tab === it.id ? "page" : undefined}
               onClick={(e) => {
                 // 홈에서 홈을 누르면 검색 화면으로 (화면을 다시 받지 않고 주소만 바꾼다)
@@ -1160,8 +1152,9 @@ export function TripApp() {
                 }
               }}
             >
-              {it.id === "chat" ? <i className="tb-fab">{it.icon}</i> : it.icon}
+              {it.icon}
               <span>{it.label}</span>
+              {it.id === "trips" && drops.length > 0 && tab !== "trips" && <i className="tb-tab-dot" aria-label={`가격이 내려간 숙소 ${drops.length}곳`} />}
               {it.soon && <em className="tb-soon-dot">곧</em>}
             </Link>
           ))}
@@ -1533,7 +1526,7 @@ function PickCard({ p, i, of, off, note, check, t, isLow, q, nights, saved: on, 
             <span className="short">확인 최저</span>
           </em>
         )}
-        <button type="button" className={`tb-love${on ? " on" : ""}`} aria-pressed={on} aria-label={on ? "내 여행에서 빼기" : "내 여행에 담기"} onClick={() => onSave(p.h)}>
+        <button type="button" className={`tb-love${on ? " on" : ""}`} aria-pressed={on} aria-label={on ? "찜 빼기" : "찜하기"} onClick={() => onSave(p.h)}>
           <IconHeart size={18} on={on} />
         </button>
       </div>
@@ -1728,25 +1721,12 @@ function FlightResult({ m, onAll, onRefine, onRetry, onAiRetry, onPrefill }: Msg
 function MyTripsTab({ saved, onOpen, onSave, onHome, onFlight, onMoreStays }: { saved: Saved[]; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void; onFlight: (t: Trip) => void; onMoreStays: (t: Trip) => void }) {
   const [shared, setShared] = useState<string | null>(null);
   useEffect(() => setShared(new URLSearchParams(window.location.search).get("trip")), []);
-  const [soon, setSoon] = useState(false);
+  // 찜·알림 탭: 맨 위에 찜한 숙소 가격 변화(하루 한 번 다시 확인), 그 아래 여행별 찜 목록.
+  // 예약 내역 캡처 등록(곧 열려요)은 2026-11-25 돈 아끼는 예약에 집중하며 내렸다
   return (
     <main className="tb-page">
-      <h1>내 여행</h1>
-      <button type="button" className="tb-capture" onClick={() => setSoon(true)} aria-describedby={soon ? "tb-capture-soon" : undefined}>
-        <span className="tb-capture-plus" aria-hidden>
-          <IconPlus size={22} />
-        </span>
-        <span>
-          <strong>예약 내역 캡처로 무료취소·날씨 알림 등록</strong>
-          <small>예약 확인 화면을 올리면 일정이 자동으로 채워져요</small>
-        </span>
-        <em className="tb-tag ac">곧 열려요</em>
-      </button>
-      {soon && (
-        <p id="tb-capture-soon" className="tb-capture-soon" role="status">
-          예약 내역 캡처 등록은 곧 열려요. 지금은 숙소의 ♡를 눌러 여행을 담아 둘 수 있어요.
-        </p>
-      )}
+      <h1>찜·알림</h1>
+      <PriceWatchBox saved={saved} onOpen={onOpen} />
       <SharedTripView code={shared} />
       <MyTrips saved={saved} onOpen={onOpen} onSave={onSave} onHome={onHome} onFlight={onFlight} onMoreStays={onMoreStays} />
     </main>

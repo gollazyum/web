@@ -33,11 +33,11 @@ export function MySettings({ tasteSummary, onTaste, onTrips }: { tasteSummary: s
         <h2 className="tb-h2">알림 설정</h2>
         <div className="tb-set-row">
           <span>
-            <strong>담은 숙소 금액 변동</strong>
-            <small>내 여행에 담은 숙소의 금액이 바뀌면 카드에 표시해 드려요.</small>
+            <strong>찜한 숙소 가격 변화</strong>
+            <small>찜·알림 탭을 열면 하루 한 번 최근 찜한 숙소 5곳의 가격을 다시 확인해요.</small>
           </span>
           <button type="button" className="tb-link" onClick={onTrips}>
-            내 여행 보기
+            찜·알림 보기
           </button>
         </div>
         <div className="tb-set-row">
