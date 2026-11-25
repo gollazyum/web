@@ -53,3 +53,8 @@ $$;
 
 REVOKE ALL ON FUNCTION record_hotel_prices(JSONB) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION record_hotel_prices(JSONB) TO service_role;
+
+-- 최근 Supabase 프로젝트는 SQL로 만든 테이블에 서버 키(service_role) 권한을 자동으로 주지 않을 수 있다 (없으면 403)
+GRANT USAGE ON SCHEMA public TO service_role;
+GRANT ALL ON hotel_price_history TO service_role;
+GRANT ALL ON SEQUENCE hotel_price_history_id_seq TO service_role;
