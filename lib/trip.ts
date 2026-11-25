@@ -164,7 +164,7 @@ export const man = (won: number) => {
   const m = won / 10000;
   return `${m >= 100 ? Math.round(m) : Math.round(m * 10) / 10}만`;
 };
-export const won = (n: number) => `₩${Math.round(n).toLocaleString("ko-KR")}`;
+export const won = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
 
 // 숙박 전체 총액. 총액이 없으면 1박 요금 × 박수로 어림한다 (approx=true)
 export function stayTotal(h: Pick2<HotelOption, "total" | "perNight">, nights: number): { value: number; approx: boolean } | null {

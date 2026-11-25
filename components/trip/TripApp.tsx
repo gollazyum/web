@@ -907,7 +907,7 @@ export function TripApp() {
 
   return (
     <div className="tb-app">
-      <div className={`tb-main${split ? " split" : ""}${split && tab === "chat" ? " chat" : ""}`}>
+      <div className={`tb-main${split ? " split" : ""}${split && tab === "chat" ? " aichat" : ""}${tab === "home" && !homeMsg ? " home" : ""}`}>
         {tab === "home" &&
           (homeMsg ? (
             <HomeResult
@@ -1037,7 +1037,7 @@ export function TripApp() {
           ))}
 
         {tab === "chat" && (
-          <main className="tb-chat">
+          <main className={`tb-chat${chatMsgs.length === 0 ? " empty" : ""}`}>
             <header className="tb-chat-top">
               <Orb size={40} />
               <span>
@@ -1328,7 +1328,8 @@ function UnknownPlace({ onPlace }: { onPlace: (name: string) => void }) {
 }
 
 // 홈·마이 아래 같은 푸터 (자리 표시 [상호] 등은 lib/site.ts 값 그대로)
-function TripFooter() {
+// short: 마이 화면용. 약관 링크와 결제 안내는 바로 위 '고객지원' 카드에 이미 있어 한 번만 보인다
+function TripFooter({ short }: { short?: boolean }) {
   return (
     <footer className="tb-foot">
       <p>
@@ -1341,13 +1342,17 @@ function TripFooter() {
         <br />
         문의 <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
       </p>
-      <nav className="tb-foot-links" aria-label="약관과 정책">
-        <Link href="/terms">이용약관</Link>
-        <Link href="/privacy">
-          <b>개인정보처리방침</b>
-        </Link>
-      </nav>
-      <p>{site.footerNotice}</p>
+      {!short && (
+        <>
+          <nav className="tb-foot-links" aria-label="약관과 정책">
+            <Link href="/terms">이용약관</Link>
+            <Link href="/privacy">
+              <b>개인정보처리방침</b>
+            </Link>
+          </nav>
+          <p>{site.footerNotice}</p>
+        </>
+      )}
     </footer>
   );
 }
@@ -1807,7 +1812,7 @@ function My({ profile, onTaste, onTrips }: { profile: TasteProfile | null; onTas
       <h1>마이</h1>
       <MySettings tasteSummary={profileLines(profile).join("\n")} onTaste={onTaste} onTrips={onTrips} />
       <ClearHistory />
-      <TripFooter />
+      <TripFooter short />
     </main>
   );
 }

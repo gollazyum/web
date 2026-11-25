@@ -18,10 +18,10 @@ describe("AI 3곳 순위 이유", () => {
     const b = h({ token: "b", rating: 4.2, reviews: 1200 });
     const c = h({ token: "c", rating: 4.0, reviews: 100 });
     const [na, nb, nc] = rankNotes([a, b, c], "대욕장 있고 조식", [P(200000), P(150000), P(90000, false)]);
-    expect(na.why).toBe("1위 · 취향 온천·대욕장 맞음 · 추천 3곳 중 평점이 가장 높아요");
+    expect(na.why).toBe("취향 온천·대욕장 맞음 · 추천 3곳 중 평점이 가장 높아요");
     expect(na.unknown).toEqual(["조식"]);
-    expect(nb.why).toBe("2위 · 추천 3곳 중 리뷰가 가장 많아요");
-    expect(nc.why).toBe("3위 · 추천 3곳 중 예상 가격이 가장 낮아요");
+    expect(nb.why).toBe("추천 3곳 중 리뷰가 가장 많아요");
+    expect(nc.why).toBe("추천 3곳 중 예상 가격이 가장 낮아요");
     expect(nc.unknown).toEqual(["조식", "온천·대욕장"]);
   });
 });

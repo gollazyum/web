@@ -133,7 +133,7 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref, 
   }
 
   return (
-    <form className={`tb-search${fixed ? " fixed" : ""}`} onSubmit={submit}>
+    <form className={`tb-search ${kind}${fixed ? " fixed" : ""}`} onSubmit={submit}>
       {!fixed && (
       <div className="tb-search-tabs" role="tablist">
         <button type="button" role="tab" aria-selected={kind === "stay"} onClick={() => onKind("stay")}>
