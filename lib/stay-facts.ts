@@ -45,6 +45,6 @@ export function rankNotes(picks: HotelOption[], taste: string, prices: Priced[])
     if (!facts.length && h.rating) facts.push(`평점 ${h.rating.toFixed(1)}${h.reviews ? ` · 리뷰 ${h.reviews.toLocaleString("ko-KR")}개` : ""}`);
     const unknown = wants.filter((w) => !wantMet(h, w.label, w.amenity)).map((w) => w.label);
     if (near && !h.near) unknown.push("역까지 거리");
-    return { why: `${i + 1}위 · ${facts.slice(0, 2).join(" · ")}`, unknown };
+    return { why: facts.slice(0, 2).join(" · "), unknown }; // 순위 숫자는 붙이지 않는다 (카드에는 'AI 추천' 배지만)
   });
 }

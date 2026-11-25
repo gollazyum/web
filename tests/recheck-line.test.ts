@@ -7,9 +7,9 @@ const at = new Date(2026, 10, 18, 12, 30).getTime();
 
 describe("마이 '가격 다시 보기' 한 줄 (A1)", () => {
   it("내렸어요·올랐어요·같아요 + 확인 시각", () => {
-    expect(recheckLine("A", { price: 208000, verified: true }, [row(200000)], at).text).toBe("₩8,000 내렸어요 · 지금 ₩200,000 · 12:30 확인");
+    expect(recheckLine("A", { price: 208000, verified: true }, [row(200000)], at).text).toBe("8,000원 내렸어요 · 지금 200,000원 · 12:30 확인");
     expect(recheckLine("A", { price: 200000, verified: true }, [row(208000)], at).tone).toBe("up");
-    expect(recheckLine("A", { price: 200000, verified: true }, [row(200500)], at).text).toBe("담을 때와 같아요 · ₩200,500 · 12:30 확인");
+    expect(recheckLine("A", { price: 200000, verified: true }, [row(200500)], at).text).toBe("담을 때와 같아요 · 200,500원 · 12:30 확인");
   });
   it("실패·숙소 없음", () => {
     expect(recheckLine("A", undefined, null, at).text).toBe("지금은 가격을 불러오지 못했어요");

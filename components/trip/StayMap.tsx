@@ -49,6 +49,7 @@ export default function StayMap({ token, pins, ring, onPick, onFail }: Props) {
       console.warn("[map] error", status ?? "", e.error?.message ?? "");
       if (status === 401 || status === 403) onFail("rejected");
     });
+    m.on("style.load", () => applyTheme(m));
     m.on("load", () => {
       m.addSource(RING_SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       m.addLayer({ id: "tb-rings", type: "line", source: RING_SRC, paint: { "line-color": "#1B2A4A", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.55 } });
@@ -114,6 +115,98 @@ export default function StayMap({ token, pins, ring, onPick, onFail }: Props) {
   }, [ring]);
 
   return <div ref={box} className="tb-map-canvas" />;
+}
+
+// 사이트 색에 맞춘 지도 (추가 호출 없음: 받은 기본 스타일의 색·라벨만 바꾼다).
+// 바탕 스톤 오프화이트, 물 북유럽 블루, 공원 세이지 그린, 도로 흰색. 라벨은 한국어 우선, 없으면 원래 이름.
+// 다른 여행 사이트처럼 동네·구 이름, 역 이름, 큰 도로 이름만 남기고 골목 이름과 가게·식당 같은 작은 장소는 숨긴다.
+// 레이어 이름은 스타일 판마다 다를 수 있어 source-layer와 type으로 고르고, 하나가 실패해도 나머지는 그대로 적용한다
+const C = { land: "#F4F1EA", water: "#CBE3EE", park: "#DFECE0", road: "#FFFFFF", casing: "#E7E0D4", building: "#ECE7DE", ink: "#1B2A4A", sub: "#6E7486", halo: "#FFFFFF" };
+const KO: mapboxgl.ExpressionSpecification = ["coalesce", ["get", "name_ko"], ["get", "name"]];
+const BIG_ROADS = ["motorway", "trunk", "primary"];
+
+function applyTheme(m: mapboxgl.Map) {
+  const set = (fn: () => void) => {
+    try {
+      fn();
+    } catch {
+      /* 이 스타일에 없는 속성은 건너뛴다 */
+    }
+  };
+  const layers = m.getStyle()?.layers ?? [];
+  let font: unknown = null;
+  for (const l of layers) {
+    const src = (l as { "source-layer"?: string })["source-layer"] ?? "";
+    const id = l.id;
+    if (l.type === "background") set(() => m.setPaintProperty(id, "background-color", C.land));
+    else if (l.type === "fill") {
+      if (src === "water") set(() => m.setPaintProperty(id, "fill-color", C.water));
+      else if (src === "landuse" || src === "landuse_overlay" || src === "landcover" || /park|national/.test(id)) {
+        set(() => m.setPaintProperty(id, "fill-color", ["match", ["get", "class"], ["park", "grass", "cemetery", "pitch", "wood", "scrub", "national_park", "golf_course"], C.park, C.land]));
+      } else if (src === "building") set(() => m.setPaintProperty(id, "fill-color", C.building));
+      else if (/^land$|land-structure/.test(id)) set(() => m.setPaintProperty(id, "fill-color", C.land));
+    } else if (l.type === "line") {
+      if (src === "waterway") set(() => m.setPaintProperty(id, "line-color", C.water));
+      else if (src === "road") set(() => m.setPaintProperty(id, "line-color", /case/.test(id) ? C.casing : C.road));
+    } else if (l.type === "symbol") {
+      const layout = (l as { layout?: Record<string, unknown> }).layout ?? {};
+      if (!font && layout["text-font"]) font = layout["text-font"];
+      if (src === "poi_label" || src === "transit_stop_label" || src === "airport_label" || src === "road" || /poi|transit|road-label|road-number|road-exit/.test(id)) {
+        set(() => m.setLayoutProperty(id, "visibility", "none")); // 아래에서 역·큰 도로만 다시 그린다
+      } else if (layout["text-field"] !== undefined) {
+        set(() => m.setLayoutProperty(id, "text-field", KO));
+        if (src === "place_label") {
+          set(() => m.setPaintProperty(id, "text-color", C.sub));
+          set(() => m.setPaintProperty(id, "text-halo-color", C.halo));
+        }
+      }
+    }
+  }
+  const textFont = (font as string[] | null) ?? ["DIN Pro Medium", "Arial Unicode MS Regular"];
+  const src = Object.keys(m.getStyle()?.sources ?? {}).find((k) => /composite|streets/.test(k));
+  if (!src) return;
+  set(() => {
+    if (m.getLayer("tb-road-names")) return;
+    m.addLayer({
+      id: "tb-road-names",
+      type: "symbol",
+      source: src,
+      "source-layer": "road",
+      minzoom: 12,
+      filter: ["match", ["get", "class"], BIG_ROADS, true, false],
+      layout: { "symbol-placement": "line", "text-field": KO, "text-font": textFont, "text-size": 11, "text-max-angle": 30, "symbol-spacing": 400 },
+      paint: { "text-color": C.sub, "text-halo-color": C.halo, "text-halo-width": 1.4 },
+    });
+  });
+  set(() => {
+    if (m.getLayer("tb-stations")) return;
+    m.addLayer({
+      id: "tb-stations",
+      type: "symbol",
+      source: src,
+      "source-layer": "transit_stop_label",
+      minzoom: 11.5,
+      filter: ["match", ["get", "mode"], ["rail", "metro_rail", "light_rail", "monorail", "tram"], true, false],
+      layout: {
+        "text-field": KO,
+        "text-font": textFont,
+        "text-size": ["interpolate", ["linear"], ["zoom"], 12, 11, 16, 13],
+        "text-anchor": "top",
+        "text-offset": [0, 0.5],
+        "text-optional": true,
+      },
+      paint: { "text-color": C.ink, "text-halo-color": C.halo, "text-halo-width": 1.6 },
+    });
+    m.addLayer({
+      id: "tb-station-dots",
+      type: "circle",
+      source: src,
+      "source-layer": "transit_stop_label",
+      minzoom: 11.5,
+      filter: ["match", ["get", "mode"], ["rail", "metro_rail", "light_rail", "monorail", "tram"], true, false],
+      paint: { "circle-radius": 3.5, "circle-color": C.ink, "circle-stroke-color": "#FFFFFF", "circle-stroke-width": 1.5 },
+    });
+  });
 }
 
 function drawRing(m: mapboxgl.Map, ring: [number, number] | null) {
