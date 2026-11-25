@@ -3,6 +3,9 @@ import { DATE, serpSearch, today } from "@/lib/serpapi";
 import { normalizeText } from "@/lib/search-cache";
 import { amenityKo, dealKo, kindKo } from "@/lib/hotelText";
 import { allowedSellers } from "@/lib/hotel-sellers";
+import { after } from "next/server";
+import { priceHistoryOn, recordPrices } from "@/lib/price-history";
+import { listRows, verifiedRow } from "@/lib/price-history-rows";
 
 // 실시간 호텔 가격. SerpApi의 Google Hotels 결과를 받아 화면용으로 줄인다.
 // token 없이 부르면 호텔 목록, token을 주면 그 호텔의 예약 사이트별 가격.
@@ -239,16 +242,24 @@ export async function POST(req: Request) {
   }
   if (q.token) {
     params.property_token = q.token;
-    return serpSearch(req, params, shapePrices, undefined, { fresh: q.fresh }); // fresh: 다시 확인할 때는 저장된 가격을 쓰지 않는다
+    const token = q.token;
+    // 새로 받은 예약처 가격은 응답을 보낸 뒤 가격 기록에 남긴다 (q는 숙소 이름)
+    const onFresh = (d: HotelPrices) => {
+      const row = verifiedRow(token, q.q, d.sources, q);
+      if (row) after(() => recordPrices([row]));
+    };
+    return serpSearch(req, params, shapePrices, undefined, { fresh: q.fresh, ...(priceHistoryOn() ? { onFresh } : {}) }); // fresh: 다시 확인할 때는 저장된 가격을 쓰지 않는다
   }
   // 성급 필터를 누른 사람만: 그 성급만 한 번 찾는다 (검색 1번 요금). 다음 쪽도 같은 성급
   if (q.stars) params.hotel_class = q.stars;
+  // 새로 받은 목록 예상가는 응답을 보낸 뒤 가격 기록에 남긴다
+  const opts = priceHistoryOn() ? { onFresh: (d: HotelResults) => after(() => recordPrices(listRows(d.options, { ...q, place: q.q }))) } : {};
   // "호텔 더 보기": Google은 한 번에 20곳 안팎만 주므로 다음 쪽을 따로 부른다 (검색 1번 요금). 다음 쪽은 기본 순서 그대로
   if (q.page) {
     params.next_page_token = q.page;
-    return serpSearch(req, params, shapeList);
+    return serpSearch(req, params, shapeList, undefined, opts);
   }
-  if (q.stars) return serpSearch(req, params, shapeList);
+  if (q.stars) return serpSearch(req, params, shapeList, undefined, opts);
   // 첫 쪽은 4·5성만 한 번 더 불러 같이 놓고 추천순 비율로 고른다 (검색 2번 요금)
-  return serpSearch(req, params, shapeList, { ...params, hotel_class: "4,5" });
+  return serpSearch(req, params, shapeList, { ...params, hotel_class: "4,5" }, opts);
 }

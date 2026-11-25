@@ -61,7 +61,7 @@ import { hasFreeCancel } from "@/lib/stay-filters";
 import { CheckLine } from "./CheckBox";
 import { useCheckpoints } from "./useCheckpoints";
 import { rankNotes, stayFactLine, type RankNote } from "@/lib/stay-facts";
-import { getVerified, prefetchPrices, shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
+import { getVerified, prefetchPrices, shownPrice, usePriceVersion, verifiedCost } from "./prices";
 import { setSavedList, type SavedBase } from "./saved-price";
 import type { Trip } from "@/lib/trips";
 import { flightLink } from "@/lib/flights";
@@ -457,7 +457,7 @@ export function TripApp() {
         writePickMemo(query, want, { picks: toPicks(picks), note: ai.data.note ?? "" });
         patch(id, { picks: toPicks(picks), aiPending: false, aiOff: false, note: [overNote, ai.data.note].filter(Boolean).join(" ") });
         // AI 추천 1위만 예약처 가격을 미리 받아 카드 금액을 시트 1위 총액과 맞춰 둔다.
-        // 2·3위는 카드가 화면에 보이거나 눌렀을 때 받는다 (검색 한 번당 가격 조회를 줄이기 위해)
+        // 나머지 숙소는 눌러서 시트를 열 때만 받는다 (스크롤만으로는 유료 조회를 하지 않는다)
         prefetchPrices(picks.slice(0, 1).map((p) => head[p.n - 1]), query);
       };
       await askAi();
@@ -1522,9 +1522,8 @@ function PickChecks({ hotels, q, off, children }: { hotels: HotelOption[]; q: St
 }
 
 function PickCard({ p, i, of, off, note, check, t, isLow, q, nights, saved: on, active, onSave, onOpenHotel }: { p: { token: string; reason: string; h: HotelOption }; i: number; of: number; off?: boolean; note?: RankNote; check?: Checkpoints; t: ReturnType<typeof shownPrice>; isLow: boolean; q: StayQuery; nights: number; saved: boolean; active: boolean; onSave: (h: HotelOption) => void; onOpenHotel: (h: HotelOption) => void }) {
-  const ref = useLazyPrice<HTMLElement>(p.h, q, true);
   return (
-    <article ref={ref} className={`tb-hcard${active ? " on" : ""}`}>
+    <article className={`tb-hcard${active ? " on" : ""}`}>
       <div className="tb-hcard-img">
         <PhotoStrip images={p.h.image ? [p.h.image] : []} name={p.h.name} max={1} />
         <em className="tb-tag wt">{i + 1}</em>
