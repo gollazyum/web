@@ -67,14 +67,14 @@ export function isQuota(status: number, body: string): boolean {
 const NO_RESULTS = "hasn't returned any results";
 
 // 검색 한 번. 실패하면 SearchFail을 던진다
-async function call(params: Record<string, string>, key: string): Promise<Record<string, unknown>> {
+async function call(params: Record<string, string>, key: string, timeoutMs = 25_000): Promise<Record<string, unknown>> {
   const engine = params.engine ?? "";
   let res: Response;
   let text: string;
   try {
     res = await fetch(`https://serpapi.com/search.json?${new URLSearchParams({ ...params, api_key: key })}`, {
       cache: "no-store",
-      signal: AbortSignal.timeout(25_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     text = await res.text();
   } catch (e) {
@@ -111,6 +111,13 @@ function fresh<T>(cb: ((data: T) => void) | undefined, data: T) {
   } catch (e) {
     console.error("[search] onFresh", e instanceof Error ? e.message : e);
   }
+}
+
+// 서버 작업(가격 지킴이 크론 등)에서 검색 한 번. 키가 없으면 SearchFail("upstream")
+export function searchOnce(params: Record<string, string>, timeoutMs = 25_000): Promise<Record<string, unknown>> {
+  const key = process.env.SERPAPI_API_KEY;
+  if (!key) throw new SearchFail("upstream");
+  return call(params, key, timeoutMs);
 }
 
 // params로 검색하고 shape로 화면용 데이터를 만들어 응답한다.
