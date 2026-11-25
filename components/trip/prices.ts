@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { sellerRows, type HotelOption } from "@/lib/hotels";
 import type { HotelSellerKey } from "@/lib/hotel-sellers";
 import { nightsOf, stayTotal, type StayQuery } from "@/lib/trip";
@@ -103,7 +103,7 @@ export const verifiedCost = (h: HotelOption, q: StayQuery) => {
 };
 
 // 예약처 가격을 받아 카드 금액을 맞춘다 (같은 조건은 캐시라 다시 부르지 않는다).
-// 검색 직후에는 AI 추천 1위만 부르고, 나머지 추천 카드는 화면에 보이면(useLazyPrice) 또는 눌러서 시트를 열면 부른다
+// 검색 직후에는 AI 추천 1위만 부르고, 나머지 숙소는 눌러서 시트를 열 때만 부른다 (스크롤로는 부르지 않는다)
 const inflight = new Set<string>();
 export function prefetchPrices(list: HotelOption[], q: StayQuery) {
   const hq = { q: q.place, checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, rooms: q.rooms, childAges: q.childAges };
@@ -120,32 +120,3 @@ export function prefetchPrices(list: HotelOption[], q: StayQuery) {
   }
 }
 
-// 카드가 화면에 잠깐(0.3초) 머물면 그때 예약처 가격을 받는다. 스쳐 지나가는 카드는 부르지 않는다.
-// IntersectionObserver가 없는 브라우저는 미리 받지 않고, 카드를 눌러 시트를 열 때 받는다
-const DWELL_MS = 300;
-export function useLazyPrice<T extends Element>(h: HotelOption | undefined, q: StayQuery, on: boolean) {
-  const ref = useRef<T>(null);
-  const token = h?.token;
-  useEffect(() => {
-    const el = ref.current;
-    if (!on || !h || !el || typeof IntersectionObserver === "undefined" || getVerified(h.token, q)) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const io = new IntersectionObserver(
-      ([e]) => {
-        clearTimeout(timer);
-        if (!e.isIntersecting) return;
-        timer = setTimeout(() => {
-          io.disconnect();
-          prefetchPrices([h], q);
-        }, DWELL_MS);
-      },
-      { threshold: 0.5 },
-    );
-    io.observe(el);
-    return () => {
-      clearTimeout(timer);
-      io.disconnect();
-    };
-  }, [token, q.checkIn, q.checkOut, q.adults, q.place, on]); // eslint-disable-line react-hooks/exhaustive-deps
-  return ref;
-}

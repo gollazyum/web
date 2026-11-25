@@ -11,7 +11,7 @@ import { useCheckpoints } from "./useCheckpoints";
 import { activeCount, applyFilter, countFilters, EMPTY_FILTER, hasFreeCancel, type StayFilter } from "@/lib/stay-filters";
 import { guestText, isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
 import { SIMILAR_EVENT, takeSimilar } from "./similar";
-import { shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
+import { shownPrice, usePriceVersion, verifiedCost } from "./prices";
 import { changeText, priceChange, savedBaseFor } from "./saved-price";
 import { AiSortInfo } from "./AiSortInfo";
 import { AiOffNote } from "./AiOffNote";
@@ -296,10 +296,9 @@ export function StayRow({ h, query, reason, note, check, cheapest, saved, active
   usePriceVersion();
   const nights = nightsOf(query);
   const t = shownPrice(h, query);
-  const ref = useLazyPrice<HTMLElement>(h, query, true); // 화면에 잠깐 머문 카드부터 예약처 가격을 받아 금액을 맞춘다
   const diff = saved ? priceChange(savedBaseFor(h.token, query), t) : null; // 담아 둔 숙소면 담을 때 금액과 견준다
   return (
-    <article ref={ref} className={`tb-srow${active ? " on" : ""}`} aria-current={active ? "true" : undefined}>
+    <article className={`tb-srow${active ? " on" : ""}`} aria-current={active ? "true" : undefined}>
       <div className="tb-srow-img">
         <PhotoStrip images={h.images.length ? h.images : h.image ? [h.image] : []} name={h.name} onOpen={onOpen} />
         {reason ? <em className="tb-tag ac">AI 추천</em> : null}

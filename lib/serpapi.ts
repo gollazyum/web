@@ -103,6 +103,16 @@ function ipOf(req: Request): string {
   return req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
 }
 
+// 새로 받은 검색 결과를 넘겨받는 곳(가격 기록 등). 여기서 무슨 일이 나도 검색 응답은 그대로 나간다
+function fresh<T>(cb: ((data: T) => void) | undefined, data: T) {
+  if (!cb) return;
+  try {
+    cb(data);
+  } catch (e) {
+    console.error("[search] onFresh", e instanceof Error ? e.message : e);
+  }
+}
+
 // params로 검색하고 shape로 화면용 데이터를 만들어 응답한다.
 // extra를 주면 같은 검색을 조건을 바꿔 한 번 더 불러(검색 1번 요금 추가) shape에 같이 넘긴다.
 // extra에 함수를 주면 첫 결과를 받은 뒤 그 결과로 다음 검색 조건을 만들어 이어서 부른다 (null이면 안 부름).
@@ -113,7 +123,7 @@ export async function serpSearch<T>(
   params: Record<string, string>,
   shape: (json: Record<string, unknown>, extra: Record<string, unknown> | null) => T,
   extra?: Record<string, string> | ((json: Record<string, unknown>) => Record<string, string> | null),
-  opts: { fresh?: boolean } = {},
+  opts: { fresh?: boolean; onFresh?: (data: T) => void } = {},
 ): Promise<Response> {
   const key = process.env.SERPAPI_API_KEY;
   if (!key) return Response.json({ error: "not_configured" }, { status: 503 });
@@ -141,9 +151,12 @@ export async function serpSearch<T>(
     // fresh: '가격 다시 보기'처럼 지금 값을 꼭 새로 받아야 할 때는 저장된 응답을 쓰지 않는다
     if (opts.fresh) {
       const out = await load();
-      return Response.json(out instanceof NoStore ? out.data : out, { headers: { "x-cache": "BYPASS" } });
+      const data = out instanceof NoStore ? out.data : out;
+      fresh(opts.onFresh, data);
+      return Response.json(data, { headers: { "x-cache": "BYPASS" } });
     }
     const { data, hit } = await cached<T>(ck, TRAVEL_CACHE_SEC, load);
+    if (!hit) fresh(opts.onFresh, data); // 저장된 응답을 다시 쓸 때는 같은 값이라 넘기지 않는다
     return Response.json(data, { headers: { "x-cache": hit ? "HIT" : "MISS" } });
   } catch (e) {
     if (e instanceof SearchFail) return failResponse(e.kind);
