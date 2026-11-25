@@ -123,7 +123,7 @@ export async function serpSearch<T>(
   params: Record<string, string>,
   shape: (json: Record<string, unknown>, extra: Record<string, unknown> | null) => T,
   extra?: Record<string, string> | ((json: Record<string, unknown>) => Record<string, string> | null),
-  opts: { fresh?: boolean; onFresh?: (data: T) => void } = {},
+  opts: { fresh?: boolean; onFresh?: (data: T) => void; ttlSec?: number } = {},
 ): Promise<Response> {
   const key = process.env.SERPAPI_API_KEY;
   if (!key) return Response.json({ error: "not_configured" }, { status: 503 });
@@ -155,7 +155,7 @@ export async function serpSearch<T>(
       fresh(opts.onFresh, data);
       return Response.json(data, { headers: { "x-cache": "BYPASS" } });
     }
-    const { data, hit } = await cached<T>(ck, TRAVEL_CACHE_SEC, load);
+    const { data, hit } = await cached<T>(ck, opts.ttlSec ?? TRAVEL_CACHE_SEC, load);
     if (!hit) fresh(opts.onFresh, data); // 저장된 응답을 다시 쓸 때는 같은 값이라 넘기지 않는다
     return Response.json(data, { headers: { "x-cache": hit ? "HIT" : "MISS" } });
   } catch (e) {
