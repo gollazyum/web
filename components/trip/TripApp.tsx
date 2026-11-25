@@ -11,7 +11,7 @@ import { HOTEL_SELLERS_LIVE, HOTEL_SELLERS_PENDING, sellerDef, sellerSearchUrl }
 import type { HotelOption } from "@/lib/hotels";
 import { criteriaWeights, EMPTY_PROFILE, profileLines, readSaved, TASTE_KEY, withProfile, type TasteProfile, type TasteSaved, type TasteStatus } from "@/lib/taste";
 import { site } from "@/lib/site";
-import { HOME_HERO_PHOTO, HOME_PLACES, photoUrl } from "@/lib/home-places";
+import { HOME_PLACES, photoUrl } from "@/lib/home-places";
 import { HOME_FAQ, HOME_TRUST } from "@/lib/home-info";
 import type { FlightOption } from "@/lib/flights";
 import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
@@ -47,7 +47,8 @@ import {
 import { parseText, pickFlights, pickStays, searchFlights, searchStays, searchStaysPage } from "./api";
 import { FlightSheet, StaySheet } from "./InputSheets";
 import type { SearchKind } from "./SearchCard";
-import { HomeSheet } from "./HomeSheet";
+import { HomeSearch } from "./HomeSheet";
+import { HomeLows } from "./HomeLows";
 import { flightFilterOf, optsParam, readOpts, stayFilterOf } from "@/lib/home-opts";
 import { agoText, readActive, readSnaps, saveActive, writeSnap, type Snapshot } from "@/lib/home-snapshot";
 import { addRecent } from "@/lib/recent-search";
@@ -65,6 +66,8 @@ import { getVerified, prefetchPrices, shownPrice, useLazyPrice, usePriceVersion,
 import { setSavedList, type SavedBase } from "./saved-price";
 import type { Trip } from "@/lib/trips";
 import { flightLink } from "@/lib/flights";
+import type { FlightInsights } from "./FlightTrend";
+import type { Peer } from "@/lib/usual-price";
 import dynamic from "next/dynamic";
 
 // 홈 첫 화면(검색 칸·인기 여행지)에 필요 없는 코드는 따로 나눠, 처음 열 때 받는 자바스크립트를 줄인다 (C12).
@@ -95,7 +98,7 @@ function warmChunks() {
 }
 import { IconBack, IconBed, IconChatStar, IconClose, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
 import { HomeDrops, PriceWatchBox, useDrops } from "./PriceWatch";
-import { BookingWatchBox } from "./BookingWatch";
+import { BookingWatchBox, RegisterHint, WatchBanner } from "./BookingWatch";
 import { MySettings } from "./MySettings";
 import { bumpAiCount } from "@/lib/ui-prefs";
 
@@ -118,7 +121,7 @@ type Msg =
   // home: 홈 검색 카드에서 찾은 결과 (대화에는 보이지 않는다). aiPending: 규칙으로 먼저 보여 주고 AI 결과를 기다리는 중
   // next·pages·more: 스크롤 끝에서 다음 쪽 더 불러오기 (next가 없으면 끝)
   | { id: string; t: "stay"; home?: boolean; query: StayQuery; status: Status; err?: number | null; options?: HotelOption[]; picks?: StayPick[]; aiPending?: boolean; note?: string; unknown?: boolean; next?: string | null; pages?: number; more?: "loading" | "error"; cls?: string; base?: { options: HotelOption[]; next: string | null; pages: number }; aiOff?: boolean }
-  | { id: string; t: "flight"; home?: boolean; query: FlightQuery; status: Status; err?: number | null; options?: FlightOption[]; picks?: { n: number; reason: string }[]; aiPending?: boolean; note?: string; aiOff?: boolean }; // aiOff: AI가 두 번 다 실패해 가격순 3편을 보여 줌
+  | { id: string; t: "flight"; home?: boolean; query: FlightQuery; status: Status; err?: number | null; options?: FlightOption[]; insights?: FlightInsights; picks?: { n: number; reason: string }[]; aiPending?: boolean; note?: string; aiOff?: boolean }; // aiOff: AI가 두 번 다 실패해 가격순 3편을 보여 줌
 
 type StayMsg = Extract<Msg, { t: "stay" }>;
 type FlightMsg = Extract<Msg, { t: "flight" }>;
@@ -303,8 +306,6 @@ export function TripApp() {
   const savedSet = new Set(saved.map((s) => s.hotel.token));
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  // 홈 타일 → 조건 입력 시트 (null이면 닫힘)
-  const [homeSheet, setHomeSheet] = useState<SearchKind | null>(null);
   // 홈 검색 주소별 빠른 조건 칩 (결과 필터의 처음 값). 탭을 옮겼다 돌아와도 같은 조건으로 보인다
   const optsRef = useRef(new Map<string, string[]>());
   // 홈 '최근 확인한 최저 가격'
@@ -327,10 +328,7 @@ export function TripApp() {
   // 다른 페이지 메뉴에서 /?tab=stay, /?tab=flight 로 오면 그 검색 탭을 연다
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "flight" || t === "stay") {
-      setKind(t);
-      setHomeSheet(t);
-    }
+    if (t === "flight" || t === "stay") setKind(t);
   }, []);
   useEffect(() => {
     const on = () => setSearch(window.location.pathname === "/" ? window.location.search : "");
@@ -519,6 +517,8 @@ export function TripApp() {
         const r = await searchFlights(query);
         if (!r.ok) return patch(id, { status: "error", err: r.status });
         options = r.data.options;
+        // 가격 흐름 카드: 응답에 온 가격 정보만 (받은 목록 안에서 다시 거른 결과에는 붙이지 않는다)
+        patch(id, { insights: { level: r.data.level, typical: r.data.typical, history: r.data.history ?? null } });
       }
       if (!options.length) return patch(id, { status: "done", options: [], picks: [] });
       const want = withProfile(query.taste, profileRef.current, "flight");
@@ -577,7 +577,6 @@ export function TripApp() {
     if (hs.kind === "flight" && hs.same) {
       setHomeId(null);
       setKind("flight");
-      setHomeSheet("flight");
       const q = hs.query;
       loadAirports()
         .then((d) => setPrefFlight({ ...q, fromLabel: labelForCode(d, q.from), toLabel: labelForCode(d, q.to), ...(q.depart ? {} : { depart: undefined }) }))
@@ -795,12 +794,12 @@ export function TripApp() {
     if (k === "stay") setPrefStay({ ...(q as Partial<StayQuery>) });
     else setPrefFlight({ ...(q as Partial<FlightQuery>) });
     goHome("/");
-    setHomeSheet(k);
+    // 홈 검색 칸이 맨 위에 있으니 화면을 맨 위로 (탭을 옮긴 뒤 스크롤 복원이 끝난 다음에)
+    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 120);
   }
 
   // 홈 입력 시트에서 찾기: 검색 1번 (같은 탭 30분 안 같은 조건이면 저장된 결과), 빠른 조건은 결과 필터의 처음 값으로
   function homeStay(q: StayQuery, opts: string[]) {
-    setHomeSheet(null);
     setPrefStay(q);
     const href = stayHref(q);
     optsRef.current.set(href, opts);
@@ -809,7 +808,6 @@ export function TripApp() {
     goHome(href + optsParam(opts));
   }
   function homeFlight(q: FlightQuery, opts: string[]) {
-    setHomeSheet(null);
     setPrefFlight(q);
     const href = flightHref(q);
     optsRef.current.set(href, opts);
@@ -873,6 +871,16 @@ export function TripApp() {
     const shown = (tab === "home" && homeMsg?.t === "stay" && homeMsg.query.place === query.place) || (tab === "chat" && !!listId);
     if (!shown) goHome(stayHref(query));
   };
+  // '평소 가격과 비교'의 동급 평균: 열린 숙소가 들어 있는 가장 최근 같은 조건 검색 결과 (검색을 새로 하지 않는다)
+  const sellerPeers: Peer[] = (() => {
+    if (!seller) return [];
+    const key = stayHref(seller.query);
+    const m = [...msgs].reverse().find((x): x is StayMsg => x.t === "stay" && !!x.options?.some((h) => h.token === seller.hotel.token) && stayHref(x.query) === key);
+    return (m?.options ?? []).map((h) => {
+      const p = shownPrice(h, m!.query);
+      return { token: h.token, stars: h.stars, total: p.none ? null : p.value, verified: p.verified };
+    });
+  })();
   const sellerReason = seller ? [...msgs].reverse().flatMap((m) => (m.t === "stay" && !m.aiOff && m.query.place === seller.query.place ? (m.picks ?? []) : [])).find((p) => p.token === seller.hotel.token)?.reason : undefined;
   // PC: 결과가 있으면 오른쪽 패널이 비지 않게 맨 위 숙소(AI 추천 1위)를 먼저 열어 둔다
   const panelMsg = (tab === "home" ? homeMsg : [...chatMsgs].reverse().find((x) => x.t === "stay")) as StayMsg | FlightMsg | undefined;
@@ -923,29 +931,16 @@ export function TripApp() {
                   {brand.tentative && <em>가칭</em>}
                 </span>
               </header>
-              <div className="tb-hero" style={{ "--tb-hero-img": `url(${photoUrl(HOME_HERO_PHOTO, 2000, 760)})` } as React.CSSProperties}>
-                <h1 className="tb-hero-title">
-                  같은 숙소, 더 싸게 예약하세요
-                  <small>예약처 {HOTEL_SELLERS_LIVE.length}곳의 세금 포함 총액을 한 화면에서 견줘 드려요</small>
+              {/* 2026-11-25 3차: 바다 사진 배너와 타일 2개를 걷어내고, 첫 화면에 바로 검색 칸을 펼친다 */}
+              <section className="tb-home-hero">
+                <h1 className="tb-home-title">
+                  예약하고 끝나지 않아요
+                  <small>체크인 날까지 가격을 지켜보고, 내려가면 화면에서 알려 드려요</small>
                 </h1>
-                {/* 타일 2개: 숙소·항공 조건 입력 시트 (항공+숙소 세트 '곧' 타일은 2026-11-25 내렸다) */}
-                <div className="tb-tiles">
-                  <button type="button" className="tb-tile" onClick={() => setHomeSheet("stay")}>
-                    <span className="tb-tile-icon" aria-hidden>
-                      <IconBed size={26} />
-                    </span>
-                    <strong>숙소 총액 비교</strong>
-                    <small>예약처별 총액을 한 화면에서</small>
-                  </button>
-                  <button type="button" className="tb-tile" onClick={() => setHomeSheet("flight")}>
-                    <span className="tb-tile-icon" aria-hidden>
-                      <IconPlane size={26} />
-                    </span>
-                    <strong>항공권 총액 비교</strong>
-                    <small>가는 편·오는 편 총액을 한눈에</small>
-                  </button>
-                </div>
-              </div>
+                <RegisterHint />
+                <HomeSearch kind={kind} onKind={setKind} stay={prefStay} flight={prefFlight} onStay={homeStay} onFlight={homeFlight} />
+              </section>
+              <WatchBanner onOpen={() => setTab("trips")} />
               <HomeDrops saved={saved} onMore={() => setTab("trips")} />
               {snaps.length > 0 && (
                 <section className="tb-sec">
@@ -975,6 +970,12 @@ export function TripApp() {
                   </div>
                 </section>
               )}
+              <HomeLows
+                onPick={(q) => {
+                  addRecent({ kind: "stay", q });
+                  homeStay(q, []);
+                }}
+              />
               <section className="tb-sec">
                 <h2>지금 많이 찾는 관심 여행지</h2>
                 <div className="tb-places">
@@ -1105,14 +1106,14 @@ export function TripApp() {
           </main>
         )}
 
-        {tab === "trips" && <MyTripsTab saved={saved} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => goHome("/")} onFlight={tripFlight} onMoreStays={(t) => goHome(stayHref({ place: t.city, checkIn: t.checkIn, checkOut: t.checkOut, adults: t.adults, budget: 0, taste: "" }))} />}
+        {tab === "trips" && <MyTripsTab onRegister={() => prefill("stay", {})} saved={saved} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => goHome("/")} onFlight={tripFlight} onMoreStays={(t) => goHome(stayHref({ place: t.city, checkIn: t.checkIn, checkOut: t.checkOut, adults: t.adults, budget: 0, taste: "" }))} />}
         {tab === "my" && <My profile={taste.profile} onTaste={() => setOnb(true)} onTrips={() => setTab("trips")} />}
 
         {split && (
           <aside className="tb-panel" aria-label="숙소 상세">
             {seller ? (
               <>
-                <SellerBody hotel={seller.hotel} query={seller.query} reason={sellerReason} onSimilar={similar} saved={savedSet.has(seller.hotel.token)} onSave={() => save(seller.hotel, seller.query)} onGo={(text) => setToast({ text, go: true })} />
+                <SellerBody hotel={seller.hotel} query={seller.query} reason={sellerReason} peers={sellerPeers} onSimilar={similar} saved={savedSet.has(seller.hotel.token)} onSave={() => save(seller.hotel, seller.query)} onGo={(text) => setToast({ text, go: true })} />
               </>
             ) : (
               <div className="tb-panel-empty">
@@ -1207,7 +1208,6 @@ export function TripApp() {
         onStars={byStars}
       />
 
-      <HomeSheet kind={homeSheet} stay={prefStay} flight={prefFlight} onClose={() => setHomeSheet(null)} onStay={homeStay} onFlight={homeFlight} />
       <StaySheet open={!!staySheet} init={staySheet ?? {}} onClose={() => setStaySheet(null)} onSubmit={submitStay} />
       <FlightSheet open={!!flightSheet} init={flightSheet ?? {}} onClose={() => setFlightSheet(null)} onSubmit={submitFlight} />
       <SellerSheet
@@ -1219,6 +1219,7 @@ export function TripApp() {
         onGo={(text) => setToast({ text, go: true })}
         reason={sellerReason}
         onSimilar={similar}
+        peers={sellerPeers}
       />
     </div>
   );
@@ -1366,7 +1367,7 @@ function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onAiRetry, onPl
     );
   return (
     <main>
-      <FlightBrowser data={{ query: m.query, options: m.options, picks: m.picks ?? [] }} aiPending={m.aiPending} aiOff={m.aiOff} onAiRetry={onAiRetry} onBack={onBack} notice={fixNote} initFilter={opts.length ? flightFilterOf(opts, m.options) : undefined} />
+      <FlightBrowser data={{ query: m.query, options: m.options, picks: m.picks ?? [], insights: m.insights }} aiPending={m.aiPending} aiOff={m.aiOff} onAiRetry={onAiRetry} onBack={onBack} notice={fixNote} initFilter={opts.length ? flightFilterOf(opts, m.options) : undefined} />
     </main>
   );
 }
@@ -1720,7 +1721,7 @@ function FlightResult({ m, onAll, onRefine, onRetry, onAiRetry, onPrefill }: Msg
 
 // ---------- 내 여행 · 마이 ----------
 // 내 여행: 맨 위에 예약 내역 캡처 입구(곧 열려요), 그 아래 공유받은 여행과 담아 둔 숙소
-function MyTripsTab({ saved, onOpen, onSave, onHome, onFlight, onMoreStays }: { saved: Saved[]; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void; onFlight: (t: Trip) => void; onMoreStays: (t: Trip) => void }) {
+function MyTripsTab({ saved, onOpen, onSave, onHome, onFlight, onMoreStays, onRegister }: { onRegister: () => void; saved: Saved[]; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void; onFlight: (t: Trip) => void; onMoreStays: (t: Trip) => void }) {
   const [shared, setShared] = useState<string | null>(null);
   useEffect(() => setShared(new URLSearchParams(window.location.search).get("trip")), []);
   // 찜·알림 탭: 맨 위에 찜한 숙소 가격 변화(하루 한 번 다시 확인), 그 아래 여행별 찜 목록.
@@ -1728,7 +1729,7 @@ function MyTripsTab({ saved, onOpen, onSave, onHome, onFlight, onMoreStays }: { 
   return (
     <main className="tb-page">
       <h1>찜·알림</h1>
-      <BookingWatchBox />
+      <BookingWatchBox onRegister={onRegister} />
       <PriceWatchBox saved={saved} onOpen={onOpen} />
       <SharedTripView code={shared} />
       <MyTrips saved={saved} onOpen={onOpen} onSave={onSave} onHome={onHome} onFlight={onFlight} onMoreStays={onMoreStays} />

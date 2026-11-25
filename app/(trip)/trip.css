@@ -5463,3 +5463,296 @@ html.tb-big .tb-app {
   font-weight: 700;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
+
+/* ---------- 2026-11-25 3차: 홈 첫 화면 검색 칸 · 내 가격 지킴이 배너 · 평소 가격과 비교 · 항공 가격 흐름 ---------- */
+.tb-home-hero {
+  margin-top: 4px;
+}
+.tb-home-title {
+  margin: 6px 0 14px;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+}
+.tb-home-title small {
+  display: block;
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--tb-sub);
+}
+.tb-hs-more {
+  display: block;
+  width: calc(100% - 20px);
+  min-height: 44px;
+  margin: 6px 10px 0;
+  padding: 0 4px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tb-sub);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tb-reghint {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--tb-accent-soft);
+  font-size: 14px;
+}
+.tb-reghint p {
+  flex: 1;
+  margin: 0;
+}
+.tb-reghint b {
+  font-weight: 700;
+}
+.tb-reghint .tb-link {
+  flex: none;
+  min-height: 44px;
+}
+/* 내 가격 지킴이 요약: 잉크 네이비 카드. 내려간 금액(절약액) 숫자만 오렌지 */
+.tb-wbanner {
+  width: 100%;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 0;
+  padding: 14px 18px;
+  border-radius: var(--tb-r);
+  background: var(--tb-ink) !important;
+  color: #fff !important;
+  text-align: left;
+  box-shadow: var(--tb-shadow);
+}
+.tb-wbanner-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tb-wbanner-text small {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+}
+.tb-wbanner-text strong {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.tb-wbanner-text span {
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.85);
+}
+.tb-wbanner-text b {
+  color: var(--tb-price);
+  font-weight: 800;
+}
+.tb-wbanner-go {
+  flex: none;
+  font-size: 20px;
+  font-weight: 700;
+}
+.tb-bw-add {
+  min-height: 48px;
+  width: 100%;
+  font-weight: 700;
+}
+
+/* 숙소 상세: 평소 가격과 비교 (막대 2개). 지금 금액은 네이비, 평균은 회색 */
+.tb-usual {
+  margin: 16px 0 4px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--tb-card);
+  border: 1px solid var(--tb-line);
+}
+.tb-usual-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tb-usual-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+.tb-usual-head strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tb-sub);
+}
+.tb-usual-head strong.low {
+  color: var(--tb-good);
+}
+.tb-usual-bars {
+  list-style: none;
+  margin: 12px 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tb-usual-bars li {
+  display: grid;
+  grid-template-columns: 104px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.tb-usual-bars span {
+  color: var(--tb-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tb-usual-bars i {
+  height: 12px;
+  border-radius: 0 6px 6px 0;
+  background: var(--tb-soft);
+  overflow: hidden;
+}
+.tb-usual-bars b {
+  display: block;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  background: #a8afbd;
+}
+.tb-usual-bars b.now {
+  background: var(--tb-ink);
+}
+.tb-usual-bars em {
+  font-style: normal;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--tb-ink);
+}
+
+/* 항공: 가격 흐름 카드 */
+.tb-ftrend {
+  margin: 4px 0 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--tb-card);
+  border: 1px solid var(--tb-line);
+}
+.tb-ftrend-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tb-ftrend-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+.tb-ftrend-badge {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--tb-soft);
+  color: var(--tb-sub);
+}
+.tb-ftrend-badge.low {
+  background: var(--tb-good-soft);
+  color: var(--tb-good);
+}
+.tb-ftrend-badge.high {
+  background: var(--tb-warn-soft);
+  color: var(--tb-warn);
+}
+.tb-ftrend-sub {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+.tb-ftrend-sub small {
+  color: var(--tb-sub);
+}
+.tb-ftrend-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 10px;
+  touch-action: pan-y;
+}
+.tb-ftrend-chart .band {
+  fill: var(--tb-accent-soft);
+}
+.tb-ftrend-chart .axis {
+  stroke: var(--tb-line);
+  stroke-width: 1;
+}
+.tb-ftrend-chart .tick {
+  font-size: 10px;
+  fill: var(--tb-mute);
+}
+.tb-ftrend-chart .line {
+  fill: none;
+  stroke: var(--tb-ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.tb-ftrend-chart .dot {
+  fill: var(--tb-ink);
+  stroke: var(--tb-card);
+  stroke-width: 2;
+}
+.tb-ftrend-chart .cross {
+  stroke: var(--tb-mute);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.tb-ftrend-tip {
+  margin: 4px 0 0;
+  min-height: 20px;
+  font-size: 12.5px;
+  color: var(--tb-sub);
+}
+.tb-ftrend-tip b {
+  color: var(--tb-ink);
+}
+
+@media (min-width: 1024px) {
+  .tb-home-title {
+    margin-top: 28px;
+    font-size: 34px;
+  }
+  .tb-home-title small {
+    font-size: 17px;
+  }
+}
+.tb-usual .tb-note,
+.tb-ftrend .tb-note {
+  margin: 6px 0 0;
+  padding: 0;
+  background: none;
+  font-size: 12.5px;
+  color: var(--tb-sub);
+}
+.tb-ftrend {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+@media (min-width: 1024px) {
+  .tb-results-main .tb-ftrend {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}

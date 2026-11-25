@@ -46,7 +46,7 @@ const vendorKo = (k: string | null) => (k && HOTEL_SELLER_ALLOWLIST.some((s) => 
 
 // ---------- 비교창: 예약했어요 ----------
 export function BookedWatch({ hotel, query, rows }: { hotel: { token: string; name: string }; query: StayQuery; rows: SellerRow[] }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(registering);
   const [price, setPrice] = useState(String(rows[0]?.cost ?? ""));
   const [vendor, setVendor] = useState<string>(rows[0]?.key ?? "");
   const [fcu, setFcu] = useState("");
@@ -83,16 +83,16 @@ export function BookedWatch({ hotel, query, rows }: { hotel: { token: string; na
     setBusy(false);
     if (!r.ok) return setMsg({ ok: false, text: r.message });
     setMsg({ ok: true, text: "가격 지킴이에 등록했어요. 가격이 내리면 찜·알림 탭 맨 위에 알려 드려요" });
-    changed();
+    endRegister(); // changed()도 부른다
   }
 
   if (!open)
     return (
       <div className="tb-bw-entry">
         <button type="button" className="tb-btn" onClick={() => setOpen(true)}>
-          이미 예약했어요 · 가격 지켜보기
+          가격 지킴이에 이 숙소 등록하기
         </button>
-        <small>무료 취소 예약이면, 예약한 뒤에 가격이 내려갈 때 알려 드려요</small>
+        <small>이 숙소를 무료 취소로 예약했다면, 체크인 전까지 가격이 내려가는지 지켜보고 찜·알림 탭에서 알려 드려요</small>
       </div>
     );
   return (
@@ -138,30 +138,161 @@ export function BookedWatch({ hotel, query, rows }: { hotel: { token: string; na
   );
 }
 
+// ---------- 이 기기의 가격 지킴이 목록 (홈 배너·찜·알림 탭이 같이 쓴다) ----------
+// 등록한 적이 없는 기기(번호 없음)는 서버에 묻지 않는다. 서버는 Supabase만 읽는다 (외부 검색 호출 없음)
+let shared: { at: number; list: PublicWatch[] } | null = null;
+let loading: Promise<PublicWatch[]> | null = null;
+async function fetchWatches(force = false): Promise<PublicWatch[]> {
+  const id = device(false);
+  if (!id) return [];
+  if (!force && shared && Date.now() - shared.at < 60_000) return shared.list;
+  if (!force && loading) return loading;
+  loading = post<{ watches: PublicWatch[] }>("/api/bookings/list", { device: id }).then((r) => {
+    loading = null;
+    const list = r.ok ? r.data.watches : (shared?.list ?? []);
+    shared = { at: Date.now(), list };
+    return list;
+  });
+  return loading;
+}
+
+export function useWatches(): [PublicWatch[] | null, (fn: (l: PublicWatch[] | null) => PublicWatch[] | null) => void] {
+  const [list, setList] = useState<PublicWatch[] | null>(shared?.list ?? null);
+  useEffect(() => {
+    let live = true;
+    const load = (force: boolean) => fetchWatches(force).then((l) => live && setList(l));
+    void load(false);
+    const onChange = () => void load(true);
+    subs.add(onChange);
+    return () => {
+      live = false;
+      subs.delete(onChange);
+    };
+  }, []);
+  const update = (fn: (l: PublicWatch[] | null) => PublicWatch[] | null) =>
+    setList((l) => {
+      const next = fn(l);
+      if (next) shared = { at: Date.now(), list: next };
+      return next;
+    });
+  return [list, update];
+}
+
+// 내려간 예약: 지켜보는 중이고, 알림 기준(5,000원·3%)을 넘겨 알린 예약
+export const droppedOf = (list: PublicWatch[]) => list.filter((w) => w.status === "active" && w.alerted && w.latest !== null && w.latest < w.bookedPrice);
+
+// ---------- 홈: 내 가격 지킴이 요약 배너 ----------
+export function WatchBanner({ onOpen }: { onOpen: () => void }) {
+  const [list] = useWatches();
+  const active = (list ?? []).filter((w) => w.status === "active");
+  const drops = droppedOf(active);
+  const saved = drops.reduce((a, w) => a + (w.bookedPrice - (w.latest as number)), 0);
+  return (
+    <button type="button" className="tb-wbanner" onClick={onOpen}>
+      <span className="tb-wbanner-text">
+        <small>내 가격 지킴이</small>
+        {active.length ? (
+          <>
+            <strong>지켜보는 예약 {active.length}건</strong>
+            {drops.length ? (
+              <span>
+                {drops.length}건이 내려갔어요 · 합계 <b>{won(saved)}</b>
+              </span>
+            ) : (
+              <span>아직 내려간 예약은 없어요. 체크인 전까지 계속 지켜봐요</span>
+            )}
+          </>
+        ) : (
+          <strong>예약한 숙소가 더 싸졌는지 체크인 전까지 지켜봐 드려요</strong>
+        )}
+      </span>
+      <span className="tb-wbanner-go" aria-hidden>
+        →
+      </span>
+    </button>
+  );
+}
+
+// ---------- 숙소 검색해서 내 예약 등록하기 ----------
+// 찜·알림 탭에서 시작하면 이 탭(sessionStorage)에 표시를 남긴다. 숙소 상세를 열면 등록 칸이 바로 펼쳐지고, 등록하면 표시를 지운다
+const REG_KEY = "tb-bw-register";
+export const startRegister = () => {
+  try {
+    sessionStorage.setItem(REG_KEY, "1");
+  } catch {
+    // 저장소를 못 쓰면 안내만
+  }
+};
+export const registering = () => {
+  try {
+    return sessionStorage.getItem(REG_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+export const endRegister = () => {
+  try {
+    sessionStorage.removeItem(REG_KEY);
+  } catch {
+    // 없음
+  }
+  changed();
+};
+
+// 홈 맨 위 안내 (등록 중일 때만)
+export function RegisterHint() {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const f = () => setOn(registering());
+    f();
+    subs.add(f);
+    return () => {
+      subs.delete(f);
+    };
+  }, []);
+  if (!on) return null;
+  return (
+    <div className="tb-reghint" role="status">
+      <p>
+        <b>내 예약 등록하기</b> 예약한 숙소를 <b>예약한 날짜·인원</b>으로 검색한 뒤, 그 숙소를 눌러 <b>가격 지킴이에 이 숙소 등록하기</b>를 눌러 주세요.
+      </p>
+      <button type="button" className="tb-link" onClick={endRegister}>
+        그만하기
+      </button>
+    </div>
+  );
+}
+
 // ---------- 찜·알림 탭: 가격 지킴이 목록 ----------
-export function BookingWatchBox() {
-  const [list, setList] = useState<PublicWatch[] | null>(null);
+export function BookingWatchBox({ onRegister }: { onRegister: () => void }) {
+  const [list, setList] = useWatches();
   const [note, setNote] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      const id = device(false);
-      if (!id) return setList([]); // 등록한 적이 없으면 서버에 묻지 않는다
-      const r = await post<{ watches: PublicWatch[] }>("/api/bookings/list", { device: id });
-      setList(r.ok ? r.data.watches : []);
-    };
-    void load();
-    subs.add(load);
-    return () => {
-      subs.delete(load);
-    };
-  }, []);
-
-  if (!list?.length) return null;
+  const register = () => {
+    startRegister();
+    onRegister();
+  };
+  if (list === null) return null;
   const active = list.filter((w) => w.status === "active");
-  const drops = active.filter((w) => w.alerted && w.latest !== null && w.latest < w.bookedPrice);
+  const drops = droppedOf(active);
+  const addBtn = active.length < DEVICE_MAX && (
+    <button type="button" className="tb-btn tb-bw-add" onClick={register}>
+      + 숙소 검색해서 내 예약 등록하기
+    </button>
+  );
+  if (!list.length)
+    return (
+      <section className="tb-watch tb-bw" aria-label="예약한 숙소 가격 지킴이">
+        <div className="tb-watch-head">
+          <strong>내 예약 가격 지킴이</strong>
+          <small>무료 취소로 예약한 숙소가 체크인 전에 더 싸지면 여기에서 알려 드려요</small>
+        </div>
+        {addBtn}
+        <p className="tb-note">캡처나 로그인 없이, 숙소를 검색해 찾은 뒤 결제한 총액과 무료 취소 마감만 적으면 돼요.</p>
+      </section>
+    );
 
   async function recheck(w: PublicWatch) {
     const id = device(false);
@@ -276,6 +407,7 @@ export function BookingWatchBox() {
           );
         })}
       </ul>
+      {addBtn}
     </section>
   );
 }

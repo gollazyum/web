@@ -20,6 +20,8 @@ import { priceChange, savedBaseFor } from "./saved-price";
 import { EstNote, PhotoStrip, PriceChange } from "./StayList";
 import { Sheet } from "./Sheet";
 import { BookedWatch } from "./BookingWatch";
+import { UsualPrice } from "./UsualPrice";
+import type { Peer } from "@/lib/usual-price";
 import { IconHeart, IconOut, IconSpark, IconUp } from "./icons";
 
 type Props = {
@@ -31,6 +33,7 @@ type Props = {
   onGo?: (text: string) => void; // 예약 사이트로 넘어갈 때 잠깐 띄우는 안내
   reason?: string; // AI 추천 이유 (추천 3곳일 때만)
   onSimilar?: () => void; // 예약처 0곳일 때 '비슷한 숙소 보기' (같은 지역·성급)
+  peers?: Peer[]; // 같은 검색 결과의 숙소들 ('평소 가격과 비교'의 동급 평균용, 없으면 기록 비교만)
 };
 
 // 판매처 표시용 색 (첫 글자 배지). 로고 이미지는 쓰지 않는다
@@ -67,10 +70,10 @@ const hm = (at: number) => {
 };
 
 // 예약처별 결제 총액. 열 때 그 숙소의 예약처 가격을 한 번 더 받아 온다 (같은 조건은 이 탭에 30분 캐시)
-export function SellerSheet({ hotel, query, saved, onSave, onClose, onGo, reason, onSimilar }: Props) {
+export function SellerSheet({ hotel, query, saved, onSave, onClose, onGo, reason, onSimilar, peers }: Props) {
   return (
     <Sheet open={!!hotel} onClose={onClose} label="숙소 상세" tall>
-      {hotel && <SellerBody key={hotel.token} hotel={hotel} query={query} saved={saved} onSave={onSave} onGo={onGo} reason={reason} onSimilar={onSimilar} />}
+      {hotel && <SellerBody key={hotel.token} hotel={hotel} query={query} saved={saved} onSave={onSave} onGo={onGo} reason={reason} onSimilar={onSimilar} peers={peers} />}
     </Sheet>
   );
 }
@@ -101,7 +104,7 @@ function factsOf(h: HotelOption, q: StayQuery, nights: number, rows: SellerRow[]
 // 담아 둔 숙소: 지금 예약처 1위 총액과 담을 때 금액의 차이 (확인 총액끼리만)
 const sellerDiff = (token: string, q: StayQuery, cost: number) => priceChange(savedBaseFor(token, q), { value: cost, verified: true, none: false });
 
-export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimilar }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
+export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimilar, peers = [] }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
   const [state, setState] = useState<{ token: string; rows: SellerRow[] | null; status: number | null | "ok"; at: number; topics?: ReviewTopic[] | null } | null>(null);
   const [qa, setQa] = useState<{ token: string; list: { q: string; a: string | null }[] }>({ token: hotel.token, list: [] });
   const [ask, setAsk] = useState("");
@@ -266,6 +269,9 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
             );
           })}
         </div>
+        {state?.status === "ok" && (
+          <UsualPrice token={hotel.token} stars={hotel.stars} adults={query.adults} checkIn={query.checkIn} nights={nights} current={rows[0].cost} peers={peers} kids={(query.childAges?.length ?? 0) > 0 || (query.rooms ?? 1) > 1} />
+        )}
         {state?.status === "ok" && <BookedWatch hotel={hotel} query={query} rows={rows} />}
         </>
       ) : (
