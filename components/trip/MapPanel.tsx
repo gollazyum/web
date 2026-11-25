@@ -11,7 +11,7 @@ import { IconBack } from "./icons";
 
 // 가격 핀 지도 화면 (휴대폰: 결과 위 전체 화면, PC: 오른쪽 패널).
 // 지도 코드(mapbox-gl)는 이 화면을 실제로 띄울 때만 받는다. 토큰이 없거나 WebGL을 못 쓰면 지도 없이 안내만 보이고 목록으로 돌아가게 한다.
-// 칩은 받은 목록 안에서만 거른다 (검색 다시 하지 않음)
+// 칩은 받은 목록 안에서만 거른다 (검색 다시 하지 않음). 지도 키(NEXT_PUBLIC_MAPBOX_TOKEN)는 배포할 때 들어가므로 키를 바꾸면 다시 배포해야 한다
 const StayMap = dynamic(() => import("./StayMap"), { ssr: false, loading: () => <div className="tb-map-canvas tb-map-loading" aria-hidden /> });
 
 const FAIL_TEXT: Record<string, string> = {
