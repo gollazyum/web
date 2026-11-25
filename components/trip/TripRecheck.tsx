@@ -17,7 +17,7 @@ const hq = (q: StayQuery) => ({ q: q.place, checkIn: q.checkIn, checkOut: q.chec
 
 // 누를 때마다 저장된 조건으로 예약처 가격을 새로 받는다 (이 탭·서버에 저장된 값을 쓰지 않는다). 계속 조회하거나 서버에서 따로 지켜보지 않는다
 // null: 불러오지 못함, []: 이 날짜에 이 숙소 가격이 없음
-async function recheck(token: string, name: string, q: StayQuery): Promise<SellerRow[] | null> {
+export async function recheck(token: string, name: string, q: StayQuery): Promise<SellerRow[] | null> {
   const r = await stayPrices(token, q, name, true);
   if (!r.ok) return null;
   const rows = sellerRows(r.data.sources, nightsOf(q), name, hq(q));

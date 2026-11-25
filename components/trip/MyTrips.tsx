@@ -51,11 +51,11 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
   if (!trips.length)
     return (
       <>
-        <h2 className="tb-h2">담아 둔 숙소</h2>
+        <h2 className="tb-h2">찜한 숙소</h2>
         <div className="tb-empty tb-empty-trip">
           <TripCardsArt />
-          <strong>아직 담아 둔 여행이 없어요</strong>
-          <p>마음에 드는 숙소의 ♡를 누르면 여행별로 여기에 모여요.</p>
+          <strong>아직 찜한 숙소가 없어요</strong>
+          <p>마음에 드는 숙소의 ♡를 누르면 여행별로 여기에 모이고, 가격이 내려가면 맨 위에 알려 드려요.</p>
           <button type="button" className="tb-cta small" onClick={onHome}>
             숙소 찾으러 가기
           </button>
@@ -65,7 +65,7 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
 
   return (
     <>
-      <h2 className="tb-h2">담아 둔 숙소</h2>
+      <h2 className="tb-h2">찜한 숙소</h2>
       {trips.map((t, i) => {
         const d = daysUntil(t.checkIn, today);
         const c = checks[t.key] ?? {};
@@ -86,7 +86,7 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
               </header>
 
               <h4 className="tb-trip-sub">
-                <IconBed size={16} /> 담아 둔 숙소 {t.items.length}곳
+                <IconBed size={16} /> 찜한 숙소 {t.items.length}곳
               </h4>
               <div className="tb-rlist flat">
                 {t.items.map((s) => (
@@ -117,7 +117,7 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
                       <span className="tb-check on" aria-hidden />
                       <span className="tb-check-text">
                         <b>숙소</b>
-                        <small>{t.items.length}곳 담아 둠</small>
+                        <small>{t.items.length}곳 찜함</small>
                       </span>
                     </li>
                     {TRIP_CHECKS.map((x) => (

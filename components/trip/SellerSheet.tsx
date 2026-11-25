@@ -1,5 +1,6 @@
 "use client";
 
+import { freeCancelGap, savingsOf } from "@/lib/savings";
 import { useEffect, useState } from "react";
 import { sellerRows, type HotelOption, type ReviewTopic, type SellerRow } from "@/lib/hotels";
 import { distText, nearby } from "@/lib/landmarks";
@@ -121,7 +122,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
       }
       // 실패하면 목록에 같이 온 몇 곳이라도 보여 주고, 보여 준 1위로 카드 금액도 맞춘다 (0곳이면 카드는 그대로)
       const rows = sellerRows(hotel.sources, nights, hotel.name, hq);
-      if (rows.length) setVerified(hotel.token, query, rows);
+      if (rows.length) setVerified(hotel.token, query, rows, false);
       if (live) setState({ token: hotel.token, rows, status: r.status, at: 0 });
     });
     return () => {
@@ -209,11 +210,21 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
       ) : rows.length ? (
         <>
         {(() => {
-          // 1위 요금이 무료 취소가 아니면, 무료 취소 요금 중 가장 낮은 곳을 따로 알려 준다 (예약처마다 가장 싼 요금 하나만 받는다)
-          const fc = rows[0].freeCancel ? null : rows.find((r) => r.freeCancel);
+          // 아낀 금액: 예약처에서 확인한 세금 포함 총액끼리만 (검색 목록의 예상 금액·가격을 못 받은 경우는 보여 주지 않는다)
+          const save = state?.status === "ok" ? savingsOf(rows) : null;
+          return save ? (
+            <p className="tb-save-line" role="note">
+              가장 비싼 예약처보다 <b>{won(save.amount)}</b> 아껴요
+              <small>확인한 예약처 {save.count}곳 · {nights}박 세금 포함 총액</small>
+            </p>
+          ) : null;
+        })()}
+        {(() => {
+          // 1위 요금이 무료 취소가 아니면, 무료 취소 요금 중 가장 낮은 곳과의 차액을 한 줄로 (예약처마다 가장 싼 요금 하나만 받는다)
+          const fc = freeCancelGap(rows);
           return fc ? (
             <p className="tb-fc-note">
-              무료 취소 요금은 <b>{sellerDef(fc.key).ko}</b> {won(fc.cost)}부터예요 <small>(+{won(fc.cost - rows[0].cost)})</small>
+              <b>+{won(fc.gap)}</b>이면 무료 취소 <small>· {sellerDef(fc.row.key).ko} {won(fc.row.cost)}</small>
             </p>
           ) : null;
         })()}
@@ -333,7 +344,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
       <div className="tb-save-bar">
         {rows?.length ? (
           <div className="tb-book-bar">
-            <button type="button" className={`tb-save-ic${saved ? " on" : ""}`} onClick={onSave} aria-pressed={saved} aria-label={saved ? "내 여행에서 빼기" : "내 여행에 담기"}>
+            <button type="button" className={`tb-save-ic${saved ? " on" : ""}`} onClick={onSave} aria-pressed={saved} aria-label={saved ? "찜 빼기" : "찜하기"}>
               <IconHeart size={20} on={saved} />
             </button>
             <span className="tb-book-bar-price">
@@ -364,7 +375,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
           </div>
         ) : (
           <button type="button" className="tb-save" onClick={onSave} aria-pressed={saved}>
-            <IconHeart size={18} on={saved} /> {saved ? "내 여행에 담았어요" : "내 여행에 담기"}
+            <IconHeart size={18} on={saved} /> {saved ? "찜했어요" : "찜하기"}
           </button>
         )}
       </div>
