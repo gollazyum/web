@@ -82,7 +82,7 @@ export function BookedWatch({ hotel, query, rows }: { hotel: { token: string; na
     });
     setBusy(false);
     if (!r.ok) return setMsg({ ok: false, text: r.message });
-    setMsg({ ok: true, text: "가격 지킴이에 등록했어요. 가격이 내리면 찜·알림 탭 맨 위에 알려 드려요" });
+    setMsg({ ok: true, text: "가격 지킴이에 등록했어요. 가격이 내리면 내 여행 탭 맨 위에 알려 드려요" });
     endRegister(); // changed()도 부른다
   }
 
@@ -92,7 +92,7 @@ export function BookedWatch({ hotel, query, rows }: { hotel: { token: string; na
         <button type="button" className="tb-bw-pill" onClick={() => setOpen(true)}>
           가격 변동 알림 등록
         </button>
-        <small>이 숙소를 무료 취소로 예약했다면, 체크인 전까지 가격이 내려가는지 지켜보고 찜·알림 탭에서 알려 드려요</small>
+        <small>이 숙소를 무료 취소로 예약했다면, 체크인 전까지 가격이 내려가는지 지켜보고 내 여행 탭에서 알려 드려요</small>
       </div>
     );
   return (
@@ -138,7 +138,7 @@ export function BookedWatch({ hotel, query, rows }: { hotel: { token: string; na
   );
 }
 
-// ---------- 이 기기의 가격 지킴이 목록 (홈 배너·찜·알림 탭이 같이 쓴다) ----------
+// ---------- 이 기기의 가격 지킴이 목록 (홈 배너·내 여행 탭이 같이 쓴다) ----------
 // 등록한 적이 없는 기기(번호 없음)는 서버에 묻지 않는다. 서버는 Supabase만 읽는다 (외부 검색 호출 없음)
 let shared: { at: number; list: PublicWatch[] } | null = null;
 let loading: Promise<PublicWatch[]> | null = null;
@@ -215,7 +215,7 @@ export function WatchBanner({ onOpen }: { onOpen: () => void }) {
 }
 
 // ---------- 숙소 검색해서 내 예약 등록하기 ----------
-// 찜·알림 탭에서 시작하면 이 탭(sessionStorage)에 표시를 남긴다. 숙소 상세를 열면 등록 칸이 바로 펼쳐지고, 등록하면 표시를 지운다
+// 내 여행 탭에서 시작하면 이 탭(sessionStorage)에 표시를 남긴다. 숙소 상세를 열면 등록 칸이 바로 펼쳐지고, 등록하면 표시를 지운다
 const REG_KEY = "tb-bw-register";
 export const startRegister = () => {
   try {
@@ -264,7 +264,7 @@ export function RegisterHint() {
   );
 }
 
-// ---------- 찜·알림 탭: 가격 지킴이 목록 ----------
+// ---------- 내 여행 탭: 가격 지킴이 목록 ----------
 export function BookingWatchBox({ onRegister }: { onRegister: () => void }) {
   const [list, setList] = useWatches();
   const [note, setNote] = useState<Record<string, string>>({});
@@ -291,7 +291,7 @@ export function BookingWatchBox({ onRegister }: { onRegister: () => void }) {
           <small>무료 취소로 예약한 숙소가 체크인 전에 더 싸지면 여기에서 알려 드려요</small>
         </div>
         {addBtn}
-        <p className="tb-note">캡처나 로그인 없이, 숙소를 검색해 찾은 뒤 결제한 총액과 무료 취소 마감만 적으면 돼요.</p>
+        <p className="tb-note">무료 취소로 예약한 숙소를 등록해 두면 체크인 전까지 가격 하락을 대신 확인해 드려요.</p>
       </section>
     );
 

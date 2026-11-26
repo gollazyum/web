@@ -1,37 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { today as localToday } from "@/lib/dates";
-import { daysUntil, groupTrips, TRIP_CHECK_KEY, TRIP_CHECKS, type Trip, type TripCheckId, type TripChecks, type TripItem } from "@/lib/trips";
+import { daysUntil, groupTrips, type Trip, type TripItem } from "@/lib/trips";
 import { guestText, nightsOf } from "@/lib/trip";
 import { StayRow } from "./StayList";
-import { IconBed, IconPlane } from "./icons";
+import { IconBed } from "./icons";
 import { TripActions } from "./TripRecheck";
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
-
-function useChecks() {
-  const [checks, setChecks] = useState<TripChecks>({});
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(TRIP_CHECK_KEY);
-      if (raw) setChecks(JSON.parse(raw) as TripChecks);
-    } catch {
-      // 저장소를 못 쓰면 빈 체크로 둔다
-    }
-  }, []);
-  const flip = (key: string, id: TripCheckId) =>
-    setChecks((c) => {
-      const next = { ...c, [key]: { ...c[key], [id]: !c[key]?.[id] } };
-      try {
-        localStorage.setItem(TRIP_CHECK_KEY, JSON.stringify(next));
-      } catch {
-        // 저장 실패는 조용히 넘긴다
-      }
-      return next;
-    });
-  return { checks, flip };
-}
 
 type Props<T extends TripItem> = {
   saved: T[];
@@ -42,11 +18,11 @@ type Props<T extends TripItem> = {
   onMoreStays: (t: Trip) => void; // 같은 조건으로 숙소 더 보기
 };
 
-// 내 여행 탭: 담아 둔 숙소를 여행(도시 + 날짜)으로 묶고, 여행마다 '빠진 건 없나요?' 체크를 둔다. 모두 이 기기에만 저장된다
-export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onFlight, onMoreStays }: Props<T>) {
+// 내 여행 탭: 담아 둔 숙소를 여행(도시 + 날짜)으로 묶어 숙소 목록과 같은 1px 구분선 줄로 보여 준다. 모두 이 기기에만 저장된다
+// ('빠진 건 없나요?' 체크는 2026-11-26 북유럽 정리 때 뺐다)
+export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onMoreStays }: Props<T>) {
   const today = localToday();
   const trips = groupTrips(saved, today);
-  const { checks, flip } = useChecks();
 
   if (!trips.length)
     return (
@@ -68,8 +44,6 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
       <h2 className="tb-h2">찜한 숙소</h2>
       {trips.map((t, i) => {
         const d = daysUntil(t.checkIn, today);
-        const c = checks[t.key] ?? {};
-        const done = 1 + TRIP_CHECKS.filter((x) => c[x.id]).length;
         const showPastHead = t.past && (i === 0 || !trips[i - 1].past);
         return (
           <div key={t.key} className="tb-trip-wrap">
@@ -107,36 +81,6 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onF
               )}
               {!t.past && <TripActions items={t.items} place={t.items[0]?.query.place ?? t.city} checkIn={t.checkIn} checkOut={t.checkOut} adults={t.adults} />}
 
-              {!t.past && (
-                <div className="tb-trip-checks">
-                  <h4 className="tb-trip-sub">
-                    빠진 건 없나요? <small>{done}/{TRIP_CHECKS.length + 1}</small>
-                  </h4>
-                  <ul>
-                    <li className="on">
-                      <span className="tb-check on" aria-hidden />
-                      <span className="tb-check-text">
-                        <b>숙소</b>
-                        <small>{t.items.length}곳 찜함</small>
-                      </span>
-                    </li>
-                    {TRIP_CHECKS.map((x) => (
-                      <li key={x.id} className={c[x.id] ? "on" : ""}>
-                        <button type="button" className={`tb-check${c[x.id] ? " on" : ""}`} role="checkbox" aria-checked={!!c[x.id]} aria-label={`${x.label} 챙김`} onClick={() => flip(t.key, x.id)} />
-                        <span className="tb-check-text">
-                          <b>{x.label}</b>
-                          <small>{x.hint}</small>
-                        </span>
-                        {x.id === "flight" && !c.flight && (
-                          <button type="button" className="tb-chip-btn" onClick={() => onFlight(t)}>
-                            <IconPlane size={15} /> 찾기
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </section>
           </div>
         );

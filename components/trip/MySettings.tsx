@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { today as localToday } from "@/lib/dates";
 import { site } from "@/lib/site";
+import { HOME_FAQ } from "@/lib/home-info";
 import { readAiCount, readBigText, setBigText } from "@/lib/ui-prefs";
 
 // 마이 탭: 내 취향 기준 · 알림 · 화면 크기 · 오늘 AI 상담 이용 · 고객지원과 결제 안내
@@ -34,10 +35,10 @@ export function MySettings({ tasteSummary, onTaste, onTrips }: { tasteSummary: s
         <div className="tb-set-row">
           <span>
             <strong>찜한 숙소 가격 변화</strong>
-            <small>찜·알림 탭을 열면 하루 한 번 최근 찜한 숙소 5곳의 가격을 다시 확인해요.</small>
+            <small>내 여행 탭을 열면 하루 한 번 최근 찜한 숙소 5곳의 가격을 다시 확인해요.</small>
           </span>
           <button type="button" className="tb-link" onClick={onTrips}>
-            찜·알림 보기
+            내 여행 보기
           </button>
         </div>
         <div className="tb-set-row">
@@ -102,6 +103,16 @@ export function MySettings({ tasteSummary, onTaste, onTrips }: { tasteSummary: s
           </li>
         </ul>
         <p className="tb-set-sub">{site.footerNotice} 결제는 이동한 예약 사이트에서 이뤄지며, 이 앱은 결제를 대신 받지 않아요.</p>
+        {/* 자주 묻는 질문: 2026-11-26 홈 아래에서 이곳으로 옮겼다 */}
+        <div className="tb-faq">
+          <h3 className="tb-h3">자주 묻는 질문</h3>
+          {HOME_FAQ.map((f) => (
+            <details key={f.q}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </div>
       </section>
     </div>
   );

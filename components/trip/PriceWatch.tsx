@@ -8,7 +8,7 @@ import type { SavedLike } from "./saved-price";
 import { baseOf } from "./saved-price";
 import { recheck } from "./TripRecheck";
 
-// 찜한 숙소 가격 다시 확인 결과를 화면 어디서나 (홈·탭 점·찜·알림) 같이 본다
+// 찜한 숙소 가격 다시 확인 결과를 화면 어디서나 (홈·탭 점·내 여행) 같이 본다
 const subs = new Set<() => void>();
 let cache: { raw: string | null; v: WatchState | null } = { raw: null, v: null };
 function read(): WatchState | null {
@@ -67,7 +67,7 @@ const ago = (at: number) => {
   return h < 24 ? `${h}시간 전` : `${Math.round(h / 24)}일 전`;
 };
 
-// 찜·알림 탭 맨 위: 열 때 하루 한 번 자동으로 다시 확인하고, 내려간 숙소를 모아 보여 준다
+// 내 여행 탭 맨 위: 열 때 하루 한 번 자동으로 다시 확인하고, 내려간 숙소를 모아 보여 준다
 export function PriceWatchBox<T extends SavedLike>({ saved, onOpen }: { saved: T[]; onOpen: (s: T) => void }) {
   const state = useWatch();
   const [busy, setBusy] = useState(false);
