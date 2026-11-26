@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import { bandLabel, type PriceBasis } from "@/lib/price-bands";
 import { EMPTY_FILTER, RATING_STEPS, toggleIn, activeCount, type FilterCounts, type StayFilter } from "@/lib/stay-filters";
 import { Sheet } from "./Sheet";
@@ -194,6 +195,44 @@ export function FilterBar({ c, f, set, sort, setSort, nights = 1, onMap }: { c: 
     setDraft(f);
     setOpen("all");
   };
+  // PC(1024px 이상): '필터'는 어두운 막·서랍 없이 버튼 바로 아래 흰 팝오버로 (목록을 가리지 않게). 휴대폰은 아래 시트 그대로
+  const pc = useMediaQuery("(min-width: 1024px)");
+  const pop = useRef<HTMLDivElement>(null);
+  const popOpen = pc && open === "all";
+  useEffect(() => {
+    if (!popOpen) return;
+    const out = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (pop.current && !pop.current.contains(t) && !(t instanceof Element && t.closest(".tb-pill-filter"))) setOpen(null);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
+    document.addEventListener("mousedown", out);
+    window.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", out);
+      window.removeEventListener("keydown", esc);
+    };
+  }, [popOpen]);
+  const allBody = (
+    <>
+      <FilterPanel c={c} f={draft} set={setDraft} nights={nights} />
+      <div className="tb-ffoot">
+        <button type="button" className="tb-btn" onClick={() => setDraft(EMPTY_FILTER)}>
+          해제하기
+        </button>
+        <button
+          type="button"
+          className="tb-cta"
+          onClick={() => {
+            set(draft);
+            setOpen(null);
+          }}
+        >
+          적용하기
+        </button>
+      </div>
+    </>
+  );
   return (
     <>
       <div className="tb-pcbar" role="group" aria-label="정렬과 빠른 조건">
@@ -207,9 +246,17 @@ export function FilterBar({ c, f, set, sort, setSort, nights = 1, onMap }: { c: 
             {q.label}
           </button>
         ))}
-        <button type="button" className="tb-pill" aria-pressed={n > 0} onClick={openAll}>
-          필터{n ? ` ${n}` : ""}
-        </button>
+        <span className="tb-fpop-anchor">
+          <button type="button" className="tb-pill tb-pill-filter" aria-pressed={n > 0} aria-expanded={popOpen} onClick={() => (popOpen ? setOpen(null) : openAll())}>
+            필터{n ? ` ${n}` : ""}
+          </button>
+          {popOpen && (
+            <div ref={pop} className="tb-fpop" role="dialog" aria-label="필터">
+              <h2 className="tb-fsheet-title">필터</h2>
+              {allBody}
+            </div>
+          )}
+        </span>
         {/* PC: 넓은 지도 창 열기 (검색은 다시 하지 않는다) */}
         {onMap && (
           <button type="button" className="tb-pill tb-pill-map" onClick={onMap}>
@@ -232,34 +279,9 @@ export function FilterBar({ c, f, set, sort, setSort, nights = 1, onMap }: { c: 
         </button>
       </div>
 
-      <Sheet open={open === "all"} onClose={() => setOpen(null)} label="필터" tall side>
+      <Sheet open={!pc && open === "all"} onClose={() => setOpen(null)} label="필터" tall>
         <h2 className="tb-fsheet-title">필터</h2>
-        {/* PC 서랍: 예전 왼쪽 기둥의 정렬 기준도 여기서 고른다 (위 알약 줄에 없는 높은 요금순·성급순 포함) */}
-        <section className="tb-fsort">
-          <h3>정렬 기준</h3>
-          {SORTS.map((s) => (
-            <button key={s.id} type="button" className="tb-fopt radio" aria-pressed={sort === s.id} onClick={() => setSort(s.id)}>
-              <span>{s.label}</span>
-              <i aria-hidden />
-            </button>
-          ))}
-        </section>
-        <FilterPanel c={c} f={draft} set={setDraft} nights={nights} />
-        <div className="tb-ffoot">
-          <button type="button" className="tb-btn" onClick={() => setDraft(EMPTY_FILTER)}>
-            해제하기
-          </button>
-          <button
-            type="button"
-            className="tb-cta"
-            onClick={() => {
-              set(draft);
-              setOpen(null);
-            }}
-          >
-            적용하기
-          </button>
-        </div>
+        {allBody}
       </Sheet>
 
       <Sheet open={open === "price"} onClose={() => setOpen(null)} label="요금">

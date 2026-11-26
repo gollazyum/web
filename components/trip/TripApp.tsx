@@ -15,7 +15,7 @@ import { HOME_PLACES, photoUrl } from "@/lib/home-places";
 
 // PC 홈 대표 사진: 인기 여행지 카드와 같은 도쿄 사진
 const HOME_HERO_TOKYO = HOME_PLACES.find((p) => p.name === "도쿄")?.photo ?? HOME_PLACES[0].photo;
-import { HOME_FAQ, HOME_TRUST } from "@/lib/home-info";
+import { HOME_STEPS, HOME_TRUST } from "@/lib/home-info";
 import type { FlightOption } from "@/lib/flights";
 import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
 import { dateFixText, flightHref, parseHomeSearch, stayHref, TAB_PATH, tabOf, type Tab } from "@/lib/trip-url";
@@ -249,7 +249,7 @@ const cityOf = (label: string) => label.replace(/\s*\([A-Z]{3}\)\s*$/, "");
 const Orb = ({ size = 32, calm }: { size?: number; calm?: boolean }) => <span className={calm ? "tb-orb calm" : "tb-orb"} style={{ width: size, height: size }} aria-hidden />;
 
 export function TripApp() {
-  // 탭은 주소가 정한다 (/ 홈, /chat AI 추천, /trips 찜·알림, /my 마이). 뒤로 가기·새로 고침·공유가 그대로 된다
+  // 탭은 주소가 정한다 (/ 홈, /chat AI 추천, /trips 내 여행, /my 마이). 뒤로 가기·새로 고침·공유가 그대로 된다
   const pathname = usePathname();
   const router = useRouter();
   // 사람이 화면을 처음 만지면(누르기·입력·스크롤) 결과 화면 코드를 미리 받아 둔다. 첫 화면을 그리는 동안에는 받지 않는다
@@ -304,7 +304,7 @@ export function TripApp() {
   const [mapFor, setMapFor] = useState<string | null>(null);
   const [mapSel, setMapSel] = useState<string | null>(null); // 지도를 열 때 골라 둘 숙소 (상세의 [크게 보기])
   const { saved, toggle, upgrade } = useSaved();
-  const drops = useDrops(saved); // 찜한 숙소 중 가격이 내려간 곳 (찜·알림 탭에서 하루 한 번 확인한 결과)
+  const drops = useDrops(saved); // 찜한 숙소 중 가격이 내려간 곳 (내 여행 탭에서 하루 한 번 확인한 결과)
   setSavedList(saved); // 카드·상세가 담을 때 금액을 찾아볼 수 있게
   const priceVersion = usePriceVersion();
   useEffect(() => {
@@ -1037,6 +1037,25 @@ export function TripApp() {
                   ))}
                 </div>
               </section>
+              {/* 3단계 가격 방어: 상자 없이 먹색 1px 선 + 3열 글자. 아래 숫자는 설명용 예시라 캡션을 꼭 붙인다 */}
+              <section className="tb-sec tb-steps" aria-label="가격을 지키는 3단계">
+                <h2>단 한 번의 검색으로 끝내고, 체크인까지 지키는 가격</h2>
+                <ol>
+                  {HOME_STEPS.map((st) => (
+                    <li key={st.n}>
+                      <span className="tb-steps-n">{st.n}</span>
+                      <strong>{st.title}</strong>
+                      <p>{st.text}</p>
+                    </li>
+                  ))}
+                </ol>
+                <p className="tb-steps-ex">
+                  <span>
+                    예약 당시 총액 <b>342,000원</b> → 다시 확인한 최저가 <b>298,000원</b> · <b>44,000원</b> 절약 가능
+                  </span>
+                  <small>이해를 돕기 위한 예시 화면이에요</small>
+                </p>
+              </section>
               <ul className="tb-trust" aria-label="이용 안내">
                 {HOME_TRUST.map((t) => (
                   <li key={t.title}>
@@ -1048,18 +1067,6 @@ export function TripApp() {
               {/* 실제로 가격을 받아 견주는 예약처 (lib/hotel-sellers.ts 허용 목록과 같다) */}
               <p className="tb-trust-sellers">비교하는 예약처: {HOTEL_SELLERS_LIVE.map((k) => sellerDef(k).ko).join(" · ")}</p>
               {HOTEL_SELLERS_PENDING.length > 0 && <p className="tb-trust-sellers sub">국내 예약처는 준비 중이에요</p>}
-              <section className="tb-sec tb-faq">
-                <h2>자주 묻는 질문</h2>
-                {HOME_FAQ.map((f) => (
-                  <details key={f.q}>
-                    <summary>{f.q}</summary>
-                    <p>{f.a}</p>
-                  </details>
-                ))}
-                <p className="tb-faq-more">
-                  더 자세한 내용은 <Link href="/terms">이용약관</Link>에 있어요.
-                </p>
-              </section>
               <TripFooter />
             </main>
           ))}
@@ -1175,12 +1182,12 @@ export function TripApp() {
             <strong>{BRAND_NAME}</strong>
             {brand.tentative && <em>가칭</em>}
           </span>
-          {/* 4탭 (2026-11-25 돈 아끼는 예약에 집중): 홈 · AI 추천 · 찜·알림 · 마이. 모두 같은 크기. PC에서는 위쪽 머리글 메뉴가 된다 */}
+          {/* 4탭 (2026-11-25 돈 아끼는 예약에 집중): 홈 · AI 추천 · 내 여행 · 마이. 모두 같은 크기. PC에서는 위쪽 머리글 메뉴가 된다 */}
           {(
             [
               { id: "home", label: "홈", icon: <IconHome size={24} /> },
               { id: "chat", label: "AI 추천", icon: <IconCompass size={24} /> },
-              { id: "trips", label: "찜·알림", icon: <IconHeart size={24} /> },
+              { id: "trips", label: "내 여행", icon: <IconHeart size={24} /> },
               { id: "my", label: "마이", icon: <IconUser size={24} /> },
             ] as { id: Tab; label: string; icon: React.ReactNode; soon?: boolean }[]
           ).map((it) => (
@@ -1825,11 +1832,11 @@ function FlightResult({ m, onAll, onRefine, onRetry, onAiRetry, onPrefill }: Msg
 function MyTripsTab({ saved, onOpen, onSave, onHome, onFlight, onMoreStays, onRegister }: { onRegister: () => void; saved: Saved[]; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void; onFlight: (t: Trip) => void; onMoreStays: (t: Trip) => void }) {
   const [shared, setShared] = useState<string | null>(null);
   useEffect(() => setShared(new URLSearchParams(window.location.search).get("trip")), []);
-  // 찜·알림 탭: 맨 위에 찜한 숙소 가격 변화(하루 한 번 다시 확인), 그 아래 여행별 찜 목록.
+  // 내 여행 탭: 맨 위에 찜한 숙소 가격 변화(하루 한 번 다시 확인), 그 아래 여행별 찜 목록.
   // 예약 내역 캡처 등록(곧 열려요)은 2026-11-25 돈 아끼는 예약에 집중하며 내렸다
   return (
     <main className="tb-page">
-      <h1>찜·알림</h1>
+      <h1>내 여행</h1>
       <BookingWatchBox onRegister={onRegister} />
       <PriceWatchBox saved={saved} onOpen={onOpen} />
       <SharedTripView code={shared} />
