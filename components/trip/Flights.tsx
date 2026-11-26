@@ -471,7 +471,7 @@ export function FlightBrowser({ data, aiPending, aiOff, onAiRetry, onBack, bare,
           </div>
         </div>
       </div>
-      <Sheet open={sheet} onClose={() => setSheet(false)} label="필터" tall>
+      <Sheet open={sheet} onClose={() => setSheet(false)} label="필터" tall side>
         <h2 className="tb-fsheet-title">필터</h2>
         <FlightFilterPanel c={draftFacets} f={draft} set={setDraft} />
         <div className="tb-ffoot">

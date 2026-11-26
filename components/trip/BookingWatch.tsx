@@ -207,7 +207,8 @@ export function WatchBanner({ onOpen }: { onOpen: () => void }) {
         )}
       </span>
       <span className="tb-wbanner-go" aria-hidden>
-        →
+        {/* PC: 오른쪽 텍스트 링크 / 휴대폰: 화살표만 */}
+        <span className="tb-only-pc">{active.length ? "지켜보는 예약 보기" : "예약 등록하기"} </span>→
       </span>
     </button>
   );

@@ -12,6 +12,9 @@ import type { HotelOption } from "@/lib/hotels";
 import { criteriaWeights, EMPTY_PROFILE, profileLines, readSaved, TASTE_KEY, withProfile, type TasteProfile, type TasteSaved, type TasteStatus } from "@/lib/taste";
 import { site } from "@/lib/site";
 import { HOME_PLACES, photoUrl } from "@/lib/home-places";
+
+// PC 홈 대표 사진: 인기 여행지 카드와 같은 도쿄 사진
+const HOME_HERO_TOKYO = HOME_PLACES.find((p) => p.name === "도쿄")?.photo ?? HOME_PLACES[0].photo;
 import { HOME_FAQ, HOME_TRUST } from "@/lib/home-info";
 import type { FlightOption } from "@/lib/flights";
 import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
@@ -907,7 +910,7 @@ export function TripApp() {
 
   return (
     <div className="tb-app">
-      <div className={`tb-main${split ? " split" : ""}${split && tab === "chat" ? " aichat" : ""}${split && tab === "chat" && !mapPanel && !seller ? " nopanel" : ""}${tab === "home" && !homeMsg ? " home" : ""}`}>
+      <div className={`tb-main${split ? " split" : ""}${split && tab === "chat" ? " aichat" : ""}${split && tab === "chat" && !mapPanel && !seller ? " nopanel" : ""}${tab === "home" && !homeMsg ? " home" : ""}${tab === "home" && homeMsg?.t === "flight" ? " flight" : ""}`}>
         {tab === "home" &&
           (homeMsg ? (
             <HomeResult
@@ -944,9 +947,20 @@ export function TripApp() {
               {/* 2026-11-25 3차: 바다 사진 배너와 타일 2개를 걷어내고, 첫 화면에 바로 검색 칸을 펼친다 */}
               <section className="tb-home-hero">
                 <h1 className="tb-home-title">
-                  예약하고 끝나지 않아요
+                  {/* PC에서는 두 줄 (예약하고 / 끝나지 않아요), 설명은 오른쪽 아래 */}
+                  <span className="tb-home-title-main">
+                    <span>예약하고</span> <span>끝나지 않아요</span>
+                  </span>
                   <small>체크인 날까지 가격을 지켜보고, 내려가면 화면에서 알려 드려요</small>
                 </h1>
+                {/* PC 대표 사진 (도쿄). 휴대폰은 1px 빈 그림만 받아 사진을 내려받지 않는다 */}
+                <figure className="tb-home-photo" aria-hidden>
+                  <picture>
+                    <source media="(min-width: 1024px)" srcSet={photoUrl(HOME_HERO_TOKYO, 1600, 520)} />
+                    <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="" onError={(e) => (e.currentTarget.style.visibility = "hidden")} />
+                  </picture>
+                  <figcaption>도쿄 · 일본</figcaption>
+                </figure>
                 <RegisterHint />
                 <HomeSearch kind={kind} onKind={setKind} stay={prefStay} flight={prefFlight} onStay={homeStay} onFlight={homeFlight} />
               </section>
@@ -1816,10 +1830,41 @@ function MyTripsTab({ saved, onOpen, onSave, onHome, onFlight, onMoreStays, onRe
   );
 }
 
+// PC 마이 왼쪽 메뉴: 누르면 오른쪽 그 묶음으로 옮겨 간다 (휴대폰에서는 숨김)
+const MY_MENU = [
+  { id: "my-taste", label: "취향과 알림" },
+  { id: "my-size", label: "화면 설정" },
+  { id: "my-ai", label: "AI 상담 이용" },
+  { id: "my-help", label: "고객지원" },
+  { id: "my-clear", label: "이 기기에 저장된 기록" },
+];
+function MyNav() {
+  const [on, setOn] = useState(MY_MENU[0].id);
+  return (
+    <nav className="tb-my-nav" aria-label="마이 메뉴">
+      {MY_MENU.map((m) => (
+        <a
+          key={m.id}
+          href={`#${m.id}`}
+          aria-current={on === m.id ? "true" : undefined}
+          onClick={(e) => {
+            e.preventDefault();
+            setOn(m.id);
+            document.getElementById(m.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        >
+          {m.label}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 function My({ profile, onTaste, onTrips }: { profile: TasteProfile | null; onTaste: () => void; onTrips: () => void }) {
   return (
-    <main className="tb-page">
+    <main className="tb-page tb-my">
       <h1>마이</h1>
+      <MyNav />
       <MySettings tasteSummary={profileLines(profile).join("\n")} onTaste={onTaste} onTrips={onTrips} />
       <ClearHistory />
       <TripFooter short />

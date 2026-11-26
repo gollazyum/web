@@ -21,7 +21,7 @@ export function MySettings({ tasteSummary, onTaste, onTrips }: { tasteSummary: s
 
   return (
     <div className="tb-set">
-      <section className="tb-set-box">
+      <section className="tb-set-box" id="my-taste">
         <h2 className="tb-h2">내 취향 기준</h2>
         <p className="tb-set-sub">{tasteSummary || "아직 알려 주신 취향이 없어요. 설정하면 AI가 보여 드리는 3곳이 취향에 맞춰져요."}</p>
         <button type="button" className="tb-btn soft" onClick={onTaste}>
@@ -45,13 +45,26 @@ export function MySettings({ tasteSummary, onTaste, onTrips }: { tasteSummary: s
             <strong>휴대폰 알림</strong>
             <small>가격이 내려가면 휴대폰으로 알려 드리는 기능을 준비하고 있어요.</small>
           </span>
-          <span className="tb-tag ac">곧 열려요</span>
+          <span className="tb-tag ac tb-only-m">곧 열려요</span>
+          <span className="tb-soon-text tb-only-pc">준비 중</span>
         </div>
       </section>
 
-      <section className="tb-set-box">
+      <section className="tb-set-box" id="my-size">
         <h2 className="tb-h2">화면 크기 설정</h2>
-        <div className="tb-seg two" role="radiogroup" aria-label="글자 크기">
+        {/* PC: 토글 스위치 한 줄 / 휴대폰: 두 칸 버튼 그대로 */}
+        <div className="tb-set-row tb-only-pc">
+          <span>
+            <strong>큰 글씨 보기</strong>
+            <small>켜면 글자와 버튼이 조금 더 커져요.</small>
+          </span>
+          <button type="button" className="tb-switch" role="switch" aria-checked={big} aria-label="큰 글씨 보기" onClick={() => pickSize(!big)}>
+            <span>
+              <i />
+            </span>
+          </button>
+        </div>
+        <div className="tb-seg two tb-only-m" role="radiogroup" aria-label="글자 크기">
           <button type="button" role="radio" aria-checked={!big} onClick={() => pickSize(false)}>
             기본 보기
           </button>
@@ -59,10 +72,10 @@ export function MySettings({ tasteSummary, onTaste, onTrips }: { tasteSummary: s
             큰 글씨 보기
           </button>
         </div>
-        <p className="tb-set-sub">큰 글씨 보기를 켜면 글자와 버튼이 조금 더 커져요.</p>
+        <p className="tb-set-sub tb-only-m">큰 글씨 보기를 켜면 글자와 버튼이 조금 더 커져요.</p>
       </section>
 
-      <section className="tb-set-box">
+      <section className="tb-set-box" id="my-ai">
         <h2 className="tb-h2">오늘 AI 상담 이용 현황</h2>
         <p className="tb-set-count">
           오늘 <strong>{aiCount}번</strong> 물어봤어요
@@ -70,7 +83,7 @@ export function MySettings({ tasteSummary, onTaste, onTrips }: { tasteSummary: s
         <p className="tb-set-sub">AI 상담은 무료예요. 질문이 한꺼번에 몰리면 잠시 쉬었다가 다시 답해 드려요.</p>
       </section>
 
-      <section className="tb-set-box">
+      <section className="tb-set-box" id="my-help">
         <h2 className="tb-h2">고객지원 및 결제 안내</h2>
         <ul className="tb-set-links">
           <li>

@@ -7,7 +7,7 @@ import { clearAllHistory } from "@/lib/clear-history";
 export function ClearHistory() {
   const [ask, setAsk] = useState(false);
   return (
-    <section className="tb-clear" aria-label="저장 기록">
+    <section className="tb-clear" id="my-clear" aria-label="저장 기록">
       <h2 className="tb-h2">이 기기에 저장된 기록</h2>
       <p>담아 둔 숙소, 여행 취향, 여행 체크, 최근 검색 결과는 이 브라우저에만 저장돼요.</p>
       {ask ? (
