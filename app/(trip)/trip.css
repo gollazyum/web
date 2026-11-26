@@ -6679,3 +6679,7 @@ html.tb-big .tb-app {
   color: var(--tb-sub);
   font-size: 11px;
 }
+.tb-vibe-tag.tb-vibe-off {
+  opacity: 0;
+  pointer-events: none;
+}

@@ -75,6 +75,7 @@ export default function StayMap({ token, pins, ring, vibe, onPick, onVibe, onFai
       box.current?.classList.toggle("tb-vibe-hide", hide);
     };
     m.on("zoom", fade);
+    m.on("moveend", () => declutter(m));
     m.once("load", fade);
     const ms = markers.current;
     const ts = tags.current;
@@ -157,6 +158,7 @@ export default function StayMap({ token, pins, ring, vibe, onPick, onVibe, onFai
       el.type = "button";
       el.className = "tb-vibe-tag";
       el.style.setProperty("--vc", k.color);
+      el.dataset.r = String(z.radiusMeters);
       el.title = `${z.name} · ${z.desc}`;
       el.setAttribute("aria-label", `${z.name} ${k.label}: ${z.desc}`);
       const top = document.createElement("span");
@@ -170,6 +172,23 @@ export default function StayMap({ token, pins, ring, vibe, onPick, onVibe, onFai
       });
       el.style.zIndex = "0";
       tags.current.push(new mapboxgl.Marker({ element: el, anchor: "center" }).setLngLat(z.center).addTo(m));
+    }
+    declutter(m);
+  }
+
+  // 이름표끼리 겹치면 큰 구역 것만 남긴다 (가까운 동네가 많은 난바·신주쿠에서 글자가 포개지지 않게). 확대하면 다시 보인다
+  function declutter(m: mapboxgl.Map) {
+    const list = [...tags.current].sort((a, b) => (b.getElement().dataset.r ? +b.getElement().dataset.r! : 0) - (a.getElement().dataset.r ? +a.getElement().dataset.r! : 0));
+    const taken: { x0: number; y0: number; x1: number; y1: number }[] = [];
+    for (const mk of list) {
+      const el = mk.getElement();
+      const pt = m.project(mk.getLngLat());
+      const w = (el.offsetWidth || 140) / 2 + 4;
+      const h = (el.offsetHeight || 36) / 2 + 2;
+      const r = { x0: pt.x - w, y0: pt.y - h, x1: pt.x + w, y1: pt.y + h };
+      const hit = taken.some((t) => r.x0 < t.x1 && r.x1 > t.x0 && r.y0 < t.y1 && r.y1 > t.y0);
+      el.classList.toggle("tb-vibe-off", hit);
+      if (!hit) taken.push(r);
     }
   }
 
