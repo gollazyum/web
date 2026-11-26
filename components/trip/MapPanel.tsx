@@ -8,6 +8,7 @@ import { hasFreeCancel } from "@/lib/stay-filters";
 import { nightsOf, won, type StayQuery } from "@/lib/trip";
 import { shownPrice, usePriceVersion } from "./prices";
 import { IconBack } from "./icons";
+import { cityNear, haversine, VIBE_KEYS, VIBE_NOTE, VIBES, type VibeKey } from "@/data/neighborhoodVibes";
 
 // 가격 핀 지도 화면 (휴대폰: 결과 위 전체 화면, PC: 오른쪽 패널).
 // 지도 코드(mapbox-gl)는 이 화면을 실제로 띄울 때만 받는다. 토큰이 없거나 WebGL을 못 쓰면 지도 없이 안내만 보이고 목록으로 돌아가게 한다.
@@ -39,10 +40,23 @@ export function MapPanel({ query, options, onOpen, onList, panel }: Props) {
   const shown = filterPins(items, chips);
   const low = lowestToken(shown);
   const pick = shown.find((x) => x.token === sel) ?? null;
+  // 동네 분위기: 숙소 좌표 가운데(중앙값)에서 15km 안에 있는 도시만. 칩을 눌러도 검색은 다시 하지 않는다
+  const city = useMemo(() => {
+    const g = items.map((x) => x.gps).filter((p): p is [number, number] => !!p && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+    if (!g.length) return null;
+    const mid = (a: number[]) => a.sort((x, y) => x - y)[Math.floor(a.length / 2)];
+    return cityNear([mid(g.map((p) => p[1])), mid(g.map((p) => p[0]))]);
+  }, [items.map((x) => x.token).join()]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [vibeOn, setVibeOn] = useState(true);
+  const [vibePick, setVibePick] = useState<VibeKey | null>(null);
+  const inPick = (gps: [number, number]) => !!city && city.zones.some((z) => z.vibe === vibePick && haversine([gps[1], gps[0]], z.center) <= z.radiusMeters);
+  const dimOn = !!city && vibeOn && !!vibePick;
   const pins = useMemo(
-    () => shown.map((x) => ({ token: x.token, lat: x.gps![0], lng: x.gps![1], label: pinText(x.price), low: x.token === low, on: x.token === sel, name: x.h.name })),
-    [shown.map((x) => `${x.token}:${x.price}`).join(), low, sel], // eslint-disable-line react-hooks/exhaustive-deps
+    () => shown.map((x) => ({ token: x.token, lat: x.gps![0], lng: x.gps![1], label: pinText(x.price), low: x.token === low, on: x.token === sel, name: x.h.name, dim: dimOn && !inPick(x.gps!) })),
+    [shown.map((x) => `${x.token}:${x.price}`).join(), low, sel, dimOn, vibePick, city?.id], // eslint-disable-line react-hooks/exhaustive-deps
   );
+  const vibe = useMemo(() => ({ city, on: vibeOn, pick: vibePick }), [city, vibeOn, vibePick]);
+  const pickVibe = (k: VibeKey) => setVibePick((v) => (v === k ? null : k));
   const ring = pick?.gps ?? null;
   const flip = (k: "freeCancel" | "rating45" | "stars4") => setChips((c) => ({ ...c, [k]: !c[k] }));
 
@@ -72,6 +86,19 @@ export function MapPanel({ query, options, onOpen, onList, panel }: Props) {
           </button>
         ))}
       </div>
+      {city && !failed && (
+        <div className="tb-vibe-bar" role="group" aria-label="동네 분위기">
+          <button type="button" className="tb-vibe-toggle" aria-pressed={vibeOn} onClick={() => setVibeOn((o) => !o)}>
+            🎨 동네 분위기 {vibeOn ? "켜짐" : "꺼짐"}
+          </button>
+          {vibeOn &&
+            VIBE_KEYS.filter((k) => city.zones.some((z) => z.vibe === k)).map((k) => (
+              <button key={k} type="button" className="tb-vibe-chip" style={{ ["--vc" as string]: VIBES[k].color }} aria-pressed={vibePick === k} onClick={() => pickVibe(k)}>
+                {VIBES[k].emoji} {VIBES[k].label}
+              </button>
+            ))}
+        </div>
+      )}
       {failed ? (
         <div className="tb-map-off">
           <strong>이 화면에서는 지도를 열 수 없어요</strong>
@@ -83,7 +110,8 @@ export function MapPanel({ query, options, onOpen, onList, panel }: Props) {
         </div>
       ) : (
         <div className="tb-map-body">
-          <StayMap token={token} pins={pins} ring={ring} onPick={setSel} onFail={(why) => setFailed(why)} />
+          <StayMap token={token} pins={pins} ring={ring} vibe={vibe} onPick={setSel} onVibe={pickVibe} onFail={(why) => setFailed(why)} />
+          {city && vibeOn && <small className="tb-vibe-note">{VIBE_NOTE}</small>}
           {!shown.length && <p className="tb-map-empty">조건에 맞는 숙소가 지도에 없어요. 칩을 하나 풀어 보세요.</p>}
           {pick && (
             <div className="tb-map-card">

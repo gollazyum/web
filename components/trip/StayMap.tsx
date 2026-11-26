@@ -4,17 +4,25 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl from "mapbox-gl";
 import { useEffect, useRef } from "react";
 import { circleRing } from "@/lib/map-pins";
+import { VIBES, zonesGeoJSON, type City, type VibeKey } from "@/data/neighborhoodVibes";
 
 // Mapbox 지도 본체. MapPanel이 지도를 실제로 띄울 때만 next/dynamic(ssr: false)으로 불러온다 (지도 로드 = Mapbox 과금 단위).
 // 한 번 만든 지도는 그대로 두고, 핀·선택만 바꾼다 (필터를 바꿔도 지도를 다시 만들지 않는다).
 // 오른쪽 아래 Mapbox 로고와 © Mapbox © OpenStreetMap 표기는 약관상 필요해 끄지 않는다
-export type MapPin = { token: string; lat: number; lng: number; label: string; low: boolean; on: boolean; name: string };
+export type MapPin = { token: string; lat: number; lng: number; label: string; low: boolean; on: boolean; name: string; dim?: boolean };
+// 동네 분위기: 도시(없으면 끔), 켜짐 여부, 고른 분위기 하나(없으면 전부)
+export type VibeView = { city: City | null; on: boolean; pick: VibeKey | null };
 
-type Props = { token: string; pins: MapPin[]; ring: [number, number] | null; onPick: (token: string) => void; onFail: (why: "rejected" | "error") => void };
+type Props = { token: string; pins: MapPin[]; ring: [number, number] | null; vibe: VibeView; onPick: (token: string) => void; onVibe?: (k: VibeKey) => void; onFail: (why: "rejected" | "error") => void };
 
 const RING_SRC = "tb-rings";
 
-export default function StayMap({ token, pins, ring, onPick, onFail }: Props) {
+export default function StayMap({ token, pins, ring, vibe, onPick, onVibe, onFail }: Props) {
+  const tags = useRef<mapboxgl.Marker[]>([]);
+  const vibeRef = useRef(vibe);
+  vibeRef.current = vibe;
+  const vibePick = useRef(onVibe);
+  vibePick.current = onVibe;
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef(new Map<string, mapboxgl.Marker>());
@@ -29,7 +37,8 @@ export default function StayMap({ token, pins, ring, onPick, onFail }: Props) {
       mapboxgl.accessToken = token;
       m = new mapboxgl.Map({
         container: box.current,
-        style: "mapbox://styles/mapbox/light-v11",
+        style: "mapbox://styles/mapbox/streets-v12",
+        pitch: 0,
         center: [pins[0]?.lng ?? 135.5, pins[0]?.lat ?? 34.68],
         zoom: 13,
         attributionControl: true,
@@ -43,6 +52,7 @@ export default function StayMap({ token, pins, ring, onPick, onFail }: Props) {
     }
     map.current = m;
     m.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+    m.addControl(new ThreeDControl(), "top-right");
     m.on("error", (e) => {
       // 토큰이 틀렸거나 스타일을 못 받으면 목록으로 돌아간다
       const status = (e.error as { status?: number } | undefined)?.status;
@@ -55,9 +65,22 @@ export default function StayMap({ token, pins, ring, onPick, onFail }: Props) {
       m.addLayer({ id: "tb-rings", type: "line", source: RING_SRC, paint: { "line-color": "#1B2A4A", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.55 } });
       m.addLayer({ id: "tb-ring-labels", type: "symbol", source: RING_SRC, layout: { "symbol-placement": "line", "text-field": ["get", "label"], "text-size": 11 }, paint: { "text-color": "#5D6475", "text-halo-color": "#FFFFFF", "text-halo-width": 1.5 } });
       drawRing(m, ring);
+      drawVibes(m, vibeRef.current);
+      placeTags(m, vibeRef.current);
     });
+    // 동네 라벨은 중간 줌에서만 (멀면 지저분하고, 가까우면 가격 핀과 겹친다)
+    const fade = () => {
+      const z = m.getZoom();
+      const hide = z < 10.5 || z >= 14.3;
+      box.current?.classList.toggle("tb-vibe-hide", hide);
+    };
+    m.on("zoom", fade);
+    m.once("load", fade);
     const ms = markers.current;
+    const ts = tags.current;
     return () => {
+      ts.forEach((mk) => mk.remove());
+      ts.length = 0;
       ms.forEach((mk) => mk.remove());
       ms.clear();
       m.remove();
@@ -97,6 +120,7 @@ export default function StayMap({ token, pins, ring, onPick, onFail }: Props) {
       el.setAttribute("aria-pressed", p.on ? "true" : "false");
       el.classList.toggle("low", p.low);
       el.classList.toggle("on", p.on);
+      el.classList.toggle("dim", !!p.dim && !p.on);
       el.style.zIndex = p.on ? "3" : p.low ? "2" : "1";
     }
     // 처음 한 번은 모든 핀이 보이게 맞춘다
@@ -114,101 +138,168 @@ export default function StayMap({ token, pins, ring, onPick, onFail }: Props) {
     if (m && ring) m.easeTo({ center: [ring[1], ring[0]], duration: 400 });
   }, [ring]);
 
+  useEffect(() => {
+    const m = map.current;
+    if (!m?.getSource(RING_SRC)) return; // 아직 load 전이면 load에서 그린다
+    drawVibes(m, vibe);
+    placeTags(m, vibe);
+  }, [vibe.city?.id, vibe.on, vibe.pick]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 구역 이름표: 지도 글꼴은 컬러 이모지를 못 그려서 HTML 알약으로 띄운다. 누르면 그 분위기만 보기
+  function placeTags(m: mapboxgl.Map, v: VibeView) {
+    tags.current.forEach((mk) => mk.remove());
+    tags.current = [];
+    if (!v.city || !v.on) return;
+    for (const z of v.city.zones) {
+      if (v.pick && z.vibe !== v.pick) continue;
+      const k = VIBES[z.vibe];
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "tb-vibe-tag";
+      el.style.setProperty("--vc", k.color);
+      el.title = `${z.name} · ${z.desc}`;
+      el.setAttribute("aria-label", `${z.name} ${k.label}: ${z.desc}`);
+      const top = document.createElement("span");
+      top.textContent = `${k.emoji} ${k.label}`;
+      const sub = document.createElement("small");
+      sub.textContent = z.name;
+      el.append(top, sub);
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        vibePick.current?.(z.vibe);
+      });
+      el.style.zIndex = "0";
+      tags.current.push(new mapboxgl.Marker({ element: el, anchor: "center" }).setLngLat(z.center).addTo(m));
+    }
+  }
+
   return <div ref={box} className="tb-map-canvas" />;
 }
 
-// 사이트 색에 맞춘 지도 (추가 호출 없음: 받은 기본 스타일의 색·라벨만 바꾼다).
-// 바탕 스톤 오프화이트, 물 북유럽 블루, 공원 세이지 그린, 도로 흰색. 라벨은 한국어 우선, 없으면 원래 이름.
-// 다른 여행 사이트처럼 동네·구 이름, 역 이름, 큰 도로 이름만 남기고 골목 이름과 가게·식당 같은 작은 장소는 숨긴다.
-// 레이어 이름은 스타일 판마다 다를 수 있어 source-layer와 type으로 고르고, 하나가 실패해도 나머지는 그대로 적용한다
-const C = { land: "#F4F1EA", water: "#CBE3EE", park: "#DFECE0", road: "#FFFFFF", casing: "#E7E0D4", building: "#ECE7DE", ink: "#1B2A4A", sub: "#6E7486", halo: "#FFFFFF" };
-const KO: mapboxgl.ExpressionSpecification = ["coalesce", ["get", "name_ko"], ["get", "name"]];
-const BIG_ROADS = ["motorway", "trunk", "primary"];
+// 바탕은 streets-v12 그대로 (역 아이콘·철도·공원·도로 위계가 익숙하게 보이게). 추가 호출 없이 받은 스타일의 색·라벨만 조금 바꾼다.
+// 물·공원은 부드럽게, 진한 주황 큰 도로는 최저가 핀(#FF5A1F)과 헷갈리지 않게 크림·앰버로.
+// 라벨은 지명·장소 이름(name 계열)을 쓰는 레이어만 한국어 우선. 도로 번호판·출구 번호는 건드리지 않는다.
+// 레이어 이름은 스타일 판마다 다를 수 있어 하나가 실패해도 나머지는 그대로 적용한다
+const C = { water: "#BFE0F2", park: "#D8EBD6", motorway: "#F3D9A4", trunk: "#F7E4BE", motorwayCase: "#E2C48E", trunkCase: "#E8D3A8" };
+const KO: mapboxgl.ExpressionSpecification = ["coalesce", ["get", "name_ko"], ["get", "name_en"], ["get", "name"]];
+const NAME_REF = /"(name|name_en|name_local|name_ko|name_[a-z-]+)"/;
+const NOT_NAME = /shield|road-number|motorway-junction|exit|ref|housenum|address/;
+
+const set = (fn: () => void) => {
+  try {
+    fn();
+  } catch {
+    /* 이 스타일에 없는 레이어·속성은 건너뛴다 */
+  }
+};
 
 function applyTheme(m: mapboxgl.Map) {
-  const set = (fn: () => void) => {
-    try {
-      fn();
-    } catch {
-      /* 이 스타일에 없는 속성은 건너뛴다 */
-    }
-  };
   const layers = m.getStyle()?.layers ?? [];
-  let font: unknown = null;
   for (const l of layers) {
     const src = (l as { "source-layer"?: string })["source-layer"] ?? "";
     const id = l.id;
-    if (l.type === "background") set(() => m.setPaintProperty(id, "background-color", C.land));
-    else if (l.type === "fill") {
-      if (src === "water") set(() => m.setPaintProperty(id, "fill-color", C.water));
-      else if (src === "landuse" || src === "landuse_overlay" || src === "landcover" || /park|national/.test(id)) {
-        set(() => m.setPaintProperty(id, "fill-color", ["match", ["get", "class"], ["park", "grass", "cemetery", "pitch", "wood", "scrub", "national_park", "golf_course"], C.park, C.land]));
-      } else if (src === "building") set(() => m.setPaintProperty(id, "fill-color", C.building));
-      else if (/^land$|land-structure/.test(id)) set(() => m.setPaintProperty(id, "fill-color", C.land));
+    if (l.type === "fill") {
+      if (src === "water" || id === "water") set(() => m.setPaintProperty(id, "fill-color", C.water));
+      else if (/national-park/.test(id)) set(() => m.setPaintProperty(id, "fill-color", C.park));
     } else if (l.type === "line") {
       if (src === "waterway") set(() => m.setPaintProperty(id, "line-color", C.water));
-      else if (src === "road") set(() => m.setPaintProperty(id, "line-color", /case/.test(id) ? C.casing : C.road));
-    } else if (l.type === "symbol") {
-      const layout = (l as { layout?: Record<string, unknown> }).layout ?? {};
-      if (!font && layout["text-font"]) font = layout["text-font"];
-      if (src === "poi_label" || src === "transit_stop_label" || src === "airport_label" || src === "road" || /poi|transit|road-label|road-number|road-exit/.test(id)) {
-        set(() => m.setLayoutProperty(id, "visibility", "none")); // 아래에서 역·큰 도로만 다시 그린다
-      } else if (layout["text-field"] !== undefined) {
-        set(() => m.setLayoutProperty(id, "text-field", KO));
-        if (src === "place_label") {
-          set(() => m.setPaintProperty(id, "text-color", C.sub));
-          set(() => m.setPaintProperty(id, "text-halo-color", C.halo));
-        }
+      else if (/road-motorway-trunk|bridge-motorway-trunk|tunnel-motorway-trunk/.test(id)) {
+        const cas = /case/.test(id);
+        set(() => m.setPaintProperty(id, "line-color", ["match", ["get", "class"], "motorway", cas ? C.motorwayCase : C.motorway, cas ? C.trunkCase : C.trunk]));
       }
+    } else if (l.type === "symbol") {
+      const tf = (l as { layout?: Record<string, unknown> }).layout?.["text-field"];
+      if (tf === undefined || NOT_NAME.test(id)) continue;
+      if (NAME_REF.test(JSON.stringify(tf))) set(() => m.setLayoutProperty(id, "text-field", KO));
     }
   }
-  const textFont = (font as string[] | null) ?? ["DIN Pro Medium", "Arial Unicode MS Regular"];
+  // 공원·녹지: 기본 landuse 색 위에 같은 모양으로 한 번 덮는다 (원래 색 식을 건드리지 않게)
+  const i = layers.findIndex((l) => l.id === "landuse");
   const src = Object.keys(m.getStyle()?.sources ?? {}).find((k) => /composite|streets/.test(k));
-  if (!src) return;
-  set(() => {
-    if (m.getLayer("tb-road-names")) return;
-    m.addLayer({
-      id: "tb-road-names",
-      type: "symbol",
-      source: src,
-      "source-layer": "road",
-      minzoom: 12,
-      filter: ["match", ["get", "class"], BIG_ROADS, true, false],
-      layout: { "symbol-placement": "line", "text-field": KO, "text-font": textFont, "text-size": 11, "text-max-angle": 30, "symbol-spacing": 400 },
-      paint: { "text-color": C.sub, "text-halo-color": C.halo, "text-halo-width": 1.4 },
-    });
-  });
-  set(() => {
-    if (m.getLayer("tb-stations")) return;
-    m.addLayer({
-      id: "tb-stations",
-      type: "symbol",
-      source: src,
-      "source-layer": "transit_stop_label",
-      minzoom: 11.5,
-      filter: ["match", ["get", "mode"], ["rail", "metro_rail", "light_rail", "monorail", "tram"], true, false],
-      layout: {
-        "text-field": KO,
-        "text-font": textFont,
-        "text-size": ["interpolate", ["linear"], ["zoom"], 12, 11, 16, 13],
-        "text-anchor": "top",
-        "text-offset": [0, 0.5],
-        "text-optional": true,
-      },
-      paint: { "text-color": C.ink, "text-halo-color": C.halo, "text-halo-width": 1.6 },
-    });
-    m.addLayer({
-      id: "tb-station-dots",
-      type: "circle",
-      source: src,
-      "source-layer": "transit_stop_label",
-      minzoom: 11.5,
-      filter: ["match", ["get", "mode"], ["rail", "metro_rail", "light_rail", "monorail", "tram"], true, false],
-      paint: { "circle-radius": 3.5, "circle-color": C.ink, "circle-stroke-color": "#FFFFFF", "circle-stroke-width": 1.5 },
-    });
-  });
+  if (i >= 0 && src && !m.getLayer("tb-parks")) {
+    set(() =>
+      m.addLayer(
+        { id: "tb-parks", type: "fill", source: src, "source-layer": "landuse", filter: ["match", ["get", "class"], ["park", "grass", "cemetery", "pitch", "wood", "scrub", "garden", "golf_course"], true, false], paint: { "fill-color": C.park } },
+        layers[i + 1]?.id,
+      ),
+    );
+  }
 }
 
+// 첫 지명 라벨 레이어 (동네 구역 색은 이 아래에 깔아 글자를 가리지 않게)
+function firstNameLayer(m: mapboxgl.Map): string | undefined {
+  return (m.getStyle()?.layers ?? []).find((l) => l.type === "symbol" && NAME_REF.test(JSON.stringify((l as { layout?: Record<string, unknown> }).layout?.["text-field"] ?? "")))?.id;
+}
+
+// 3D 건물: 기본 꺼짐. 버튼을 누를 때만 기울이고 건물 레이어를 더한다
+const B3D = "tb-3d-buildings";
+function set3d(m: mapboxgl.Map, on: boolean) {
+  if (on) {
+    const src = Object.keys(m.getStyle()?.sources ?? {}).find((k) => /composite|streets/.test(k));
+    if (src && !m.getLayer(B3D)) {
+      set(() =>
+        m.addLayer(
+          {
+            id: B3D,
+            type: "fill-extrusion",
+            source: src,
+            "source-layer": "building",
+            minzoom: 14.5,
+            filter: ["==", ["get", "extrude"], "true"],
+            paint: { "fill-extrusion-color": "#E8E4DC", "fill-extrusion-opacity": 0.55, "fill-extrusion-height": ["get", "height"], "fill-extrusion-base": ["get", "min_height"] },
+          },
+          firstNameLayer(m),
+        ),
+      );
+    }
+    m.easeTo({ pitch: 45, duration: 500 });
+  } else {
+    if (m.getLayer(B3D)) set(() => m.removeLayer(B3D));
+    m.easeTo({ pitch: 0, duration: 400 });
+  }
+}
+
+class ThreeDControl implements mapboxgl.IControl {
+  private box: HTMLDivElement | null = null;
+  onAdd(m: mapboxgl.Map) {
+    const box = document.createElement("div");
+    box.className = "mapboxgl-ctrl mapboxgl-ctrl-group tb-3d-ctrl";
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = "3D";
+    b.setAttribute("aria-pressed", "false");
+    b.setAttribute("aria-label", "건물 입체로 보기");
+    b.addEventListener("click", () => {
+      const on = b.getAttribute("aria-pressed") !== "true";
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      set3d(m, on);
+    });
+    box.appendChild(b);
+    this.box = box;
+    return box;
+  }
+  onRemove() {
+    this.box?.remove();
+    this.box = null;
+  }
+}
+
+// 동네 분위기 구역: 도시 하나 = GeoJSON 소스 하나. 채우기는 지명 아래, 점선 외곽선. 투명도 기준은 줌 13 → 15 하나로
+const VIBE_SRC = "tb-vibes";
+function drawVibes(m: mapboxgl.Map, v: VibeView) {
+  if (!m.getSource(VIBE_SRC)) {
+    const before = firstNameLayer(m);
+    set(() => {
+      m.addSource(VIBE_SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      m.addLayer({ id: "tb-vibe-fill", type: "fill", source: VIBE_SRC, paint: { "fill-color": ["get", "color"], "fill-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0.28, 15, 0.06] } }, before);
+      m.addLayer({ id: "tb-vibe-line", type: "line", source: VIBE_SRC, paint: { "line-color": ["get", "color"], "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0.65, 15, 0.15] } }, before);
+    });
+  }
+  const src = m.getSource(VIBE_SRC) as mapboxgl.GeoJSONSource | undefined;
+  const data = v.city && v.on ? zonesGeoJSON(v.city) : { type: "FeatureCollection" as const, features: [] };
+  if (v.pick) data.features = data.features.filter((f) => f.properties.vibe === v.pick);
+  src?.setData(data);
+}
 function drawRing(m: mapboxgl.Map, ring: [number, number] | null) {
   const src = m.getSource(RING_SRC) as mapboxgl.GeoJSONSource | undefined;
   if (!src) return;
