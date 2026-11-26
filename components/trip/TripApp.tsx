@@ -889,10 +889,10 @@ export function TripApp() {
     });
   })();
   const sellerReason = seller ? [...msgs].reverse().flatMap((m) => (m.t === "stay" && !m.aiOff && m.query.place === seller.query.place ? (m.picks ?? []) : [])).find((p) => p.token === seller.hotel.token)?.reason : undefined;
-  // PC: 결과가 있으면 오른쪽 패널이 비지 않게 맨 위 숙소(AI 추천 1위)를 먼저 열어 둔다
+  // PC AI 추천 탭: 결과가 있으면 오른쪽 패널이 비지 않게 AI 추천 1위를 먼저 열어 둔다 (홈 결과는 StayList onTop이 목록 맨 위 숙소를 연다)
   const panelMsg = (tab === "home" ? homeMsg : [...chatMsgs].reverse().find((x) => x.t === "stay")) as StayMsg | FlightMsg | undefined;
   // AI 답이 온 뒤에 추천 1번을 연다 (그 전에 규칙으로 정한 곳을 열었다가 바뀌지 않게)
-  const firstStay = split && panelMsg?.t === "stay" && panelMsg.status === "done" && !panelMsg.aiPending && panelMsg.options?.length ? (panelMsg.options.find((o) => o.token === panelMsg.picks?.[0]?.token) ?? panelMsg.options[0]) : null;
+  const firstStay = split && tab === "chat" && panelMsg?.t === "stay" && panelMsg.status === "done" && !panelMsg.aiPending && panelMsg.options?.length ? (panelMsg.options.find((o) => o.token === panelMsg.picks?.[0]?.token) ?? panelMsg.options[0]) : null;
   // 새 검색 결과가 오면(아동·객실이 다른 조건 포함) 이전 검색에서 열어 둔 숙소 대신 새 결과의 1번을 연다 (패널 머리 인원이 결과 머리와 같게).
   // 같은 결과 안에서 사람이 연 숙소는 그대로 둔다
   const panelFor = useRef<string | null>(null);
@@ -934,6 +934,7 @@ export function TripApp() {
               onMore={() => loadMore(homeMsg.id)}
               onStars={(s) => byStars(homeMsg.id, s)}
               onMap={() => setMapFor(homeMsg.id)}
+              onTop={split && homeMsg.t === "stay" ? (h) => setSeller({ hotel: h, query: homeMsg.query }) : undefined}
             />
           ) : (
             <main className="tb-home">
@@ -1382,7 +1383,7 @@ const EMPTY_QUERY: StayQuery = { place: "", checkIn: "2000-01-01", checkOut: "20
 // 목록 끝 상태: 더 불러올 수 있음 / 불러오는 중 / 실패 / 끝
 const moreOf = (m: StayMsg): "more" | "loading" | "error" | "end" => (m.more === "loading" ? "loading" : m.more === "error" ? "error" : m.next && (m.pages ?? 0) < MORE_PAGES ? "more" : "end");
 
-function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onAiRetry, onPlace, onMore, onStars, active, fixNote, opts, onMap }: { onMap: () => void; opts: string[]; fixNote?: string; onAiRetry: () => void; m: StayMsg | FlightMsg; saved: Set<string>; onBack: () => void; onSave: (h: HotelOption) => void; onOpen: (h: HotelOption) => void; onRetry: () => void; onPlace: (name: string) => void; onMore: () => void; onStars: (s: number[]) => void; active?: string }) {
+function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onAiRetry, onPlace, onMore, onStars, active, fixNote, opts, onMap, onTop }: { onTop?: (h: HotelOption) => void; onMap: () => void; opts: string[]; fixNote?: string; onAiRetry: () => void; m: StayMsg | FlightMsg; saved: Set<string>; onBack: () => void; onSave: (h: HotelOption) => void; onOpen: (h: HotelOption) => void; onRetry: () => void; onPlace: (name: string) => void; onMore: () => void; onStars: (s: number[]) => void; active?: string }) {
   const title = m.t === "stay" ? m.query.place : `${cityOf(m.query.fromLabel || m.query.from)} → ${cityOf(m.query.toLabel || m.query.to)}`;
   if (m.status !== "done" || !m.options?.length)
     return (
@@ -1429,7 +1430,7 @@ function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onAiRetry, onPl
   if (m.t === "stay")
     return (
       <main>
-        <StayList query={m.query} options={m.options} picks={m.picks ?? []} aiPending={!!m.aiPending} aiOff={m.aiOff} onAiRetry={onAiRetry} saved={saved} onSave={onSave} onOpen={onOpen} onBack={onBack} active={active} more={moreOf(m)} onMore={onMore} onStars={onStars} notice={fixNote} initFilter={opts.length ? stayFilterOf(opts) : undefined} onMap={onMap} />
+        <StayList query={m.query} options={m.options} picks={m.picks ?? []} aiPending={!!m.aiPending} aiOff={m.aiOff} onAiRetry={onAiRetry} saved={saved} onSave={onSave} onOpen={onOpen} onBack={onBack} active={active} more={moreOf(m)} onMore={onMore} onStars={onStars} notice={fixNote} initFilter={opts.length ? stayFilterOf(opts) : undefined} onMap={onMap} onTop={onTop} />
       </main>
     );
   return (

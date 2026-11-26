@@ -15,7 +15,7 @@ import { searchErrorMessage } from "@/lib/search-error";
 import { askHotel, stayPrices } from "./api";
 import { checkInput } from "@/lib/checkpoints";
 import { CheckBox } from "./CheckBox";
-import { useCheckpoints } from "./useCheckpoints";
+import { peekCheckpoints } from "./useCheckpoints";
 import { setChecking, setVerified } from "./prices";
 import { priceChange, savedBaseFor } from "./saved-price";
 import { EstNote, PhotoStrip, PriceChange } from "./StayList";
@@ -145,8 +145,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
   // 솔직 체크포인트: 예약처 가격 확인이 끝난 뒤(후기 주제·무료 취소까지 받은 뒤) 한 번 만든다
   const loaded = !!rows && state?.token === hotel.token;
   const input = loaded ? checkInput(hotel, query, { fc: rows.some((r) => r.freeCancel), price: rows.length ? (failed ? "estimate" : "verified") : "none", topics: state?.topics ?? null }) : null;
-  const checkItems = input ? [{ h: hotel, withTopics: input.topics.length > 0, input }] : [];
-  const check = useCheckpoints(checkItems, query, loaded).get(hotel.token);
+  const check = peekCheckpoints(hotel, query, input);
   // 작은 위치 지도: 토큰이 없거나 이미지가 안 불러지면 글자 링크로 돌아간다
   const [mapFail, setMapFail] = useState<string | null>(null);
   const mapSrc = hotel.gps ? staticMapUrl(hotel.gps[0], hotel.gps[1]) : null;

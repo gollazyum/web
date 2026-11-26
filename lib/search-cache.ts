@@ -97,9 +97,28 @@ export function memoryHit<T>(key: string): T | undefined {
 
 // key로 저장된 성공 응답을 돌려주고, 없으면 loader를 불러 저장한다.
 // loader가 던진 오류는 그대로 다시 던진다 (저장하지 않음)
+// 같은 인스턴스에 같은 조건이 동시에 들어오면(두 탭·빠른 두 번 누름) 유료 검색은 한 번만 하고 결과를 나눠 쓴다
+const inflight = new Map<string, Promise<CacheResult<unknown>>>();
+
 export async function cached<T>(key: string, ttlSec: number, loader: () => Promise<T | NoStore<T>>): Promise<CacheResult<T>> {
   const inMemory = memoryHit<T>(key);
   if (inMemory !== undefined) return { data: inMemory, hit: "memory" };
+  const going = inflight.get(key);
+  if (going) {
+    // 나눠 받은 쪽은 '저장된 응답'으로 본다 (가격 기록이 두 번 남지 않게)
+    const r = (await going) as CacheResult<T>;
+    return { data: r.data, hit: r.hit ?? "memory" };
+  }
+  const run = load(key, ttlSec, loader);
+  inflight.set(key, run);
+  try {
+    return await run;
+  } finally {
+    inflight.delete(key);
+  }
+}
+
+async function load<T>(key: string, ttlSec: number, loader: () => Promise<T | NoStore<T>>): Promise<CacheResult<T>> {
 
   if (kvConfig()) {
     try {

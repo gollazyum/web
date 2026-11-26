@@ -41,6 +41,7 @@ type Props = {
   onAiRetry?: () => void;
   initFilter?: StayFilter; // 홈 입력 시트에서 고른 빠른 조건 (처음 한 번만)
   onMap?: () => void; // [리스트 | 지도] 전환: 가격 핀 지도 열기 (지도는 이때만 불러온다)
+  onTop?: (h: HotelOption) => void; // PC: 새 검색·정렬·필터로 목록 맨 위 숙소가 정해지면 오른쪽 패널도 그 숙소를 연다
 };
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
@@ -50,7 +51,7 @@ const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋�
 
 // v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다.
 // 필터: 휴대폰·좁은 PC는 위쪽 3버튼(조건 검색/요금/정렬 기준), 넓은 PC(1280px 이상)는 같은 항목을 왼쪽에 늘 보이게
-export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars, notice, aiOff, onAiRetry, initFilter, onMap }: Props) {
+export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars, notice, aiOff, onAiRetry, initFilter, onMap, onTop }: Props) {
   // 목록 끝이 화면에 가까워지면 다음 쪽을 부른다 (필터로 목록이 짧아져도 같은 기준)
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -142,6 +143,16 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
     prevOrder.current = { key, order: list.map((h) => h.token) };
     return list;
   }, [options, f, sort, searchKey, pv]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // PC 오른쪽 패널 = 지금 목록 맨 위 숙소 (첫 진입, 정렬·필터를 바꿀 때). 같은 조건 안에서 사람이 누른 숙소는 그대로 둔다
+  const topKey = `${searchKey}|${sort}|${JSON.stringify(f)}`;
+  const topFor = useRef("");
+  const top = shown[0];
+  useEffect(() => {
+    if (!onTop || !top || topFor.current === topKey) return;
+    topFor.current = topKey;
+    onTop(top);
+  }, [topKey, top, onTop]);
 
   return (
     <div className="tb-results">
