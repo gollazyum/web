@@ -9,7 +9,7 @@ import { VIBES, zonesGeoJSON, type City, type VibeKey } from "@/data/neighborhoo
 // Mapbox 지도 본체. MapPanel이 지도를 실제로 띄울 때만 next/dynamic(ssr: false)으로 불러온다 (지도 로드 = Mapbox 과금 단위).
 // 한 번 만든 지도는 그대로 두고, 핀·선택만 바꾼다 (필터를 바꿔도 지도를 다시 만들지 않는다).
 // 오른쪽 아래 Mapbox 로고와 © Mapbox © OpenStreetMap 표기는 약관상 필요해 끄지 않는다
-export type MapPin = { token: string; lat: number; lng: number; label: string; low: boolean; on: boolean; name: string; dim?: boolean };
+export type MapPin = { token: string; lat: number; lng: number; label: string; low: boolean; on: boolean; name: string; dim?: boolean; est?: boolean }; // est: 예약처 확인 전 예상 금액 (회색 핀)
 // 동네 분위기: 도시(없으면 끔), 켜짐 여부, 고른 분위기 하나(없으면 전부)
 export type VibeView = { city: City | null; on: boolean; pick: VibeKey | null };
 
@@ -77,15 +77,23 @@ export default function StayMap({ token, pins, ring, vibe, focus = null, tip = n
       drawVibes(m, vibeRef.current);
       placeTags(m, vibeRef.current);
     });
-    // 동네 라벨은 도시 전체가 보이는 줌(9)부터 가격 핀과 겹치기 전(14.3)까지. 처음 열었을 때 도시 전체가 잡혀도 바로 보이게
+    // 동네 라벨은 도시 전체가 보이는 줌(9)부터 가격 핀과 겹치기 전(14.3)까지.
+    // 처음 열 때 전체 핀 맞춤(fitBounds)이 끝나기 전에 한 번만 재면 라벨이 숨은 채 남을 수 있어서,
+    // load · moveend · idle · resize 때마다 지금 줌을 다시 재고 겹침도 다시 정리한다 (지도 안에서만 계산, 호출 없음)
     const fade = () => {
       const z = m.getZoom();
-      const hide = z < 9 || z >= 14.3;
+      const hide = !(z >= 9 && z < 14.3);
       box.current?.classList.toggle("tb-vibe-hide", hide);
     };
+    const settle = () => {
+      fade();
+      declutter(m);
+    };
     m.on("zoom", fade);
-    m.on("moveend", () => declutter(m));
-    m.once("load", fade);
+    m.on("load", settle);
+    m.on("moveend", settle);
+    m.on("idle", settle);
+    m.on("resize", settle);
     const ms = markers.current;
     const ts = tags.current;
     return () => {
@@ -130,6 +138,7 @@ export default function StayMap({ token, pins, ring, vibe, focus = null, tip = n
       el.setAttribute("aria-pressed", p.on ? "true" : "false");
       el.classList.toggle("low", p.low);
       el.classList.toggle("on", p.on);
+      el.classList.toggle("est", !!p.est);
       el.classList.toggle("dim", !!p.dim && !p.on);
       el.style.zIndex = p.on ? "3" : p.low ? "2" : "1";
     }

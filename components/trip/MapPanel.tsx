@@ -42,12 +42,17 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
     if (!modal) return;
     const key = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
     window.addEventListener("keydown", key);
+    // 스크롤을 막을 때 스크롤바 폭만큼 오른쪽을 채워 뒤 화면 폭이 바뀌지 않게 한다
+    // (폭이 바뀌면 뒤 목록 카드가 다시 배치되며 새로 보인 카드의 가격 확인이 불릴 수 있다. 지도 창을 열고 닫을 때 추가 호출 0회)
     const html = document.documentElement;
-    const prev = html.style.overflow;
+    const prev = { overflow: html.style.overflow, pad: html.style.paddingRight };
+    const bar = window.innerWidth - html.clientWidth;
     html.style.overflow = "hidden";
+    if (bar > 0) html.style.paddingRight = `${bar}px`;
     return () => {
       window.removeEventListener("keydown", key);
-      html.style.overflow = prev;
+      html.style.overflow = prev.overflow;
+      html.style.paddingRight = prev.pad;
     };
   }, [modal]);
   const nights = nightsOf(query);
@@ -57,7 +62,8 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
     return { h, token: h.token, gps: h.gps, rating: h.rating, stars: h.stars, fc: hasFreeCancel(h) || !!p.fc, price: p.none ? null : p.value, verified: p.verified };
   });
   const shown = filterPins(items, chips);
-  const low = lowestToken(shown);
+  // '가장 낮은 핀'은 예약처에서 확인한 총액끼리만 견준다 (예상 금액과 섞지 않는다)
+  const low = lowestToken(shown.filter((x) => x.verified));
   const pick = shown.find((x) => x.token === sel) ?? null;
   // 동네 분위기: 숙소 좌표 가운데(중앙값)에서 15km 안에 있는 도시만. 칩을 눌러도 검색은 다시 하지 않는다
   const city = useMemo(() => {
@@ -83,8 +89,9 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
     return { key: `${city.id}:${vibePick}`, box: [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]] as [[number, number], [number, number]] };
   }, [noMatch, city?.id, vibePick]); // eslint-disable-line react-hooks/exhaustive-deps
   const pins = useMemo(
-    () => shown.map((x) => ({ token: x.token, lat: x.gps![0], lng: x.gps![1], label: pinText(x.price), low: x.token === low, on: x.token === sel, name: x.h.name, dim: dimOn && !inPick(x.gps!) })),
-    [shown.map((x) => `${x.token}:${x.price}`).join(), low, sel, dimOn, vibePick, city?.id], // eslint-disable-line react-hooks/exhaustive-deps
+    // 핀 금액 = 목록 카드·오른쪽 상세와 같은 값(shownPrice: 허용 예약처 1위 N박 총액). 아직 확인 전이면 '예상'을 붙여 회색으로
+    () => shown.map((x) => ({ token: x.token, lat: x.gps![0], lng: x.gps![1], label: x.price !== null && !x.verified ? `예상 ${pinText(x.price)}` : pinText(x.price), est: x.price !== null && !x.verified, low: x.token === low, on: x.token === sel, name: x.h.name, dim: dimOn && !inPick(x.gps!) })),
+    [shown.map((x) => `${x.token}:${x.price}:${x.verified}`).join(), low, sel, dimOn, vibePick, city?.id], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const vibe = useMemo(() => ({ city, on: vibeOn, pick: vibePick }), [city, vibeOn, vibePick]);
   const pickVibe = (k: VibeKey) => setVibePick((v) => (v === k ? null : k));
