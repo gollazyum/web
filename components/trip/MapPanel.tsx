@@ -8,7 +8,9 @@ import { hasFreeCancel } from "@/lib/stay-filters";
 import { nightsOf, won, type StayQuery } from "@/lib/trip";
 import { shownPrice, usePriceVersion } from "./prices";
 import { IconBack } from "./icons";
-import { distText, nearby } from "@/lib/landmarks";
+import { nearby } from "@/lib/landmarks";
+import { manText, priceBrief, TRAVEL_NOTE, travelText, walkMin, zoneAverages } from "@/lib/map-decide";
+import type { NearStation } from "./StayMap";
 import { cityNear, haversine, VIBE_KEYS, VIBE_NOTE, VIBES, type VibeKey } from "@/data/neighborhoodVibes";
 
 // 가격 핀 지도 화면 (휴대폰: 결과 위 전체 화면, PC: 오른쪽 패널).
@@ -93,9 +95,19 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
     () => shown.map((x) => ({ token: x.token, lat: x.gps![0], lng: x.gps![1], label: x.price !== null && !x.verified ? `예상 ${pinText(x.price)}` : pinText(x.price), est: x.price !== null && !x.verified, low: x.token === low, on: x.token === sel, name: x.h.name, dim: dimOn && !inPick(x.gps!) })),
     [shown.map((x) => `${x.token}:${x.price}:${x.verified}`).join(), low, sel, dimOn, vibePick, city?.id], // eslint-disable-line react-hooks/exhaustive-deps
   );
-  const vibe = useMemo(() => ({ city, on: vibeOn, pick: vibePick }), [city, vibeOn, vibePick]);
+  // 동네별 가격 수준: 이번 검색에서 예약처로 확인한 총액만 (예상 금액은 넣지 않는다). 구역 안 2곳 이상일 때만 평균
+  const spots = items.map((x) => ({ token: x.token, gps: x.gps, price: x.verified ? x.price : null }));
+  const spotSig = spots.map((x) => `${x.token}:${x.price}`).join();
+  const avgs = useMemo(() => zoneAverages(city, spots), [city?.id, spotSig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const avgLabels = useMemo(() => Object.fromEntries([...avgs].map(([id, a]) => [id, manText(a.avg)])), [avgs]);
+  const vibe = useMemo(() => ({ city, on: vibeOn, pick: vibePick, avg: avgLabels }), [city, vibeOn, vibePick, avgLabels]);
+  const brief = pick ? priceBrief(city, spots.find((x) => x.token === pick.token) ?? null, spots) : null;
   const pickVibe = (k: VibeKey) => setVibePick((v) => (v === k ? null : k));
-  const ring = pick?.gps ?? null;
+  // 도보 5·10분 원 (기본 켬). 끄면 원과 가장 가까운 역 줄을 함께 숨긴다
+  const [walkOn, setWalkOn] = useState(true);
+  const ring = walkOn ? (pick?.gps ?? null) : null;
+  const [station, setStation] = useState<NearStation>(null);
+  const stationLine = ring && station ? `🚇 가장 가까운 역: ${station.name} · 도보 약 ${walkMin(station.m)}분 (${Math.round(station.m)}m)` : null;
   const flip = (k: "freeCancel" | "rating45" | "stars4") => setChips((c) => ({ ...c, [k]: !c[k] }));
 
   const chipRow = (
@@ -158,6 +170,8 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
             <small>예약처별 가격 보기</small>
           )}
         </span>
+        {brief && <small className="tb-map-brief">{brief}</small>}
+        {stationLine && <small className="tb-map-station">{stationLine}</small>}
         <em className="tb-cmp">예약처별 총액 보기 &gt;</em>
       </button>
     </div>
@@ -175,6 +189,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
       onPick={setSel}
       onVibe={pickVibe}
       onFail={(why) => setFailed(why)}
+      onStation={setStation}
     />
   );
 
@@ -213,6 +228,8 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
                       <small> · {nights}박 {pick.verified ? "세금 포함" : "예약처 확인 전"}</small>
                     </p>
                   ) : null}
+                  {brief && <p className="tb-map-brief">{brief}</p>}
+                  {stationLine && <p className="tb-map-station">{stationLine}</p>}
                   <button type="button" className="tb-cta small" onClick={() => onOpen(pick.h)}>
                     예약처별 총액 보기
                   </button>
@@ -221,6 +238,19 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
                 <p className="tb-mute">지도에서 가격 핀을 누르면 여기에 보여요.</p>
               )}
             </section>
+            {pick?.gps && (
+              <section className="tb-mapx-sec" aria-label="도보 반경">
+                <div className="tb-mapx-row">
+                  <h3>도보 반경 표시</h3>
+                  <button type="button" className="tb-switch" role="switch" aria-checked={walkOn} aria-label="도보 반경 표시" onClick={() => setWalkOn((o) => !o)}>
+                    <span>
+                      <i />
+                    </span>
+                  </button>
+                </div>
+                <small className="tb-mute">선택한 숙소 둘레 도보 약 5분(400m)·10분(800m) 원. 지도를 조금 더 확대하면 보여요.</small>
+              </section>
+            )}
             <section className="tb-mapx-sec" aria-label="지도 조건">
               <h3>조건</h3>
               {chipRow}
@@ -234,16 +264,22 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
               </section>
             )}
             {pick?.gps && (
-              <section className="tb-mapx-sec" aria-label="주요 장소까지 직선거리">
-                <h3>주요 장소까지 직선거리</h3>
+              <section className="tb-mapx-sec" aria-label="주요 장소까지 예상 시간">
+                <h3>주요 장소까지 예상 시간</h3>
                 <ul className="tb-mapx-dist">
-                  {nearby(pick.gps).map((n) => (
-                    <li key={n.name}>
-                      <span>{n.name}</span>
-                      <b>{distText(n.km)}</b>
-                    </li>
-                  ))}
+                  {nearby(pick.gps).map((n) => {
+                    const t = travelText(n.name, n.km);
+                    return (
+                      <li key={n.name}>
+                        <span>{n.name}</span>
+                        <b>
+                          {t.time} <small>({t.sub})</small>
+                        </b>
+                      </li>
+                    );
+                  })}
                 </ul>
+                <small className="tb-mute">{TRAVEL_NOTE}</small>
               </section>
             )}
           </aside>
@@ -274,7 +310,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
           {pickCard}
         </div>
       )}
-      {!failed && <p className="tb-map-note">{pick ? "점선 원은 누른 숙소에서 400m·800m예요. 직선거리 기준 참고용 원이에요 (실제 도보 시간은 길에 따라 달라요)" : "핀을 누르면 숙소와 주변 400m·800m 원이 보여요"}</p>}
+      {!failed && <p className="tb-map-note">{pick ? "점선 원은 누른 숙소에서 도보 약 5분(400m)·10분(800m)이에요. 직선거리 기준 참고용이라 실제 도보 시간은 길에 따라 달라요" : "핀을 누르면 숙소와 주변 도보 5·10분 원이 보여요"}</p>}
     </section>
   );
 }

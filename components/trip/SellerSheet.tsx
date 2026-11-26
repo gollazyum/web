@@ -5,6 +5,7 @@ import { freeCancelGap, savingsOf } from "@/lib/savings";
 import { useEffect, useState } from "react";
 import { sellerRows, type HotelOption, type ReviewTopic, type SellerRow } from "@/lib/hotels";
 import { distText, nearby } from "@/lib/landmarks";
+import { TRAVEL_NOTE, travelText } from "@/lib/map-decide";
 import { positivePct } from "@/lib/prefs";
 import { agodaAffiliateOn } from "@/lib/affiliate";
 import { linkRel, sellerDef, sellerSearchUrl, withRo } from "@/lib/hotel-sellers";
@@ -321,16 +322,21 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
       )}
       {near.length > 0 && (
         <section className="tb-detail-sec">
-          <h3>주요 장소까지 거리</h3>
+          <h3>주요 장소까지 예상 시간</h3>
           <ul className="tb-near">
-            {near.map((n) => (
-              <li key={n.name}>
-                <span>{n.name}</span>
-                <b>{distText(n.km)}</b>
-              </li>
-            ))}
+            {near.map((n) => {
+              const t = travelText(n.name, n.km);
+              return (
+                <li key={n.name}>
+                  <span>{n.name}</span>
+                  <b>
+                    {t.time} <small>({t.sub})</small>
+                  </b>
+                </li>
+              );
+            })}
           </ul>
-          <p className="tb-note">직선거리예요. 실제 이동 거리와 시간은 더 걸릴 수 있어요.</p>
+          <p className="tb-note">{TRAVEL_NOTE}</p>
         </section>
       )}
       <section className="tb-detail-sec">

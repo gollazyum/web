@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CITIES, cityNear, createSmoothZonePolygon, fixRadii, GAP_M, haversine, MIN_R, VIBES, zoneAt } from "@/data/neighborhoodVibes";
 
 describe("동네 분위기 시드", () => {
-  it("5개 도시, 6개 분위기만", () => {
+  it("5개 도시, 7개 분위기만", () => {
     expect(CITIES.map((c) => c.id)).toEqual(["osaka", "tokyo", "fukuoka", "bangkok", "seoul"]);
     for (const c of CITIES) for (const z of c.zones) expect(Object.keys(VIBES)).toContain(z.vibe);
   });
@@ -41,6 +41,13 @@ describe("동네 분위기 시드", () => {
     expect(zoneAt([135.5062, 34.6712])?.name).toBe("소에몬초·히가시신사이바시");
     expect(zoneAt([127.0557, 37.5446])?.name).toBe("성수동 카페거리");
     expect(zoneAt([135.45, 34.6])).toBeNull();
+  });
+
+  it("💰 실속 가성비·환승 구역 (방콕은 온눗 역세권)", () => {
+    expect(VIBES.value).toEqual({ label: "실속 가성비·환승", emoji: "💰", color: "#4DB6AC" });
+    const names = CITIES.flatMap((c) => c.zones.filter((z) => z.vibe === "value").map((z) => `${c.id}:${z.name}`));
+    expect(names).toEqual(["osaka:다이코쿠초 역세권", "osaka:신오사카역 주변", "tokyo:아사쿠사바시·쿠라마에", "tokyo:오시아게·스미다", "fukuoka:기온·고후쿠마치", "bangkok:온눗 역세권", "seoul:마포·공덕 역세권"]);
+    expect(zoneAt([100.601, 13.7055])?.name).toBe("온눗 역세권");
   });
 
   it("32각형 닫힌 원", () => {

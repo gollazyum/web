@@ -4,24 +4,36 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl from "mapbox-gl";
 import { useEffect, useRef } from "react";
 import { circleRing } from "@/lib/map-pins";
-import { VIBES, zonesGeoJSON, type City, type VibeKey } from "@/data/neighborhoodVibes";
+import { haversine, VIBES, zonesGeoJSON, type City, type VibeKey } from "@/data/neighborhoodVibes";
+import { STATION_MAX_M } from "@/lib/map-decide";
 
 // Mapbox 지도 본체. MapPanel이 지도를 실제로 띄울 때만 next/dynamic(ssr: false)으로 불러온다 (지도 로드 = Mapbox 과금 단위).
 // 한 번 만든 지도는 그대로 두고, 핀·선택만 바꾼다 (필터를 바꿔도 지도를 다시 만들지 않는다).
 // 오른쪽 아래 Mapbox 로고와 © Mapbox © OpenStreetMap 표기는 약관상 필요해 끄지 않는다
 export type MapPin = { token: string; lat: number; lng: number; label: string; low: boolean; on: boolean; name: string; dim?: boolean; est?: boolean }; // est: 예약처 확인 전 예상 금액 (회색 핀)
 // 동네 분위기: 도시(없으면 끔), 켜짐 여부, 고른 분위기 하나(없으면 전부)
-export type VibeView = { city: City | null; on: boolean; pick: VibeKey | null };
+// avg: 구역 id → 알약에 붙일 '평균 28만' (확인 총액 2곳 이상인 구역만)
+export type VibeView = { city: City | null; on: boolean; pick: VibeKey | null; avg?: Record<string, string> };
+// 가장 가까운 역 (지도에 그려진 역 라벨에서 찾은 것만, 직선거리 m)
+export type NearStation = { name: string; m: number } | null;
 
 // focus: 고른 동네에 숙소가 0곳일 때 카메라만 그 구역으로 (key가 바뀔 때 한 번). fit: 처음 핀 전체를 맞출 때의 여백·최대 줌
 export type MapFocus = { key: string; box: [[number, number], [number, number]] } | null;
 // tip: 고른 핀 위에 띄우는 작은 요약 (넓은 지도 창). 누르면 onTip
 export type MapTip = { token: string; lat: number; lng: number; title: string; line: string } | null;
-type Props = { token: string; pins: MapPin[]; ring: [number, number] | null; vibe: VibeView; focus?: MapFocus; tip?: MapTip; onTip?: () => void; fit?: { padding: number; maxZoom: number }; onPick: (token: string) => void; onVibe?: (k: VibeKey) => void; onFail: (why: "rejected" | "error") => void };
+type Props = { token: string; pins: MapPin[]; ring: [number, number] | null; vibe: VibeView; focus?: MapFocus; tip?: MapTip; onTip?: () => void; fit?: { padding: number; maxZoom: number }; onPick: (token: string) => void; onVibe?: (k: VibeKey) => void; onFail: (why: "rejected" | "error") => void; onStation?: (s: NearStation) => void };
 
 const RING_SRC = "tb-rings";
+const STATION_SRC = "tb-station-line";
+const WALK_MIN_ZOOM = 13.2; // 도보 5·10분 원은 이 줌부터
+const STATION_MIN_ZOOM = 13;
 
-export default function StayMap({ token, pins, ring, vibe, focus = null, tip = null, onTip, fit, onPick, onVibe, onFail }: Props) {
+export default function StayMap({ token, pins, ring, vibe, focus = null, tip = null, onTip, fit, onPick, onVibe, onFail, onStation }: Props) {
+  const ringRef = useRef(ring);
+  ringRef.current = ring;
+  const stationRef = useRef(onStation);
+  stationRef.current = onStation;
+  const lastStation = useRef<string>("");
   const popup = useRef<mapboxgl.Popup | null>(null);
   const tipRef = useRef(onTip);
   tipRef.current = onTip;
@@ -70,10 +82,15 @@ export default function StayMap({ token, pins, ring, vibe, focus = null, tip = n
     });
     m.on("style.load", () => applyTheme(m));
     m.on("load", () => {
+      // 선택 숙소 도보 5분(400m)·10분(800m) 원: 안쪽은 점선 + 옅은 채우기(0.08), 바깥은 연한 점선. 줌 13.2부터만
       m.addSource(RING_SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      m.addLayer({ id: "tb-rings", type: "line", source: RING_SRC, paint: { "line-color": "#1A1A18", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.55 } });
-      m.addLayer({ id: "tb-ring-labels", type: "symbol", source: RING_SRC, layout: { "symbol-placement": "line", "text-field": ["get", "label"], "text-size": 11 }, paint: { "text-color": "#5D6475", "text-halo-color": "#FFFFFF", "text-halo-width": 1.5 } });
-      drawRing(m, ring);
+      m.addLayer({ id: "tb-ring-fill", type: "fill", source: RING_SRC, minzoom: WALK_MIN_ZOOM, filter: ["==", ["get", "kind"], "fill"], paint: { "fill-color": "#1A1A18", "fill-opacity": 0.08 } });
+      m.addLayer({ id: "tb-rings", type: "line", source: RING_SRC, minzoom: WALK_MIN_ZOOM, filter: ["==", ["get", "kind"], "line"], paint: { "line-color": "#1A1A18", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": ["get", "op"] } });
+      m.addLayer({ id: "tb-ring-labels", type: "symbol", source: RING_SRC, minzoom: WALK_MIN_ZOOM, filter: ["==", ["get", "kind"], "line"], layout: { "symbol-placement": "line", "text-field": ["get", "label"], "text-size": 11 }, paint: { "text-color": "#5D6475", "text-halo-color": "#FFFFFF", "text-halo-width": 1.5 } });
+      // 가장 가까운 역까지 얇은 먹색 점선
+      m.addSource(STATION_SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      m.addLayer({ id: "tb-station-line", type: "line", source: STATION_SRC, minzoom: STATION_MIN_ZOOM, paint: { "line-color": "#1A1A18", "line-width": 1, "line-dasharray": [1.5, 2], "line-opacity": 0.7 } });
+      drawRing(m, ringRef.current);
       drawVibes(m, vibeRef.current);
       placeTags(m, vibeRef.current);
     });
@@ -89,6 +106,23 @@ export default function StayMap({ token, pins, ring, vibe, focus = null, tip = n
       fade();
       declutter(m);
     };
+    // 가장 가까운 역: 이동·타일 그리기가 다 끝난 idle 때만 지금 그려진 역 라벨을 찾는다 (줌 13 미만·못 찾으면 조용히 숨김)
+    const findStation = () => {
+      let hit: { name: string; m: number; at: [number, number] } | null = null;
+      try {
+        hit = nearestStation(m, ringRef.current);
+      } catch {
+        hit = null;
+      }
+      const key = hit ? `${hit.name}:${Math.round(hit.m)}` : "";
+      if (key === lastStation.current) return;
+      lastStation.current = key;
+      const src = m.getSource(STATION_SRC) as mapboxgl.GeoJSONSource | undefined;
+      const r = ringRef.current;
+      src?.setData({ type: "FeatureCollection", features: hit && r ? [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [[r[1], r[0]], hit.at] } }] : [] });
+      stationRef.current?.(hit ? { name: hit.name, m: hit.m } : null);
+    };
+    m.on("idle", findStation);
     m.on("zoom", fade);
     m.on("load", settle);
     m.on("moveend", settle);
@@ -184,16 +218,17 @@ export default function StayMap({ token, pins, ring, vibe, focus = null, tip = n
 
   useEffect(() => {
     const m = map.current;
-    if (m?.isStyleLoaded()) drawRing(m, ring);
+    if (m?.getSource(RING_SRC)) drawRing(m, ring);
     if (m && ring) m.easeTo({ center: [ring[1], ring[0]], duration: 400 });
-  }, [ring]);
+    if (m && !ring) m.triggerRepaint(); // 원을 끄면 다음 idle에서 역 줄도 지운다
+  }, [ring?.[0], ring?.[1]]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const m = map.current;
     if (!m?.getSource(RING_SRC)) return; // 아직 load 전이면 load에서 그린다
     drawVibes(m, vibe);
     placeTags(m, vibe);
-  }, [vibe.city?.id, vibe.on, vibe.pick]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [vibe.city?.id, vibe.on, vibe.pick, JSON.stringify(vibe.avg ?? {})]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 구역 이름표: 지도 글꼴은 컬러 이모지를 못 그려서 HTML 알약으로 띄운다. 누르면 그 분위기만 보기
   function placeTags(m: mapboxgl.Map, v: VibeView) {
@@ -211,7 +246,9 @@ export default function StayMap({ token, pins, ring, vibe, focus = null, tip = n
       el.title = `${z.name} · ${z.desc}`;
       el.setAttribute("aria-label", `${z.name} ${k.label}: ${z.desc}`);
       const top = document.createElement("span");
-      top.textContent = `${k.emoji} ${k.label}`;
+      // 이번 검색에서 이 구역 안 확인 총액이 2곳 이상이면 평균을 함께 (없으면 분위기 이름만)
+      const a = v.avg?.[z.id];
+      top.textContent = a ? `${k.emoji} ${k.label} · 평균 ${a}` : `${k.emoji} ${k.label}`;
       const sub = document.createElement("small");
       sub.textContent = z.name;
       el.append(top, sub);
@@ -371,10 +408,41 @@ function drawVibes(m: mapboxgl.Map, v: VibeView) {
 function drawRing(m: mapboxgl.Map, ring: [number, number] | null) {
   const src = m.getSource(RING_SRC) as mapboxgl.GeoJSONSource | undefined;
   if (!src) return;
+  const walk = [
+    { r: 400, label: "도보 약 5분", op: 0.55 },
+    { r: 800, label: "도보 약 10분", op: 0.3 },
+  ];
   src.setData({
     type: "FeatureCollection",
     features: ring
-      ? [400, 800].map((r) => ({ type: "Feature" as const, properties: { label: `${r}m` }, geometry: { type: "LineString" as const, coordinates: circleRing(ring[0], ring[1], r) } }))
+      ? [
+          { type: "Feature" as const, properties: { kind: "fill" }, geometry: { type: "Polygon" as const, coordinates: [circleRing(ring[0], ring[1], 400)] } },
+          ...walk.map((w) => ({ type: "Feature" as const, properties: { kind: "line", label: w.label, op: w.op }, geometry: { type: "LineString" as const, coordinates: circleRing(ring[0], ring[1], w.r) } })),
+        ]
       : [],
   });
+}
+
+// 지금 그려진 역 라벨 중 선택 숙소에서 1.2km 안 가장 가까운 곳 ([lat, lng] 숙소 기준). 버스 정류장·출구는 뺀다
+function nearestStation(m: mapboxgl.Map, ring: [number, number] | null): { name: string; m: number; at: [number, number] } | null {
+  if (!ring || m.getZoom() < STATION_MIN_ZOOM) return null;
+  const ids = (m.getStyle()?.layers ?? [])
+    .filter((l) => l.type === "symbol" && ((l as { "source-layer"?: string })["source-layer"] === "transit_stop_label" || /transit-label|transit_stop|rail-label|station/.test(l.id)))
+    .map((l) => l.id)
+    .filter((id) => !!m.getLayer(id));
+  if (!ids.length) return null;
+  const here: [number, number] = [ring[1], ring[0]];
+  let best: { name: string; m: number; at: [number, number] } | null = null;
+  for (const raw of m.queryRenderedFeatures({ layers: ids })) {
+    const f = raw as unknown as { geometry: { type: string; coordinates: unknown }; properties: Record<string, unknown> | null };
+    if (f.geometry?.type !== "Point") continue;
+    const p = f.properties ?? {};
+    if (p.mode === "bus" || p.stop_type === "entrance") continue;
+    const name = String(p.name_ko || p.name_en || p.name || "").trim();
+    if (!name) continue;
+    const at = f.geometry.coordinates as [number, number];
+    const d = haversine(here, at);
+    if (d <= STATION_MAX_M && (!best || d < best.m)) best = { name, m: d, at };
+  }
+  return best;
 }

@@ -9411,3 +9411,45 @@ button.tb-maplink {
     background: var(--tb-mute);
   }
 }
+
+/* ---------- 지도 의사결정 보조 (2026-11-26 PR 2/2) ---------- */
+/* 동네 대비 가격 한 줄 · 가장 가까운 역 한 줄 */
+.tb-map-brief,
+.tb-map-station {
+  display: block;
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tb-sub);
+}
+.tb-map-brief {
+  color: var(--tb-ink);
+  font-weight: 600;
+}
+.tb-mapx-pick .tb-map-brief,
+.tb-mapx-pick .tb-map-station {
+  margin: 0 0 4px;
+}
+/* 도보 반경 표시 스위치 줄 */
+.tb-mapx-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tb-mapx-row h3 {
+  margin: 0 !important;
+}
+/* 예상 이동 시간: 시간은 먹색, 괄호 안 거리는 작은 회색 */
+.tb-mapx-dist b small,
+.tb-near b small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--tb-mute);
+}
+.tb-mapx-dist li {
+  gap: 12px;
+}
+.tb-mapx-dist b {
+  white-space: nowrap;
+}
