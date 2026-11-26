@@ -348,7 +348,7 @@ export function StayRow({ h, query, reason, note, check, cheapest, saved, active
           <span className="tb-score">
             <b>{h.rating.toFixed(1)}</b>
             <strong>{ratingWord(h.rating)}</strong>
-            {h.reviews ? <span>리뷰 {h.reviews.toLocaleString("ko-KR")}</span> : null}
+            {h.reviews ? <span>후기 {h.reviews.toLocaleString("ko-KR")}개</span> : null}
           </span>
         ) : null}
         {stayFactLine(h, t.fc) && <span className="tb-fact">{stayFactLine(h, t.fc)}</span>}
