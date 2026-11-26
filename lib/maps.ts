@@ -10,5 +10,5 @@ export function staticMapUrl(lat: number, lng: number, token = process.env.NEXT_
   if (!t || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 85 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) return null;
   const x = lng.toFixed(5);
   const y = lat.toFixed(5);
-  return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l+FF5A1F(${x},${y})/${x},${y},15,0/${w}x${h}@2x?access_token=${encodeURIComponent(t)}`;
+  return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l+1E3A5F(${x},${y})/${x},${y},15,0/${w}x${h}@2x?access_token=${encodeURIComponent(t)}`;
 }

@@ -9,6 +9,8 @@ import uiFont from "@/scripts/pretendard-ui.json";
 import "./globals.css";
 // 휴대폰(640px 이하) 전용 보정. 기존 스타일 뒤에 불러와 덮어쓴다
 import "./mobile.css";
+// 글자·간격·모서리·그림자 디자인 규칙 (2026-11-26)
+import "./tokens.css";
 
 const TP_DATA = { "cmp-ab": "2" };
 

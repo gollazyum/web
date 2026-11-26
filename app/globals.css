@@ -5172,65 +5172,59 @@ body:has(.compare-bar) .hcards {
   background: #e2e8f0;
 }
 
-/* 약관·개인정보·404 공통 머리글·바닥글 (components/PageShell.tsx). 여행 앱과 같은 흰 바탕 + 검정 글씨 + 파란 구슬 */
+/* 약관·개인정보·404 공통 머리글·바닥글 (components/PageShell.tsx).
+   2026-11-26: 여행 앱과 같은 디자인 규칙 (app/tokens.css · lib/brand.ts 색) — 미색 바탕, 먹색 글자, 글자 로고, 밑줄 링크 */
 .pg {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: #fff;
-  color: #0b0b0f;
+  background: var(--tb-bg);
+  color: var(--tb-ink);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
 }
 .pg-wrap {
   width: 100%;
-  max-width: 880px;
+  max-width: calc(var(--page-max) + var(--page-gutter) * 2);
   margin: 0 auto;
-  padding-left: 20px;
-  padding-right: 20px;
+  padding-left: var(--page-gutter);
+  padding-right: var(--page-gutter);
 }
 .pg-head {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: #fff;
-  border-bottom: 1px solid #ececf0;
+  background: var(--tb-bg);
+  border-bottom: 1px solid var(--tb-line);
 }
 .pg-head-in {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  height: 60px;
+  gap: var(--sp-3);
+  height: var(--header-h);
 }
 .pg-logo {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #0b0b0f;
+  align-items: baseline;
+  gap: var(--sp-2);
+  color: var(--tb-ink);
   text-decoration: none;
 }
 .pg-logo strong {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
 }
 .pg-logo em {
   font-style: normal;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #55555e;
-  background: #f3f3f6;
-  border-radius: 7px;
-  padding: 2px 7px;
-}
-.pg-orb {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #a9b9d8, #1b2a4a 58%, #0d162b);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--tb-mute);
 }
 .pg-nav {
   display: flex;
-  gap: 4px;
+  gap: var(--sp-6);
 }
 .pg-nav a {
   display: inline-flex;
@@ -5238,151 +5232,209 @@ body:has(.compare-bar) .hcards {
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
-  padding: 0 10px;
-  border-radius: 10px;
-  color: #0b0b0f;
-  font-weight: 700;
-  font-size: 14.5px;
+  color: var(--tb-sub);
+  font-weight: 500;
+  font-size: 15px;
   text-decoration: none;
+  transition: color var(--dur-fast) ease;
 }
 .pg-nav a:hover {
-  background: #f3f3f6;
+  color: var(--tb-ink);
 }
-/* 약관·개인정보 머리글 메뉴 5개: 좁은 휴대폰에서는 둘러보기·내 여행을 줄여 한 줄에 맞춘다 */
+/* 좁은 휴대폰: 메뉴 간격을 줄여 한 줄에 맞춘다 */
 @media (max-width: 520px) {
-  .pg-logo em {
-    display: none;
-  }
   .pg-nav {
-    gap: 0;
+    gap: var(--sp-3);
   }
   .pg-nav a {
-    padding: 0 6px;
-    font-size: 13.5px;
+    min-width: 0;
+    font-size: 14px;
   }
 }
 @media (max-width: 400px) {
-  .pg-nav a[href="/explore"],
   .pg-nav a[href="/trips"] {
     display: none;
   }
 }
+/* 약관·개인정보: 글이 많은 화면이라 본문 폭 780 */
 .pg .legal {
   flex: 1;
-  padding-top: 32px;
-  padding-bottom: 56px;
+  max-width: calc(var(--page-text) + var(--page-gutter) * 2);
+  margin: 0;
+  padding-top: var(--sp-8);
+  padding-bottom: var(--sp-section);
 }
-.pg .legal h1,
+@media (min-width: 1024px) {
+  /* 왼쪽 정렬: 머리글 로고와 같은 선에서 시작 */
+  .pg .legal {
+    margin-left: max(0px, calc((100% - var(--page-max) - var(--page-gutter) * 2) / 2));
+  }
+}
+.pg .legal h1 {
+  margin: 0 0 var(--sp-7);
+  padding-bottom: var(--sp-5);
+  border-bottom: 1px solid var(--tb-ink);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  letter-spacing: var(--ls-h1);
+  font-weight: 600;
+  color: var(--tb-ink);
+}
+/* 조항 제목: 조항이 많아 h3 크기로 (h2 크기는 화면 섹션 제목용) */
 .pg .legal h2 {
-  color: #0b0b0f;
+  margin: var(--sp-7) 0 var(--sp-3);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+  letter-spacing: var(--ls-h3);
+  font-weight: 600;
+  color: var(--tb-ink);
+}
+.pg .legal p,
+.pg .legal li {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--tb-ink);
+}
+.pg .legal ol,
+.pg .legal ul {
+  padding-left: var(--sp-5);
+}
+.pg .legal li + li {
+  margin-top: var(--sp-2);
+}
+.pg .legal a {
+  color: var(--tb-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.pg .legal .muted {
+  margin-top: var(--sp-7);
+  font-size: var(--fs-caption);
+  color: var(--tb-mute);
 }
 .pg-foot {
-  border-top: 1px solid #ececf0;
-  padding: 24px 0 32px;
-  font-size: 12.5px;
+  border-top: 1px solid var(--tb-line);
+  padding: var(--sp-6) 0 var(--sp-7);
+  font-size: var(--fs-caption);
   line-height: 1.7;
-  color: #74747c;
+  color: var(--tb-mute);
   word-break: keep-all;
 }
 .pg-foot p {
-  margin: 0 0 10px;
+  margin: 0 0 var(--sp-3);
+  max-width: 720px;
 }
 .pg-foot a {
-  color: #55555e;
+  color: var(--tb-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 .pg-foot-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 16px;
-  margin: 0 0 6px;
+  gap: 0 var(--sp-5);
+  margin: 0 0 var(--sp-2);
 }
 .pg-foot-links a {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
 }
+.pg-foot-links b {
+  font-weight: 600;
+}
 
-/* 404: 한국어 안내 + 홈으로 + 인기 여행지 (app/not-found.tsx) */
+/* 404: 왼쪽 정렬 h1 한 줄 + 설명 한 줄 + 주 버튼 하나 + 인기 여행지 (app/not-found.tsx) */
 .nf {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  gap: 10px;
-  padding: 56px 20px;
-  text-align: center;
+  gap: var(--sp-4);
+  width: 100%;
+  max-width: calc(var(--page-max) + var(--page-gutter) * 2);
+  margin: 0 auto;
+  padding: var(--sp-section) var(--page-gutter);
+  text-align: left;
 }
 .nf-code {
   margin: 0;
-  font-size: 15px;
-  font-weight: 800;
-  color: #74747c;
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--tb-mute);
   letter-spacing: 0.08em;
 }
 .nf h1 {
   margin: 0;
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  letter-spacing: var(--ls-h1);
+  font-weight: 600;
 }
 .nf-sub {
-  margin: 0 0 14px;
-  font-size: 15px;
-  color: #55555e;
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-body);
+  color: var(--tb-sub);
 }
+/* 주 버튼: 먹색 알약 48px */
 .nf a.nf-home,
 .nf a.nf-home:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 160px;
   height: 48px;
-  padding: 0 24px;
-  border-radius: 14px;
-  background: #0b0b0f;
+  padding: 0 var(--sp-6);
+  border-radius: var(--r-pill);
+  background: var(--tb-ink);
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
+  font-size: 15px;
   text-decoration: none;
 }
 .nf-places {
-  margin-top: 28px;
+  margin-top: var(--sp-7);
+  width: 100%;
+  max-width: var(--page-text);
 }
 .nf-places p {
-  margin: 0 0 10px;
-  font-size: 14px;
-  font-weight: 700;
-  color: #55555e;
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--tb-mute);
 }
 .nf-places div {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
+  gap: var(--sp-2);
 }
+/* 보조 버튼: 흰 바탕 + 옅은 선 알약 */
 .nf-places button {
   min-height: 44px;
-  padding: 0 18px;
-  border-radius: 999px;
-  border: 1px solid #ececf0;
-  background: #fff;
-  color: #0b0b0f;
+  padding: 0 var(--sp-5);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--tb-line);
+  background: var(--tb-card);
+  color: var(--tb-ink);
   font: inherit;
-  font-weight: 700;
-  font-size: 14.5px;
+  font-weight: 500;
+  font-size: 15px;
   cursor: pointer;
+  transition: border-color var(--dur-fast) ease;
+}
+.nf-places button:hover {
+  border-color: var(--tb-ink);
 }
 
-/* 약관·개인정보·404 머리글: 메뉴 글자가 두 줄로 꺾이지 않게, 아주 좁은 화면(≤320px)에서는 '가칭' 표시를 숨긴다 */
+/* 머리글: 메뉴 글자가 두 줄로 꺾이지 않게, 아주 좁은 화면(≤320px)에서는 '가칭' 표시를 숨긴다 */
 .pg-nav a,
 .pg-logo strong {
   white-space: nowrap;
 }
-@media (max-width: 320px) {
+@media (max-width: 360px) {
   .pg-logo em {
     display: none;
-  }
-  .pg-nav a {
-    padding: 0 8px;
   }
 }

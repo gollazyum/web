@@ -1,10 +1,10 @@
 /* 여행 앱 화면 (components/trip). 색은 lib/brand.ts → CSS 변수 --tb-* 로만 쓴다.
-   2026-11-20: 웜 오프화이트 바탕 + 잉크 네이비(글자·주 버튼·선택 탭) + 오렌지는 1위 최저 금액 숫자에만. 휴대폰 기준, PC에서는 가운데 640px 기둥 */
+   2026-11-26: 미색 바탕 + 먹색 글자·주 버튼 + 깊은 남색은 확인한 최저가 숫자에만. 글자·간격·모서리·그림자 규칙은 app/tokens.css */
 
 .tb-app {
   overflow-x: clip; /* PC 홈 배경 사진(화면 너비 가득)이 가로 스크롤을 만들지 않게 */
   --tb-r: 20px;
-  --tb-shadow: 0 8px 28px rgba(27, 42, 74, 0.08);
+  --tb-shadow: var(--shadow-float);
   min-height: 100dvh;
   background: var(--tb-bg);
   color: var(--tb-ink);
@@ -53,7 +53,7 @@
   flex: none;
   border-radius: 50%;
   position: relative;
-  background: radial-gradient(circle at 30% 30%, #a9b9d8, var(--tb-ink) 58%, #0d162b);
+  background: radial-gradient(circle at 30% 30%, #b9b6ae, var(--tb-ink) 58%, #0b0b0a);
   box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--tb-accent) 70%, transparent);
 }
 .tb-orb::after {
@@ -80,7 +80,7 @@
   gap: 4px;
   height: 24px;
   padding: 0 8px;
-  border-radius: 7px;
+  border-radius: var(--r-photo);
   font-size: 12px;
   font-style: normal;
   font-weight: 700;
@@ -107,7 +107,7 @@
   padding: 0 16px;
   border-radius: 999px;
   background: var(--tb-soft) !important;
-  font-size: 14.5px;
+  font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -127,9 +127,9 @@
   gap: 5px;
   height: 44px;
   padding: 0 16px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   font-weight: 700;
-  font-size: 14.5px;
+  font-size: 15px;
   white-space: nowrap;
   flex: none;
 }
@@ -183,7 +183,7 @@
   align-items: flex-start;
   color: var(--tb-sub);
   font-weight: 600;
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.4;
 }
 .tb-why svg {
@@ -218,7 +218,7 @@
   align-items: center;
   gap: 3px;
   color: var(--tb-mute) !important;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
 }
 .tb-tabbar .tb-tabbar-logo,
@@ -241,21 +241,21 @@
   border-radius: 50%;
   background: var(--tb-ink);
   color: #fff;
-  box-shadow: 0 8px 18px -8px rgba(27, 42, 74, 0.6), 0 0 0 4px var(--tb-card);
+  box-shadow: 0 8px 18px -8px rgba(20, 20, 19, 0.6), 0 0 0 4px var(--tb-card);
   font-style: normal;
 }
 .tb-tab.ai[aria-current="page"] .tb-fab {
-  box-shadow: 0 8px 18px -8px rgba(27, 42, 74, 0.6), 0 0 0 4px var(--tb-card), 0 0 0 6px color-mix(in srgb, var(--tb-ink) 25%, transparent);
+  box-shadow: 0 8px 18px -8px rgba(20, 20, 19, 0.6), 0 0 0 4px var(--tb-card), 0 0 0 6px color-mix(in srgb, var(--tb-ink) 25%, transparent);
 }
 .tb-soon-dot {
   position: absolute;
   top: -4px;
   right: 14px;
   font-style: normal;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
   padding: 3px 5px;
-  border-radius: 8px;
+  border-radius: var(--r-photo);
   background: var(--tb-soft2);
   color: var(--tb-sub);
 }
@@ -277,7 +277,7 @@
 }
 .tb-logo strong {
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
 }
 .tb-logo em {
@@ -286,13 +286,13 @@
   font-weight: 700;
   color: var(--tb-sub);
   background: var(--tb-soft);
-  border-radius: 7px;
+  border-radius: var(--r-photo);
   padding: 2px 7px;
 }
 .tb-search {
   margin-top: 8px;
   padding: 6px;
-  border-radius: 24px;
+  border-radius: var(--r-box-lg);
   background: var(--tb-card);
   border: 1px solid var(--tb-line);
   box-shadow: var(--tb-shadow);
@@ -306,13 +306,13 @@
 }
 .tb-search-tabs button {
   height: 44px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   font-weight: 700;
-  font-size: 15.5px;
+  font-size: 16px;
   color: var(--tb-sub) !important;
 }
 .tb-search-tabs button[aria-selected="true"] {
@@ -324,9 +324,9 @@
 }
 .tb-search-tabs em {
   font-style: normal;
-  font-size: 10.5px;
+  font-size: 12px;
   padding: 1px 5px;
-  border-radius: 6px;
+  border-radius: var(--r-photo);
   background: var(--tb-soft);
 }
 .tb-sf {
@@ -347,7 +347,7 @@
   flex-direction: column;
 }
 .tb-sf small {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
 }
 .tb-sf input,
@@ -425,7 +425,7 @@
   padding: 8px 14px;
 }
 .tb-sf-air .airport-field > span {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
 }
 .tb-sf-air .airport-field input {
@@ -452,7 +452,7 @@
   align-items: center;
   gap: 14px;
   padding: 14px 14px 14px 16px;
-  border-radius: 22px;
+  border-radius: var(--r-box-lg);
   background: var(--tb-accent-soft) !important;
   text-align: left;
 }
@@ -462,7 +462,7 @@
   flex-direction: column;
 }
 .tb-askbar strong {
-  font-size: 16.5px;
+  font-size: 16px;
 }
 .tb-askbar small {
   color: var(--tb-sub);
@@ -480,7 +480,7 @@
 .tb-sec h2,
 .tb-h2 {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
   margin: 28px 0 12px;
 }
@@ -491,7 +491,7 @@
 .tb-hero-title {
   margin: 10px 0 16px;
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.03em;
 }
@@ -522,10 +522,10 @@
   flex: none;
   width: 136px;
   aspect-ratio: 3 / 4;
-  border-radius: 18px;
+  border-radius: var(--r-box);
   overflow: hidden;
   scroll-snap-align: start;
-  background: linear-gradient(160deg, #3d4c7a, #0b0b0f) !important;
+  background: linear-gradient(160deg, #3a3935, #0b0b0f) !important;
   color: #fff !important;
   text-align: left;
 }
@@ -554,11 +554,11 @@
 }
 .tb-places strong {
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.25;
 }
 .tb-places small {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   opacity: 0.85;
 }
@@ -607,7 +607,7 @@
   flex-direction: column;
   align-items: flex-start;
   padding: 8px 16px;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   background: var(--tb-soft) !important;
   text-align: left;
 }
@@ -619,7 +619,7 @@
   max-width: 100%;
 }
 .tb-qpill span {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--tb-sub);
 }
 .tb-chiprow {
@@ -641,7 +641,7 @@
 }
 .tb-results-note {
   padding: 12px 16px 4px;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--tb-sub);
 }
 .tb-rlist {
@@ -664,7 +664,7 @@
   height: 160px;
   margin: 12px 16px 0;
   border: 0;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   background: linear-gradient(90deg, var(--tb-soft), var(--tb-card), var(--tb-soft));
   background-size: 200% 100%;
   animation: tb-shine 1.2s infinite linear;
@@ -674,7 +674,7 @@
   width: 120px;
   height: 148px;
   flex: none;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   overflow: hidden;
   background: var(--tb-soft);
 }
@@ -698,7 +698,7 @@
   position: relative;
   height: 190px;
   margin-bottom: 14px;
-  border-radius: 18px;
+  border-radius: var(--r-box);
   overflow: hidden;
   background: var(--tb-soft);
 }
@@ -822,7 +822,7 @@
 }
 .tb-srow-name {
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.3;
 }
 .tb-stars {
@@ -831,7 +831,7 @@
   letter-spacing: 1px;
 }
 .tb-srow-meta {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--tb-sub);
 }
 .tb-score {
@@ -842,16 +842,16 @@
 }
 .tb-score b {
   padding: 1px 6px;
-  border-radius: 7px;
+  border-radius: var(--r-photo);
   background: var(--tb-ink);
   color: #fff;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .tb-score span {
   color: var(--tb-sub);
 }
 .tb-srow-body .tb-why {
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .tb-srow-price {
   align-self: flex-end;
@@ -862,11 +862,11 @@
 }
 .tb-srow-price strong {
   font-size: 21px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 .tb-srow-price small {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
 }
 .tb-srow-price small.tb-per-night {
@@ -878,7 +878,7 @@
   padding: 14px 0;
 }
 .tb-saved-q {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-mute);
   margin: -6px 0 6px;
 }
@@ -925,7 +925,7 @@
 }
 .tb-chat-empty h1 {
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.03em;
   max-width: 300px;
@@ -942,7 +942,7 @@
 }
 .tb-examples button {
   padding: 13px 16px;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   background: var(--tb-soft) !important;
   font-weight: 600;
   text-align: left;
@@ -958,7 +958,7 @@
   align-self: flex-end;
   max-width: 86%;
   padding: 12px 16px;
-  border-radius: 20px;
+  border-radius: var(--r-box-lg);
   background: var(--tb-soft);
   font-size: 16px;
   white-space: pre-wrap;
@@ -972,7 +972,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 14.5px;
+  font-size: 15px;
 }
 .tb-ai-text {
   font-size: 16px;
@@ -1040,7 +1040,7 @@
   flex: none;
   width: 236px;
   scroll-snap-align: start;
-  border-radius: 20px;
+  border-radius: var(--r-box-lg);
   border: 1px solid var(--tb-line);
   overflow: hidden;
   background: var(--tb-card);
@@ -1074,15 +1074,15 @@
   cursor: pointer;
 }
 .tb-hcard-body > strong {
-  font-size: 16.5px;
+  font-size: 16px;
   line-height: 1.3;
 }
 .tb-hcard-meta {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--tb-sub);
 }
 .tb-hcard-body .tb-why {
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .tb-hcard-foot {
   margin-top: auto;
@@ -1094,10 +1094,10 @@
 }
 .tb-hcard-foot b {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .tb-hcard-foot small {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
 }
 .tb-compare {
@@ -1105,7 +1105,7 @@
   border-collapse: separate;
   border-spacing: 0;
   border: 1px solid var(--tb-line);
-  border-radius: 16px;
+  border-radius: var(--r-box);
   overflow: hidden;
   font-size: 14px;
   table-layout: fixed;
@@ -1133,8 +1133,8 @@
   width: 26%;
 }
 .tb-compare td.best {
-  color: var(--tb-price); /* 추천 3곳 중 가장 낮은 총액 = 오렌지 */
-  font-weight: 800;
+  color: var(--tb-price); /* 추천 3곳 중 가장 낮은 총액 = 남색 강조 */
+  font-weight: 700;
 }
 .tb-cards {
   display: flex;
@@ -1207,7 +1207,7 @@
 /* AI 되묻기 */
 .tb-ask {
   padding: 16px;
-  border-radius: 18px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   display: flex;
   flex-direction: column;
@@ -1227,7 +1227,7 @@
 .tb-askq p b {
   width: 22px;
   height: 22px;
-  border-radius: 7px;
+  border-radius: var(--r-photo);
   display: inline-grid;
   place-items: center;
   font-size: 12px;
@@ -1245,7 +1245,7 @@
 }
 .tb-page h1 {
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
 }
 .tb-page .tb-h2 {
@@ -1261,7 +1261,7 @@
   width: 100%;
   margin: 6px 0 0;
   padding: 16px 16px 16px 34px;
-  border-radius: 18px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
   display: flex;
   flex-direction: column;
@@ -1270,7 +1270,7 @@
 .tb-empty {
   width: 100%;
   padding: 20px;
-  border-radius: 18px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
   display: flex;
   flex-direction: column;
@@ -1290,7 +1290,7 @@
 .tb-empty-trip strong {
   margin-top: 6px;
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--tb-ink);
 }
 .tb-empty-trip p {
@@ -1305,7 +1305,7 @@
   width: 100%;
   margin-top: 10px;
   padding: 16px;
-  border-radius: 18px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   display: flex;
   flex-direction: column;
@@ -1325,7 +1325,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 10px 10px 16px;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   background: var(--tb-ink);
   color: #fff;
   font-size: 15px;
@@ -1340,7 +1340,7 @@
 .tb-toast button {
   min-height: 44px;
   padding: 0 14px;
-  border-radius: 10px;
+  border-radius: var(--r-box);
   background: #fff !important;
   color: var(--tb-ink) !important;
   font-weight: 700;
@@ -1351,14 +1351,14 @@
   gap: 3px;
   min-height: 44px;
   margin: -6px 0 -10px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--tb-ink) !important;
 }
 
 /* 항공 카드 (v4 10) */
 .tb-fcard {
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-card);
   overflow: hidden;
   border: 1px solid var(--tb-line);
@@ -1383,7 +1383,7 @@
 .tb-fcard-band b {
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: var(--r-photo);
   background: var(--tb-ink);
   color: #fff;
   font-size: 12px;
@@ -1471,17 +1471,17 @@
 }
 .tb-plus1 {
   font-style: normal;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
   padding: 3px 5px;
-  border-radius: 6px;
+  border-radius: var(--r-photo);
   background: var(--tb-soft);
   color: var(--tb-ink);
   letter-spacing: 0;
 }
 .tb-fcard .tb-fmore {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--tb-sub) !important;
   text-decoration: underline;
@@ -1523,7 +1523,7 @@
 }
 .tb-fair {
   font-weight: 700;
-  font-size: 14.5px;
+  font-size: 15px;
 }
 /* 항공편 상세 시트 */
 .tb-fd-title {
@@ -1536,13 +1536,13 @@
   border-bottom: 1px solid var(--tb-line);
 }
 .tb-fd-leg h3 {
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 700;
   margin: 0 0 8px;
 }
 .tb-fd-leg h3 span {
   font-weight: 500;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--tb-sub);
   margin-left: 4px;
 }
@@ -1560,7 +1560,7 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
 }
 .tb-fd-back-top .tb-fprice strong {
@@ -1601,14 +1601,14 @@
   margin: 2px 0 2px 30px;
   padding-left: 44px;
   border-left: 2px solid var(--tb-line);
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
   line-height: 22px;
 }
 .tb-seg-wait {
   margin-top: 8px;
   padding: 8px 12px;
-  border-radius: 10px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
   font-size: 13px;
   font-weight: 600;
@@ -1667,7 +1667,7 @@
   flex-direction: column;
   overflow: hidden;
   background: var(--tb-bg);
-  border-radius: 24px 24px 0 0;
+  border-radius: var(--r-box-lg) var(--r-box-lg) 0 0;
   animation: tb-up 0.22s ease-out;
   outline: none;
 }
@@ -1699,7 +1699,7 @@
 .tb-grab {
   width: 44px;
   height: 5px;
-  border-radius: 3px;
+  border-radius: var(--r-photo);
   background: var(--tb-line);
   margin: 0 auto 10px;
 }
@@ -1735,7 +1735,7 @@
 .tb-taste {
   position: relative;
   background: var(--tb-soft);
-  border-radius: 22px;
+  border-radius: var(--r-box-lg);
   padding: 14px 16px 26px;
 }
 .tb-taste textarea {
@@ -1796,7 +1796,7 @@
   width: 8.6em;
   border: 0;
   background: var(--tb-soft);
-  border-radius: 10px;
+  border-radius: var(--r-box);
   padding: 6px 8px;
   font-weight: 700;
   font-size: 14px;
@@ -1856,20 +1856,20 @@
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 4px;
   padding: 4px;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
   margin: 10px 0 4px;
 }
 .tb-tabs3 button {
   padding: 10px 4px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   font-weight: 700;
   color: var(--tb-sub) !important;
   line-height: 1.2;
 }
 .tb-tabs3 button small {
   display: block;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 400;
 }
 .tb-tabs3 button[aria-pressed="true"] {
@@ -1884,7 +1884,7 @@
 .tb-cta {
   margin-top: 22px;
   padding: 17px;
-  border-radius: 20px;
+  border-radius: var(--r-box-lg);
   background: var(--tb-ink) !important;
   color: #fff !important;
   font-size: 17px;
@@ -1894,7 +1894,7 @@
   margin: 0;
   padding: 11px 18px;
   font-size: 15px;
-  border-radius: 16px;
+  border-radius: var(--r-box);
 }
 .tb-cta:disabled {
   opacity: 0.35;
@@ -1918,7 +1918,7 @@
   position: relative;
   flex: 0 0 88%;
   height: 200px;
-  border-radius: 18px;
+  border-radius: var(--r-box);
   overflow: hidden;
   background: var(--tb-soft);
   scroll-snap-align: center;
@@ -1949,10 +1949,10 @@
   align-items: flex-start;
   margin: 0 0 16px;
   padding: 12px 14px;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   background: var(--tb-accent-soft);
   color: var(--tb-ink);
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.5;
 }
 .tb-detail-why svg {
@@ -1972,7 +1972,7 @@
 }
 .tb-detail-sec h3 {
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 700;
   margin: 0 0 12px;
 }
 .tb-topics,
@@ -1989,7 +1989,7 @@
   grid-template-columns: minmax(64px, 30%) 1fr auto;
   align-items: center;
   gap: 10px;
-  font-size: 14.5px;
+  font-size: 15px;
 }
 .tb-topics span {
   overflow: hidden;
@@ -2035,7 +2035,7 @@
   border-radius: 16px 16px 4px 16px;
   background: var(--tb-ink);
   color: #fff;
-  font-size: 14.5px;
+  font-size: 15px;
 }
 .tb-qa-a {
   margin: 0;
@@ -2043,7 +2043,7 @@
   padding: 10px 14px;
   border-radius: 16px 16px 16px 4px;
   background: var(--tb-soft);
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.55;
 }
 .tb-detail-ask {
@@ -2060,7 +2060,7 @@
   line-height: 1.3;
 }
 .tb-seller-head p {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--tb-sub);
 }
 .tb-mute {
@@ -2069,7 +2069,7 @@
 .tb-seller-img {
   width: 72px;
   height: 72px;
-  border-radius: 18px;
+  border-radius: var(--r-box);
   object-fit: cover;
   background: var(--tb-soft);
   flex: none;
@@ -2090,7 +2090,7 @@
 .tb-rows {
   display: flex;
   flex-direction: column;
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-card);
   overflow: hidden;
 }
@@ -2113,8 +2113,8 @@
   min-width: 64px;
   height: 44px;
   padding: 0 14px;
-  border-radius: 12px;
-  font-size: 14.5px;
+  border-radius: var(--r-box);
+  font-size: 15px;
   font-weight: 700;
   background: var(--tb-soft);
   color: var(--tb-ink) !important;
@@ -2130,9 +2130,9 @@
 .tb-seller-badge {
   width: 38px;
   height: 38px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   color: #fff;
-  font-weight: 800;
+  font-weight: 700;
   font-size: 13px;
   letter-spacing: -0.02em;
   display: grid;
@@ -2155,7 +2155,7 @@
   align-items: flex-end;
 }
 .tb-row-price strong {
-  font-size: 16.5px;
+  font-size: 16px;
 }
 .tb-row-price small {
   font-size: 12px;
@@ -2168,14 +2168,14 @@
   color: var(--tb-accent-dark);
   background: var(--tb-accent-soft);
   padding: 2px 8px;
-  border-radius: 8px;
+  border-radius: var(--r-photo);
 }
 .tb-note {
   margin-top: 12px;
   padding: 14px 16px;
-  border-radius: 18px;
+  border-radius: var(--r-box);
   background: var(--tb-card);
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--tb-sub);
 }
 /* '내 여행에 담기'는 스크롤해도 창 아래에 붙어 있다 (상세 창 PC 패널·휴대폰 시트).
@@ -2203,7 +2203,7 @@
   flex: none;
   width: 48px;
   height: 48px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   display: grid;
   place-items: center;
   border: 1px solid var(--tb-line) !important;
@@ -2222,11 +2222,11 @@
 }
 .tb-book-bar-price strong {
   font-size: 19px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 .tb-book-bar-price small {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
   white-space: nowrap;
   overflow: hidden;
@@ -2239,7 +2239,7 @@
   gap: 6px;
   height: 48px;
   padding: 0 18px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   background: var(--tb-ink);
   color: #fff !important;
   font-weight: 700;
@@ -2252,7 +2252,7 @@
   align-items: center;
   gap: 6px;
   padding: 14px;
-  border-radius: 18px;
+  border-radius: var(--r-box);
   background: var(--tb-accent-soft) !important;
   color: var(--tb-ink) !important;
   font-weight: 700;
@@ -2287,12 +2287,12 @@
   margin: 20px 0 0;
   font-size: 27px;
   line-height: 1.32;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
 }
 .tb-onb-lead {
   margin: 10px 0 0;
-  font-size: 15.5px;
+  font-size: 16px;
   line-height: 1.55;
   color: var(--tb-sub);
 }
@@ -2315,7 +2315,7 @@
   padding: 0 17px;
   border-radius: 999px;
   border: 1px solid var(--tb-line) !important;
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 600;
 }
 /* 설문: 선택·포커스는 파란색 (2026-11-16 지시서) */
@@ -2345,7 +2345,7 @@
 .tb-onb-tile {
   position: relative;
   aspect-ratio: 4 / 3;
-  border-radius: 18px;
+  border-radius: var(--r-box);
   overflow: hidden;
   background: var(--tb-soft);
   outline: 3px solid transparent;
@@ -2374,7 +2374,7 @@
   left: 12px;
   bottom: 10px;
   color: #fff;
-  font-weight: 800;
+  font-weight: 700;
   font-size: 16px;
 }
 .tb-onb-ck {
@@ -2405,10 +2405,10 @@
   gap: 14px;
   min-height: 52px;
   padding: 0 16px;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line) !important;
   text-align: left;
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--tb-sub) !important;
 }
@@ -2422,7 +2422,7 @@
   flex: none;
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: var(--r-photo);
   display: grid;
   place-items: center;
   font-size: 14px;
@@ -2480,12 +2480,12 @@
   border-radius: 999px;
   background: var(--tb-ink) !important;
   color: #fff !important;
-  font-size: 16.5px;
+  font-size: 16px;
   font-weight: 700;
 }
 .tb-onb-next.go {
   padding: 0 20px;
-  font-size: 15.5px;
+  font-size: 16px;
 }
 .tb-onb-next:disabled {
   background: var(--tb-soft2) !important;
@@ -2508,13 +2508,13 @@
   /* 위쪽 머리글: 왼쪽 로고, 오른쪽 메뉴 */
   .tb-main {
     max-width: 760px;
-    padding-top: 64px;
+    padding-top: var(--header-h);
     padding-bottom: 0;
   }
   .tb-tabbar {
     top: 0;
     bottom: auto;
-    height: 64px;
+    height: var(--header-h);
     align-items: center;
     justify-content: flex-end;
     gap: 4px;
@@ -2566,7 +2566,7 @@
     width: 100vw;
     height: 330px;
     transform: translateX(-50%);
-    background: linear-gradient(180deg, rgba(11, 11, 15, 0.28), rgba(11, 11, 15, 0.5)), var(--tb-hero-img) center / cover, #1d2b52;
+    background: linear-gradient(180deg, rgba(11, 11, 15, 0.28), rgba(11, 11, 15, 0.5)), var(--tb-hero-img) center / cover, #2a2a28;
   }
   .tb-hero-title,
   .tb-hero .tb-search {
@@ -2584,10 +2584,10 @@
   }
   .tb-results-top,
   .tb-chat-top {
-    top: 64px;
+    top: var(--header-h);
   }
   .tb-chat {
-    min-height: calc(100dvh - 64px);
+    min-height: calc(100dvh - var(--header-h));
   }
   .tb-msgs {
     padding-bottom: 24px;
@@ -2634,14 +2634,14 @@
   .tb-panel {
     display: block;
     position: sticky;
-    top: 88px;
-    max-height: calc(100dvh - 112px);
+    top: calc(var(--header-h) + 24px);
+    max-height: calc(100dvh - var(--header-h) - 48px);
     overflow-y: auto;
     overscroll-behavior: contain;
     margin-top: 24px;
     padding: 20px;
     border: 1px solid var(--tb-line);
-    border-radius: 24px;
+    border-radius: var(--r-box-lg);
     background: var(--tb-card);
     box-shadow: var(--tb-shadow);
   }
@@ -2673,7 +2673,7 @@
   }
   .tb-panel-empty p {
     margin: 0;
-    font-size: 14.5px;
+    font-size: 15px;
   }
   .tb-main.split .tb-hcards {
     display: grid;
@@ -2690,7 +2690,7 @@
     box-shadow: inset 0 0 0 2px var(--tb-accent);
   }
   .tb-srow.on {
-    border-radius: 16px;
+    border-radius: var(--r-box);
   }
 
   /* 입력 시트·마이에서 여는 예약처 시트는 가운데 창 */
@@ -2702,7 +2702,7 @@
     width: 520px;
     max-height: 88dvh;
     transform: translate(-50%, -50%);
-    border-radius: 28px;
+    border-radius: var(--r-box-lg);
     animation: none;
   }
   .tb-sheet.tall {
@@ -2724,7 +2724,7 @@
 .tb-seller-info {
   margin: 0 0 12px;
   padding: 10px 14px 10px 30px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
   font-size: 13px;
   line-height: 1.55;
@@ -2736,7 +2736,7 @@
   align-items: center;
   gap: 12px;
   padding: 22px 16px;
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-soft);
   text-align: center;
   font-weight: 700;
@@ -2752,7 +2752,7 @@
 .tb-list-title {
   margin: 4px 56px 4px 0;
   font-size: 19px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .tb-sheet .tb-results {
   padding: 0;
@@ -2761,7 +2761,7 @@
   margin: 36px 0 0;
   padding: 20px 0 8px;
   border-top: 1px solid var(--tb-line);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.65;
   color: var(--tb-mute);
   word-break: keep-all;
@@ -2791,7 +2791,7 @@
   display: block;
   margin-top: 2px;
   font-style: normal;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--tb-accent);
 }
@@ -2808,7 +2808,7 @@
   font-size: 18px;
 }
 .tb-row-price.best strong {
-  color: var(--tb-price); /* 예약처 비교 1위 최저 금액 숫자 = 오렌지 (여기와 위 비교표에만 쓴다) */
+  color: var(--tb-price); /* 예약처 비교 1위 최저 금액 숫자 = 남색 강조 (여기와 위 비교표에만 쓴다) */
 }
 
 /* 결과 필터 (아고다 방식). 휴대폰·좁은 PC: 위쪽 3버튼 → 필터 전체 화면·요금·정렬 시트. 넓은 PC: 같은 항목이 왼쪽에 고정 */
@@ -2861,7 +2861,7 @@
 }
 .tb-fsheet-title {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   margin: 0 0 8px;
 }
 .tb-fsheet-title small,
@@ -2881,7 +2881,7 @@
 .tb-fpanel h3,
 .tb-filters h3 {
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 700;
   margin: 0 0 12px;
 }
 .tb-chip.line {
@@ -2913,17 +2913,17 @@
   gap: 2px;
   min-height: 56px;
   padding: 6px 4px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line) !important;
   background: var(--tb-card) !important;
   font-size: 15px;
 }
 .tb-fbox small {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
 }
 .tb-fbox .tb-star {
-  color: #e8890c;
+  color: var(--tb-star);
   margin-left: 2px;
 }
 .tb-fbox[aria-pressed="true"] {
@@ -2942,7 +2942,7 @@
   min-height: 48px;
   padding: 0 2px;
   background: none !important;
-  font-size: 15.5px;
+  font-size: 16px;
   text-align: left;
 }
 .tb-fopt span {
@@ -2957,7 +2957,7 @@
   flex: none;
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: var(--r-photo);
   border: 2px solid var(--tb-line);
   background: var(--tb-card);
 }
@@ -3053,7 +3053,7 @@
   min-height: 56px;
   background: none !important;
   border-bottom: 1px solid var(--tb-line) !important;
-  font-size: 16.5px;
+  font-size: 16px;
   text-align: left;
 }
 .tb-sortlist button:last-child {
@@ -3068,7 +3068,7 @@
 }
 @media (min-width: 1024px) {
   .tb-results-head {
-    top: 64px;
+    top: var(--header-h);
   }
 }
 .tb-results-head.bare {
@@ -3094,8 +3094,8 @@
   .tb-filters {
     display: block;
     position: sticky;
-    top: 88px;
-    max-height: calc(100dvh - 112px);
+    top: calc(var(--header-h) + 24px);
+    max-height: calc(100dvh - var(--header-h) - 48px);
     overflow-y: auto;
     overscroll-behavior: contain;
     margin-top: 12px;
@@ -3126,13 +3126,13 @@
     font-size: 14px;
   }
   .tb-filters .tb-fbox small {
-    font-size: 11.5px;
+    font-size: 12px;
   }
   .tb-freset {
     width: 100%;
     margin-top: 12px;
     min-height: 44px;
-    border-radius: 12px;
+    border-radius: var(--r-box);
     background: var(--tb-soft) !important;
     font-size: 14px;
     font-weight: 600;
@@ -3158,14 +3158,14 @@
   margin-top: 6px;
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   font-style: normal;
   line-height: 1.4;
 }
 .tb-pchg.down {
-  background: #e8f0ff;
-  color: #2F4A6E;
+  background: var(--tb-price-soft);
+  color: var(--tb-price);
 }
 .tb-pchg.down::before {
   content: "↓";
@@ -3196,7 +3196,7 @@
   margin-top: 12px;
   padding: 16px;
   border: 1px solid var(--tb-line);
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-bg);
   min-width: 0;
 }
@@ -3217,11 +3217,11 @@
 }
 .tb-trip-head strong {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 .tb-trip-head span {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--tb-sub);
 }
 .tb-dday {
@@ -3232,7 +3232,7 @@
   color: var(--tb-ink);
   font-style: normal;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .tb-trip-sub {
   display: flex;
@@ -3274,7 +3274,7 @@
   width: 44px;
   height: 44px;
   margin-left: -10px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   background: transparent;
 }
 .tb-check::before {
@@ -3282,7 +3282,7 @@
   position: absolute;
   inset: 11px;
   border: 2px solid var(--tb-line);
-  border-radius: 7px;
+  border-radius: var(--r-photo);
   background: var(--tb-bg);
 }
 .tb-check.on::before {
@@ -3310,7 +3310,7 @@
   font-size: 15px;
 }
 .tb-check-text small {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
 }
 .tb-trip-checks li.on .tb-check-text b {
@@ -3337,11 +3337,11 @@
 .tb-srow-price .tb-est {
   font-style: normal;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
   padding: 4px 8px;
   margin-bottom: 3px;
-  border-radius: 7px;
+  border-radius: var(--r-photo);
   background: var(--tb-soft);
   color: var(--tb-ink);
   border: 1px solid var(--tb-line);
@@ -3355,14 +3355,14 @@
   gap: 6px;
   margin-top: 2px;
   font-style: normal;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--tb-sub);
 }
 .tb-checking i {
   width: 44px;
   height: 10px;
-  border-radius: 5px;
+  border-radius: var(--r-photo);
   background: linear-gradient(90deg, var(--tb-soft), var(--tb-line), var(--tb-soft));
   background-size: 200% 100%;
   animation: tb-shine 1.2s infinite linear;
@@ -3390,12 +3390,12 @@
   font-weight: 600;
 }
 .tb-rank {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--tb-ink);
 }
 .tb-unk {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
 }
 .tb-row-name small.tb-free {
@@ -3413,7 +3413,7 @@
 /* 열린 카드(패널에 보이는 숙소)는 테두리로 표시 (휴대폰·PC 모두) */
 .tb-srow[aria-current="true"] {
   box-shadow: inset 0 0 0 2px var(--tb-ink);
-  border-radius: 16px;
+  border-radius: var(--r-box);
 }
 .tb-srow-img .tb-tag.second {
   top: 40px;
@@ -3427,7 +3427,7 @@
   border-radius: 999px;
   border: 1px solid var(--tb-line) !important;
   background: var(--tb-card) !important;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
 }
 /* 확인 전 금액: 회색 + 얇은 굵기 + '예상' 꼬리표 */
@@ -3436,7 +3436,7 @@
   font-weight: 400;
 }
 .tb-srow-price.est .tb-est {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   padding: 3px 6px;
   color: var(--tb-sub);
@@ -3449,11 +3449,11 @@
 }
 .tb-seller-chip {
   font-style: normal;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--tb-ink);
   background: var(--tb-soft);
-  border-radius: 6px;
+  border-radius: var(--r-photo);
   padding: 2px 7px;
   margin-bottom: 2px;
   white-space: nowrap;
@@ -3471,7 +3471,7 @@
   justify-content: center;
   gap: 4px;
   min-height: 44px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   color: var(--tb-ink) !important;
   font-weight: 700;
@@ -3488,7 +3488,7 @@
 }
 .tb-pop small {
   display: block;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--tb-sub);
   margin-bottom: 8px;
@@ -3508,7 +3508,7 @@
   flex: none;
   height: 36px;
   padding: 0 14px;
-  border-radius: 18px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   background: var(--tb-card);
   font-size: 14px;
@@ -3531,7 +3531,7 @@
 }
 .tb-trust li {
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
   display: flex;
   flex-direction: column;
@@ -3542,7 +3542,7 @@
   font-weight: 700;
 }
 .tb-trust span {
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--tb-sub);
 }
@@ -3550,7 +3550,7 @@
   .tb-trust {
     grid-template-columns: 1fr;
     gap: 0;
-    border-radius: 14px;
+    border-radius: var(--r-box);
     background: var(--tb-soft);
     padding: 4px 0;
   }
@@ -3563,7 +3563,7 @@
   }
   .tb-trust strong {
     flex: none;
-    font-size: 13.5px;
+    font-size: 14px;
   }
 }
 /* 자주 묻는 질문 */
@@ -3607,7 +3607,7 @@
 }
 .tb-faq-more {
   margin: 12px 0 0;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--tb-sub);
 }
 .tb-faq-more a {
@@ -3624,10 +3624,10 @@
 .tb-app .tb-noplace-chips button {
   height: 34px;
   padding: 0 12px;
-  border-radius: 17px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   background: var(--tb-card);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--tb-ink);
 }
@@ -3733,7 +3733,7 @@
 }
 .tb-gp-ages select {
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   padding: 0 10px;
   font-size: 15px;
@@ -3747,10 +3747,10 @@
 }
 .tb-app .tb-gp-cabin button {
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   background: var(--tb-card);
-  font-size: 14.5px;
+  font-size: 15px;
   font-weight: 600;
 }
 .tb-app .tb-gp-cabin button[aria-checked="true"] {
@@ -3767,10 +3767,10 @@
   width: 100%;
   height: 50px;
   margin-top: 16px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   background: var(--tb-ink);
   color: #fff;
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 700;
 }
 .tb-app .tb-sf-row .date-range.custom {
@@ -3847,7 +3847,7 @@
   gap: 12px;
   margin: 12px 0;
   padding: 14px 16px;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   background: var(--tb-card);
   text-align: left;
@@ -3875,7 +3875,7 @@
   flex: none;
 }
 .tb-app .tb-taste-card-x {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
   min-height: 32px;
   padding: 0 8px;
@@ -3902,7 +3902,7 @@
 }
 .tb-app .tb-sf:focus-within {
   box-shadow: inset 0 0 0 2px var(--tb-ink);
-  border-radius: 12px;
+  border-radius: var(--r-box);
 }
 .tb-app .tb-sf input:focus-visible,
 .tb-app .tb-sf select:focus-visible {
@@ -3927,7 +3927,7 @@
 .tb-ainfo p {
   margin: 6px 0 4px;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
   font-size: 13px;
   line-height: 1.55;
@@ -3946,13 +3946,13 @@
 .tb-basis {
   display: inline-flex;
   padding: 3px;
-  border-radius: 10px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
 }
 .tb-app .tb-basis button {
   min-height: 32px;
   padding: 0 10px;
-  border-radius: 8px;
+  border-radius: var(--r-photo);
   font-size: 13px;
   font-weight: 500;
   color: var(--tb-sub);
@@ -4072,7 +4072,7 @@
 /* 결과 검색 칸 아래 한 줄: 주소의 날짜를 고친 이유 */
 .tb-fixnote {
   margin: 8px 0 4px;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--tb-sub);
 }
@@ -4095,7 +4095,7 @@
   min-height: 40px;
   padding: 8px 14px;
   border: 1px solid var(--tb-line);
-  border-radius: 20px;
+  border-radius: var(--r-box-lg);
   background: var(--tb-card);
   font-size: 14px;
   color: var(--tb-ink);
@@ -4152,7 +4152,7 @@
   display: inline-block;
   width: fit-content;
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-photo);
   background: var(--tb-soft);
   color: var(--tb-ink);
   font-size: 12px;
@@ -4189,7 +4189,7 @@
     margin: 0;
   }
   .tb-top3-head .tb-ainfo summary {
-    font-size: 12.5px;
+    font-size: 13px;
   }
   .tb-top3-head .tb-ainfo[open] p {
     position: absolute;
@@ -4217,7 +4217,7 @@
     gap: 3px;
     padding: 10px 12px;
     border: 1px solid var(--tb-line);
-    border-radius: 14px;
+    border-radius: var(--r-box);
     background: var(--tb-card);
     text-align: left;
     scroll-snap-align: start;
@@ -4235,7 +4235,7 @@
     color: var(--tb-sub);
   }
   .tb-top3-card strong {
-    font-size: 14.5px;
+    font-size: 15px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -4256,7 +4256,7 @@
     color: var(--tb-sub);
   }
   .tb-top3-why {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--tb-sub);
     white-space: nowrap;
     overflow: hidden;
@@ -4325,7 +4325,7 @@
     align-self: flex-start;
     margin-top: 4px;
     padding: 3px 8px;
-    border-radius: 6px;
+    border-radius: var(--r-photo);
     background: color-mix(in srgb, var(--tb-star) 14%, white);
     color: var(--tb-ink);
     font-size: 12px;
@@ -4352,7 +4352,7 @@
   }
   .tb-leg-wait.long {
     padding: 3px 8px;
-    border-radius: 6px;
+    border-radius: var(--r-photo);
     background: color-mix(in srgb, var(--tb-star) 14%, white);
     color: var(--tb-ink);
     font-weight: 500;
@@ -4431,7 +4431,7 @@
     left: 8px;
     max-width: calc(100% - 16px);
     white-space: nowrap;
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 
@@ -4477,9 +4477,9 @@
   gap: 10px;
   margin: 8px 0;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.45;
   color: var(--tb-sub);
 }
@@ -4518,7 +4518,7 @@
   .tb-hcard-img .tb-tag.low {
     left: 8px;
     bottom: 8px;
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 @media (max-width: 360px) {
@@ -4543,7 +4543,7 @@
 /* PC 정렬 칸 '관련도순' 기준 ⓘ */
 .tb-sortinfo {
   margin: 6px 0 2px;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--tb-sub);
 }
@@ -4583,7 +4583,7 @@
   gap: 4px;
   padding: 4px;
   margin-top: 6px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
 }
 .tb-seg button {
@@ -4591,7 +4591,7 @@
   min-width: 0;
   min-height: 44px;
   padding: 0 6px;
-  border-radius: 11px;
+  border-radius: var(--r-box);
   font-size: 14px;
   font-weight: 700;
   color: var(--tb-sub);
@@ -4610,7 +4610,7 @@
   width: 100%;
   margin-top: 6px;
   padding: 16px 18px;
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-card);
   border: 1.5px dashed var(--tb-soft2);
   display: flex;
@@ -4642,7 +4642,7 @@
   align-items: center;
   gap: 14px;
   padding: 14px 16px;
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-card) !important;
   border: 1px solid var(--tb-line) !important;
   text-align: left;
@@ -4653,7 +4653,7 @@
   height: 44px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
   font-size: 22px;
 }
@@ -4665,7 +4665,7 @@
   gap: 2px;
 }
 .tb-help-text strong {
-  font-size: 15.5px;
+  font-size: 16px;
   line-height: 1.35;
 }
 .tb-help-text small {
@@ -4678,7 +4678,7 @@
 }
 .tb-help-note {
   margin: 8px 0 0;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.55;
   color: var(--tb-mute);
 }
@@ -4692,7 +4692,7 @@
   gap: 12px;
   padding: 14px 16px;
   margin: 6px 0 4px;
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-card) !important;
   border: 1.5px dashed var(--tb-soft2) !important;
   text-align: left;
@@ -4723,7 +4723,7 @@
 }
 .tb-capture-soon {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--tb-sub);
 }
 
@@ -4737,7 +4737,7 @@
 }
 .tb-set-box {
   padding: 16px 18px;
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-card);
   border: 1px solid var(--tb-line);
   display: flex;
@@ -4751,7 +4751,7 @@
 }
 .tb-set-sub {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--tb-sub);
   white-space: pre-line;
@@ -4855,7 +4855,7 @@ html.tb-big .tb-app {
 .tb-app .dp-day.start:hover span,
 .tb-app .dp-day.end:hover span {
   background: var(--tb-ink);
-  box-shadow: 0 6px 14px -6px rgba(27, 42, 74, 0.6);
+  box-shadow: 0 6px 14px -6px rgba(20, 20, 19, 0.6);
 }
 .tb-app .dp-day.in-range::before,
 .tb-app .dp-day.has-range::before,
@@ -4887,7 +4887,7 @@ html.tb-big .tb-app {
   align-items: flex-start;
   gap: 4px;
   padding: 16px;
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-card) !important;
   border: 1px solid var(--tb-line) !important;
   box-shadow: var(--tb-shadow);
@@ -4912,13 +4912,13 @@ html.tb-big .tb-app {
   display: grid;
   place-items: center;
   margin-bottom: 8px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   background: var(--tb-accent-soft);
   color: var(--tb-ink);
 }
 .tb-tile strong {
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
   display: inline-flex;
   align-items: center;
@@ -4931,7 +4931,7 @@ html.tb-big .tb-app {
 }
 .tb-tile .tb-tag {
   height: 20px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* 최근 확인한 최저 가격 */
@@ -4947,7 +4947,7 @@ html.tb-big .tb-app {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-card) !important;
   border: 1px solid var(--tb-line) !important;
   text-align: left;
@@ -4958,7 +4958,7 @@ html.tb-big .tb-app {
   height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
 }
 .tb-snap-text {
@@ -4975,7 +4975,7 @@ html.tb-big .tb-app {
 }
 .tb-snap-text small,
 .tb-snap-price small {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
 }
 .tb-snap-price {
@@ -4986,8 +4986,8 @@ html.tb-big .tb-app {
 }
 .tb-snap-price b {
   font-size: 18px;
-  font-weight: 800;
-  color: var(--tb-price); /* 최근 확인한 가장 낮은 금액 = 오렌지 */
+  font-weight: 700;
+  color: var(--tb-price); /* 최근 확인한 가장 낮은 금액 = 남색 강조 */
 }
 
 /* 조건 입력 시트 */
@@ -4998,7 +4998,7 @@ html.tb-big .tb-app {
   min-height: 44px;
   padding: 0 64px 0 20px;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .tb-search.fixed {
   margin-top: 0;
@@ -5033,7 +5033,7 @@ html.tb-big .tb-app {
 .tb-hs-wish input {
   min-height: 48px;
   padding: 0 14px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   background: var(--tb-card);
   font-weight: 500;
@@ -5073,7 +5073,7 @@ html.tb-big .tb-app {
   margin: 0 0 16px;
   padding: 12px 14px;
   border: 1px solid var(--tb-line);
-  border-radius: 16px;
+  border-radius: var(--r-box);
   background: var(--tb-card);
 }
 .tb-honest h3 {
@@ -5101,7 +5101,7 @@ html.tb-big .tb-app {
 .tb-honest-line b {
   flex: none;
   padding: 1px 7px;
-  border-radius: 8px;
+  border-radius: var(--r-photo);
   font-size: 12px;
   font-weight: 700;
   line-height: 1.6;
@@ -5129,7 +5129,7 @@ html.tb-big .tb-app {
 }
 .tb-honest-line {
   display: block;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--tb-sub);
   overflow-wrap: anywhere;
@@ -5141,9 +5141,9 @@ html.tb-big .tb-app {
 .tb-fc-note {
   margin: 0 0 10px;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--tb-ink);
 }
@@ -5152,13 +5152,13 @@ html.tb-big .tb-app {
 }
 
 /* ---------- 2026-11-25 돈 아끼는 예약: 아낀 금액 · 찜 가격 변화 · 탭 점 ---------- */
-/* 내림·아낌은 가격 알림과 같은 파란색 (주황은 1위 금액 숫자에만) */
+/* 내림·아낌은 가격 알림과 같은 파란색 (남색 강조는 확인한 최저가 숫자에만) */
 .tb-save-line {
   margin: 0 0 8px;
   padding: 10px 12px;
-  border-radius: 12px;
-  background: #e8f0ff;
-  color: #2F4A6E;
+  border-radius: var(--r-box);
+  background: var(--tb-price-soft);
+  color: var(--tb-price);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.45;
@@ -5170,15 +5170,15 @@ html.tb-big .tb-app {
   color: var(--tb-sub);
 }
 .tb-save-chip {
-  color: #2F4A6E !important;
+  color: var(--tb-price) !important;
   font-weight: 700;
 }
-/* 홈 '찜한 숙소 가격이 내려갔어요': 주황은 1위 금액에만 쓰므로 여기 금액은 잉크색 */
+/* 홈 '찜한 숙소 가격이 내려갔어요': 남색 강조는 확인한 최저가에만 쓰므로 여기 금액은 잉크색 */
 .tb-snap-price .tb-drop-now {
   color: var(--tb-ink);
 }
 .tb-drop {
-  color: #2F4A6E !important;
+  color: var(--tb-price) !important;
   font-weight: 700;
 }
 .tb-tab-dot {
@@ -5188,7 +5188,7 @@ html.tb-big .tb-app {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #2F4A6E;
+  background: var(--tb-price);
   box-shadow: 0 0 0 2px var(--tb-card);
 }
 .tb-watch {
@@ -5197,24 +5197,24 @@ html.tb-big .tb-app {
   gap: 10px;
   margin: 0 0 20px;
   padding: 14px 16px;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   background: var(--tb-card);
   border: 1px solid var(--tb-line);
 }
 .tb-watch.down {
-  border-color: #D9DEE7;
-  background: #F6F5F1;
+  border-color: var(--tb-line);
+  background: var(--tb-bg);
 }
 .tb-watch-head strong {
   display: block;
   font-size: 15px;
 }
 .tb-watch.down .tb-watch-head strong {
-  color: #2F4A6E;
+  color: var(--tb-price);
 }
 .tb-watch-head small {
   color: var(--tb-sub);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 .tb-watch-list {
   list-style: none;
@@ -5232,7 +5232,7 @@ html.tb-big .tb-app {
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   background: var(--tb-card);
   text-align: left;
@@ -5267,7 +5267,7 @@ html.tb-big .tb-app {
   font-style: normal;
   font-size: 12px;
   font-weight: 700;
-  color: #2F4A6E;
+  color: var(--tb-price);
 }
 .tb-watch > .tb-link {
   align-self: flex-start;
@@ -5288,7 +5288,7 @@ html.tb-big .tb-app {
 }
 .tb-bw-entry small {
   color: var(--tb-sub);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 .tb-bw-form {
   display: flex;
@@ -5296,7 +5296,7 @@ html.tb-big .tb-app {
   gap: 10px;
   margin: 12px 0 4px;
   padding: 14px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   background: var(--tb-card);
 }
@@ -5314,7 +5314,7 @@ html.tb-big .tb-app {
   min-width: 0;
   box-sizing: border-box;
   padding: 0 12px;
-  border-radius: 10px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   background: var(--tb-card);
   color: var(--tb-ink);
@@ -5336,7 +5336,7 @@ html.tb-big .tb-app {
 .tb-bw-msg {
   margin: 0;
   font-size: 13px;
-  color: #2F4A6E;
+  color: var(--tb-price);
 }
 .tb-bw-msg.bad {
   color: #b42318;
@@ -5350,13 +5350,13 @@ html.tb-big .tb-app {
   gap: 6px;
 }
 .tb-bw-list > li {
-  border-radius: 12px;
+  border-radius: var(--r-box);
   border: 1px solid var(--tb-line);
   background: var(--tb-card);
   overflow: hidden;
 }
 .tb-bw-list > li.down {
-  border-color: #D9DEE7;
+  border-color: var(--tb-line);
 }
 .tb-bw-row {
   width: 100%;
@@ -5415,7 +5415,7 @@ html.tb-big .tb-app {
 .tb-bw-warn {
   margin: 0;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--r-box);
   background: #fff7e6;
   color: #7a4b00;
   font-size: 13px;
@@ -5436,7 +5436,7 @@ html.tb-big .tb-app {
   position: relative;
   display: block;
   margin: 12px 0 4px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   overflow: hidden;
   border: 1px solid var(--tb-line);
   background: var(--tb-line);
@@ -5459,7 +5459,7 @@ html.tb-big .tb-app {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.94);
   color: var(--tb-ink);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
@@ -5471,7 +5471,7 @@ html.tb-big .tb-app {
 .tb-home-title {
   margin: 6px 0 14px;
   font-size: 26px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.03em;
 }
@@ -5503,7 +5503,7 @@ html.tb-big .tb-app {
   gap: 10px;
   margin: 0 0 12px;
   padding: 12px 14px;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   background: var(--tb-accent-soft);
   font-size: 14px;
 }
@@ -5527,7 +5527,7 @@ html.tb-big .tb-app {
   gap: 12px;
   margin: 14px 0 0;
   padding: 14px 18px;
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-ink) !important;
   color: #fff !important;
   text-align: left;
@@ -5541,7 +5541,7 @@ html.tb-big .tb-app {
   gap: 2px;
 }
 .tb-wbanner-text small {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.72);
 }
@@ -5551,12 +5551,12 @@ html.tb-big .tb-app {
   line-height: 1.35;
 }
 .tb-wbanner-text span {
-  font-size: 13.5px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.85);
 }
 .tb-wbanner-text b {
   color: var(--tb-price);
-  font-weight: 800;
+  font-weight: 700;
 }
 .tb-wbanner-go {
   flex: none;
@@ -5573,7 +5573,7 @@ html.tb-big .tb-app {
 .tb-usual {
   margin: 16px 0 4px;
   padding: 14px 16px;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   background: var(--tb-card);
   border: 1px solid var(--tb-line);
 }
@@ -5587,7 +5587,7 @@ html.tb-big .tb-app {
 .tb-usual-head h3 {
   margin: 0;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .tb-usual-head strong {
   font-size: 14px;
@@ -5628,7 +5628,7 @@ html.tb-big .tb-app {
   display: block;
   height: 100%;
   border-radius: 0 4px 4px 0;
-  background: #a8afbd;
+  background: var(--tb-soft2);
 }
 .tb-usual-bars b.now {
   background: var(--tb-ink);
@@ -5644,7 +5644,7 @@ html.tb-big .tb-app {
 .tb-ftrend {
   margin: 4px 0 14px;
   padding: 14px 16px;
-  border-radius: 16px;
+  border-radius: var(--r-box);
   background: var(--tb-card);
   border: 1px solid var(--tb-line);
 }
@@ -5658,7 +5658,7 @@ html.tb-big .tb-app {
 .tb-ftrend-head h2 {
   margin: 0;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .tb-ftrend-badge {
   font-style: normal;
@@ -5699,7 +5699,7 @@ html.tb-big .tb-app {
   stroke-width: 1;
 }
 .tb-ftrend-chart .tick {
-  font-size: 10px;
+  font-size: 12px;
   fill: var(--tb-mute);
 }
 .tb-ftrend-chart .line {
@@ -5722,7 +5722,7 @@ html.tb-big .tb-app {
 .tb-ftrend-tip {
   margin: 4px 0 0;
   min-height: 20px;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
 }
 .tb-ftrend-tip b {
@@ -5743,7 +5743,7 @@ html.tb-big .tb-app {
   margin: 6px 0 0;
   padding: 0;
   background: none;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
 }
 .tb-ftrend {
@@ -5762,14 +5762,14 @@ html.tb-big .tb-app {
   flex: none;
   display: inline-flex;
   padding: 3px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   background: var(--tb-soft);
 }
 .tb-viewsw button {
   min-width: 48px;
   min-height: 44px;
   padding: 0 10px;
-  border-radius: 11px;
+  border-radius: var(--r-box);
   font-size: 14px;
   font-weight: 700;
   color: var(--tb-sub);
@@ -5777,7 +5777,7 @@ html.tb-big .tb-app {
 .tb-viewsw button[aria-pressed="true"] {
   background: var(--tb-card);
   color: var(--tb-ink);
-  box-shadow: 0 1px 4px rgba(27, 42, 74, 0.12);
+  box-shadow: 0 1px 4px rgba(20, 20, 19, 0.12);
 }
 .tb-list-title-row {
   display: flex;
@@ -5830,7 +5830,7 @@ html.tb-big .tb-app {
   gap: 4px;
   min-height: 44px;
   padding: 0 12px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   background: var(--tb-soft) !important;
   font-weight: 700;
 }
@@ -5873,13 +5873,13 @@ html.tb-big .tb-app {
   font-size: 12px;
   color: var(--tb-sub);
   background: rgba(255, 255, 255, 0.92);
-  border-radius: 10px;
+  border-radius: var(--r-box);
   padding: 6px 10px;
   pointer-events: none;
 }
 .tb-map-empty {
   top: 12px;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--tb-ink);
 }
 .tb-map-note {
@@ -5899,21 +5899,21 @@ html.tb-big .tb-app {
   align-items: flex-start;
   gap: 2px;
   padding: 14px 16px;
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-card) !important;
-  box-shadow: var(--tb-shadow), 0 2px 10px rgba(27, 42, 74, 0.12);
+  box-shadow: var(--tb-shadow), 0 2px 10px rgba(20, 20, 19, 0.12);
   text-align: left;
 }
 .tb-map-card-body strong {
   font-size: 16px;
 }
 .tb-map-card-body small {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-sub);
 }
 .tb-map-card-price b {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .tb-map-card-price b.low {
   color: var(--tb-price);
@@ -5925,7 +5925,7 @@ html.tb-big .tb-app {
   gap: 8px;
   margin: 40px 20px;
   padding: 28px 20px;
-  border-radius: var(--tb-r);
+  border-radius: var(--r-box-lg);
   background: var(--tb-card);
   text-align: center;
 }
@@ -5946,7 +5946,7 @@ html.tb-big .tb-app {
   font: 700 13px/1.2 inherit;
   font-family: inherit;
   white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(27, 42, 74, 0.2);
+  box-shadow: 0 2px 6px rgba(20, 20, 19, 0.2);
   cursor: pointer;
 }
 .tb-pin::after {
@@ -5982,20 +5982,20 @@ html.tb-big .tb-app {
     gap: 4px;
     padding: 3px;
     margin: -6px 44px 14px 0;
-    border-radius: 14px;
+    border-radius: var(--r-box);
     background: var(--tb-soft);
   }
   .tb-panel-tabs button {
     flex: 1;
     min-height: 44px;
-    border-radius: 11px;
+    border-radius: var(--r-box);
     font-weight: 700;
     color: var(--tb-sub);
   }
   .tb-panel-tabs button[aria-selected="true"] {
     background: var(--tb-card);
     color: var(--tb-ink);
-    box-shadow: 0 1px 4px rgba(27, 42, 74, 0.12);
+    box-shadow: 0 1px 4px rgba(20, 20, 19, 0.12);
   }
   .tb-panel.map {
     overflow: hidden;
@@ -6005,7 +6005,7 @@ html.tb-big .tb-app {
     margin-right: 0;
   }
   .tb-map.panel {
-    height: calc(100dvh - 190px);
+    height: calc(100dvh - var(--header-h) - 126px);
   }
   .tb-map.panel .tb-map-top {
     padding: 0 0 4px;
@@ -6015,7 +6015,7 @@ html.tb-big .tb-app {
     flex-wrap: wrap;
   }
   .tb-map.panel .tb-map-body {
-    border-radius: 16px;
+    border-radius: var(--r-box);
     overflow: hidden;
   }
   .tb-map.panel .tb-map-card {
@@ -6065,18 +6065,18 @@ html.tb-big .tb-app {
   height: 72px;
 }
 .tb-map-why {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--tb-mute);
 }
 
 /* ===================================================================
    2026-11-25 고급화 (북유럽 에디토리얼 톤). 색·여백·정렬만 바꾼다 — 데이터·호출은 그대로.
-   카드: 순백 + 옅은 네이비 테두리 + 아주 옅은 그림자. 오렌지는 1위 최저 금액에만.
+   카드: 순백 + 옅은 네이비 테두리 + 아주 옅은 그림자. 남색 강조는 확인한 최저가에만.
    =================================================================== */
 .tb-app {
-  --tb-card-line: rgba(27, 42, 74, 0.08);
-  --tb-card-shadow: 0 4px 20px rgba(27, 42, 74, 0.04);
-  --tb-slate: #2f4a6e;
+  --tb-card-line: rgba(20, 20, 19, 0.08);
+  --tb-card-shadow: none;
+  --tb-slate: var(--tb-price);
 }
 .tb-search,
 .tb-watch,
@@ -6111,7 +6111,7 @@ html.tb-big .tb-app {
   display: inline-block;
   margin: 4px 0 2px;
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-photo);
   background: #f3efe8;
   color: var(--tb-slate) !important;
   font-size: 12px;
@@ -6137,13 +6137,13 @@ html.tb-big .tb-app {
     transition: background 0.15s ease, color 0.15s ease;
   }
   .tb-tab:hover {
-    background: rgba(27, 42, 74, 0.04);
+    background: rgba(20, 20, 19, 0.04);
   }
   .tb-tab[aria-current="page"],
   .tb-tab.ai[aria-current="page"] {
-    background: rgba(27, 42, 74, 0.07) !important;
+    background: rgba(20, 20, 19, 0.07) !important;
     color: var(--tb-ink) !important;
-    font-weight: 800;
+    font-weight: 700;
   }
   .tb-tab.ai[aria-current="page"] .tb-fab {
     background: none !important;
@@ -6170,8 +6170,8 @@ html.tb-big .tb-app {
   align-items: center;
   height: 22px;
   padding: 0 8px;
-  border-radius: 6px;
-  font-size: 11.5px;
+  border-radius: var(--r-photo);
+  font-size: 12px;
   font-style: normal;
   font-weight: 700;
   white-space: nowrap;
@@ -6181,22 +6181,22 @@ html.tb-big .tb-app {
   color: var(--tb-ink);
 }
 .tb-badge.low {
-  background: #fff1ea;
-  color: #c2410c;
+  background: var(--tb-price-soft);
+  color: var(--tb-price);
 }
 .tb-srow-img {
-  border-radius: 14px;
+  border-radius: var(--r-box);
 }
 .tb-srow-price .tb-seller-chip {
   background: none;
   padding: 0;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--tb-sub);
 }
 .tb-srow-price strong {
   font-size: 21px;
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
@@ -6239,8 +6239,8 @@ html.tb-big .tb-app {
   padding: 6px 11px;
   background: #fff !important;
   color: var(--tb-ink) !important;
-  border: 1px solid rgba(27, 42, 74, 0.18) !important;
-  box-shadow: 0 3px 10px rgba(27, 42, 74, 0.16);
+  border: 1px solid rgba(20, 20, 19, 0.18) !important;
+  box-shadow: 0 3px 10px rgba(20, 20, 19, 0.16);
   font: 700 13px/1.1 inherit;
   font-family: inherit;
   font-variant-numeric: tabular-nums;
@@ -6264,7 +6264,6 @@ html.tb-big .tb-app {
   border-color: var(--tb-price) !important;
   color: #fff !important;
   transform: scale(1.1);
-  box-shadow: 0 4px 14px rgba(255, 90, 31, 0.35);
 }
 .tb-pin.on {
   background: var(--tb-ink) !important;
@@ -6272,12 +6271,12 @@ html.tb-big .tb-app {
   color: #fff !important;
   transform: scale(1.1);
   z-index: 5 !important;
-  box-shadow: 0 6px 18px rgba(27, 42, 74, 0.35);
+  box-shadow: 0 6px 18px rgba(20, 20, 19, 0.35);
 }
 .tb-map .mapboxgl-ctrl-group {
-  border-radius: 14px;
+  border-radius: var(--r-box);
   overflow: hidden;
-  box-shadow: 0 3px 12px rgba(27, 42, 74, 0.14);
+  box-shadow: 0 3px 12px rgba(20, 20, 19, 0.14);
   border: 1px solid var(--tb-card-line);
 }
 .tb-map .mapboxgl-ctrl-group button {
@@ -6297,7 +6296,7 @@ html.tb-big .tb-app {
   padding: 0 12px;
   font-size: 13px;
   border-radius: 999px;
-  box-shadow: 0 1px 4px rgba(27, 42, 74, 0.08);
+  box-shadow: 0 1px 4px rgba(20, 20, 19, 0.08);
 }
 @media (min-width: 1024px) {
   /* PC 오른쪽 지도: 왼쪽 필터와 겹치는 칩은 빼고 지도를 넓게 */
@@ -6305,10 +6304,10 @@ html.tb-big .tb-app {
     display: none;
   }
   .tb-map.panel {
-    height: calc(100dvh - 150px);
+    height: calc(100dvh - var(--header-h) - 86px);
   }
   .tb-map.panel .tb-map-body {
-    border-radius: 18px;
+    border-radius: var(--r-box);
     border: 1px solid var(--tb-card-line);
   }
   .tb-panel-tabs {
@@ -6342,7 +6341,7 @@ html.tb-big .tb-app {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) 232px;
     align-items: stretch;
     padding: 8px;
-    border-radius: 22px;
+    border-radius: var(--r-box-lg);
   }
   .tb-main.home .tb-search.flight:not(.fixed) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr) 232px;
@@ -6373,7 +6372,7 @@ html.tb-big .tb-app {
     grid-row: 2;
     margin: 8px 0 0 8px;
     padding: 0 16px;
-    border-radius: 16px;
+    border-radius: var(--r-box);
     font-size: 16px;
   }
   .tb-main.home .tb-search.flight:not(.fixed) > .tb-cta {
@@ -6391,7 +6390,7 @@ html.tb-big .tb-app {
     gap: 16px;
   }
   .tb-main.home .tb-places button {
-    border-radius: 18px;
+    border-radius: var(--r-box);
   }
   .tb-places button::after {
     background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent 60%);
@@ -6405,24 +6404,24 @@ html.tb-big .tb-app {
 @media (min-width: 1024px) {
   .tb-main.split.aichat {
     background: none;
-    padding-top: 88px;
+    padding-top: calc(var(--header-h) + 24px);
   }
   .tb-main.split.aichat > main.tb-chat {
-    min-height: calc(100dvh - 112px);
+    min-height: calc(100dvh - var(--header-h) - 48px);
     margin-bottom: 24px;
-    border-radius: 24px;
+    border-radius: var(--r-box-lg);
     background: var(--tb-card);
     border: 1px solid var(--tb-card-line);
     box-shadow: var(--tb-card-shadow);
   }
   .tb-main.split.aichat .tb-chat-top {
     padding: 16px 20px;
-    border-radius: 24px 24px 0 0;
+    border-radius: var(--r-box-lg) var(--r-box-lg) 0 0;
     border-bottom-color: var(--tb-card-line);
   }
   .tb-main.split.aichat .tb-dock {
     padding: 12px 20px 20px;
-    border-radius: 0 0 24px 24px;
+    border-radius: 0 0 var(--r-box-lg) var(--r-box-lg);
     background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #fff 14px);
   }
   /* 첫 질문 전: 안내 · 예시 · 입력창을 한 묶음으로 가운데에 */
@@ -6462,10 +6461,10 @@ html.tb-big .tb-app {
   .tb-chat.empty .tb-examples button {
     min-height: 88px;
     padding: 14px 16px;
-    border-radius: 16px;
+    border-radius: var(--r-box);
     background: var(--tb-bg) !important;
     border: 1px solid var(--tb-card-line);
-    font-size: 14.5px;
+    font-size: 15px;
     line-height: 1.45;
     display: flex;
     align-items: flex-start;
@@ -6473,7 +6472,7 @@ html.tb-big .tb-app {
   }
   .tb-chat.empty .tb-examples button:hover {
     background: #fff !important;
-    border-color: rgba(27, 42, 74, 0.24);
+    border-color: rgba(20, 20, 19, 0.24);
   }
   .tb-chat.empty .tb-dock {
     order: 2;
@@ -6485,9 +6484,9 @@ html.tb-big .tb-app {
     min-height: 56px;
   }
   .tb-main.split.aichat .tb-panel {
-    top: 88px;
+    top: calc(var(--header-h) + 24px);
     margin-top: 0;
-    min-height: calc(100dvh - 112px);
+    min-height: calc(100dvh - var(--header-h) - 48px);
     display: flex;
     flex-direction: column;
   }
@@ -6520,12 +6519,12 @@ html.tb-big .tb-app {
 .tb-watch,
 .tb-set-box {
   padding: 18px 20px;
-  border-radius: 18px;
+  border-radius: var(--r-box);
 }
 .tb-watch .tb-bw-add {
   height: 48px;
   margin-top: 4px;
-  border-radius: 14px;
+  border-radius: var(--r-box);
   background: var(--tb-ink) !important;
   color: #fff !important;
   font-size: 15px;
@@ -6534,7 +6533,7 @@ html.tb-big .tb-app {
   margin-top: 8px;
   padding: 18px 20px;
   border: 1px solid var(--tb-card-line);
-  border-radius: 18px;
+  border-radius: var(--r-box);
   background: var(--tb-card);
 }
 .tb-clear .tb-h2 {
@@ -6554,7 +6553,7 @@ html.tb-big .tb-app {
 .tb-seg button[aria-checked="true"] {
   background: #fff !important;
   color: var(--tb-ink);
-  box-shadow: 0 1px 4px rgba(27, 42, 74, 0.14);
+  box-shadow: 0 1px 4px rgba(20, 20, 19, 0.14);
 }
 .tb-watch > .tb-note {
   padding-left: 0;
@@ -6579,7 +6578,7 @@ html.tb-big .tb-app {
   height: 34px;
   padding: 0 11px;
   border-radius: 999px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
   background: #fff !important;
@@ -6604,10 +6603,10 @@ html.tb-big .tb-app {
   bottom: 30px;
   z-index: 2;
   padding: 3px 8px;
-  border-radius: 8px;
+  border-radius: var(--r-photo);
   background: rgba(255, 255, 255, 0.88);
   color: var(--tb-sub);
-  font-size: 11px;
+  font-size: 12px;
   pointer-events: none;
 }
 .tb-vibe-tag {
@@ -6626,12 +6625,12 @@ html.tb-big .tb-app {
   font: 700 11.5px/1.2 inherit;
   font-family: inherit;
   white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(27, 42, 74, 0.1);
+  box-shadow: 0 2px 6px rgba(20, 20, 19, 0.1);
   transition: opacity 0.25s ease;
   cursor: pointer;
 }
 .tb-vibe-tag small {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--tb-sub);
 }
@@ -6657,10 +6656,10 @@ html.tb-big .tb-app {
   align-items: center;
   gap: 4px;
   padding: 1px 8px 1px 6px;
-  border-radius: 6px;
+  border-radius: var(--r-photo);
   border-left: 3px solid var(--vc);
   background: color-mix(in srgb, var(--vc) 14%, #fff);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--tb-ink);
 }
@@ -6670,16 +6669,149 @@ html.tb-big .tb-app {
   gap: 2px;
   margin: 10px 0 0;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   border-left: 4px solid var(--vc);
   background: color-mix(in srgb, var(--vc) 12%, #fff);
   font-size: 13px;
 }
 .tb-vibe-detail small {
   color: var(--tb-sub);
-  font-size: 11px;
+  font-size: 12px;
 }
 .tb-vibe-tag.tb-vibe-off {
   opacity: 0;
   pointer-events: none;
+}
+
+/* ===================================================================
+   2026-11-26 PC 디자인 고급화 1단계: 공통 규칙 + 머리글 + 바닥글.
+   글자·간격·모서리·그림자 값은 app/tokens.css. 화면별 모양(결과·패널·AI 추천·홈·마이·찜)은 다음 단계에서.
+   휴대폰 모양은 그대로 둔다 (PC 1024px 이상만 바꾼다)
+   =================================================================== */
+.tb-app {
+  --tb-shadow: var(--shadow-float);
+  --tb-card-line: var(--tb-line);
+  --tb-card-shadow: none;
+  --tb-slate: var(--tb-sub);
+}
+.tb-app :focus-visible {
+  outline-color: var(--tb-ink);
+}
+
+@media (min-width: 1024px) {
+  .tb-app {
+    letter-spacing: 0;
+  }
+
+  /* 머리글: 높이 72, 아래 1px 선, 왼쪽 글자 로고, 오른쪽 15px 메뉴 (아이콘·회색 알약 없이 밑줄) */
+  .tb-tabbar {
+    height: var(--header-h);
+    gap: var(--sp-6);
+    padding: 0 max(var(--page-gutter), calc((100% - var(--page-max)) / 2));
+    background: var(--tb-bg) !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: 1px solid var(--tb-line) !important;
+  }
+  .tb-tabbar .tb-tabbar-logo {
+    gap: var(--sp-2);
+    align-items: baseline;
+  }
+  .tb-tabbar-logo strong {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--tb-ink);
+  }
+  .tb-tabbar-logo em {
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--tb-mute);
+  }
+  .tb-tab,
+  .tb-tab.ai {
+    position: relative;
+    height: var(--header-h);
+    padding: 0;
+    gap: 0;
+    border-radius: 0;
+    background: none !important;
+    color: var(--tb-sub) !important;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0;
+    transition: color var(--dur-fast) ease;
+  }
+  .tb-tab svg,
+  .tb-tab .tb-fab {
+    display: none;
+  }
+  .tb-tab:hover {
+    background: none !important;
+    color: var(--tb-ink) !important;
+  }
+  .tb-tab[aria-current="page"],
+  .tb-tab.ai[aria-current="page"] {
+    background: none !important;
+    color: var(--tb-ink) !important;
+    font-weight: 600;
+  }
+  /* 현재 메뉴: 머리글 아래선에 닿는 1.5px 먹색 밑줄 */
+  .tb-tab[aria-current="page"]::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1.5px;
+    background: var(--tb-ink);
+  }
+  .tb-tab:focus-visible {
+    border-radius: var(--r-photo);
+  }
+  .tb-tab-dot {
+    top: 22px;
+    left: auto;
+    right: -10px;
+    width: 6px;
+    height: 6px;
+    box-shadow: none;
+  }
+
+  /* 바닥글: 위 1px 선, 각주(caption) 글자, 링크는 먹색 밑줄 */
+  .tb-foot {
+    margin-top: var(--sp-8);
+    padding: var(--sp-6) 0 var(--sp-7);
+    border-top: 1px solid var(--tb-line);
+    font-size: var(--fs-caption);
+    line-height: 1.7;
+    font-weight: 400;
+    color: var(--tb-mute);
+  }
+  .tb-foot p {
+    margin: 0 0 var(--sp-3);
+    max-width: 720px;
+  }
+  .tb-foot a {
+    min-height: 0;
+    margin: 0;
+    color: var(--tb-ink);
+    text-decoration: underline !important;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition: color var(--dur-fast) ease;
+  }
+  .tb-foot a:hover {
+    color: var(--tb-sub);
+  }
+  .tb-foot-links {
+    gap: var(--sp-5);
+    margin: var(--sp-4) 0;
+  }
+  .tb-foot-links b {
+    font-weight: 600;
+  }
 }

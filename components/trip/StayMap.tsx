@@ -62,7 +62,7 @@ export default function StayMap({ token, pins, ring, vibe, onPick, onVibe, onFai
     m.on("style.load", () => applyTheme(m));
     m.on("load", () => {
       m.addSource(RING_SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      m.addLayer({ id: "tb-rings", type: "line", source: RING_SRC, paint: { "line-color": "#1B2A4A", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.55 } });
+      m.addLayer({ id: "tb-rings", type: "line", source: RING_SRC, paint: { "line-color": "#1A1A18", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.55 } });
       m.addLayer({ id: "tb-ring-labels", type: "symbol", source: RING_SRC, layout: { "symbol-placement": "line", "text-field": ["get", "label"], "text-size": 11 }, paint: { "text-color": "#5D6475", "text-halo-color": "#FFFFFF", "text-halo-width": 1.5 } });
       drawRing(m, ring);
       drawVibes(m, vibeRef.current);
@@ -196,7 +196,7 @@ export default function StayMap({ token, pins, ring, vibe, onPick, onVibe, onFai
 }
 
 // 바탕은 streets-v12 그대로 (역 아이콘·철도·공원·도로 위계가 익숙하게 보이게). 추가 호출 없이 받은 스타일의 색·라벨만 조금 바꾼다.
-// 물·공원은 부드럽게, 진한 주황 큰 도로는 최저가 핀(#FF5A1F)과 헷갈리지 않게 크림·앰버로.
+// 물·공원은 부드럽게, 진한 주황 큰 도로는 지도 핀과 헷갈리지 않게 크림·앰버로.
 // 라벨은 지명·장소 이름(name 계열)을 쓰는 레이어만 한국어 우선. 도로 번호판·출구 번호는 건드리지 않는다.
 // 레이어 이름은 스타일 판마다 다를 수 있어 하나가 실패해도 나머지는 그대로 적용한다
 const C = { water: "#BFE0F2", park: "#D8EBD6", motorway: "#F3D9A4", trunk: "#F7E4BE", motorwayCase: "#E2C48E", trunkCase: "#E8D3A8" };
