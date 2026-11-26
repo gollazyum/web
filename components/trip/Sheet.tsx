@@ -10,12 +10,13 @@ type Props = {
   onClose: () => void;
   label: string; // 화면 읽기 도구용 제목
   tall?: boolean; // 화면 대부분을 덮는 시트
+  side?: boolean; // PC(1024px 이상)에서는 왼쪽에서 밀려 나오는 서랍 (휴대폰은 그대로 아래 시트)
   title?: React.ReactNode; // 머리(고정)에 보이는 제목. 닫기 버튼과 같은 줄
   children: React.ReactNode;
 };
 
 // 휴대폰: 아래에서 올라오는 시트 / PC: 가운데 창. 뒤로가기·Esc로 닫힌다
-export function Sheet({ open, onClose, label, tall, title, children }: Props) {
+export function Sheet({ open, onClose, label, tall, side, title, children }: Props) {
   useSheet(open, onClose);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -36,9 +37,9 @@ export function Sheet({ open, onClose, label, tall, title, children }: Props) {
   // 목록 안(필터 버튼 등)에서 열어도 탭 바 위에 뜨도록 앱 맨 바깥(.tb-app, 색 변수가 있는 곳)에 그린다
   const host = typeof document !== "undefined" ? document.querySelector(".tb-app") : null;
   const node = (
-    <div className="tb-sheet-wrap">
+    <div className={`tb-sheet-wrap${side ? " side" : ""}`}>
       <div className="tb-dim" onClick={onClose} />
-      <div ref={ref} className={`tb-sheet${tall ? " tall" : ""}`} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1}>
+      <div ref={ref} className={`tb-sheet${tall ? " tall" : ""}${side ? " side" : ""}`} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1}>
         {/* 위는 고정(손잡이·닫기), 아래만 스크롤: 내용이 둥근 모서리 밖으로 나가거나 닫기 버튼이 사라지지 않게 */}
         <div className="tb-sheet-head">
           <div className="tb-grab" aria-hidden />

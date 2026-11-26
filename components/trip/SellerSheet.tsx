@@ -369,6 +369,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
           <div className="tb-book-bar">
             <button type="button" className={`tb-save-ic${saved ? " on" : ""}`} onClick={onSave} aria-pressed={saved} aria-label={saved ? "찜 빼기" : "찜하기"}>
               <IconHeart size={20} on={saved} />
+              <span className="tb-save-ic-label">찜</span>
             </button>
             <span className="tb-book-bar-price">
               <strong>{won(rows[0].cost)}</strong>

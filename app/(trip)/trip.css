@@ -6815,3 +6815,1090 @@ html.tb-big .tb-app {
     font-weight: 600;
   }
 }
+
+/* ===================================================================
+   2026-11-26 PC 디자인 고급화 2단계: 숙소 결과 + 오른쪽 패널 + AI 추천.
+   카드 상자 대신 1px 구분선, 강조색(남색)은 확인한 금액 숫자에만. 휴대폰은 그대로 (1024px 이상만)
+   =================================================================== */
+/* 휴대폰·좁은 화면: PC 전용 조각은 숨긴다 */
+.tb-pcbar,
+.tb-ai-mark,
+.tb-hcard-cap,
+.tb-save-ic-label {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .tb-fsort {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* ---------- 2열 폭: 좌우 64 여백, 최대 1312, 오른쪽 패널 440 ---------- */
+  .tb-app .tb-has-q .tb-main,
+  .tb-app .tb-main.split,
+  .tb-has-q .tb-app .tb-main {
+    max-width: calc(var(--page-max) + var(--page-gutter) * 2);
+    grid-template-columns: minmax(0, 1fr) 440px;
+    gap: 0;
+    padding-left: var(--page-gutter);
+    padding-right: var(--page-gutter);
+  }
+  .tb-app .tb-main.split > main {
+    padding-right: var(--sp-7);
+  }
+
+  /* ---------- 위쪽 바: 검색 요약 알약 + 정렬·빠른 조건 알약 한 줄 ---------- */
+  .tb-app .tb-results-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-5) 0 var(--sp-4);
+    background: var(--tb-bg);
+    border-bottom: 1px solid var(--tb-ink);
+  }
+  .tb-app .tb-results-head .tb-results-top {
+    display: contents;
+  }
+  .tb-app .tb-results-head .tb-ib {
+    width: 44px;
+    height: 44px;
+    background: none !important;
+    border: 1px solid var(--tb-line);
+  }
+  .tb-app .tb-qpill {
+    flex: 0 1 auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+    min-height: 44px;
+    max-width: 360px;
+    padding: 0 var(--sp-5);
+    border-radius: var(--r-pill);
+    border: 1px solid var(--tb-line) !important;
+    background: var(--tb-card) !important;
+    box-shadow: none;
+    flex-direction: row;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .tb-app .tb-qpill strong {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .tb-app .tb-qpill span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: var(--fs-small);
+    color: var(--tb-sub);
+  }
+  .tb-app .tb-results-head .tb-fbar-wrap,
+  .tb-app .tb-fbar-wrap.has-side {
+    display: block;
+    flex: 1 1 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+  }
+  .tb-app .tb-results-head .tb-fixnote {
+    order: 5;
+    flex-basis: 100%;
+    margin: 0;
+  }
+  .tb-app .tb-fbar {
+    display: none;
+  }
+  .tb-app .tb-pcbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: var(--sp-2);
+  }
+  .tb-app .tb-pill {
+    min-height: 40px;
+    padding: 0 var(--sp-4);
+    border-radius: var(--r-pill);
+    border: 1px solid var(--tb-line) !important;
+    background: var(--tb-card) !important;
+    color: var(--tb-ink);
+    font-size: var(--fs-small);
+    font-weight: 500;
+    white-space: nowrap;
+    transition: border-color var(--dur-fast) ease;
+  }
+  .tb-app .tb-pill:hover {
+    border-color: var(--tb-ink) !important;
+  }
+  .tb-app .tb-pill[aria-pressed="true"] {
+    background: var(--tb-ink) !important;
+    border-color: var(--tb-ink) !important;
+    color: #fff;
+  }
+
+  /* 왼쪽 필터 기둥은 '필터' 알약을 누르면 나오는 서랍으로 옮긴다 */
+  .tb-app .tb-filters {
+    display: none !important;
+  }
+  .tb-app .tb-results-body {
+    display: block;
+  }
+  .tb-app .tb-results-note {
+    margin: var(--sp-4) 0 0;
+    padding: 0;
+    font-size: var(--fs-caption);
+    color: var(--tb-mute);
+  }
+
+  /* 필터 서랍: 왼쪽에서 밀려 나온다 */
+  .tb-app .tb-sheet.side {
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: auto;
+    width: 420px;
+    max-width: 100vw;
+    max-height: none;
+    height: 100dvh;
+    transform: none;
+    border-radius: 0;
+    background: var(--tb-card);
+    border-right: 1px solid var(--tb-line);
+    animation: tb-drawer var(--dur-photo) var(--ease-out);
+  }
+  .tb-app .tb-sheet.side .tb-sheet-head {
+    background: var(--tb-card);
+  }
+  .tb-app .tb-sheet.side .tb-sheet-body {
+    padding: 0 var(--sp-6) var(--sp-6);
+  }
+  .tb-app .tb-sheet.side .tb-ffoot {
+    margin: var(--sp-5) calc(var(--sp-6) * -1) calc(var(--sp-6) * -1);
+    padding: var(--sp-4) var(--sp-6);
+  }
+  .tb-app .tb-sheet-wrap.side .tb-dim {
+    background: rgba(20, 20, 19, 0.28);
+  }
+  .tb-app .tb-sheet.side .tb-fsheet-title {
+    margin: 0 0 var(--sp-4);
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    letter-spacing: var(--ls-h3);
+    font-weight: 600;
+  }
+  .tb-app .tb-sheet.side .tb-fsort,
+  .tb-app .tb-sheet.side .tb-fpanel section {
+    padding: var(--sp-4) 0;
+    border-top: 1px solid var(--tb-line);
+  }
+  .tb-app .tb-sheet.side .tb-fsort h3,
+  .tb-app .tb-sheet.side .tb-fpanel h3 {
+    margin: 0 0 var(--sp-2);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  /* ---------- 결과 목록: 상자 없이 행마다 아래 1px 선 ---------- */
+  .tb-app .tb-rlist {
+    gap: 0;
+  }
+  .tb-app .tb-srow,
+  .tb-app .tb-srow.on,
+  .tb-app .tb-srow[aria-current="true"] {
+    display: flex;
+    gap: var(--sp-5);
+    padding: var(--sp-5) 0;
+    border: 0;
+    border-bottom: 1px solid var(--tb-line);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+  /* 지금 패널에 열린 행: 왼쪽 2px 먹색 세로선 */
+  .tb-app .tb-srow[aria-current="true"]::before {
+    content: "";
+    position: absolute;
+    top: var(--sp-5);
+    bottom: var(--sp-5);
+    left: calc(var(--sp-4) * -1);
+    width: 2px;
+    background: var(--tb-ink);
+  }
+  .tb-app .tb-srow-img {
+    width: 232px;
+    height: 156px;
+    border-radius: var(--r-photo);
+    box-shadow: var(--photo-ring);
+  }
+  .tb-app .tb-srow-photos img,
+  .tb-app .tb-gallery img,
+  .tb-app .tb-hcard-img img {
+    filter: var(--photo-filter);
+    transition: transform var(--dur-photo) var(--ease-out);
+  }
+  .tb-app .tb-srow:hover .tb-srow-photos img,
+  .tb-app .tb-hcard:hover .tb-hcard-img img {
+    transform: scale(1.02);
+  }
+  .tb-app .tb-srow-body {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--sp-6);
+    row-gap: var(--sp-1);
+    align-content: start;
+  }
+  .tb-app .tb-srow-body > .tb-srow-price {
+    grid-row: 1 / span 12;
+    align-self: start;
+  }
+  /* 'AI 추천'·'확인한 가격 중 최저': 색 배지 대신 이름 위 작은 먹색 글자 */
+  .tb-app .tb-srow-badges {
+    gap: var(--sp-3);
+    margin: 0;
+  }
+  .tb-app .tb-badge,
+  .tb-app .tb-badge.ai,
+  .tb-app .tb-badge.low {
+    height: auto;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    color: var(--tb-ink);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+  }
+  .tb-app .tb-badge + .tb-badge::before {
+    content: "·";
+    margin-right: var(--sp-3);
+    color: var(--tb-mute);
+    font-weight: 400;
+  }
+  .tb-app .tb-srow-name,
+  .tb-app .tb-hcard-body > strong {
+    font-size: var(--fs-title);
+    line-height: var(--lh-title);
+    letter-spacing: var(--ls-title);
+    font-weight: 600;
+    word-break: keep-all;
+    text-wrap: balance;
+  }
+  .tb-app .tb-stars {
+    color: var(--tb-sub);
+    font-size: 12px;
+  }
+  .tb-app .tb-srow-meta {
+    font-size: var(--fs-small);
+    color: var(--tb-sub);
+  }
+  .tb-app .tb-score {
+    gap: var(--sp-1);
+    font-size: var(--fs-small);
+  }
+  .tb-app .tb-score b {
+    padding: 0;
+    background: none;
+    color: var(--tb-ink);
+    font-size: var(--fs-small);
+    font-weight: 600;
+  }
+  .tb-app .tb-score strong {
+    display: none;
+  }
+  .tb-app .tb-fact {
+    font-size: var(--fs-small);
+    font-weight: 400;
+    color: var(--tb-sub);
+  }
+  .tb-app .tb-srow-body .tb-why,
+  .tb-app .tb-hcard-body .tb-why {
+    font-size: var(--fs-small);
+    font-weight: 500;
+    color: var(--tb-ink);
+  }
+  .tb-app .tb-rank,
+  .tb-app .tb-unk {
+    font-size: var(--fs-caption);
+    font-weight: 400;
+    color: var(--tb-sub);
+  }
+  /* '평소보다 N%↓': 남색 얇은 테두리 알약 (데이터가 있을 때만 보인다) */
+  .tb-app .tb-deal {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 var(--sp-2);
+    border-radius: var(--r-pill);
+    border: 1px solid var(--tb-price);
+    background: none;
+    color: var(--tb-price);
+    font-size: var(--fs-caption);
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  /* 가격 영역 (오른쪽 정렬) */
+  .tb-app .tb-srow-price {
+    align-items: flex-end;
+    gap: 2px;
+    text-align: right;
+  }
+  .tb-app .tb-srow-price .tb-seller-chip {
+    padding: 0;
+    background: none;
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--tb-sub);
+  }
+  .tb-app .tb-srow-price strong {
+    font-size: 26px;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .tb-app .tb-srow-price:not(.est):not(.none) strong {
+    color: var(--tb-price);
+  }
+  .tb-app .tb-srow-price.est strong {
+    color: var(--tb-sub);
+    font-weight: 600;
+  }
+  .tb-app .tb-srow-price.none strong {
+    font-size: var(--fs-small);
+    font-weight: 500;
+    color: var(--tb-sub);
+  }
+  .tb-app .tb-srow-price .tb-est {
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--tb-sub);
+  }
+  .tb-app .tb-srow-price small,
+  .tb-app .tb-srow-price .tb-price-sub {
+    font-size: var(--fs-caption);
+    color: var(--tb-mute);
+  }
+  .tb-app .tb-srow-price .tb-save-chip,
+  .tb-app .tb-save-chip {
+    margin: var(--sp-1) 0 0;
+    padding: 0;
+    background: none;
+    color: var(--tb-sub) !important;
+    font-size: var(--fs-small);
+    font-weight: 400;
+  }
+  .tb-app .tb-srow-price .tb-cmp {
+    margin-top: var(--sp-2);
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--tb-ink) !important;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .tb-app .tb-pchg,
+  .tb-app .tb-pchg.down {
+    background: none;
+    padding: 0;
+  }
+
+  /* ---------- 오른쪽 패널: 둥근 카드 대신 흰 면 + 왼쪽 1px 선, 화면 높이에 고정 ---------- */
+  .tb-app .tb-main.split .tb-panel,
+  .tb-app .tb-main.split.aichat .tb-panel {
+    position: sticky;
+    top: var(--header-h);
+    height: calc(100dvh - var(--header-h));
+    max-height: none;
+    min-height: 0;
+    margin: 0;
+    padding: var(--sp-5) var(--sp-6) 0;
+    border: 0 !important;
+    border-left: 1px solid var(--tb-line) !important;
+    border-radius: 0;
+    background: var(--tb-card);
+    box-shadow: none !important;
+  }
+  .tb-app .tb-main.split .tb-panel.map {
+    padding-bottom: var(--sp-5);
+  }
+  /* [예약처 총액 | 지도]: 회색 칸 대신 밑줄 글자 탭 */
+  .tb-app .tb-panel-tabs {
+    gap: var(--sp-5);
+    margin: 0 0 var(--sp-5);
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    border-bottom: 1px solid var(--tb-line);
+  }
+  .tb-app .tb-panel-tabs button {
+    flex: none;
+    position: relative;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 0;
+    background: none !important;
+    box-shadow: none !important;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--tb-sub);
+    transition: color var(--dur-fast) ease;
+  }
+  .tb-app .tb-panel-tabs button:hover {
+    color: var(--tb-ink);
+  }
+  .tb-app .tb-panel-tabs button[aria-selected="true"] {
+    color: var(--tb-ink);
+    font-weight: 600;
+  }
+  .tb-app .tb-panel-tabs button[aria-selected="true"]::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1.5px;
+    background: var(--tb-ink);
+  }
+  .tb-app .tb-panel .tb-map.panel .tb-map-body {
+    border-radius: var(--r-photo);
+  }
+
+  /* 대표 사진 16:10 → 이름 h3 → 회색 한 줄 */
+  .tb-app .tb-panel .tb-gallery {
+    height: auto;
+    aspect-ratio: 16 / 10;
+    margin-bottom: var(--sp-4);
+    border-radius: var(--r-photo);
+    box-shadow: var(--photo-ring);
+  }
+  .tb-app .tb-panel .tb-seller-head {
+    padding-right: 0;
+  }
+  .tb-app .tb-panel .tb-seller-img {
+    border-radius: var(--r-photo);
+  }
+  .tb-app .tb-panel .tb-seller-head h2 {
+    margin: 0 0 var(--sp-1);
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    letter-spacing: var(--ls-h3);
+    font-weight: 600;
+    word-break: keep-all;
+    text-wrap: balance;
+  }
+  .tb-app .tb-panel .tb-seller-head p {
+    margin: 0;
+    font-size: var(--fs-small);
+    color: var(--tb-sub);
+  }
+  .tb-app .tb-panel .tb-maplink {
+    margin-top: var(--sp-2);
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--tb-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .tb-app .tb-panel .tb-minimap {
+    border-radius: var(--r-photo);
+  }
+  /* AI 이유·솔직 체크포인트·후기: 회색·파란 상자 없이 구분선 + 제목 */
+  .tb-app .tb-panel .tb-detail-why,
+  .tb-app .tb-panel .tb-honest,
+  .tb-app .tb-panel .tb-usual,
+  .tb-app .tb-panel .tb-watch {
+    margin: var(--sp-5) 0 0;
+    padding: var(--sp-4) 0 0;
+    border: 0;
+    border-top: 1px solid var(--tb-line);
+    border-radius: 0;
+    background: none;
+    box-shadow: none !important;
+  }
+  .tb-app .tb-panel .tb-detail-why b {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .tb-app .tb-panel .tb-detail-sec {
+    margin-top: var(--sp-6);
+    padding-top: var(--sp-4);
+    border-top: 1px solid var(--tb-line);
+  }
+  .tb-app .tb-panel .tb-detail-sec h3,
+  .tb-app .tb-panel .tb-honest h3,
+  .tb-app .tb-panel .tb-honest > strong {
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    letter-spacing: var(--ls-h3);
+    font-weight: 600;
+  }
+
+  /* 예약처별 결제 총액: 제목 15/600 + 오른쪽 확인 시각, 바로 아래 먹색 1px 선 */
+  .tb-app .tb-panel .tb-seller-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin: var(--sp-6) 0 0;
+    padding: 0 0 var(--sp-3);
+    border-bottom: 1px solid var(--tb-ink);
+  }
+  .tb-app .tb-panel .tb-seller-title h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .tb-app .tb-panel .tb-seller-title span {
+    font-size: var(--fs-caption);
+    color: var(--tb-mute);
+  }
+  .tb-app .tb-panel .tb-seller-info {
+    margin: var(--sp-3) 0;
+    padding-left: var(--sp-4);
+    font-size: var(--fs-caption);
+    color: var(--tb-mute);
+  }
+  .tb-app .tb-panel .tb-save-line,
+  .tb-app .tb-panel .tb-fc-note {
+    margin: 0 0 var(--sp-2);
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    color: var(--tb-sub);
+    font-size: var(--fs-small);
+    font-weight: 400;
+  }
+  .tb-app .tb-panel .tb-save-line b,
+  .tb-app .tb-panel .tb-fc-note b {
+    color: var(--tb-ink);
+    font-weight: 600;
+  }
+  .tb-app .tb-panel .tb-rows {
+    gap: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+  .tb-app .tb-panel .tb-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--sp-4);
+    min-height: 64px;
+    padding: var(--sp-3) 0;
+    border: 0;
+    border-bottom: 1px solid var(--tb-line);
+    border-radius: 0;
+    background: none;
+  }
+  .tb-app .tb-panel .tb-seller-badge {
+    display: none;
+  }
+  .tb-app .tb-panel .tb-row-name strong {
+    font-size: var(--fs-body);
+    font-weight: 600;
+  }
+  .tb-app .tb-panel .tb-row-name small {
+    display: inline;
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--tb-mute);
+  }
+  .tb-app .tb-panel .tb-row-name small + small::before {
+    content: " · ";
+  }
+  .tb-app .tb-panel .tb-row-name small.tb-free {
+    color: var(--tb-sub);
+    font-weight: 500;
+  }
+  .tb-app .tb-panel .tb-row-price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .tb-app .tb-panel .tb-row-price strong {
+    font-size: var(--fs-body);
+    font-weight: 600;
+    color: var(--tb-ink);
+  }
+  /* 1위(가장 낮은 금액)만 남색 */
+  .tb-app .tb-panel .tb-row-price.best strong {
+    color: var(--tb-price);
+  }
+  .tb-app .tb-panel .tb-low {
+    padding: 0;
+    background: none;
+    font-size: var(--fs-caption);
+    font-style: normal;
+    font-weight: 500;
+    color: var(--tb-price);
+  }
+  .tb-app .tb-panel .tb-book,
+  .tb-app .tb-panel .tb-book.dark {
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none !important;
+    color: var(--tb-ink) !important;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .tb-app .tb-panel .tb-note {
+    font-size: var(--fs-caption);
+    color: var(--tb-mute);
+  }
+
+  /* 아래 고정: 주 버튼(가장 낮은 예약처에서 보기 ↗) + 보조 버튼(♡ 찜) */
+  .tb-app .tb-panel .tb-save-bar {
+    margin: var(--sp-6) calc(var(--sp-6) * -1) 0;
+    padding: var(--sp-4) var(--sp-6);
+    background: var(--tb-card);
+    border-top: 1px solid var(--tb-line);
+    box-shadow: none;
+  }
+  .tb-app .tb-panel .tb-book-bar {
+    display: flex;
+    flex-direction: row-reverse;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-2);
+  }
+  .tb-app .tb-panel .tb-book-bar-price {
+    display: none;
+  }
+  .tb-app .tb-panel .tb-book-bar-go {
+    flex: 1;
+    height: 48px;
+    border-radius: var(--r-pill);
+    background: var(--tb-ink) !important;
+    color: #fff !important;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .tb-app .tb-panel .tb-save-ic {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    width: auto;
+    height: 48px;
+    padding: 0 var(--sp-5);
+    border-radius: var(--r-pill);
+    border: 1px solid var(--tb-line) !important;
+    background: var(--tb-card) !important;
+    color: var(--tb-ink) !important;
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .tb-app .tb-panel .tb-save-ic-label {
+    display: inline;
+  }
+  .tb-app .tb-panel .tb-book-bar-sub {
+    order: 3;
+    justify-content: center;
+    font-size: var(--fs-caption);
+    color: var(--tb-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .tb-app .tb-panel .tb-save {
+    height: 48px;
+    border-radius: var(--r-pill);
+    border: 1px solid var(--tb-line) !important;
+    background: var(--tb-card) !important;
+  }
+
+  /* ---------- AI 추천 (/chat): 하얀 큰 카드 없이 바탕 위 가운데 760 한 줄기 ---------- */
+  .tb-app .tb-main.split.aichat > main.tb-chat {
+    min-height: calc(100dvh - var(--header-h));
+    margin: 0;
+    padding-right: var(--sp-7);
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .tb-app .tb-main.split.aichat {
+    padding-top: var(--header-h);
+  }
+  .tb-app .tb-main.split.aichat .tb-chat-top {
+    padding: var(--sp-5) 0 var(--sp-4);
+    border-radius: 0;
+    background: var(--tb-bg);
+    border-bottom: 1px solid var(--tb-line);
+  }
+  .tb-app .tb-chat-top .tb-orb {
+    display: none;
+  }
+  .tb-app .tb-chat-top strong::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: var(--sp-2);
+    border-radius: 50%;
+    background: var(--tb-ink);
+    vertical-align: middle;
+  }
+  .tb-app .tb-main.split.aichat .tb-dock {
+    padding: var(--sp-3) 0 var(--sp-5);
+    border-radius: 0;
+    background: linear-gradient(to bottom, rgba(250, 248, 245, 0), var(--tb-bg) 16px);
+  }
+  /* 패널이 비어 있으면(숙소를 누르기 전) 숨기고 가운데 한 줄기로 */
+  .tb-app .tb-main.split.nopanel {
+    display: block;
+    max-width: calc(760px + var(--page-gutter) * 2);
+  }
+  .tb-app .tb-main.split.nopanel > .tb-panel {
+    display: none;
+  }
+  .tb-app .tb-main.split.nopanel > main.tb-chat {
+    padding-right: 0;
+  }
+  /* 첫 질문 전 */
+  .tb-app .tb-main.split.aichat > main.tb-chat.empty {
+    justify-content: center;
+    align-items: stretch;
+    gap: 0;
+    padding: var(--sp-8) 0;
+    text-align: left;
+  }
+  .tb-app .tb-chat.empty .tb-orb {
+    display: none;
+  }
+  .tb-app .tb-chat.empty .tb-chat-empty {
+    text-align: left;
+  }
+  .tb-app .tb-chat.empty .tb-chat-empty > * {
+    align-self: stretch;
+  }
+  .tb-app .tb-ai-mark {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    margin: 0 0 var(--sp-4);
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--tb-ink);
+  }
+  .tb-app .tb-ai-mark i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tb-ink);
+  }
+  .tb-app .tb-chat.empty .tb-chat-empty h1 {
+    max-width: 12em;
+    margin: 0;
+    font-size: var(--fs-h1);
+    line-height: var(--lh-h1);
+    letter-spacing: var(--ls-h1);
+    font-weight: 600;
+  }
+  .tb-app .tb-chat.empty .tb-chat-empty > p:not(.tb-ai-mark) {
+    margin: var(--sp-4) 0 0;
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    color: var(--tb-sub);
+  }
+  /* 큰 입력창: 흰 바탕 · 모서리 20 · 옅은 그림자 · 높이 약 130, 보내기는 오른쪽 아래 먹색 원 */
+  .tb-app .tb-chat.empty .tb-dock {
+    order: 2;
+    padding: var(--sp-6) 0 0;
+    background: none;
+  }
+  .tb-app .tb-chat.empty .tb-composer {
+    position: relative;
+    align-items: flex-start;
+    min-height: 130px;
+    padding: var(--sp-5) 72px var(--sp-5) var(--sp-5);
+    border-radius: var(--r-box-lg);
+    border: 1px solid var(--tb-line);
+    background: var(--tb-card);
+    box-shadow: var(--shadow-float);
+  }
+  .tb-app .tb-chat.empty .tb-composer input {
+    height: auto;
+    padding: 0;
+    font-size: var(--fs-body);
+  }
+  .tb-app .tb-chat.empty .tb-send {
+    position: absolute;
+    right: var(--sp-4);
+    bottom: var(--sp-4);
+  }
+  .tb-app .tb-send {
+    background: var(--tb-ink) !important;
+    color: #fff !important;
+  }
+  .tb-app .tb-send:disabled {
+    background: var(--tb-soft2) !important;
+    color: var(--tb-sub) !important;
+  }
+  /* '이렇게 물어보세요' + 예시 3개: 상자 칩 대신 구분선 목록 */
+  .tb-app .tb-chat.empty .tb-examples {
+    order: 3;
+    display: block;
+    margin: var(--sp-7) 0 0;
+    padding: 0;
+  }
+  .tb-app .tb-chat.empty .tb-examples::before {
+    content: "이렇게 물어보세요";
+    display: block;
+    padding-bottom: var(--sp-3);
+    border-bottom: 1px solid var(--tb-ink);
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--tb-ink);
+  }
+  .tb-app .tb-chat.empty .tb-examples button,
+  .tb-app .tb-chat.empty .tb-examples button:hover {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    min-height: 56px;
+    padding: var(--sp-3) 0;
+    border: 0;
+    border-bottom: 1px solid var(--tb-line);
+    border-radius: 0;
+    background: none !important;
+    font-size: var(--fs-body);
+    font-weight: 400;
+    text-align: left;
+    transition: color var(--dur-fast) ease;
+  }
+  .tb-app .tb-chat.empty .tb-examples button::after {
+    content: "→";
+    margin-left: var(--sp-4);
+    color: var(--tb-sub);
+    transition: transform var(--dur-fast) ease;
+  }
+  .tb-app .tb-chat.empty .tb-examples button:hover::after {
+    color: var(--tb-ink);
+    transform: translateX(2px);
+  }
+  /* '30초 취향 설정': 상자 없이 한 줄 (왼쪽 설명, 오른쪽 텍스트 링크) */
+  .tb-app .tb-taste-card,
+  .tb-app .tb-chat.empty .tb-chat-empty > .tb-taste-card {
+    order: 4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-5);
+    width: 100%;
+    max-width: none;
+    margin: var(--sp-6) 0 0;
+    padding: var(--sp-4) 0;
+    border: 0;
+    border-top: 1px solid var(--tb-line);
+    border-bottom: 1px solid var(--tb-line);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    text-align: left;
+  }
+  .tb-app .tb-taste-card strong {
+    display: none;
+  }
+  .tb-app .tb-taste-card small {
+    font-size: var(--fs-small);
+    color: var(--tb-sub);
+  }
+  .tb-app .tb-taste-card-go {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sp-4);
+  }
+  .tb-app .tb-taste-card .tb-btn.dark {
+    height: auto;
+    padding: 0;
+    border-radius: 0;
+    background: none !important;
+    color: var(--tb-ink) !important;
+    font-size: var(--fs-small);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .tb-app .tb-taste-card .tb-btn.dark::after {
+    content: " →";
+  }
+  .tb-app .tb-taste-card-x {
+    font-size: var(--fs-caption);
+    color: var(--tb-mute);
+  }
+
+  /* 답이 나온 뒤: 추천 3곳도 결과 목록과 같은 구분선 행 */
+  .tb-app .tb-main.split .tb-hcards,
+  .tb-app .tb-main.split.aichat .tb-hcards {
+    display: block;
+    margin: var(--sp-4) 0 0;
+    padding: 0;
+    border-top: 1px solid var(--tb-ink);
+  }
+  .tb-app .tb-main.split .tb-hcard,
+  .tb-app .tb-main.split .tb-hcard.on {
+    position: relative;
+    display: flex;
+    gap: var(--sp-5);
+    width: auto;
+    padding: var(--sp-5) 0;
+    border: 0;
+    border-bottom: 1px solid var(--tb-line);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .tb-app .tb-main.split .tb-hcard.on::before {
+    content: "";
+    position: absolute;
+    top: var(--sp-5);
+    bottom: var(--sp-5);
+    left: calc(var(--sp-4) * -1);
+    width: 2px;
+    background: var(--tb-ink);
+  }
+  .tb-app .tb-main.split .tb-hcard.skel {
+    height: 204px;
+    border-radius: 0;
+  }
+  .tb-app .tb-main.split .tb-hcard-img {
+    flex: none;
+    width: 232px;
+    height: 156px;
+    aspect-ratio: auto;
+    border-radius: var(--r-photo);
+    overflow: hidden;
+    box-shadow: var(--photo-ring);
+  }
+  .tb-app .tb-main.split .tb-hcard-img .tb-tag {
+    display: none;
+  }
+  .tb-app .tb-main.split .tb-hcard-body {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-auto-flow: row dense;
+    justify-items: start;
+    align-content: start;
+    column-gap: var(--sp-6);
+    row-gap: var(--sp-1);
+    padding: 0;
+    text-align: left;
+  }
+  .tb-app .tb-main.split .tb-hcard-body > * {
+    grid-column: 1;
+  }
+  .tb-app .tb-main.split .tb-hcard-body > .tb-srow-price {
+    grid-column: 2;
+    grid-row: 1 / span 12;
+    align-self: start;
+    margin: 0;
+  }
+  .tb-app .tb-main.split .tb-hcard-cap {
+    display: flex;
+  }
+  .tb-app .tb-hcard-meta {
+    font-size: var(--fs-small);
+    color: var(--tb-sub);
+  }
+  .tb-app .tb-pick-tags em {
+    padding: 0;
+    background: none;
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--tb-sub);
+  }
+  /* 한눈에 보기 표: 머리 아래 먹색 선, 행 사이 옅은 선, 가장 낮은 총액만 남색 */
+  .tb-app .tb-compare {
+    margin-top: var(--sp-6);
+    border: 0;
+    border-collapse: collapse;
+    border-radius: 0;
+    background: none;
+    font-size: var(--fs-small);
+  }
+  .tb-app .tb-compare th,
+  .tb-app .tb-compare td {
+    padding: var(--sp-3) var(--sp-2);
+    border: 0;
+    border-bottom: 1px solid var(--tb-line);
+    background: none;
+  }
+  .tb-app .tb-compare thead th {
+    border-bottom: 1px solid var(--tb-ink);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--tb-ink);
+  }
+  .tb-app .tb-compare td.best {
+    color: var(--tb-ink);
+    font-weight: 600;
+    background: none;
+  }
+  .tb-app .tb-compare tr:first-child td.best {
+    color: var(--tb-price);
+  }
+}
+@media (min-width: 1024px) {
+  /* 2단계 마감: 남은 회색 상자·초록 글자·세로로 쌓인 추천 카드 정리 */
+  .tb-app .tb-panel .tb-seller-info {
+    padding: 0 0 0 var(--sp-4);
+    border-radius: 0;
+    background: none;
+  }
+  .tb-app .tb-honest-pro b,
+  .tb-app .tb-honest-list b,
+  .tb-app .tb-honest-line b {
+    min-width: 40px;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--tb-ink);
+  }
+  .tb-app .tb-honest-list b,
+  .tb-app .tb-honest-line b {
+    color: var(--tb-sub);
+  }
+  .tb-app .tb-chat-top small {
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--tb-sub);
+  }
+  .tb-app .tb-chat-top strong {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .tb-app .tb-chat-top .tb-ib {
+    background: var(--tb-card) !important;
+    border: 1px solid var(--tb-line);
+  }
+  .tb-app .tb-main.split .tb-hcard,
+  .tb-app .tb-main.split .tb-hcard.on {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .tb-app .tb-main.split .tb-hcards {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+@keyframes tb-drawer {
+  from {
+    transform: translateX(-24px);
+    opacity: 0;
+  }
+}

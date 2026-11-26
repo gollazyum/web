@@ -907,7 +907,7 @@ export function TripApp() {
 
   return (
     <div className="tb-app">
-      <div className={`tb-main${split ? " split" : ""}${split && tab === "chat" ? " aichat" : ""}${tab === "home" && !homeMsg ? " home" : ""}`}>
+      <div className={`tb-main${split ? " split" : ""}${split && tab === "chat" ? " aichat" : ""}${split && tab === "chat" && !mapPanel && !seller ? " nopanel" : ""}${tab === "home" && !homeMsg ? " home" : ""}`}>
         {tab === "home" &&
           (homeMsg ? (
             <HomeResult
@@ -1061,6 +1061,11 @@ export function TripApp() {
             {chatMsgs.length === 0 ? (
               <div className="tb-chat-empty">
                 <Orb size={56} calm />
+                {/* PC: 구슬 대신 8px 먹색 점 + AI 이름 */}
+                <p className="tb-ai-mark">
+                  <i aria-hidden />
+                  {BRAND_AI_NAME}
+                </p>
                 <h1>예산과 원하는 조건을 편하게 말해 주세요</h1>
                 <p>예약처 총액을 견줘서 아끼는 쪽으로 3곳만 먼저 추천해 드려요.</p>
                 <div className="tb-examples">
@@ -1583,6 +1588,11 @@ function PickCard({ p, i, of, off, note, check, t, isLow, q, nights, saved: on, 
         </button>
       </div>
       <button type="button" className="tb-hcard-body" onClick={() => onOpenHotel(p.h)} aria-label={`${p.h.name} 예약처별 총액 보기`}>
+        {/* PC: 사진 위 꼬리표 대신 이름 위 작은 글자 */}
+        <span className="tb-srow-badges tb-hcard-cap">
+          {!off && <em className="tb-badge ai">AI 추천 {i + 1}</em>}
+          {isLow && of > 1 && t.verified && <em className="tb-badge low">확인한 가격 중 최저</em>}
+        </span>
         <strong>{p.h.name}</strong>
         <span className="tb-hcard-meta">{[p.h.rating ? `★ ${p.h.rating.toFixed(1)}` : "", p.h.stars ? `${p.h.stars}성급` : p.h.kind].filter(Boolean).join(" · ")}</span>
         {tags.length > 0 && (

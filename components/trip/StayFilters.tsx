@@ -14,6 +14,9 @@ export const SORTS: { id: Sort; label: string }[] = [
   { id: "rating", label: "후기 평점순" },
 ];
 
+// PC 위쪽 알약 줄에 늘 보이는 정렬 (나머지 정렬은 '필터' 서랍 안)
+const PC_SORTS: Sort[] = ["ai", "price", "rating"];
+
 const RATING_WORD: Record<number, string> = { 3.5: "좋음", 4: "아주 좋음", 4.5: "최고" };
 const AMEN_SHOW = 6;
 const QUICK_AMEN = ["대욕장", "전용 욕실", "수영장", "무료 주차", "레스토랑"]; // 와이파이는 거의 모든 숙소에 있어 빼둔다
@@ -180,17 +183,36 @@ export function FilterBar({ c, f, set, sort, setSort, nights = 1 }: { c: FilterC
   const [draft, setDraft] = useState<StayFilter>(f);
   const n = activeCount(f);
   const bands = c.bands.filter((b) => b.count > 0 || f.bands.includes(b.id));
+  // PC(1024px 이상): 정렬 3개 + 빠른 조건 + '필터' 알약 한 줄. 받은 목록에 있는 조건만 보인다
+  const r45 = c.ratings.find((r) => r.min === 4.5);
+  const pcQuick = [
+    ...(r45 && r45.count > 0 ? [{ key: "r45", label: "4.5점 이상", on: f.minRating === 4.5, tap: () => set({ ...f, minRating: f.minRating === 4.5 ? 0 : 4.5 }) }] : []),
+    ...(c.amenities.some((a) => a.name === "대욕장" && a.count > 0) ? [{ key: "bath", label: "대욕장", on: f.amenities.includes("대욕장"), tap: () => set({ ...f, amenities: toggleIn(f.amenities, "대욕장") }) }] : []),
+    ...(c.freeCancel ? [{ key: "fc", label: "무료 취소", on: f.freeCancel, tap: () => set({ ...f, freeCancel: !f.freeCancel }) }] : []),
+  ];
+  const openAll = () => {
+    setDraft(f);
+    setOpen("all");
+  };
   return (
     <>
+      <div className="tb-pcbar" role="group" aria-label="정렬과 빠른 조건">
+        {PC_SORTS.map((id) => (
+          <button key={id} type="button" className="tb-pill" aria-pressed={sort === id} onClick={() => setSort(id)}>
+            {SORTS.find((s) => s.id === id)!.label}
+          </button>
+        ))}
+        {pcQuick.map((q) => (
+          <button key={q.key} type="button" className="tb-pill" aria-pressed={q.on} onClick={q.tap}>
+            {q.label}
+          </button>
+        ))}
+        <button type="button" className="tb-pill" aria-pressed={n > 0} onClick={openAll}>
+          필터{n ? ` ${n}` : ""}
+        </button>
+      </div>
       <div className="tb-fbar">
-        <button
-          type="button"
-          aria-pressed={n > 0}
-          onClick={() => {
-            setDraft(f);
-            setOpen("all");
-          }}
-        >
+        <button type="button" aria-pressed={n > 0} onClick={openAll}>
           조건 검색{n ? <em>{n}</em> : null}
           <i className="tb-caret" aria-hidden />
         </button>
@@ -204,8 +226,18 @@ export function FilterBar({ c, f, set, sort, setSort, nights = 1 }: { c: FilterC
         </button>
       </div>
 
-      <Sheet open={open === "all"} onClose={() => setOpen(null)} label="필터" tall>
+      <Sheet open={open === "all"} onClose={() => setOpen(null)} label="필터" tall side>
         <h2 className="tb-fsheet-title">필터</h2>
+        {/* PC 서랍: 예전 왼쪽 기둥의 정렬 기준도 여기서 고른다 (위 알약 줄에 없는 높은 요금순·성급순 포함) */}
+        <section className="tb-fsort">
+          <h3>정렬 기준</h3>
+          {SORTS.map((s) => (
+            <button key={s.id} type="button" className="tb-fopt radio" aria-pressed={sort === s.id} onClick={() => setSort(s.id)}>
+              <span>{s.label}</span>
+              <i aria-hidden />
+            </button>
+          ))}
+        </section>
         <FilterPanel c={c} f={draft} set={setDraft} nights={nights} />
         <div className="tb-ffoot">
           <button type="button" className="tb-btn" onClick={() => setDraft(EMPTY_FILTER)}>
