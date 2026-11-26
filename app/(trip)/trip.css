@@ -6641,6 +6641,12 @@ html.tb-big .tb-app {
 .tb-pin.dim {
   opacity: 0.3;
 }
+/* 예약처 확인 전 '예상' 금액 핀: 회색 글자 + 옅은 테두리 (확인한 총액 핀과 구분) */
+.tb-pin.est:not(.on) {
+  color: var(--tb-mute) !important;
+  border-color: var(--tb-line) !important;
+  font-weight: 600;
+}
 .tb-3d-ctrl button {
   font: 800 12px/1 inherit;
   font-family: inherit;
@@ -9357,4 +9363,51 @@ button.tb-maplink {
 .tb-set-box .tb-faq details {
   width: 100%;
   max-width: none;
+}
+
+/* 내 여행: 위 '내 예약 가격 지킴이'(+ 숙소 검색해서 내 예약 등록하기 버튼) 아래에 다음 섹션 제목이 붙지 않게
+   48px 띄우고 1px 구분선 + 40px 안쪽 여백 (2026-11-26) */
+@media (min-width: 1024px) {
+  .tb-app .tb-page .tb-watch.tb-bw {
+    margin-bottom: 48px;
+  }
+  .tb-app .tb-page .tb-watch.tb-bw + * {
+    margin-top: 0;
+    padding-top: 40px !important;
+    border-top: 1px solid var(--tb-line) !important;
+  }
+}
+
+/* 머리글 메뉴 (2026-11-26): 내 여행·마이로 옮겨 간 뒤 활성 메뉴 둘레에 남던 검은 둥근 네모를 완전히 없앤다.
+   어느 화면이든 활성 메뉴는 먹색 600 글자 + 머리글 아래선에 닿는 1.5px 밑줄만. 키보드 초점도 네모 대신 같은 자리 밑줄(회색)로 보여 준다 */
+.tb-app .tb-tabbar .tb-tab,
+.tb-app .tb-tabbar .tb-tab:focus,
+.tb-app .tb-tabbar .tb-tab:focus-visible,
+.tb-app .tb-tabbar .tb-tab:active,
+.tb-app .tb-tabbar .tb-tab > span,
+.tb-app .tb-tabbar .tb-tab:focus > span,
+.tb-app .tb-tabbar .tb-tab:focus-visible > span {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (min-width: 1024px) {
+  .tb-app .tb-tabbar .tb-tab,
+  .tb-app .tb-tabbar .tb-tab[aria-current="page"] {
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+  .tb-app .tb-tabbar .tb-tab[aria-current="page"] {
+    color: var(--tb-ink) !important;
+    font-weight: 600;
+  }
+  .tb-app .tb-tabbar .tb-tab:focus-visible:not([aria-current="page"])::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1.5px;
+    background: var(--tb-mute);
+  }
 }

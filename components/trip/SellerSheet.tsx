@@ -391,15 +391,6 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
               {/* P2: 어디로 가는지 그대로 쓴다 */}
               {sellerDef(rows[0].key).ko}에서 보기 <IconOut />
             </a>
-            {(() => {
-              // 아고다가 가장 싼 곳이 아니면 총액 옆에 보조 버튼으로 둔다
-              const ag = rows.find((r, i) => i > 0 && r.key === "agoda");
-              return ag ? (
-                <a className="tb-book-bar-sub" href={ag.href} target="_blank" rel={linkRel("agoda")} onClick={() => onGo?.("아고다로 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요")}>
-                  아고다에서 보기 <IconOut />
-                </a>
-              ) : null;
-            })()}
           </div>
         ) : (
           <button type="button" className="tb-save" onClick={onSave} aria-pressed={saved}>

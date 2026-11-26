@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { today as localToday } from "@/lib/dates";
-import { dropsOf, isDue, pickWatch, readWatch, WATCH_KEY, watchDiff, type WatchLine, type WatchState } from "@/lib/price-watch";
-import { won } from "@/lib/trip";
-import type { SavedLike } from "./saved-price";
-import { baseOf } from "./saved-price";
+import { isDue, pickWatch, readWatch, WATCH_KEY, watchDiff, type WatchLine, type WatchState } from "@/lib/price-watch";
+import { won, type StayQuery } from "@/lib/trip";
+import type { SavedBase, SavedLike } from "./saved-price";
+import { baseOf, priceChange } from "./saved-price";
+import { getVerified, usePriceVersion } from "./prices";
 import { recheck } from "./TripRecheck";
 
 // 찜한 숙소 가격 다시 확인 결과를 화면 어디서나 (홈·탭 점·내 여행) 같이 본다
@@ -41,8 +42,49 @@ export function useWatch(): WatchState | null {
   );
 }
 
-export function useDrops(saved: SavedLike[]): WatchLine[] {
-  return dropsOf(useWatch(), saved);
+// ---- '찜한 뒤 내려갔어요' 판단은 여기 하나로 ----
+// 찜 카드 한 줄(StayRow), 내 여행 맨 위 요약, 홈 알림, 탭 점이 모두 이 값만 쓴다 (2026-11-26: 카드엔 '내려갔어요'인데 요약엔 '아직 없어요'가 뜨던 모순 수정).
+// 최신 확인 총액 = 이 탭에서 받은 예약처 1위 총액(세금 포함)과 하루 한 번 다시 확인한 값 중 더 최근 것.
+// 비교: 담을 때 금액 - 최신 확인 총액 > 0 (담을 때도 확인 총액이었을 때만, 1,000원 미만 흔들림 제외 — priceChange)
+type Q = Pick<StayQuery, "checkIn" | "checkOut" | "adults">;
+const sameQ = (a: Q, b: Q) => a.checkIn === b.checkIn && a.checkOut === b.checkOut && a.adults === b.adults;
+
+export function latestConfirmed(token: string, q: Q, state: WatchState | null): { value: number; at: number } | null {
+  const v = getVerified(token, q);
+  const here = v && v.total !== null ? { value: v.total, at: v.at } : null;
+  const line = state?.lines.find((l) => l.token === token && sameQ(l.q, q));
+  const watched = line && line.now !== null ? { value: line.now, at: state!.at } : null;
+  if (here && watched) return here.at >= watched.at ? here : watched;
+  return here ?? watched;
+}
+
+// 지금 - 담을 때 (원). 음수면 내려감. 견줄 수 없으면 null
+export function savedDiff(token: string, q: Q, base: SavedBase | undefined, state: WatchState | null): number | null {
+  const now = latestConfirmed(token, q, state);
+  if (!now) return null;
+  return priceChange(base, { value: now.value, verified: true, none: false });
+}
+
+export type Drop = WatchLine & { now: number; diff: number };
+export function dropsFrom(saved: SavedLike[], state: WatchState | null): Drop[] {
+  const seen = new Set<string>();
+  const out: Drop[] = [];
+  for (const s of saved) {
+    const k = `${s.hotel.token}:${s.query.checkIn}:${s.query.checkOut}:${s.query.adults}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    const diff = savedDiff(s.hotel.token, s.query, baseOf(s), state);
+    const now = latestConfirmed(s.hotel.token, s.query, state);
+    if (diff === null || diff >= 0 || !now) continue;
+    out.push({ token: s.hotel.token, name: s.hotel.name, q: { place: s.query.place, checkIn: s.query.checkIn, checkOut: s.query.checkOut, adults: s.query.adults }, now: now.value, diff });
+  }
+  return out.sort((a, b) => a.diff - b.diff);
+}
+
+export function useDrops(saved: SavedLike[]): Drop[] {
+  const state = useWatch();
+  usePriceVersion(); // 이 탭에서 새 확인 총액이 오면 다시 센다
+  return dropsFrom(saved, state);
 }
 
 async function runWatch(saved: SavedLike[]) {
@@ -70,6 +112,7 @@ const ago = (at: number) => {
 // 내 여행 탭 맨 위: 열 때 하루 한 번 자동으로 다시 확인하고, 내려간 숙소를 모아 보여 준다
 export function PriceWatchBox<T extends SavedLike>({ saved, onOpen }: { saved: T[]; onOpen: (s: T) => void }) {
   const state = useWatch();
+  usePriceVersion(); // 아래 찜 카드와 같은 시점에 같은 값으로 다시 센다
   const [busy, setBusy] = useState(false);
   const started = useRef(false);
   const go = async () => {
@@ -86,13 +129,13 @@ export function PriceWatchBox<T extends SavedLike>({ saved, onOpen }: { saved: T
     if (isDue(read(), Date.now()) && pickWatch(saved, localToday()).length) void go();
   }, [saved]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!pickWatch(saved, localToday()).length) return null;
-  const drops = dropsOf(state, saved);
+  const drops = dropsFrom(saved, state);
+  if (!pickWatch(saved, localToday()).length && !drops.length) return null;
   const find = (l: WatchLine) => saved.find((s) => s.hotel.token === l.token && s.query.checkIn === l.q.checkIn && s.query.checkOut === l.q.checkOut && s.query.adults === l.q.adults);
   return (
     <section className={`tb-watch${drops.length ? " down" : ""}`} aria-label="찜한 숙소 가격 변화">
       <div className="tb-watch-head">
-        <strong>{busy ? "찜한 숙소 가격을 다시 확인하는 중" : drops.length ? `찜한 뒤 내려간 숙소 ${drops.length}곳` : state ? "찜한 뒤 내려간 숙소는 아직 없어요" : "찜한 숙소 가격 변화"}</strong>
+        <strong>{busy ? "찜한 숙소 가격을 다시 확인하는 중" : drops.length ? `찜한 뒤 가격이 내려간 숙소가 ${drops.length}곳 있어요` : state ? "찜한 뒤 내려간 숙소는 아직 없어요" : "찜한 숙소 가격 변화"}</strong>
         <small>{busy ? "예약처 가격을 받고 있어요" : state ? `${ago(state.at)} 확인 · 최근 찜한 숙소 최대 5곳, 하루 한 번` : "최근 찜한 숙소 최대 5곳을 하루 한 번 확인해요"}</small>
       </div>
       {drops.length > 0 && (
@@ -109,8 +152,8 @@ export function PriceWatchBox<T extends SavedLike>({ saved, onOpen }: { saved: T
                     </small>
                   </span>
                   <span className="tb-watch-price">
-                    <b>{l.now !== null ? won(l.now) : ""}</b>
-                    <em>{won(Math.abs(l.diff ?? 0))}↓</em>
+                    <b>{won(l.now)}</b>
+                    <em>{won(Math.abs(l.diff))}↓</em>
                   </span>
                 </button>
               </li>
@@ -144,8 +187,8 @@ export function HomeDrops({ saved, onMore }: { saved: SavedLike[]; onMore: () =>
               </small>
             </span>
             <span className="tb-snap-price">
-              <b className="tb-drop-now">{l.now !== null ? won(l.now) : ""}</b>
-              <small className="tb-drop">찜할 때보다 {won(Math.abs(l.diff ?? 0))}↓</small>
+              <b className="tb-drop-now">{won(l.now)}</b>
+              <small className="tb-drop">담을 때보다 {won(Math.abs(l.diff))}↓</small>
             </span>
           </button>
         ))}
