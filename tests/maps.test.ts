@@ -5,7 +5,7 @@ describe("staticMapUrl", () => {
   it("토큰과 좌표가 있으면 Mapbox 정적 지도 주소", () => {
     const u = staticMapUrl(35.6895, 139.6917, "pk.test");
     expect(u).toContain("https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/");
-    expect(u).toContain("pin-l+FF5A1F(139.69170,35.68950)/139.69170,35.68950,15,0/600x200@2x");
+    expect(u).toContain("pin-l+1E3A5F(139.69170,35.68950)/139.69170,35.68950,15,0/600x200@2x");
     expect(u).toContain("access_token=pk.test");
     expect(u).not.toContain("attribution=false");
     expect(u).not.toContain("logo=false");

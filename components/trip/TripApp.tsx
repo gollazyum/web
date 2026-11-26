@@ -1159,8 +1159,8 @@ export function TripApp() {
         )}
 
         <nav className="tb-tabbar" aria-label="메뉴">
+          {/* PC 머리글 왼쪽 글자 로고 (구슬은 파비콘·앱 아이콘에만) */}
           <span className="tb-logo tb-tabbar-logo">
-            <Orb size={28} />
             <strong>{BRAND_NAME}</strong>
             {brand.tentative && <em>가칭</em>}
           </span>

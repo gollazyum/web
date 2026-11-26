@@ -1,0 +1,138 @@
+/* 디자인 규칙 (2026-11-26 PC 디자인 고급화, PC 1440px 기준).
+   글자 8단계 · 간격 4의 배수 8단계 · 모서리 3가지 · 그림자 1가지를 여기서만 정한다.
+   색은 lib/brand.ts → CSS 변수 --tb-* (여행 앱·약관·404 공통) */
+:root {
+  /* 글자 크기 / 줄 간격 / 자간 (굵기는 400·500·600·700만) */
+  --fs-display: clamp(36px, 5vw, 72px);
+  --lh-display: 1.08;
+  --ls-display: -0.045em;
+  --fs-h1: clamp(28px, 3.4vw, 48px);
+  --lh-h1: 1.18;
+  --ls-h1: -0.04em;
+  --fs-h2: clamp(22px, 2.4vw, 32px);
+  --lh-h2: 1.25;
+  --ls-h2: -0.03em;
+  --fs-h3: clamp(19px, 1.8vw, 24px);
+  --lh-h3: 1.3;
+  --ls-h3: -0.025em;
+  --fs-title: 18px;
+  --lh-title: 1.35;
+  --ls-title: -0.02em;
+  --fs-body: 16px;
+  --lh-body: 1.6;
+  --fs-small: 14px;
+  --lh-small: 1.5;
+  --fs-caption: 13px;
+  --lh-caption: 1.4;
+
+  /* 간격: 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64, 섹션 사이 72~96 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+  --sp-section: clamp(72px, 7vw, 96px);
+
+  /* 폭: 좌우 여백(휴대폰 20 / PC 64), 최대 폭 1312, 글이 많은 화면 본문 780 */
+  --page-gutter: 20px;
+  --page-max: 1312px;
+  --page-text: 780px;
+  --header-h: 64px;
+
+  /* 모서리 세 가지: 사진 / 입력창·큰 상자 / 버튼·칩 알약 */
+  --r-photo: 6px;
+  --r-box: 16px;
+  --r-box-lg: 20px;
+  --r-pill: 999px;
+
+  /* 그림자 한 가지: 떠 있는 검색 알약·입력창·드롭다운·모달 */
+  --shadow-float: 0 12px 32px rgba(20, 20, 19, 0.06);
+
+  /* 사진 마감: 차분한 톤 + 안쪽 미세 테두리 */
+  --photo-filter: saturate(0.93) contrast(1.02);
+  --photo-ring: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+
+  /* 움직임 */
+  --dur-fast: 150ms;
+  --dur-photo: 400ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (min-width: 1024px) {
+  :root {
+    --page-gutter: 64px;
+    --header-h: 72px;
+  }
+}
+
+/* 글자 단계 (화면별 작업에서 클래스나 같은 값으로 쓴다) */
+.t-display {
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  letter-spacing: var(--ls-display);
+  font-weight: 600;
+}
+.t-h1 {
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  letter-spacing: var(--ls-h1);
+  font-weight: 600;
+}
+.t-h2 {
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  letter-spacing: var(--ls-h2);
+  font-weight: 600;
+}
+.t-h3 {
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+  letter-spacing: var(--ls-h3);
+  font-weight: 600;
+}
+.t-title {
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  letter-spacing: var(--ls-title);
+  font-weight: 600;
+}
+.t-body {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  letter-spacing: 0;
+  font-weight: 400;
+}
+.t-small {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  letter-spacing: 0;
+}
+.t-caption {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+/* 제목 조판: 한글 단어가 한 글자씩 떨어지지 않게 */
+.tb-app :is(h1, h2, h3),
+.pg :is(h1, h2, h3),
+.t-display,
+.t-h1,
+.t-h2,
+.t-h3,
+.t-title {
+  word-break: keep-all;
+  text-wrap: balance;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 숫자(가격·시간) 자릿수 맞추기 */
+.tb-app,
+.pg,
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}

@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { brand, BRAND_NAME } from "@/lib/brand";
+import { brand, brandCssVars, BRAND_NAME } from "@/lib/brand";
 import { site } from "@/lib/site";
 
-// 약관·개인정보처리방침·404가 같이 쓰는 새 머리글·바닥글 (여행 앱과 같은 흰 바탕 + 검정 글씨 + 파란 구슬 로고).
+// 약관·개인정보처리방침·404가 같이 쓰는 머리글·바닥글 (여행 앱과 같은 미색 바탕 + 먹색 글자 + 글자 로고).
+// 색은 여행 앱과 같은 lib/brand.ts 값을 .pg 안에서만 CSS 변수로 쓴다
 // 여행 앱 안(홈)의 바닥글과 같은 문구를 lib/site.ts 에서 가져온다
 export function PageHeader() {
   return (
     <header className="pg-head">
+      <style>{`.pg{${brandCssVars()}}`}</style>
       <div className="pg-wrap pg-head-in">
         <Link href="/" className="pg-logo" aria-label={`${BRAND_NAME} 홈`}>
-          <span className="pg-orb" aria-hidden />
           <strong>{BRAND_NAME}</strong>
           {brand.tentative && <em>가칭</em>}
         </Link>

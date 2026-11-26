@@ -8,33 +8,34 @@ export const brand = {
   tentative: true,
   aiName: "여행비서 AI",
   legalName: "Gollazyum",
-  // 2026-11-20 색 공식 60:30:10 — 웜 오프화이트 바탕(60) · 잉크 네이비(30) · 시그니처 오렌지(10)
-  // 오렌지(price)는 1위 최저 금액 숫자에만 쓴다. 일반 카드·2위 이하 금액·버튼에는 쓰지 않는다
+  // 2026-11-26 PC 디자인 고급화(북유럽식): 미색 바탕 · 먹색 글자(본문/보조/각주 3단계) · 옅은 베이지 회색 선.
+  // 강조색은 깊은 남색(price) 하나 — 확인한 최저가 숫자·'평소보다 N%↓' 배지·지도 최저가 핀에만 쓴다. 버튼·배너·아이콘에는 쓰지 않는다
   colors: {
-    bg: "#FAF8F5", // 웜 오프화이트 바탕
-    card: "#FFFFFF", // 카드 표면 (모서리 20px)
-    soft: "#F2F0EC", // 칩·입력칸·보조 버튼 바탕
-    soft2: "#E8E5DF",
-    ink: "#1B2A4A", // 잉크 네이비: 글자·헤더·주 버튼·선택 탭
-    sub: "#5D6475",
-    mute: "#666D7D", // 오프화이트 바탕 대비 4.9:1 (글자 읽기 기준 4.5:1 이상)
-    line: "#E6E2DB",
-    accent: "#1B2A4A", // 선택·AI 표시 (네이비 계열로 통일)
-    accentDark: "#14203A",
-    accentSoft: "#ECEFF5",
-    price: "#FF5A1F", // 시그니처 오렌지: 1위 최저 금액 숫자 전용
+    bg: "#FAF8F5", // 아주 옅은 따뜻한 미색 바탕
+    card: "#FFFFFF", // 패널·입력창·떠 있는 것만 흰색
+    soft: "#F2EFE9", // 칩·보조 바탕, 마이 현재 메뉴 알약
+    soft2: "#E8E4DC",
+    ink: "#1A1A18", // 먹색: 본문 글자·주 버튼·선택 표시
+    sub: "#5F5E59", // 중간 회색: 보조 글자, '예상' 가격
+    mute: "#6E6C66", // 옅은 회색: 각주 (미색 바탕 대비 4.9:1)
+    line: "#E6E1D8", // 옅은 베이지 회색 구분선
+    accent: "#1A1A18", // 선택·초점 표시 (먹색. 남색 강조는 price만)
+    accentDark: "#000000",
+    accentSoft: "#F2EFE9",
+    price: "#1E3A5F", // 깊은 남색: 확인한 최저가 숫자 전용 (예전 주황 #FF5A1F 대체)
+    priceSoft: "#EEF1F5", // 남색 강조의 아주 옅은 바탕 (내림 표시)
     good: "#0E9F6E",
     goodSoft: "#E3F7EE",
     warn: "#E5484D",
     warnSoft: "#FDECEC",
-    star: "#F5A524",
+    star: "#1A1A18", // 별점도 먹색 (노랑·주황 강조색 없음)
   },
 } as const;
 
 // 가칭 서비스명·상단 아이콘. 이름이 정해지면 여기 두 줄만 바꾼다
 export const BRAND_NAME: string = brand.appName;
 export const BRAND_AI_NAME: string = brand.aiName;
-export const BRAND_ICON = "orb" as const; // 네이비 구체 (components/trip의 .tb-orb)
+export const BRAND_ICON = "orb" as const; // 구슬은 파비콘·앱 아이콘에만 쓴다 (화면 머리글에는 글자 로고)
 
 export type BrandColorKey = keyof typeof brand.colors;
 
@@ -43,7 +44,7 @@ export function cssVarName(key: string): string {
   return `--tb-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
 }
 
-// 일괄 교체용 대표 색 3개 (--bg 바탕, --primary 네이비, --accent 오렌지). --tb-bg·--tb-ink·--tb-price는 이 셋을 따라간다
+// 일괄 교체용 대표 색 3개 (--bg 바탕, --primary 먹색, --accent 남색 강조). --tb-bg·--tb-ink·--tb-price는 이 셋을 따라간다
 const CORE_VARS: Partial<Record<BrandColorKey, string>> = { bg: "--bg", ink: "--primary", price: "--accent" };
 
 // :root에 넣을 CSS 변수 묶음
