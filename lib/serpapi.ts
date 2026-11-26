@@ -128,14 +128,15 @@ export function searchOnce(params: Record<string, string>, timeoutMs = 25_000): 
 export async function serpSearch<T>(
   req: Request,
   params: Record<string, string>,
-  shape: (json: Record<string, unknown>, extra: Record<string, unknown> | null) => T,
+  shape: (json: Record<string, unknown>, extra: Record<string, unknown> | null, follow: Record<string, unknown> | null) => T,
   extra?: Record<string, string> | ((json: Record<string, unknown>) => Record<string, string> | null),
-  opts: { fresh?: boolean; onFresh?: (data: T) => void; ttlSec?: number } = {},
+  // follow: 첫 결과를 받은 뒤 다음 쪽을 한 번 더 이어서 받는다 (인기 도시 숙소 40곳). 다음 쪽이 없으면 부르지 않는다
+  opts: { fresh?: boolean; onFresh?: (data: T) => void; ttlSec?: number; follow?: (json: Record<string, unknown>) => Record<string, string> | null } = {},
 ): Promise<Response> {
   const key = process.env.SERPAPI_API_KEY;
   if (!key) return Response.json({ error: "not_configured" }, { status: 503 });
 
-  const ck = cacheKey("travel", params, typeof extra === "function" ? "chain" : (extra ?? null));
+  const ck = cacheKey("travel", params, typeof extra === "function" ? "chain" : (extra ?? null), ...(opts.follow ? ["p2"] : []));
   // 요청 헤더는 캐시 함수 밖에서 읽는다 (Next 캐시 안에서는 요청 데이터를 못 쓴다)
   const ip = ipOf(req);
   try {
@@ -152,7 +153,16 @@ export async function serpSearch<T>(
           partial = true;
         }
       }
-      const data = shape(json, more);
+      let after: Record<string, unknown> | null = null;
+      const nextPage = opts.follow?.(json) ?? null;
+      if (nextPage) {
+        try {
+          after = await call(nextPage, key);
+        } catch {
+          partial = true; // 다음 쪽이 실패하면 첫 쪽만 보여 주고 저장하지 않는다
+        }
+      }
+      const data = shape(json, more, after);
       return partial ? new NoStore(data) : data;
     };
     // fresh: '가격 다시 보기'처럼 지금 값을 꼭 새로 받아야 할 때는 저장된 응답을 쓰지 않는다

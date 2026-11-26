@@ -177,7 +177,7 @@ export function FilterPanel({ c, f, set, nights = 1 }: { c: FilterCounts; f: Sta
 }
 
 // 휴대폰·좁은 PC: 결과 위 고정 3버튼 (조건 검색 / 요금 / 정렬 기준)
-export function FilterBar({ c, f, set, sort, setSort, nights = 1 }: { c: FilterCounts; f: StayFilter; set: (f: StayFilter) => void; sort: Sort; setSort: (s: Sort) => void; nights?: number }) {
+export function FilterBar({ c, f, set, sort, setSort, nights = 1, onMap }: { c: FilterCounts; f: StayFilter; set: (f: StayFilter) => void; sort: Sort; setSort: (s: Sort) => void; nights?: number; onMap?: () => void }) {
   const [open, setOpen] = useState<"all" | "price" | "sort" | null>(null);
   const [basis, setBasis] = useState<PriceBasis>("total");
   const [draft, setDraft] = useState<StayFilter>(f);
@@ -210,6 +210,12 @@ export function FilterBar({ c, f, set, sort, setSort, nights = 1 }: { c: FilterC
         <button type="button" className="tb-pill" aria-pressed={n > 0} onClick={openAll}>
           필터{n ? ` ${n}` : ""}
         </button>
+        {/* PC: 넓은 지도 창 열기 (검색은 다시 하지 않는다) */}
+        {onMap && (
+          <button type="button" className="tb-pill tb-pill-map" onClick={onMap}>
+            지도로 보기
+          </button>
+        )}
       </div>
       <div className="tb-fbar">
         <button type="button" aria-pressed={n > 0} onClick={openAll}>

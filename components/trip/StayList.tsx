@@ -184,7 +184,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
         </p>
       )}
       <div className={side ? "tb-fbar-wrap has-side" : "tb-fbar-wrap"}>
-        <FilterBar c={counts} f={f} set={setF} sort={sort} setSort={setSort} nights={nights} />
+        <FilterBar c={counts} f={f} set={setF} sort={sort} setSort={setSort} nights={nights} onMap={onMap} />
       </div>
       </div>
       <div className={side ? "tb-results-body" : undefined}>

@@ -302,6 +302,7 @@ export function TripApp() {
   const [listId, setListId] = useState<string | null>(null); // AI 채팅: 전체 목록 바텀시트
   // 가격 핀 지도를 연 결과 (null이면 닫힘). 휴대폰은 전체 화면, PC는 오른쪽 패널. 지도는 이때만 불러온다 (Mapbox 지도 로드 과금)
   const [mapFor, setMapFor] = useState<string | null>(null);
+  const [mapSel, setMapSel] = useState<string | null>(null); // 지도를 열 때 골라 둘 숙소 (상세의 [크게 보기])
   const { saved, toggle, upgrade } = useSaved();
   const drops = useDrops(saved); // 찜한 숙소 중 가격이 내려간 곳 (찜·알림 탭에서 하루 한 번 확인한 결과)
   setSavedList(saved); // 카드·상세가 담을 때 금액을 찾아볼 수 있게
@@ -905,12 +906,24 @@ export function TripApp() {
 
   // 지도: PC는 오른쪽 패널(지금 패널이 보여 주는 결과의 숙소), 휴대폰은 전체 화면
   const mapMsg = msgs.find((x): x is StayMsg => x.id === mapFor && x.t === "stay" && x.status === "done" && !!x.options?.length);
-  const panelStay = panelMsg?.t === "stay" && panelMsg.status === "done" && panelMsg.options?.length ? panelMsg : undefined;
-  const mapPanel = split ? mapMsg : undefined;
+  const closeMap = () => {
+    setMapFor(null);
+    setMapSel(null);
+  };
+  // 숙소 상세의 작은 지도 [크게 보기]: 그 숙소가 들어 있는 같은 조건 검색 결과를 지도로 열고 그 숙소를 골라 둔다
+  const bigMap = () => {
+    if (!seller) return;
+    const key = stayHref(seller.query);
+    const m = [...msgs].reverse().find((x): x is StayMsg => x.t === "stay" && x.status === "done" && !!x.options?.some((h) => h.token === seller.hotel.token) && stayHref(x.query) === key);
+    if (!m) return;
+    setMapSel(seller.hotel.token);
+    if (!wide) setSeller(null);
+    setMapFor(m.id);
+  };
 
   return (
     <div className="tb-app">
-      <div className={`tb-main${split ? " split" : ""}${split && tab === "chat" ? " aichat" : ""}${split && tab === "chat" && !mapPanel && !seller ? " nopanel" : ""}${tab === "home" && !homeMsg ? " home" : ""}${tab === "home" && homeMsg?.t === "flight" ? " flight" : ""}`}>
+      <div className={`tb-main${split ? " split" : ""}${split && tab === "chat" ? " aichat" : ""}${split && tab === "chat" && !seller ? " nopanel" : ""}${tab === "home" && !homeMsg ? " home" : ""}${tab === "home" && homeMsg?.t === "flight" ? " flight" : ""}`}>
         {tab === "home" &&
           (homeMsg ? (
             <HomeResult
@@ -1141,32 +1154,10 @@ export function TripApp() {
         {tab === "my" && <My profile={taste.profile} onTaste={() => setOnb(true)} onTrips={() => setTab("trips")} />}
 
         {split && (
-          <aside className={`tb-panel${mapPanel ? " map" : ""}`} aria-label={mapPanel ? "숙소 지도" : "숙소 상세"}>
-            {panelStay && (
-              <div className="tb-panel-tabs" role="tablist" aria-label="오른쪽 패널">
-                <button type="button" role="tab" aria-selected={!mapPanel} onClick={() => setMapFor(null)}>
-                  예약처 총액
-                </button>
-                <button type="button" role="tab" aria-selected={!!mapPanel} onClick={() => setMapFor(panelStay.id)}>
-                  지도
-                </button>
-              </div>
-            )}
-            {mapPanel ? (
-              <MapPanel
-                key={mapPanel.id}
-                panel
-                query={mapPanel.query}
-                options={mapPanel.options ?? []}
-                onOpen={(h) => {
-                  setSeller({ hotel: h, query: mapPanel.query });
-                  setMapFor(null);
-                }}
-                onList={() => setMapFor(null)}
-              />
-            ) : seller ? (
+          <aside className="tb-panel" aria-label="숙소 상세">
+            {seller ? (
               <>
-                <SellerBody hotel={seller.hotel} query={seller.query} reason={sellerReason} peers={sellerPeers} onSimilar={similar} saved={savedSet.has(seller.hotel.token)} onSave={() => save(seller.hotel, seller.query)} onGo={(text) => setToast({ text, go: true })} />
+                <SellerBody hotel={seller.hotel} query={seller.query} reason={sellerReason} peers={sellerPeers} onSimilar={similar} saved={savedSet.has(seller.hotel.token)} onSave={() => save(seller.hotel, seller.query)} onGo={(text) => setToast({ text, go: true })} onBigMap={bigMap} />
               </>
             ) : (
               <div className="tb-panel-empty">
@@ -1253,8 +1244,23 @@ export function TripApp() {
 
       {!wide && mapMsg && (
         <div className="tb-map-wrap">
-          <MapPanel key={mapMsg.id} query={mapMsg.query} options={mapMsg.options ?? []} onOpen={(h) => setSeller({ hotel: h, query: mapMsg.query })} onList={() => setMapFor(null)} />
+          <MapPanel key={mapMsg.id} query={mapMsg.query} options={mapMsg.options ?? []} initial={mapSel} onOpen={(h) => setSeller({ hotel: h, query: mapMsg.query })} onList={closeMap} />
         </div>
+      )}
+      {/* PC: [지도로 보기]·패널 [크게 보기] 모두 넓은 지도 창 (94vw × 90vh, 최대 1360px) */}
+      {wide && mapMsg && (
+        <MapPanel
+          key={mapMsg.id}
+          modal
+          query={mapMsg.query}
+          options={mapMsg.options ?? []}
+          initial={mapSel ?? (seller && stayHref(seller.query) === stayHref(mapMsg.query) ? seller.hotel.token : null)}
+          onOpen={(h) => {
+            setSeller({ hotel: h, query: mapMsg.query });
+            closeMap();
+          }}
+          onList={closeMap}
+        />
       )}
 
       <AllList
@@ -1283,6 +1289,7 @@ export function TripApp() {
         reason={sellerReason}
         onSimilar={similar}
         peers={sellerPeers}
+        onBigMap={bigMap}
       />
     </div>
   );
