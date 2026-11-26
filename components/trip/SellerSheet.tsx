@@ -1,5 +1,6 @@
 "use client";
 
+import { VibeTag } from "./VibeTag";
 import { freeCancelGap, savingsOf } from "@/lib/savings";
 import { useEffect, useState } from "react";
 import { sellerRows, type HotelOption, type ReviewTopic, type SellerRow } from "@/lib/hotels";
@@ -193,6 +194,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
           </span>
         </a>
       ) : null}
+      <VibeTag gps={hotel.gps} detail />
       {reason && !isPlainReason(reason) && (
         <p className="tb-detail-why">
           <IconSpark size={16} />

@@ -1,5 +1,6 @@
 "use client";
 
+import { VibeTag } from "./VibeTag";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HotelOption } from "@/lib/hotels";
 import { isShownAmenity } from "@/lib/hotelText";
@@ -341,6 +342,7 @@ export function StayRow({ h, query, reason, note, check, cheapest, saved, active
             {"★".repeat(Math.min(5, Math.round(h.stars)))}
           </span>
         ) : null}
+        <VibeTag gps={h.gps} />
         <span className="tb-srow-meta">{[h.kind, ...h.amenities.filter((a) => isShownAmenity(a) && !/와이파이/.test(a)).slice(0, 2)].filter(Boolean).join(" · ")}</span>
         {h.rating ? (
           <span className="tb-score">
