@@ -93,7 +93,7 @@ const pax = (q: { children?: number; cabin?: string }) => ({ ...(q.children ? { 
 // fresh: '다시 검색'·'가격 다시 보기'를 눌렀을 때만 이 탭과 서버의 저장된 가격을 건너뛴다
 export const stayPrices = (token: string, q: StayQuery, name: string, fresh = false) => {
   const body = { q: name.slice(0, 100), checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...kids(q), token, ...(fresh ? { fresh: true } : {}) };
-  return cached(`price:${token}:${q.checkIn}:${q.checkOut}:${q.adults}:${(q.childAges ?? []).join(".")}`, () => post<HotelPrices>("/api/hotels", body), fresh, stayCacheSec(q.checkIn) * 1000);
+  return cached(`price:${token}:${q.checkIn}:${q.checkOut}:${q.adults}:${(q.childAges ?? []).join(".")}`, () => post<HotelPrices>("/api/hotels/prices", body), fresh, stayCacheSec(q.checkIn) * 1000);
 };
 
 export async function searchFlights(q: FlightQuery) {

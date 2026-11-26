@@ -8980,3 +8980,37 @@ html.tb-big .tb-app {
     text-underline-offset: 3px;
   }
 }
+
+/* ---------- 2026-11-26 마감 패치 ---------- */
+/* 가격 지킴이 등록: 글자만 떠 있던 것을 보조 알약 버튼으로 (흰 바탕 + 1px 베이지 회색 선, 높이 44) */
+.tb-app .tb-bw-entry .tb-bw-pill {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--tb-line) !important;
+  border-radius: 999px !important;
+  background: #fff !important;
+  color: var(--tb-ink);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.tb-app .tb-bw-entry .tb-bw-pill:hover {
+  border-color: var(--tb-ink) !important;
+}
+/* 머리글 메뉴: 누른 뒤 탭 전체(머리글 높이)를 감싸던 세로로 긴 검은 테두리를 없앤다.
+   키보드로 옮길 때만(:focus-visible) 글자 둘레에 작은 테두리를 그린다 */
+.tb-app .tb-tab:focus,
+.tb-app .tb-tab:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.tb-app .tb-tab:focus-visible > span {
+  outline: 2px solid var(--tb-ink);
+  outline-offset: 4px;
+  border-radius: 4px;
+}

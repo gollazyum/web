@@ -89,8 +89,8 @@ export function BookedWatch({ hotel, query, rows }: { hotel: { token: string; na
   if (!open)
     return (
       <div className="tb-bw-entry">
-        <button type="button" className="tb-btn" onClick={() => setOpen(true)}>
-          가격 지킴이에 이 숙소 등록하기
+        <button type="button" className="tb-bw-pill" onClick={() => setOpen(true)}>
+          가격 변동 알림 등록
         </button>
         <small>이 숙소를 무료 취소로 예약했다면, 체크인 전까지 가격이 내려가는지 지켜보고 찜·알림 탭에서 알려 드려요</small>
       </div>
@@ -255,7 +255,7 @@ export function RegisterHint() {
   return (
     <div className="tb-reghint" role="status">
       <p>
-        <b>내 예약 등록하기</b> 예약한 숙소를 <b>예약한 날짜·인원</b>으로 검색한 뒤, 그 숙소를 눌러 <b>가격 지킴이에 이 숙소 등록하기</b>를 눌러 주세요.
+        <b>내 예약 등록하기</b> 예약한 숙소를 <b>예약한 날짜·인원</b>으로 검색한 뒤, 그 숙소를 눌러 <b>가격 변동 알림 등록</b>을 눌러 주세요.
       </p>
       <button type="button" className="tb-link" onClick={endRegister}>
         그만하기

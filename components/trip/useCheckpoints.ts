@@ -82,3 +82,11 @@ export function useCheckpoints(items: CheckItem[], q: StayQuery, enabled: boolea
   });
   return out;
 }
+
+// 숙소 상세(시트·PC 오른쪽 패널): AI를 새로 부르지 않는다 (숙소를 바꿔 누를 때마다 AI가 불리지 않게).
+// 같은 검색의 추천 3곳에서 이미 받은 AI 체크포인트가 있으면 그걸 쓰고, 없으면 규칙으로 만든다
+export function peekCheckpoints(h: HotelOption, q: StayQuery, input: CheckInput | null): Checkpoints | undefined {
+  const saved = read(checkKey(h.token, q, true)) ?? read(checkKey(h.token, q, false));
+  if (saved) return saved;
+  return input ? ruleCheckpoints(input) : undefined;
+}
