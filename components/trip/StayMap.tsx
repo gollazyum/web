@@ -13,11 +13,18 @@ export type MapPin = { token: string; lat: number; lng: number; label: string; l
 // 동네 분위기: 도시(없으면 끔), 켜짐 여부, 고른 분위기 하나(없으면 전부)
 export type VibeView = { city: City | null; on: boolean; pick: VibeKey | null };
 
-type Props = { token: string; pins: MapPin[]; ring: [number, number] | null; vibe: VibeView; onPick: (token: string) => void; onVibe?: (k: VibeKey) => void; onFail: (why: "rejected" | "error") => void };
+// focus: 고른 동네에 숙소가 0곳일 때 카메라만 그 구역으로 (key가 바뀔 때 한 번). fit: 처음 핀 전체를 맞출 때의 여백·최대 줌
+export type MapFocus = { key: string; box: [[number, number], [number, number]] } | null;
+// tip: 고른 핀 위에 띄우는 작은 요약 (넓은 지도 창). 누르면 onTip
+export type MapTip = { token: string; lat: number; lng: number; title: string; line: string } | null;
+type Props = { token: string; pins: MapPin[]; ring: [number, number] | null; vibe: VibeView; focus?: MapFocus; tip?: MapTip; onTip?: () => void; fit?: { padding: number; maxZoom: number }; onPick: (token: string) => void; onVibe?: (k: VibeKey) => void; onFail: (why: "rejected" | "error") => void };
 
 const RING_SRC = "tb-rings";
 
-export default function StayMap({ token, pins, ring, vibe, onPick, onVibe, onFail }: Props) {
+export default function StayMap({ token, pins, ring, vibe, focus = null, tip = null, onTip, fit, onPick, onVibe, onFail }: Props) {
+  const popup = useRef<mapboxgl.Popup | null>(null);
+  const tipRef = useRef(onTip);
+  tipRef.current = onTip;
   const tags = useRef<mapboxgl.Marker[]>([]);
   const vibeRef = useRef(vibe);
   vibeRef.current = vibe;
@@ -27,6 +34,8 @@ export default function StayMap({ token, pins, ring, vibe, onPick, onVibe, onFai
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef(new Map<string, mapboxgl.Marker>());
   const fitted = useRef(false);
+  const pinsRef = useRef(pins);
+  pinsRef.current = pins;
   const pickRef = useRef(onPick);
   pickRef.current = onPick;
 
@@ -68,10 +77,10 @@ export default function StayMap({ token, pins, ring, vibe, onPick, onVibe, onFai
       drawVibes(m, vibeRef.current);
       placeTags(m, vibeRef.current);
     });
-    // 동네 라벨은 중간 줌에서만 (멀면 지저분하고, 가까우면 가격 핀과 겹친다)
+    // 동네 라벨은 도시 전체가 보이는 줌(9)부터 가격 핀과 겹치기 전(14.3)까지. 처음 열었을 때 도시 전체가 잡혀도 바로 보이게
     const fade = () => {
       const z = m.getZoom();
-      const hide = z < 10.5 || z >= 14.3;
+      const hide = z < 9 || z >= 14.3;
       box.current?.classList.toggle("tb-vibe-hide", hide);
     };
     m.on("zoom", fade);
@@ -124,14 +133,45 @@ export default function StayMap({ token, pins, ring, vibe, onPick, onVibe, onFai
       el.classList.toggle("dim", !!p.dim && !p.on);
       el.style.zIndex = p.on ? "3" : p.low ? "2" : "1";
     }
-    // 처음 한 번은 모든 핀이 보이게 맞춘다
+    // 처음 한 번은 모든 핀이 보이게 맞춘다 (지도가 다 뜬 뒤 한 번 더: 창 크기가 정해지기 전에 맞추면 어긋난다)
     if (!fitted.current && pins.length) {
       fitted.current = true;
-      const b = new mapboxgl.LngLatBounds();
-      pins.forEach((p) => b.extend([p.lng, p.lat]));
-      m.fitBounds(b, { padding: { top: 60, bottom: 140, left: 40, right: 40 }, maxZoom: 15, duration: 0 });
+      fitAll(m);
+      m.once("load", () => fitAll(m));
     }
-  }, [pins]);
+  }, [pins]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function fitAll(m: mapboxgl.Map) {
+    const ps = pinsRef.current;
+    if (!ps.length) return;
+    const b = new mapboxgl.LngLatBounds();
+    ps.forEach((p) => b.extend([p.lng, p.lat]));
+    m.resize();
+    m.fitBounds(b, { padding: fit ? fit.padding : { top: 60, bottom: 140, left: 40, right: 40 }, maxZoom: fit ? fit.maxZoom : 14.5, duration: 0 });
+  }
+
+  useEffect(() => {
+    const m = map.current;
+    popup.current?.remove();
+    popup.current = null;
+    if (!m || !tip) return;
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "tb-pin-tip";
+    const t = document.createElement("strong");
+    t.textContent = tip.title;
+    const l = document.createElement("small");
+    l.textContent = tip.line;
+    el.append(t, l);
+    el.addEventListener("click", () => tipRef.current?.());
+    popup.current = new mapboxgl.Popup({ offset: 40, closeButton: false, closeOnClick: false, className: "tb-pin-pop", maxWidth: "260px" }).setLngLat([tip.lng, tip.lat]).setDOMContent(el).addTo(m);
+  }, [tip?.token, tip?.line]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !focus) return;
+    m.fitBounds(focus.box, { padding: fit?.padding ?? 48, maxZoom: 14, duration: 600 });
+  }, [focus?.key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const m = map.current;

@@ -9014,3 +9014,209 @@ html.tb-big .tb-app {
   outline-offset: 4px;
   border-radius: 4px;
 }
+
+/* ---------- 넓은 지도 창 (PC, 2026-11-26) ---------- */
+button.tb-minimap {
+  width: 100%;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+button.tb-maplink {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tb-mapx-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 26, 24, 0.32);
+}
+.tb-mapx {
+  display: flex;
+  width: 94vw;
+  max-width: 1360px;
+  height: 90vh;
+  border-radius: var(--r-box-lg, 20px);
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 24px 64px rgba(26, 26, 24, 0.18);
+}
+.tb-mapx-map {
+  position: relative;
+  flex: 0 0 72%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--tb-soft);
+}
+.tb-mapx-map .tb-map-body {
+  flex: 1;
+}
+.tb-mapx-map .tb-map-card {
+  left: 16px;
+  right: auto;
+  width: 340px;
+  bottom: 40px;
+}
+.tb-mapx-map .tb-map-off {
+  margin: auto;
+}
+.tb-mapx-nomatch {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  margin: 0;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--tb-line);
+  color: var(--tb-ink);
+  font-size: 14px;
+  white-space: nowrap;
+  box-shadow: var(--shadow-float);
+}
+.tb-mapx-nomatch.side {
+  position: static;
+  transform: none;
+  white-space: normal;
+  box-shadow: none;
+  border-radius: var(--r-box);
+  margin: 10px 0 6px;
+  background: var(--tb-soft);
+  border: 0;
+}
+.tb-mapx-side {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 20px 24px 28px;
+  border-left: 1px solid var(--tb-line);
+  background: #fff;
+}
+.tb-mapx-close {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--tb-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--tb-ink);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tb-mapx-close:hover {
+  border-color: var(--tb-ink);
+}
+.tb-mapx-count {
+  margin: 14px 0 0;
+  color: var(--tb-sub);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.tb-mapx-sec {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--tb-line);
+}
+.tb-mapx-sec:last-child {
+  border-bottom: 0;
+}
+.tb-mapx-sec h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tb-sub);
+}
+.tb-mapx-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tb-mapx-pick strong {
+  font-size: 17px;
+  color: var(--tb-ink);
+}
+.tb-mapx-pick small {
+  color: var(--tb-sub);
+}
+.tb-mapx-price {
+  margin: 6px 0 10px;
+  font-variant-numeric: tabular-nums;
+}
+.tb-mapx-price b {
+  font-size: 22px;
+  color: var(--tb-ink);
+}
+.tb-mapx-price b.low {
+  color: var(--tb-price, #1e3a5f);
+}
+.tb-mapx-side .tb-map-chips,
+.tb-mapx-side .tb-vibe-bar {
+  flex-wrap: wrap;
+  overflow: visible;
+  padding: 0;
+  margin: 0;
+  position: static;
+  background: none;
+}
+.tb-mapx-dist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tb-mapx-dist li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.tb-mapx-dist b {
+  font-weight: 600;
+}
+.tb-pcbar .tb-pill-map {
+  margin-left: auto;
+}
+/* 넓은 지도 창: 고른 핀 위 요약 */
+.tb-pin-pop .mapboxgl-popup-content {
+  padding: 0;
+  border-radius: 14px;
+  border: 1px solid var(--tb-line);
+  box-shadow: var(--shadow-float);
+}
+.tb-pin-pop .mapboxgl-popup-tip {
+  display: none;
+}
+.tb-pin-tip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  background: #fff;
+  border-radius: 14px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.tb-pin-tip strong {
+  font-size: 14px;
+  color: var(--tb-ink);
+}
+.tb-pin-tip small {
+  font-size: 13px;
+  color: var(--tb-sub);
+  font-variant-numeric: tabular-nums;
+}

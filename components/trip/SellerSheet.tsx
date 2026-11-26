@@ -9,7 +9,7 @@ import { positivePct } from "@/lib/prefs";
 import { agodaAffiliateOn } from "@/lib/affiliate";
 import { linkRel, sellerDef, sellerSearchUrl, withRo } from "@/lib/hotel-sellers";
 import { topicKo } from "@/lib/hotelText";
-import { mapUrl, staticMapUrl } from "@/lib/maps";
+import { staticMapUrl } from "@/lib/maps";
 import { guestText, isPlainReason, nightsOf, stayTotal, won, type StayQuery } from "@/lib/trip";
 import { searchErrorMessage } from "@/lib/search-error";
 import { askHotel, stayPrices } from "./api";
@@ -35,6 +35,7 @@ type Props = {
   reason?: string; // AI 추천 이유 (추천 3곳일 때만)
   onSimilar?: () => void; // 예약처 0곳일 때 '비슷한 숙소 보기' (같은 지역·성급)
   peers?: Peer[]; // 같은 검색 결과의 숙소들 ('평소 가격과 비교'의 동급 평균용, 없으면 기록 비교만)
+  onBigMap?: () => void; // 작은 지도 [크게 보기]: 사이트 안 넓은 지도 창으로 (바깥 지도 사이트로 나가지 않는다)
 };
 
 // 판매처 표시용 색 (첫 글자 배지). 로고 이미지는 쓰지 않는다
@@ -71,10 +72,10 @@ const hm = (at: number) => {
 };
 
 // 예약처별 결제 총액. 열 때 그 숙소의 예약처 가격을 한 번 더 받아 온다 (같은 조건은 이 탭에 30분 캐시)
-export function SellerSheet({ hotel, query, saved, onSave, onClose, onGo, reason, onSimilar, peers }: Props) {
+export function SellerSheet({ hotel, query, saved, onSave, onClose, onGo, reason, onSimilar, peers, onBigMap }: Props) {
   return (
     <Sheet open={!!hotel} onClose={onClose} label="숙소 상세" tall>
-      {hotel && <SellerBody key={hotel.token} hotel={hotel} query={query} saved={saved} onSave={onSave} onGo={onGo} reason={reason} onSimilar={onSimilar} peers={peers} />}
+      {hotel && <SellerBody key={hotel.token} hotel={hotel} query={query} saved={saved} onSave={onSave} onGo={onGo} reason={reason} onSimilar={onSimilar} peers={peers} onBigMap={onBigMap} />}
     </Sheet>
   );
 }
@@ -105,7 +106,7 @@ function factsOf(h: HotelOption, q: StayQuery, nights: number, rows: SellerRow[]
 // 담아 둔 숙소: 지금 예약처 1위 총액과 담을 때 금액의 차이 (확인 총액끼리만)
 const sellerDiff = (token: string, q: StayQuery, cost: number) => priceChange(savedBaseFor(token, q), { value: cost, verified: true, none: false });
 
-export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimilar, peers = [] }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
+export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimilar, peers = [], onBigMap }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
   const [state, setState] = useState<{ token: string; rows: SellerRow[] | null; status: number | null | "ok"; at: number; topics?: ReviewTopic[] | null } | null>(null);
   const [qa, setQa] = useState<{ token: string; list: { q: string; a: string | null }[] }>({ token: hotel.token, list: [] });
   const [ask, setAsk] = useState("");
@@ -178,20 +179,24 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
             {[hotel.stars ? `${hotel.stars}성급` : hotel.kind, `${nights}박`, guestText(query)].filter(Boolean).join(" · ")}
           </p>
           {hotel.rating ? <p className="tb-mute">후기 {hotel.rating.toFixed(1)}점{hotel.reviews ? ` (${hotel.reviews.toLocaleString("ko-KR")})` : ""}</p> : null}
-          {hotel.gps && !mapImg && (
-            <a className="tb-maplink" href={mapUrl(hotel.gps[0], hotel.gps[1])} target="_blank" rel="noopener noreferrer">
-              지도에서 위치 보기 <IconOut />
-            </a>
+          {hotel.gps && !mapImg && onBigMap && (
+            <button type="button" className="tb-maplink" onClick={onBigMap}>
+              지도에서 위치 보기
+            </button>
           )}
         </div>
       </div>
       {hotel.gps && mapImg ? (
-        <a className="tb-minimap" href={mapUrl(hotel.gps[0], hotel.gps[1])} target="_blank" rel="noopener noreferrer" aria-label="지도에서 위치 크게 보기">
-          <img src={mapImg} alt={`${hotel.name} 위치 지도`} width={600} height={200} loading="lazy" decoding="async" onError={() => setMapFail(mapImg)} />
-          <span>
-            크게 보기 <IconOut />
-          </span>
-        </a>
+        onBigMap ? (
+          <button type="button" className="tb-minimap" onClick={onBigMap} aria-label="지도에서 위치 크게 보기">
+            <img src={mapImg} alt={`${hotel.name} 위치 지도`} width={600} height={200} loading="lazy" decoding="async" onError={() => setMapFail(mapImg)} />
+            <span>크게 보기</span>
+          </button>
+        ) : (
+          <div className="tb-minimap">
+            <img src={mapImg} alt={`${hotel.name} 위치 지도`} width={600} height={200} loading="lazy" decoding="async" onError={() => setMapFail(mapImg)} />
+          </div>
+        )
       ) : null}
       <VibeTag gps={hotel.gps} detail />
       {reason && !isPlainReason(reason) && (

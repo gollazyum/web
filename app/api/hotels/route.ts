@@ -6,7 +6,10 @@ import { cleanSources, shapePrices, type SerpPrice } from "@/lib/hotel-prices";
 import { after } from "next/server";
 import { priceHistoryOn, recordPrices } from "@/lib/price-history";
 import { listRows, verifiedRow } from "@/lib/price-history-rows";
-import { stayCacheSec } from "@/lib/stay-cache";
+import { stayCacheSec, STAY_CACHE_NEAR_SEC } from "@/lib/stay-cache";
+import { POPULAR_CACHE_SEC, popularCity } from "@/lib/popular-stay-cities";
+import { recordMaster } from "@/lib/hotels-master";
+import { supabaseOn } from "@/lib/supabase-server";
 
 // 실시간 호텔 가격. SerpApi의 Google Hotels 결과를 받아 화면용으로 줄인다.
 // token 없이 부르면 호텔 목록, token을 주면 그 호텔의 예약 사이트별 가격.
@@ -15,6 +18,7 @@ export const runtime = "nodejs";
 export const maxDuration = 30;
 
 const MAX_OPTIONS = 20;
+const MAX_POPULAR = 40; // 인기 도시: 첫 쪽 20곳 + 다음 쪽 (겹치는 숙소 빼고)
 const MAX_IMAGES = 5;
 const MAX_AMENITIES = 20;
 const STARS = /^[2-5](,[2-5]){0,3}$/;
@@ -170,12 +174,17 @@ function mixClasses(base: HotelOption[], upper: HotelOption[]): HotelOption[] {
   return ranked.sort((a, b) => a.r - b.r).map((x) => x.o);
 }
 
-function shapeList(raw: Record<string, unknown>, upperRaw: Record<string, unknown> | null): HotelResults {
+const nextOf = (raw: Record<string, unknown>) => (raw.serpapi_pagination as { next_page_token?: string } | undefined)?.next_page_token ?? null;
+
+// page2Raw: 인기 도시에서 이어 받은 다음 쪽. 첫 쪽 20곳 뒤에 겹치지 않는 숙소를 붙이고(최대 40곳), 다음 쪽 값은 그 뒤 쪽으로
+function shapeList(raw: Record<string, unknown>, upperRaw: Record<string, unknown> | null, page2Raw: Record<string, unknown> | null = null): HotelResults {
   const { props, single } = propsOf(raw);
-  const next = (raw.serpapi_pagination as { next_page_token?: string } | undefined)?.next_page_token ?? null;
   const base = optionsOf(props);
-  if (single || !upperRaw) return { options: base.slice(0, MAX_OPTIONS), next };
-  return { options: mixClasses(base, optionsOf(propsOf(upperRaw).props)), next };
+  const first = single || !upperRaw ? base.slice(0, MAX_OPTIONS) : mixClasses(base, optionsOf(propsOf(upperRaw).props));
+  if (single || !page2Raw) return { options: first, next: nextOf(raw) };
+  const have = new Set(first.map((o) => o.token));
+  const add = optionsOf(propsOf(page2Raw).props).filter((o) => !have.has(o.token) && have.add(o.token));
+  return { options: [...first, ...add].slice(0, MAX_POPULAR), next: nextOf(page2Raw) };
 }
 
 
@@ -212,14 +221,30 @@ export async function POST(req: Request) {
   }
   // 성급 필터를 누른 사람만: 그 성급만 한 번 찾는다 (검색 1번 요금). 다음 쪽도 같은 성급
   if (q.stars) params.hotel_class = q.stars;
-  // 새로 받은 목록 예상가는 응답을 보낸 뒤 가격 기록에 남긴다
-  const opts = { ttlSec, ...(priceHistoryOn() ? { onFresh: (d: HotelResults) => after(() => recordPrices(listRows(d.options, { ...q, place: q.q }))) } : {}) };
+  // 새로 받은 목록 예상가는 응답을 보낸 뒤 가격 기록에 남기고, 숙소 좌표·기본 정보는 hotels_master에 쌓는다 (둘 다 실패해도 응답과 무관)
+  const city = popularCity(q.q);
+  const cityKey = city ?? q.q.toLowerCase();
+  const onFresh = (d: HotelResults) =>
+    after(async () => {
+      await Promise.all([priceHistoryOn() ? recordPrices(listRows(d.options, { ...q, place: q.q })) : null, recordMaster(d.options, cityKey)]);
+    });
+  const opts = { ttlSec, ...(supabaseOn() ? { onFresh } : {}) };
   // "호텔 더 보기": Google은 한 번에 20곳 안팎만 주므로 다음 쪽을 따로 부른다 (검색 1번 요금). 다음 쪽은 기본 순서 그대로
   if (q.page) {
     params.next_page_token = q.page;
     return serpSearch(req, params, shapeList, undefined, opts);
   }
   if (q.stars) return serpSearch(req, params, shapeList, undefined, opts);
-  // 첫 쪽은 4·5성만 한 번 더 불러 같이 놓고 추천순 비율로 고른다 (검색 2번 요금)
+  // 첫 쪽은 4·5성만 한 번 더 불러 같이 놓고 추천순 비율로 고른다 (검색 2번 요금).
+  // 인기 도시(서울·부산·제주 제외)는 다음 쪽까지 한 번 이어 받아 최대 40곳을 6시간 저장한다 (검색 3번 요금, 저장된 동안은 0번).
+  // 체크인이 7일 안이면 가격이 자주 바뀌어 저장 시간은 원래대로 60분
+  if (city) {
+    const follow = (json: Record<string, unknown>) => {
+      const next = nextOf(json);
+      return next ? { ...params, next_page_token: next } : null;
+    };
+    const popTtl = ttlSec === STAY_CACHE_NEAR_SEC ? ttlSec : POPULAR_CACHE_SEC;
+    return serpSearch(req, params, shapeList, { ...params, hotel_class: "4,5" }, { ...opts, ttlSec: popTtl, follow });
+  }
   return serpSearch(req, params, shapeList, { ...params, hotel_class: "4,5" }, opts);
 }
