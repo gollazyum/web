@@ -90,9 +90,9 @@ export function BookedWatch({ hotel, query, rows }: { hotel: { token: string; na
     return (
       <div className="tb-bw-entry">
         <button type="button" className="tb-bw-pill" onClick={() => setOpen(true)}>
-          가격 변동 알림 등록
+          예약 등록하고 취소 기한까지 지켜보기
         </button>
-        <small>이 숙소를 무료 취소로 예약했다면, 체크인 전까지 가격이 내려가는지 지켜보고 내 여행 탭에서 알려 드려요</small>
+        <small>이미 무료 취소로 예약했다면, 취소 기한 전에 더 낮은 총액이 나오는지 지켜보고 내 여행에서 알려 드려요</small>
       </div>
     );
   return (

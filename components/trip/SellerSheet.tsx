@@ -1,6 +1,8 @@
 "use client";
 
 import { VibeTag } from "./VibeTag";
+import { SellerBadge } from "./SellerBadge";
+import { PriceTrendChart } from "./PriceTrendChart";
 import { freeCancelGap, maxGapOf, savingsOf } from "@/lib/savings";
 import { checkedText } from "@/lib/checked-at";
 import { useEffect, useRef, useState } from "react";
@@ -38,38 +40,6 @@ type Props = {
   onSimilar?: () => void; // 예약처 0곳일 때 '비슷한 숙소 보기' (같은 지역·성급)
   peers?: Peer[]; // 같은 검색 결과의 숙소들 ('평소 가격과 비교'의 동급 평균용, 없으면 기록 비교만)
   onBigMap?: () => void; // 작은 지도 [크게 보기]: 사이트 안 넓은 지도 창으로 (바깥 지도 사이트로 나가지 않는다)
-};
-
-// 판매처 표시용 색 (첫 글자 배지). 로고 이미지는 쓰지 않는다
-const TONE: Record<string, string> = {
-  agoda: "#5B4BDB",
-  trip: "#287DFA",
-  expedia: "#1B2E5A",
-  hotels: "#D32F2F",
-  booking: "#003B95",
-  yanolja: "#FF3478",
-  yeogi: "#E6007E",
-  interpark: "#6A3DF0",
-  myrealtrip: "#0BB3E6",
-  rakuten: "#BF0000",
-  klook: "#FF5B00",
-  official: "#18202B",
-};
-
-// 원형 뱃지 안 글자: 영문 이니셜 (한글 첫 글자보다 정돈돼 보인다)
-const BADGE: Record<string, string> = {
-  expedia: "EX",
-  hotels: "H",
-  booking: "B.",
-  agoda: "AG",
-  trip: "TR",
-  yanolja: "Y",
-  yeogi: "여기",
-  interpark: "NOL",
-  myrealtrip: "MRT",
-  rakuten: "R",
-  klook: "K",
-  official: "공식",
 };
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
@@ -228,7 +198,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
       <h3>예약처별 결제 총액</h3>
       {checkedAt && own?.status === "ok" ? (
         <span className="tb-checked">
-          {checkedText(checkedAt)}
+          {!page && checkedText(checkedAt)}
           {!capped && (
             <button type="button" className="tb-recheck-btn" onClick={() => setAgain((n) => n + 1)} disabled={!rows}>
               다시 확인
@@ -244,7 +214,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
     return save ? (
       <p className="tb-save-line" role="note">
         두 번째로 싼 곳보다 <b>{won(save.amount)}</b> 저렴해요
-        <small>확인한 예약처 {save.count}곳 · {nights}박 세금 포함 총액</small>
+        <small>확인한 예약처 {save.count}곳 기준</small>
       </p>
     ) : null;
   })();
@@ -262,11 +232,11 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
       </p>
     ) : null;
   })();
+  // 안내 세 줄(세금·숙박세 / 결제 / 확인 시각)을 한 줄로 (2026-11-27 PR 3/3)
   const infoList = (
-    <ul className="tb-seller-info">
-      <li>세금·수수료를 포함한 {nights}박 총액이에요. 현지에서 내는 숙박세는 포함되지 않아 따로 낼 수 있어요.</li>
-      <li>결제는 이동한 예약 사이트에서 진행돼요.</li>
-    </ul>
+    <p className="tb-seller-oneline">
+      {[checkedAt && own?.status === "ok" ? checkedText(checkedAt) : "", `세금 포함 ${nights}박 총액`, "현지 숙박세 별도", "결제는 예약 사이트에서"].filter(Boolean).join(" · ")}
+    </p>
   );
   const rowList = rows?.length ? (
     <div className="tb-rows">
@@ -274,19 +244,17 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
         const ko = sellerDef(s.key).ko;
         return (
           <div key={`${s.key}:${s.name}`} className="tb-row">
-            <span className="tb-seller-badge" style={{ background: TONE[s.key] }} aria-hidden>
-              {BADGE[s.key] ?? ko.slice(0, 1)}
-            </span>
+            <SellerBadge sellerKey={s.key} ko={ko} />
             <div className="tb-row-name">
               <strong>{ko}</strong>
               {s.approx && <small>1박 요금 × {nights}박</small>}
-              {s.freeCancel ? <small className="tb-free">무료 취소 가능</small> : i === 0 ? <small>환불 조건은 결제 화면에서 확인</small> : null}
+              {s.freeCancel ? <small className="tb-fc-chip ok">무료 취소 가능</small> : <small className="tb-fc-chip">취소 조건 확인 필요</small>}
             </div>
             <div className={`tb-row-price${i === 0 ? " best" : ""}`}>
               {i === 0 && rows.length > 1 && <em className="tb-low">가장 낮아요</em>}
               <strong>{won(s.cost)}</strong>
             </div>
-            <a className={`tb-book${i === 0 ? " dark" : ""}`} href={s.href} target="_blank" rel={linkRel(s.key)} aria-label={`${ko}에서 보기`} onClick={() => onGo?.(`${withRo(ko)} 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요`)}>
+            <a className="tb-book" href={s.href} target="_blank" rel={linkRel(s.key)} aria-label={`${ko}에서 보기`} onClick={() => onGo?.(`${withRo(ko)} 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요`)}>
               보기 <IconOut />
             </a>
           </div>
@@ -325,12 +293,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
   const usual = rows?.length && state?.status === "ok" ? <UsualPrice token={hotel.token} stars={hotel.stars} adults={query.adults} checkIn={query.checkIn} nights={nights} current={rows[0].cost} peers={peers} kids={(query.childAges?.length ?? 0) > 0 || (query.rooms ?? 1) > 1} /> : null;
   const watch = rows?.length && state?.status === "ok" ? <BookedWatch hotel={hotel} query={query} rows={rows} /> : null;
   const failNote = failed && rows?.length ? <p className="tb-note">{searchErrorMessage(state.status === "ok" ? null : state.status)}</p> : null;
-  const priceNote = (
-    <p className="tb-note">
-      가격은 확인한 시각 기준이라 바뀔 수 있어요. 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요.
-      {affiliateNoticeOn() ? " 일부 예약처에서 제휴 수수료를 받을 수 있지만, 내는 금액은 같아요." : ""}
-    </p>
-  );
+  const priceNote = affiliateNoticeOn() ? <p className="tb-note">일부 예약처에서 제휴 수수료를 받을 수 있지만, 내는 금액은 같아요.</p> : null;
   const topicSec = topics.length > 0 && (
     <section className="tb-detail-sec">
       <h3>후기에서 많이 나온 이야기</h3>
@@ -422,7 +385,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
           {topicSec}
           {location ? (
             <section className="tb-detail-sec tb-hp-loc">
-              <h3>위치 · 도보 5/10분 원</h3>
+              <h3>걸어서 5분·10분 거리</h3>
               {location}
               <VibeTag gps={hotel.gps} detail />
               {nearList}
@@ -445,6 +408,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
                 {saveLine}
                 {fcLine}
                 {rowList}
+                {infoList}
                 {maxLine}
               </>
             ) : (
@@ -457,19 +421,18 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
                 <a className="tb-hp-main" href={best.href} target="_blank" rel={linkRel(best.key)} onClick={() => onGo?.(`${withRo(bestKo)} 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요`)}>
                   {bestKo}에서 {won(best.cost)}으로 보기 <IconOut />
                 </a>
-                <button type="button" className={`tb-hp-love${saved ? " on" : ""}`} onClick={onSave} aria-pressed={saved} aria-label={saved ? "찜 빼기" : "찜하기"}>
-                  <IconHeart size={18} on={saved} /> 찜
-                </button>
-              </div>
-            ) : rows ? (
-              <div className="tb-hp-go">
-                <button type="button" className={`tb-hp-love wide${saved ? " on" : ""}`} onClick={onSave} aria-pressed={saved}>
-                  <IconHeart size={18} on={saved} /> {saved ? "찜했어요" : "찜하기"}
-                </button>
               </div>
             ) : null}
+            {rows ? (
+              <>
+                {/* 찜 + 가격 지켜보기를 한 버튼으로 (2026-11-27 PR 3/3). 찜하면 홈 '내 가격 지킴이'·내 여행에 바로 보인다 */}
+                <button type="button" className={`tb-hp-watch${saved ? " on" : ""}`} onClick={onSave} aria-pressed={saved}>
+                  <IconHeart size={18} on={saved} /> {saved ? "가격 지켜보는 중" : "찜하고 가격 지켜보기"}
+                </button>
+                {saved && <SavedTrend token={hotel.token} query={query} now={best && state?.status === "ok" ? { v: best.cost, at: checkedAt || Date.now() } : null} />}
+              </>
+            ) : null}
             {watch}
-            {infoList}
             {priceNote}
           </div>
         </aside>
@@ -485,7 +448,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
         </div>
       )}
       <div className={`tb-seller-head${photos.length > 1 ? " under" : ""}`}>
-        {photos.length > 1 ? null : hotel.image ? <img src={hotel.image} alt="" className="tb-seller-img" /> : <div className="tb-seller-img tb-nophoto"><small>사진 없음</small></div>}
+        {photos.length > 1 ? null : hotel.image ? <img src={hotel.image} alt={`${hotel.name} 사진`} className="tb-seller-img" /> : <div className="tb-seller-img tb-nophoto"><small>사진 없음</small></div>}
         <div>
           <h2>{hotel.name}</h2>
           <p>
@@ -519,7 +482,6 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
       {saved && rows?.length && state?.status === "ok" && sellerDiff(hotel.token, query, rows[0].cost) !== null ? (
         <PriceChange diff={sellerDiff(hotel.token, query, rows[0].cost)!} />
       ) : null}
-      {infoList}
       {!rows ? (
         loadingRows
       ) : rows.length ? (
@@ -528,6 +490,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
           {saveLine}
           {fcLine}
           {rowList}
+          {infoList}
           {maxLine}
           {usual}
           {watch}
@@ -571,6 +534,24 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+// 찜한 숙소: 담을 때 총액 → 지금 확인한 최저 총액 (날짜별 기록이 없어 두 점만 · 지어내지 않는다)
+function SavedTrend({ token, query, now }: { token: string; query: StayQuery; now: { v: number; at: number } | null }) {
+  const base = savedBaseFor(token, query);
+  if (!base?.verified || base.price === null || !now) return null;
+  const t0 = Math.min(base.at, now.at - 60_000);
+  return (
+    <div className="tb-hp-trend">
+      <p>
+        <span>담을 때부터 지금까지</span>
+        <small>
+          {won(base.price)} → <b>{won(now.v)}</b>
+        </small>
+      </p>
+      <PriceTrendChart points={[{ t: t0, v: base.price }, { t: now.at, v: now.v }]} base={base.price} startLabel="담을 때" endLabel="지금" height={64} label={`담을 때 ${won(base.price)}, 지금 ${won(now.v)}`} />
     </div>
   );
 }

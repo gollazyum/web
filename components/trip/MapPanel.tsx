@@ -92,7 +92,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
     const mid = (a: number[]) => a.sort((x, y) => x - y)[Math.floor(a.length / 2)];
     return cityNear([mid(g.map((p) => p[1])), mid(g.map((p) => p[0]))]);
   }, [items.map((x) => x.token).join()]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [vibeOn, setVibeOn] = useState(true);
+  const [vibeOn, setVibeOn] = useState(false); // 동네 분위기는 처음엔 꺼 둔다 (핀 가격이 먼저 보이게)
   const [vibePick, setVibePick] = useState<VibeKey | null>(null);
   const inPick = (gps: [number, number]) => !!city && city.zones.some((z) => z.vibe === vibePick && haversine([gps[1], gps[0]], z.center) <= z.radiusMeters);
   // 고른 분위기 구역 안에 숙소가 1곳 이상일 때만 구역 밖 핀을 흐리게. 0곳이면 핀은 그대로 두고 카메라만 그 구역으로 옮긴다
@@ -295,10 +295,10 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
             )}
             <p className="tb-bigmap-legend">
               <span>
-                <i className="ok" aria-hidden /> 확인한 총액
+                <i className="ok" aria-hidden /> 확인한 {nights}박 총액
               </span>
               <span>
-                <i className="est" aria-hidden /> ~예상 총액
+                <i className="est" aria-hidden /> 예상 총액 (확인 전)
               </span>
             </p>
             {city && vibeOn && <small className="tb-bigmap-note">{VIBE_NOTE}</small>}

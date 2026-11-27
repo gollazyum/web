@@ -10,7 +10,8 @@ import { checkInput, priceState, type Checkpoints } from "@/lib/checkpoints";
 import { CheckLine } from "./CheckBox";
 import { useCheckpoints } from "./useCheckpoints";
 import { activeCount, applyFilter, countFilters, EMPTY_FILTER, hasFreeCancel, type StayFilter } from "@/lib/stay-filters";
-import { guestText, isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
+import { guestText, isPlainReason, nightsOf, roomsOf, won, type StayQuery } from "@/lib/trip";
+import { partyFitText } from "@/lib/room-fit";
 import { SIMILAR_EVENT, takeSimilar } from "./similar";
 import { checkedText } from "@/lib/checked-at";
 import { getVerified, shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
@@ -238,10 +239,17 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
             </p>
           )}
           <p className="tb-results-note">
-            숙소 {rowsShown.length}곳 · <span className="tb-pc-only">{aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : aiOff ? `확인한 낮은 가격 ${Math.min(3, picks.length)}곳을 위에 모았어요` : `AI 추천 ${Math.min(3, picks.length)}곳에 표시했어요`} · </span>
+            {!aiPending && !aiOff && top3.length ? (
+              <>{rowsShown.length}곳 중 {top3.length}곳을 골랐어요 · </>
+            ) : (
+              <>
+                숙소 {rowsShown.length}곳 · <span className="tb-pc-only">{aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : `확인한 낮은 가격 ${Math.min(3, picks.length)}곳을 위에 모았어요`} · </span>
+              </>
+            )}
             {nights}박 총액
           </p>
-          <span className="tb-pc-only">
+          {/* ⓘ 안내는 한 번만: 위 'AI 추천 3곳' 띠가 보이는 화면(휴대폰·PC 지도 화면)에서는 띠 머리에만 둔다 */}
+          <span className="tb-pc-only tb-ainfo-dup">
             {!aiOff && <AiSortInfo kind="stay" />}
           </span>
           <div className="tb-rlist">
@@ -306,11 +314,13 @@ function ViewSwitch({ onMap }: { onMap: () => void }) {
 
 // '평소보다 N% 저렴'(또는 '일반적인 가격 대비 N% 저렴')이 검색 결과에 같이 온 숙소만 배지로 (없으면 만들지 않는다)
 const dealPct = (h: HotelOption) => h.deal.match(/(?:평소보다|가격 대비) (\d+)% 저렴/)?.[1] ?? null;
+const DEAL_TIP = "검색할 때 함께 받은 이 숙소의 평소 요금과 지금 요금을 견준 비율이에요. 같은 날짜·인원 기준이고, 예약처 최종 총액과는 다를 수 있어요";
 
 // 휴대폰: 결과 맨 위 높이 고정 'AI 추천 3곳' 가로 띠. AI 응답 전에는 같은 높이의 회색 자리만 (화면이 밀리지 않게)
 function AiTop3({ hotels, reasons, pending, off, query, onOpen }: { hotels: HotelOption[]; reasons: Map<string, string>; pending: boolean; off?: boolean; query: StayQuery; onOpen: (h: HotelOption) => void }) {
   usePriceVersion();
   const nights = nightsOf(query);
+  const fit = partyFitText(query.adults, roomsOf(query)); // 이 인원으로 검색해 가격이 나온 곳이라 객실이 있다
   if (!pending && !hotels.length) return null;
   return (
     <section className="tb-top3" aria-label={off ? "확인한 낮은 가격 3곳" : "AI 추천 3곳"} aria-busy={pending}>
@@ -344,6 +354,7 @@ function AiTop3({ hotels, reasons, pending, off, query, onOpen }: { hotels: Hote
                       <small>예약 사이트에서 확인</small>
                     )}
                   </span>
+                  {!off && fit && !p.none && p.value !== null && <span className="tb-top3-fit">✓ {fit}</span>}
                   {why && !isPlainReason(why) && <span className="tb-top3-why">{why}</span>}
                 </button>
               );
@@ -379,6 +390,7 @@ export function StayRow({ h, query, reason, note, check, cheapest, saved, active
         {(reason || (cheapest && t.verified)) && (
           <span className="tb-srow-badges">
             {reason ? <em className="tb-badge ai">AI 추천</em> : null}
+            {reason && !t.none && t.value !== null && partyFitText(query.adults, roomsOf(query)) ? <em className="tb-badge fit">✓ {partyFitText(query.adults, roomsOf(query))}</em> : null}
             {cheapest && t.verified ? <em className="tb-badge low">확인한 가격 중 최저</em> : null}
           </span>
         )}
@@ -398,7 +410,11 @@ export function StayRow({ h, query, reason, note, check, cheapest, saved, active
           </span>
         ) : null}
         {stayFactLine(h, t.fc) && <span className="tb-fact">{stayFactLine(h, t.fc)}</span>}
-        {dealPct(h) && <em className="tb-deal">평소보다 {dealPct(h)}%↓</em>}
+        {dealPct(h) && (
+          <em className="tb-deal" title={DEAL_TIP} data-tip={DEAL_TIP}>
+            평소보다 {dealPct(h)}%↓
+          </em>
+        )}
         {reason && !isPlainReason(reason) && (
           <span className="tb-why">
             <IconSpark size={15} /> {reason}
@@ -452,7 +468,7 @@ export function PhotoStrip({ images, name, onOpen, max = 5, big }: { images: str
           <img
             key={src + i}
             src={src}
-            alt=""
+            alt={`${name} 사진 ${i + 1}`}
             loading="lazy"
             onError={() => drop(src)}
             // 화면이 열리기 전에 이미 실패한 사진도 뺀다

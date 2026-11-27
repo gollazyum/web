@@ -61,6 +61,7 @@ import { addRecent } from "@/lib/recent-search";
 import { defaultDates } from "./InputSheets";
 import { Sheet } from "./Sheet";
 import type { StayPick } from "./StayList";
+import { fitsParty } from "@/lib/room-fit";
 import { requestSimilar } from "./similar";
 import { AiOffNote } from "./AiOffNote";
 import { checkInput, priceState, type Checkpoints } from "@/lib/checkpoints";
@@ -194,6 +195,17 @@ function useSaved() {
     } catch {
       // 저장소를 못 쓰면 빈 목록으로 둔다
     }
+    // 다른 탭(PC에서 새 탭으로 연 숙소 상세)에서 찜하면 이 탭의 홈 '내 가격 지킴이'·내 여행에도 바로 반영
+    const on = (e: StorageEvent) => {
+      if (e.key !== SAVED_KEY) return;
+      try {
+        setSaved(e.newValue ? (JSON.parse(e.newValue) as Saved[]) : []);
+      } catch {
+        // 깨진 값은 무시
+      }
+    };
+    window.addEventListener("storage", on);
+    return () => window.removeEventListener("storage", on);
   }, []);
   const write = (next: Saved[]) => {
     try {
@@ -458,7 +470,9 @@ export function TripApp() {
       patch(id, { next, pages: 0 });
       const nights = nightsOf(query);
       const { list: pool, over } = withinBudget(options, query.budget, nights);
-      const head = pool.slice(0, 40);
+      // 성인 2명 이상이면 캡슐·도미토리는 AI 추천 후보에서 뺀다 (목록에는 남는다). 모두 빠지면 원래 목록 그대로
+      const fit = pool.filter((h) => fitsParty(h, query.adults));
+      const head = (fit.length ? fit : pool).slice(0, 40);
       const toPicks = (ps: { n: number; reason: string }[]) => ps.map((p) => ({ token: head[p.n - 1].token, reason: p.reason }));
       const want = withProfile(query.taste, profileRef.current, "stay"); // 그때 적은 말 + 온보딩 취향
       const fb = o.sorted ? head.slice(0, 3).map((h, i) => ({ n: i + 1, reason: stayFactReason(h, want) })) : fallbackStayPicks(head, want, query.budget, nights, criteriaWeights(profileRef.current));

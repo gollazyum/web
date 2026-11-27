@@ -362,6 +362,9 @@ const set = (fn: () => void) => {
   }
 };
 
+// 지도에 남길 장소 이름 (Mapbox streets poi_label class): 공원·명소·유적·문화시설만
+const POI_KEEP: mapboxgl.FilterSpecification = ["match", ["get", "class"], ["park_like", "landmark", "historic", "arts_and_entertainment"], true, false];
+
 function applyTheme(m: mapboxgl.Map) {
   const layers = m.getStyle()?.layers ?? [];
   for (const l of layers) {
@@ -377,6 +380,11 @@ function applyTheme(m: mapboxgl.Map) {
         set(() => m.setPaintProperty(id, "line-color", ["match", ["get", "class"], "motorway", cas ? C.motorwayCase : C.motorway, cas ? C.trunkCase : C.trunk]));
       }
     } else if (l.type === "symbol") {
+      // 가게·식당 같은 잡다한 장소 이름은 끄고 명소·공원만 남긴다 (역·노선은 transit 레이어라 그대로)
+      if (src === "poi_label") {
+        const old = m.getFilter(id);
+        set(() => m.setFilter(id, old ? ["all", old, POI_KEEP] : POI_KEEP));
+      }
       const tf = (l as { layout?: Record<string, unknown> }).layout?.["text-field"];
       if (tf === undefined || NOT_NAME.test(id)) continue;
       if (NAME_REF.test(JSON.stringify(tf))) set(() => m.setLayoutProperty(id, "text-field", KO));
