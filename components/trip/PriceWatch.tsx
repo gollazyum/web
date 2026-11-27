@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { today as localToday } from "@/lib/dates";
-import { isDue, pickWatch, readWatch, WATCH_KEY, watchDiff, type WatchLine, type WatchState } from "@/lib/price-watch";
+import { isDue, pickWatch, readTracked, readWatch, toggleTracked, TRACK_KEY, trackKey, WATCH_KEY, WATCH_MAX, watchDiff, type WatchLine, type WatchState } from "@/lib/price-watch";
 import { won, type StayQuery } from "@/lib/trip";
 import type { SavedBase, SavedLike } from "./saved-price";
 import { baseOf, priceChange } from "./saved-price";
@@ -59,6 +59,62 @@ export function useWatch(): WatchState | null {
   );
 }
 
+// ---- 찜 카드별 가격 추적 켜기/끄기 (켠 것만 자동 확인) ----
+let trackCache: { raw: string | null; v: string[] | null } = { raw: null, v: null };
+let trackMem: string[] | null = null; // 저장소를 못 쓰는 브라우저
+function readTrack(): string[] | null {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(TRACK_KEY);
+  } catch {
+    return trackMem;
+  }
+  if (raw !== trackCache.raw) trackCache = { raw, v: readTracked(raw) };
+  return trackCache.v;
+}
+export function useTracked(): string[] | null {
+  return useSyncExternalStore(
+    (f) => {
+      subs.add(f);
+      const on = (e: StorageEvent) => e.key === TRACK_KEY && f();
+      window.addEventListener("storage", on);
+      return () => {
+        subs.delete(f);
+        window.removeEventListener("storage", on);
+      };
+    },
+    readTrack,
+    () => null,
+  );
+}
+export const trackedNow = readTrack;
+export function isTracked<T extends SavedLike>(saved: T[], s: T, tracked: string[] | null): boolean {
+  return pickWatch(saved, localToday(), tracked).some((x) => x.hotel.token === s.hotel.token && sameQ(x.query, s.query));
+}
+
+// 켜거나 끈다. 켤 때 아직 확인한 적 없는 숙소면 그 1곳만 바로 확인한다 (같은 조건을 최근에 봤으면 저장된 가격이라 유료 조회 없음)
+// 이미 WATCH_MAX곳이면 false
+export async function setTrack<T extends SavedLike>(saved: T[], s: T): Promise<boolean> {
+  const cur = readTrack();
+  const next = toggleTracked(saved, localToday(), cur, s);
+  if (!next) return false;
+  try {
+    localStorage.setItem(TRACK_KEY, JSON.stringify(next));
+  } catch {
+    trackMem = next;
+  }
+  subs.forEach((f) => f());
+  const on = next.includes(trackKey(s.hotel.token, s.query));
+  const st = read();
+  if (on && s.query.checkIn >= localToday() && !st?.lines.some((l) => l.token === s.hotel.token && sameQ(l.q, s.query))) {
+    const [line] = await linesFor([s]);
+    const now = read();
+    write({ at: now?.at ?? Date.now(), lines: [...(now?.lines ?? []).filter((l) => !(l.token === line.token && sameQ(l.q, line.q))), line] });
+  }
+  return true;
+}
+export const TRACK_MAX = WATCH_MAX;
+
 // ---- '찜한 뒤 내려갔어요' 판단은 여기 하나로 ----
 // 찜 카드 한 줄(StayRow), 내 여행 맨 위 요약, 홈 알림, 탭 점이 모두 이 값만 쓴다 (2026-11-26: 카드엔 '내려갔어요'인데 요약엔 '아직 없어요'가 뜨던 모순 수정).
 // 최신 확인 총액 = 이 탭에서 받은 예약처 1위 총액(세금 포함)과 하루 한 번 다시 확인한 값 중 더 최근 것.
@@ -105,7 +161,7 @@ export function useDrops(saved: SavedLike[]): Drop[] {
 }
 
 async function runWatch(saved: SavedLike[]) {
-  const list = pickWatch(saved, localToday());
+  const list = pickWatch(saved, localToday(), readTrack());
   if (!list.length) return;
   setRunning(true);
   try {
@@ -116,7 +172,11 @@ async function runWatch(saved: SavedLike[]) {
 }
 
 async function runLines(list: SavedLike[]) {
-  const lines = await Promise.all(
+  write({ at: Date.now(), lines: await linesFor(list) });
+}
+
+async function linesFor(list: SavedLike[]): Promise<WatchLine[]> {
+  return Promise.all(
     list.map(async (s): Promise<WatchLine> => {
       const rows = await recheck(s.hotel.token, s.hotel.name, s.query);
       const now = rows?.length ? rows[0].cost : null;
@@ -124,7 +184,6 @@ async function runLines(list: SavedLike[]) {
       return { token: s.hotel.token, name: s.hotel.name, q, now, diff: watchDiff(baseOf(s), now) };
     }),
   );
-  write({ at: Date.now(), lines });
 }
 
 const ago = (at: number) => {
@@ -138,6 +197,7 @@ const ago = (at: number) => {
 // 내 여행 탭 맨 위: 열 때 하루 한 번 자동으로 다시 확인하고, 내려간 숙소를 모아 보여 준다
 export function PriceWatchBox<T extends SavedLike>({ saved, onOpen }: { saved: T[]; onOpen: (s: T) => void }) {
   const state = useWatch();
+  const tracked = useTracked();
   usePriceVersion(); // 아래 찜 카드와 같은 시점에 같은 값으로 다시 센다
   const [busy, setBusy] = useState(false);
   const started = useRef(false);
@@ -152,18 +212,20 @@ export function PriceWatchBox<T extends SavedLike>({ saved, onOpen }: { saved: T
   useEffect(() => {
     if (started.current || !saved.length) return;
     started.current = true;
-    if (isDue(read(), Date.now()) && pickWatch(saved, localToday()).length) void go();
+    if (isDue(read(), Date.now()) && pickWatch(saved, localToday(), readTrack()).length) void go();
   }, [saved]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const busyAny = useWatchBusy() || busy;
-  const drops = busyAny ? [] : dropsFrom(saved, state);
-  if (!busyAny && !pickWatch(saved, localToday()).length && !drops.length) return null;
+  const watching = pickWatch(saved, localToday(), tracked);
+  const on = new Set(watching.map((s) => trackKey(s.hotel.token, s.query)));
+  const drops = busyAny ? [] : dropsFrom(saved, state).filter((d) => on.has(trackKey(d.token, d.q)));
+  if (!busyAny && !watching.length && !drops.length) return null;
   const find = (l: WatchLine) => saved.find((s) => s.hotel.token === l.token && s.query.checkIn === l.q.checkIn && s.query.checkOut === l.q.checkOut && s.query.adults === l.q.adults);
   return (
     <section className={`tb-watch${drops.length ? " down" : ""}`} aria-label="찜한 숙소 가격 변화">
       <div className="tb-watch-head">
         <strong>{busyAny ? "최신 가격 확인 중..." : drops.length ? `찜한 뒤 가격이 내려간 숙소가 ${drops.length}곳 있어요` : state ? "찜한 뒤 내려간 숙소는 아직 없어요" : "찜한 숙소 가격 변화"}</strong>
-        <small>{busyAny ? "예약처 가격을 받고 있어요" : state ? `${ago(state.at)} 확인 · 최근 찜한 숙소 최대 5곳, 하루 한 번` : "최근 찜한 숙소 최대 5곳을 하루 한 번 확인해요"}</small>
+        <small>{busyAny ? "예약처 가격을 받고 있어요" : state ? `${ago(state.at)} 확인 · 추적을 켠 ${watching.length}곳 (최대 ${WATCH_MAX}곳), 하루 한 번` : `추적을 켠 찜 숙소 ${watching.length}곳을 하루 한 번 확인해요`}</small>
       </div>
       {drops.length > 0 && (
         <ul className="tb-watch-list">

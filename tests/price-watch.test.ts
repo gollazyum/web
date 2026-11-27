@@ -37,3 +37,24 @@ describe("찜한 숙소 가격 다시 확인", () => {
     expect(readWatch('{"at":1}')).toBeNull();
   });
 });
+
+describe("찜 카드별 가격 추적 켜기/끄기", async () => {
+  const { pickWatch, toggleTracked, trackKey, WATCH_MAX } = await import("@/lib/price-watch");
+  const mk = (i: number, checkIn = "2026-12-20") => ({ hotel: { token: `t${i}` }, query: { place: "도쿄", checkIn, checkOut: "2026-12-22", adults: 2 } });
+  const saved = Array.from({ length: 7 }, (_, i) => mk(i));
+  const today = "2026-11-27";
+  it("고른 적 없으면 예전처럼 최근 5곳", () => {
+    expect(pickWatch(saved, today, null).length).toBe(WATCH_MAX);
+  });
+  it("켠 숙소만 확인한다", () => {
+    expect(pickWatch(saved, today, [trackKey("t6", saved[6].query)]).map((s) => s.hotel.token)).toEqual(["t6"]);
+    expect(pickWatch(saved, today, []).length).toBe(0);
+  });
+  it("끄고 켜기, 5곳이 넘으면 막는다", () => {
+    const off = toggleTracked(saved, today, null, saved[0])!;
+    expect(off).not.toContain(trackKey("t0", saved[0].query));
+    const on = toggleTracked(saved, today, off, saved[6])!;
+    expect(on.length).toBe(WATCH_MAX);
+    expect(toggleTracked(saved, today, on, saved[5])).toBeNull();
+  });
+});

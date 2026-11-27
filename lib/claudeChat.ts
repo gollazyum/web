@@ -100,7 +100,7 @@ export function streamReply(system: string, messages: Anthropic.Beta.BetaMessage
 
 // 정해진 JSON 모양으로 한 번 답을 받는다 (스트리밍 없음). 실패·거절이면 null
 // onFail: 왜 실패했는지 짧은 이유 (refusal, max_tokens, api_529, timeout, bad_json 등). 키나 요청 내용은 담지 않는다
-export async function jsonReply<T>(system: string, user: string, schema: Record<string, unknown>, maxTokens = 4000, onFail?: (why: string) => void): Promise<T | null> {
+export async function jsonReply<T>(system: string, user: string | Anthropic.Beta.BetaContentBlockParam[], schema: Record<string, unknown>, maxTokens = 4000, onFail?: (why: string) => void): Promise<T | null> {
   client ??= new Anthropic();
   const started = Date.now();
   const fail = (why: string) => {

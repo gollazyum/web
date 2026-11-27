@@ -95,6 +95,11 @@ export function HomeWatchCard({ onGo, onTrips, onExampleCity }: Props) {
     );
   }
 
+  return <HomeExampleCard onTrips={onTrips} onExampleCity={onExampleCity} />;
+}
+
+// 고정 예시 카드 (실시간 연동 없음, 유료 호출 0회). 홈 '예약하고 끝나지 않아요' 섹션에서 쓴다
+export function HomeExampleCard({ onTrips, onExampleCity }: Pick<Props, "onTrips" | "onExampleCity">) {
   const start = Date.UTC(2026, 10, 19);
   const points = EX.points.map((v, i) => ({ t: start + i * DAY, v }));
   return (

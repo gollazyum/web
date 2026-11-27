@@ -7,6 +7,8 @@ import type { SellerRow } from "@/lib/hotels";
 import { won, type StayQuery } from "@/lib/trip";
 import type { PublicWatch } from "@/lib/booking-watch-server";
 import { IconOut } from "./icons";
+import { BookingRegister, removeLocalBooking, useLocalBookings } from "./BookingRegister";
+import type { SavedLike } from "./saved-price";
 
 // 가격 지킴이 (예약한 숙소 가격 지켜보기) 화면.
 // 로그인 없이 이 기기에서 만든 임의 번호로 등록한 예약을 찾는다. 가격 확인은 서버가 하루 한 번(체크인이 멀면 3.5일에 한 번) 한다
@@ -14,8 +16,9 @@ import { IconOut } from "./icons";
 const DEVICE_KEY = "tb-device-v1";
 const subs = new Set<() => void>();
 const changed = () => subs.forEach((f) => f());
+export const watchesChanged = changed;
 
-function device(create: boolean): string | null {
+export function device(create: boolean): string | null {
   try {
     const got = localStorage.getItem(DEVICE_KEY);
     if (got || !create) return got;
@@ -27,7 +30,7 @@ function device(create: boolean): string | null {
   }
 }
 
-async function post<T>(url: string, body: unknown): Promise<{ ok: true; data: T } | { ok: false; message: string }> {
+export async function post<T>(url: string, body: unknown): Promise<{ ok: true; data: T } | { ok: false; message: string }> {
   try {
     const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const j = (await r.json().catch(() => ({}))) as T & { message?: string };
@@ -265,33 +268,68 @@ export function RegisterHint() {
 }
 
 // ---------- 내 여행 탭: 가격 지킴이 목록 ----------
-export function BookingWatchBox({ onRegister }: { onRegister: () => void }) {
+export function BookingWatchBox({ saved }: { saved: SavedLike[] }) {
   const [list, setList] = useWatches();
+  const locals = useLocalBookings();
   const [note, setNote] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [reg, setReg] = useState(false);
+  // 홈 '예약한 숙소 등록하기'에서 넘어오면 등록 창을 바로 연다
+  useEffect(() => {
+    if (registering()) {
+      setReg(true);
+      endRegister();
+    }
+  }, []);
 
-  const register = () => {
-    startRegister();
-    onRegister();
-  };
-  if (list === null) return null;
-  const active = list.filter((w) => w.status === "active");
-  const drops = droppedOf(active);
-  const addBtn = active.length < DEVICE_MAX && (
-    <button type="button" className="tb-btn tb-bw-add" onClick={register}>
-      + 숙소 검색해서 내 예약 등록하기
+  const modal = <BookingRegister open={reg} onClose={() => setReg(false)} saved={saved} watches={list} />;
+  const addBtn = (
+    <button type="button" className="tb-btn tb-bw-add" onClick={() => setReg(true)}>
+      + 예약 완료한 숙소 등록하기
     </button>
   );
-  if (!list.length)
+  const localList = locals.length > 0 && (
+    <ul className="tb-bw-list tb-bw-local" aria-label="이 기기에만 저장한 예약">
+      {locals.map((b) => (
+        <li key={b.id}>
+          <div className="tb-bw-row static">
+            <span>
+              <strong>{b.name}</strong>
+              <small>
+                {[b.place, `${md(b.checkIn)}–${md(b.checkOut)}`, `성인 ${b.adults}명`, `${won(b.bookedPrice)}${b.bookedVendor ? ` · ${vendorKo(b.bookedVendor)}` : ""}`].filter(Boolean).join(" · ")}
+              </small>
+              {b.why && <small className="tb-bw-why">{b.why}</small>}
+            </span>
+            <button type="button" className="tb-link" onClick={() => removeLocalBooking(b.id)}>
+              지우기
+            </button>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+  if (list === null && !locals.length)
+    return (
+      <>
+        {addBtn}
+        {modal}
+      </>
+    );
+  const all = list ?? [];
+  const active = all.filter((w) => w.status === "active");
+  const drops = droppedOf(active);
+  if (!all.length)
     return (
       <section className="tb-watch tb-bw" aria-label="예약한 숙소 가격 지킴이">
         <div className="tb-watch-head">
           <strong>내 예약 가격 지킴이</strong>
           <small>무료 취소로 예약한 숙소가 체크인 전에 더 싸지면 여기에서 알려 드려요</small>
         </div>
+        {localList}
         {addBtn}
-        <p className="tb-note">무료 취소로 예약한 숙소를 등록해 두면 체크인 전까지 가격 하락을 대신 확인해 드려요.</p>
+        <p className="tb-note">예약 확정 메일이나 영수증으로 칸을 채울 수도 있어요. 무료 취소 예약이면 체크인 전까지 가격 하락을 대신 확인해 드려요.</p>
+        {modal}
       </section>
     );
 
@@ -321,7 +359,7 @@ export function BookingWatchBox({ onRegister }: { onRegister: () => void }) {
         </small>
       </div>
       <ul className="tb-bw-list">
-        {list.map((w) => {
+        {all.map((w) => {
           const diff = w.latest !== null ? w.bookedPrice - w.latest : null;
           const down = w.status === "active" && w.alerted && diff !== null && diff > 0;
           const q = { checkIn: w.checkIn, checkOut: w.checkOut, adults: w.adults };
@@ -408,7 +446,9 @@ export function BookingWatchBox({ onRegister }: { onRegister: () => void }) {
           );
         })}
       </ul>
+      {localList}
       {addBtn}
+      {modal}
     </section>
   );
 }

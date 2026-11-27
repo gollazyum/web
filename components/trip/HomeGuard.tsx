@@ -3,7 +3,7 @@
 import { checkedText } from "@/lib/checked-at";
 import { won, type StayQuery } from "@/lib/trip";
 import { startRegister, useWatches, vendorKo } from "./BookingWatch";
-import { latestConfirmed, useWatch } from "./PriceWatch";
+import { isTracked, latestConfirmed, useTracked, useWatch } from "./PriceWatch";
 import { usePriceVersion } from "./prices";
 import { baseOf, MIN_DIFF, type SavedLike } from "./saved-price";
 
@@ -45,6 +45,7 @@ type Props = {
 export function HomeGuard({ saved, onOpenSaved, onGo, onTrips, onSearch }: Props) {
   const [watches] = useWatches();
   const state = useWatch();
+  const tracked = useTracked(); // 찜은 가격 추적을 켠 숙소만
   usePriceVersion();
 
   const rows: Row[] = [];
@@ -67,7 +68,7 @@ export function HomeGuard({ saved, onOpenSaved, onGo, onTrips, onSearch }: Props
   const seen = new Set<string>();
   for (const s of saved) {
     const k = `${s.hotel.token}:${s.query.checkIn}:${s.query.checkOut}:${s.query.adults}`;
-    if (seen.has(k)) continue;
+    if (seen.has(k) || !isTracked(saved, s, tracked)) continue;
     seen.add(k);
     const base = baseOf(s);
     const now = latestConfirmed(s.hotel.token, s.query, state);
@@ -100,14 +101,14 @@ export function HomeGuard({ saved, onOpenSaved, onGo, onTrips, onSearch }: Props
       </div>
       {rows.length === 0 ? (
         <div className="tb-guard-empty">
-          <p>예약한 숙소를 등록하거나 숙소를 찜하면 체크인 전까지 가격을 지켜봐 드려요</p>
+          <p>예약한 숙소를 등록하거나 찜한 숙소의 가격 추적을 켜면 체크인 전까지 가격을 지켜봐 드려요</p>
           <div>
             <button
               type="button"
               className="tb-btn"
               onClick={() => {
-                startRegister();
-                onSearch();
+                startRegister(); // 내 여행에서 등록 창이 바로 열린다
+                onTrips();
               }}
             >
               예약한 숙소 등록하기
