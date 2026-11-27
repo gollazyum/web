@@ -11,15 +11,12 @@ describe("도보 5분 내 편의시설", () => {
   it("격자 키는 소수점 3자리", () => {
     expect(gridKey(35.69849, 139.78612)).toBe("35.698:139.786");
   });
-  it("Overpass 질의: 3종류, 반경 400m, out center 40", () => {
+  it("Overpass 질의: 한 번에 shop·amenity 값만, 반경 400m, 위도·경도 순서", () => {
     const q = overpassQuery(35.6812, 139.7671);
-    expect(q).toContain("around:400,35.6812,139.7671");
-    expect(q).toContain('"shop"~"^(convenience|supermarket|grocery)$"');
-    expect(q).toContain('"amenity"="pharmacy"');
-    expect(q).toContain('"shop"="chemist"');
-    expect(q).toContain('"amenity"~"^(hospital|clinic|doctors)$"');
+    expect(q).toContain("(around:400,35.6812,139.7671)");
+    expect(q).toContain('nwr[~"^(shop|amenity)$"~"^(convenience|supermarket|grocery|chemist|pharmacy|hospital|clinic|doctors)$"]');
     expect(q).not.toMatch(/restaurant|bar|pub|cafe/);
-    expect(q.endsWith("out center 40;")).toBe(true);
+    expect(q.endsWith("out center 150;")).toBe(true);
   });
   it("종류별로 세고 가까운 순, 400m 밖·식당은 뺀다", () => {
     const els = [
