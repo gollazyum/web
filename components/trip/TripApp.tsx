@@ -13,10 +13,11 @@ import { criteriaWeights, EMPTY_PROFILE, profileLines, readSaved, TASTE_KEY, wit
 import { site } from "@/lib/site";
 import { HOME_PLACES, photoUrl } from "@/lib/home-places";
 import { hotelFromPreview, hotelFromSeed, hotelHref, hotelQueryOf, hotelTokenOf, readPreview, savePreview, type HotelSeed } from "@/lib/hotel-link";
-import { HomeHeroCard } from "./HomeHeroCard";
+import { HomeWatchCard } from "./HomeWatchCard";
+import { HomeGuard } from "./HomeGuard";
+import type { CityLow } from "@/lib/home-cities";
 
 // PC 홈 대표 사진: 인기 여행지 카드와 같은 도쿄 사진
-const HOME_HERO_TOKYO = HOME_PLACES.find((p) => p.name === "도쿄")?.photo ?? HOME_PLACES[0].photo;
 import { HOME_STEPS, HOME_TRUST } from "@/lib/home-info";
 import type { FlightOption } from "@/lib/flights";
 import { searchErrorMessage, SEARCH_RETRY_LABEL } from "@/lib/search-error";
@@ -104,8 +105,8 @@ function warmChunks() {
   void loadSeller();
 }
 import { IconBack, IconBed, IconChatStar, IconClose, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
-import { HomeDrops, PriceWatchBox, useDrops } from "./PriceWatch";
-import { BookingWatchBox, RegisterHint, WatchBanner } from "./BookingWatch";
+import { PriceWatchBox, useDrops } from "./PriceWatch";
+import { BookingWatchBox, RegisterHint } from "./BookingWatch";
 import { MySettings } from "./MySettings";
 import { bumpAiCount } from "@/lib/ui-prefs";
 
@@ -255,6 +256,20 @@ export function TripApp() {
   // 탭은 주소가 정한다 (/ 홈, /chat AI 추천, /trips 내 여행, /my 마이). 뒤로 가기·새로 고침·공유가 그대로 된다
   const pathname = usePathname();
   const router = useRouter();
+  // 홈 검색 칸 (내 가격 지킴이 빈 상태 버튼이 여기로 옮겨 준다)
+  const homeSearchRef = useRef<HTMLDivElement>(null);
+  // 홈 도시 카드 "2박 총액 ○원부터": 서버에 쌓인 가격 기록만 (유료 검색 0회)
+  const [cityLow, setCityLow] = useState<Map<string, CityLow>>(new Map());
+  useEffect(() => {
+    let live = true;
+    fetch("/api/home/cities")
+      .then((r) => (r.ok ? (r.json() as Promise<{ items: CityLow[] }>) : { items: [] }))
+      .then((d) => live && Array.isArray(d.items) && setCityLow(new Map(d.items.map((x) => [x.place, x]))))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
   // 사람이 화면을 처음 만지면(누르기·입력·스크롤) 결과 화면 코드를 미리 받아 둔다. 첫 화면을 그리는 동안에는 받지 않는다
   useEffect(() => {
     const go = () => warmChunks();
@@ -1057,29 +1072,31 @@ export function TripApp() {
                   {brand.tentative && <em className="tb-provisional">가칭</em>}
                 </span>
               </header>
-              {/* 2026-11-25 3차: 바다 사진 배너와 타일 2개를 걷어내고, 첫 화면에 바로 검색 칸을 펼친다 */}
-              <section className="tb-home-hero">
-                <h1 className="tb-home-title">
-                  {/* PC에서는 두 줄 (예약하고 / 끝나지 않아요), 설명은 오른쪽 아래 */}
-                  <span className="tb-home-title-main">
-                    <span>예약하고</span> <span>끝나지 않아요</span>
-                  </span>
-                  <small>예약처마다 다른 세금 포함 총액을 한 화면에 모으고, 체크인 날까지 가격을 지켜보다 내려가면 알려 드려요</small>
-                </h1>
-                {/* PC 대표 사진 (도쿄). 휴대폰은 1px 빈 그림만 받아 사진을 내려받지 않는다 */}
-                <figure className="tb-home-photo">
-                  <picture>
-                    <source media="(min-width: 1024px)" srcSet={photoUrl(HOME_HERO_TOKYO, 1600, 520)} />
-                    <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="" onError={(e) => (e.currentTarget.style.visibility = "hidden")} />
-                  </picture>
-                  <figcaption>도쿄 · 일본</figcaption>
-                  <HomeHeroCard />
-                </figure>
-                <RegisterHint />
-                <HomeSearch kind={kind} onKind={setKind} stay={prefStay} flight={prefFlight} onStay={homeStay} onFlight={homeFlight} />
+              {/* 2026-11-27 PR 2/3: 히어로 2단. PC(768px+) 왼쪽 헤드라인·설명 / 오른쪽 가격 지킴이 카드, 아래 검색 바.
+                  휴대폰은 헤드라인 → 검색 바(예시 칩·신뢰 문구) → 카드 순서로 첫 화면에서 바로 검색한다. 홈에 들어올 때 유료 검색 0회 */}
+              <section className="tb-hh">
+                <div className="tb-hh-copy">
+                  <h1 className="tb-hh-title">예약하고 끝나지 않아요</h1>
+                  <p className="tb-hh-sub">주요 예약처의 세금 포함 총액을 한 번에 비교하고, 예약한 뒤에도 체크인 날까지 가격을 지켜봐요. 더 싸지면 무료 취소 기한 안에 알려드려요.</p>
+                </div>
+                <div className="tb-hh-search" ref={homeSearchRef}>
+                  <RegisterHint />
+                  <HomeSearch kind={kind} onKind={setKind} stay={prefStay} flight={prefFlight} onStay={homeStay} onFlight={homeFlight} onTalk={(t) => send(t)} />
+                </div>
+                <div className="tb-hh-card">
+                  <HomeWatchCard onGo={(href) => router.push(href)} onTrips={() => setTab("trips")} onExampleCity={() => placeStay("도쿄")} />
+                </div>
               </section>
-              <WatchBanner onOpen={() => setTab("trips")} />
-              <HomeDrops saved={saved} onMore={() => setTab("trips")} />
+              <HomeGuard
+                saved={saved}
+                onOpenSaved={(s) => openHotel(s.hotel, s.query)}
+                onGo={(token, q) => router.push(hotelHref(token, q))}
+                onTrips={() => setTab("trips")}
+                onSearch={() => {
+                  homeSearchRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  homeSearchRef.current?.querySelector("input")?.focus({ preventScroll: true });
+                }}
+              />
               {snaps.length > 0 && (
                 <section className="tb-sec">
                   <h2>최근 확인한 최저 가격</h2>
@@ -1116,11 +1133,11 @@ export function TripApp() {
               />
               <section className="tb-sec">
                 <h2>지금 많이 찾는 관심 여행지</h2>
-                <div className="tb-places">
+                <div className="tb-places r43">
                   {HOME_PLACES.map((p) => (
                     <button key={p.name} type="button" onClick={() => placeStay(p.name)}>
                       <img
-                        src={photoUrl(p.photo, 400, 520)}
+                        src={photoUrl(p.photo, 480, 360)}
                         alt=""
                         loading="lazy"
                         // 사진을 못 받으면 깨진 그림 표시 대신 카드 바탕색만 보인다 (화면이 열리기 전에 이미 실패한 경우도)
@@ -1132,6 +1149,13 @@ export function TripApp() {
                       <span>
                         <strong>{p.name}</strong>
                         <small>{p.country}</small>
+                        {/* 이미 쌓인 가격 기록이 있는 도시만 (없으면 금액을 쓰지 않는다) */}
+                        {cityLow.get(p.name) && (
+                          <em className="tb-place-price">
+                            2박 총액 {won(cityLow.get(p.name)!.from)}부터
+                            {cityLow.get(p.name)!.pct ? <i> · 지난주보다 {cityLow.get(p.name)!.pct}% ↓</i> : null}
+                          </em>
+                        )}
                       </span>
                     </button>
                   ))}

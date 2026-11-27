@@ -42,7 +42,7 @@ const kstText = (iso: string) => {
   const d = new Date(Date.parse(iso) + 9 * 3_600_000);
   return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
 };
-const vendorKo = (k: string | null) => (k && HOTEL_SELLER_ALLOWLIST.some((s) => s.key === k) ? sellerDef(k as HotelSellerKey).ko : k ?? "");
+export const vendorKo = (k: string | null) => (k && HOTEL_SELLER_ALLOWLIST.some((s) => s.key === k) ? sellerDef(k as HotelSellerKey).ko : k ?? "");
 
 // ---------- 비교창: 예약했어요 ----------
 export function BookedWatch({ hotel, query, rows }: { hotel: { token: string; name: string }; query: StayQuery; rows: SellerRow[] }) {

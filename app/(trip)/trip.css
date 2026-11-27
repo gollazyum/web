@@ -9607,3 +9607,532 @@ button.tb-maplink {
     display: none;
   }
 }
+
+/* ===== 2026-11-27 PR 2/3: 홈 히어로 2단 · 가격 지킴이 카드 · 내 가격 지킴이 표 · 한 줄로 말하기 ===== */
+/* 휴대폰: 헤드라인 → 검색 바(칩·신뢰 문구) → 카드 (DOM 순서 그대로) */
+.tb-app .tb-hh {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  margin: 8px 0 32px;
+}
+.tb-app .tb-hh-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--tb-ink);
+}
+.tb-app .tb-hh-sub {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--tb-sub);
+  word-break: keep-all;
+}
+.tb-app .tb-hh .tb-search:not(.fixed) {
+  margin: 0;
+}
+/* 검색 바 아래: 예시 칩 + 신뢰 문구 3개 */
+.tb-app .tb-hs-under {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.tb-app .tb-talk-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tb-app .tb-talk-chips .tb-chip {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--tb-line);
+  border-radius: 999px;
+  background: var(--tb-card);
+  font-size: 13px;
+  color: var(--tb-ink);
+}
+.tb-app .tb-hs-trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--tb-sub);
+}
+.tb-app .tb-hs-trust span {
+  color: var(--tb-save);
+  font-weight: 700;
+}
+/* 한 줄로 말하기 입력 */
+.tb-app .tb-search.talk {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tb-app .tb-search.talk .tb-talk-in {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+}
+.tb-app .tb-search.talk .tb-talk-in small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tb-ink);
+}
+.tb-app .tb-search.talk .tb-talk-in input {
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: none;
+  font: inherit;
+  font-size: 16px;
+  color: var(--tb-ink);
+}
+.tb-app .tb-search.talk > .tb-cta:disabled {
+  opacity: 0.45;
+}
+.tb-app .tb-search-tabs {
+  flex-wrap: nowrap;
+}
+.tb-app .tb-search-tabs button {
+  white-space: nowrap;
+}
+
+/* 가격 지킴이 카드 */
+.tb-app .tb-wcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid var(--tb-line);
+  border-radius: 14px;
+  background: var(--tb-card);
+}
+.tb-app .tb-wcard-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0;
+  font-size: 12px;
+  color: var(--tb-mute);
+}
+.tb-app .tb-wcard-top em {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-style: normal;
+  color: var(--tb-save);
+  font-weight: 600;
+}
+.tb-app .tb-wcard-top em i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tb-save);
+}
+.tb-app .tb-wcard-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tb-ink);
+}
+.tb-app .tb-wcard-sub {
+  margin-top: -4px;
+  font-size: 13px;
+  color: var(--tb-sub);
+}
+.tb-app .tb-wcard-nums {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--tb-line);
+}
+.tb-app .tb-wcard-nums span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tb-app .tb-wcard-nums small {
+  font-size: 12px;
+  color: var(--tb-mute);
+}
+.tb-app .tb-wcard-nums s {
+  font-size: 16px;
+  color: var(--tb-mute);
+}
+.tb-app .tb-wcard-nums b {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--tb-price);
+}
+.tb-app .tb-trend {
+  position: relative;
+  margin: 4px 0 0;
+}
+.tb-app .tb-trend svg {
+  display: block;
+  overflow: visible;
+}
+.tb-app .tb-trend-base {
+  stroke: var(--tb-mute);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+.tb-app .tb-trend-line {
+  stroke: var(--tb-price);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.tb-app .tb-trend-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border: 2px solid var(--tb-card);
+  border-radius: 50%;
+  background: var(--tb-price);
+}
+.tb-app .tb-trend-dot.down {
+  background: var(--tb-save);
+}
+.tb-app .tb-trend figcaption {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--tb-mute);
+}
+.tb-app .tb-wcard-save {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--tb-save-soft);
+  color: var(--tb-save);
+  font-size: 13px;
+  font-weight: 600;
+}
+.tb-app .tb-wcard-save button {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tb-save) !important;
+  color: #fff !important;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tb-app .tb-wcard-wait {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--tb-soft);
+  font-size: 13px;
+  color: var(--tb-sub);
+}
+.tb-app .tb-wcard-foot {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none !important;
+  font: inherit;
+  font-size: 13px;
+  color: var(--tb-sub) !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* 내 가격 지킴이 표 */
+.tb-app .tb-guard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.tb-app .tb-guard-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--tb-ink);
+}
+.tb-app .tb-guard-list > li {
+  border-bottom: 1px solid var(--tb-line);
+}
+.tb-app .tb-guard-th {
+  display: none;
+}
+.tb-app .tb-guard-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  width: 100%;
+  padding: 14px 0;
+  border: 0;
+  background: none !important;
+  color: var(--tb-ink) !important;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tb-app .tb-guard-name {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tb-app .tb-guard-name strong {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.tb-app .tb-guard-name small,
+.tb-app .tb-guard-now small,
+.tb-app .tb-guard-fc small {
+  font-size: 12px;
+  color: var(--tb-mute);
+}
+.tb-app .tb-guard-base {
+  font-size: 13px;
+  color: var(--tb-sub);
+}
+.tb-app .tb-guard-now {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.tb-app .tb-guard-now b {
+  font-size: 15px;
+  font-weight: 700;
+}
+.tb-app .tb-guard-now.down b {
+  color: var(--tb-save);
+}
+.tb-app .tb-guard-fc {
+  font-size: 12px;
+  color: var(--tb-sub);
+}
+.tb-app .tb-guard-chip {
+  justify-self: end;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--tb-soft);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tb-sub);
+  white-space: nowrap;
+}
+.tb-app .tb-guard-chip.down {
+  background: var(--tb-save-soft);
+  color: var(--tb-save);
+}
+.tb-app .tb-guard-empty {
+  padding: 20px 0;
+  border-top: 1px solid var(--tb-ink);
+  border-bottom: 1px solid var(--tb-line);
+}
+.tb-app .tb-guard-empty p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--tb-sub);
+}
+.tb-app .tb-guard-empty div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tb-app .tb-guard-empty .tb-btn.ghost {
+  background: none !important;
+  border: 1px solid var(--tb-line);
+}
+
+/* 관심 여행지 카드: 4:3, 실제 기록이 있을 때만 "2박 총액 ○원부터" */
+.tb-app .tb-places.r43 button {
+  aspect-ratio: 4 / 3;
+  width: 188px;
+}
+.tb-app .tb-place-price {
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 600;
+}
+.tb-app .tb-place-price i {
+  font-style: normal;
+  color: #b8e3c9;
+}
+
+@media (min-width: 768px) {
+  /* 왼쪽 문장 / 오른쪽 카드, 그 아래 검색 바 */
+  .tb-app .tb-hh {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    grid-template-areas: "copy card" "search search";
+    column-gap: 48px;
+    row-gap: 28px;
+    align-items: center;
+    margin: 24px 0 48px;
+  }
+  .tb-app .tb-hh-copy {
+    grid-area: copy;
+  }
+  .tb-app .tb-hh-card {
+    grid-area: card;
+  }
+  .tb-app .tb-hh-search {
+    grid-area: search;
+  }
+  .tb-app .tb-hh-title {
+    font-size: 44px;
+    line-height: 1.15;
+  }
+  .tb-app .tb-hh-sub {
+    max-width: 30em;
+    margin-top: 16px;
+    font-size: 18.5px;
+  }
+  .tb-app .tb-guard-th,
+  .tb-app .tb-guard-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) 1fr 1.2fr 1fr auto;
+    gap: 16px;
+    align-items: center;
+  }
+  .tb-app .tb-guard-th {
+    padding: 8px 0;
+    font-size: 12px;
+    color: var(--tb-mute);
+  }
+  .tb-app .tb-guard-name {
+    grid-column: auto;
+  }
+  .tb-app .tb-only-m {
+    display: none;
+  }
+  .tb-app .tb-guard-now {
+    align-items: flex-start;
+  }
+}
+@media (min-width: 1024px) {
+  .tb-app .tb-hh-title {
+    font-size: 56px;
+  }
+  .tb-app .tb-hh {
+    margin-top: 32px;
+  }
+  .tb-app .tb-main.home .tb-hh .tb-search:not(.fixed) {
+    width: 100%;
+    margin: 0;
+  }
+  .tb-app .tb-hh .tb-hs-under {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-top: 14px;
+    padding: 0 8px;
+  }
+  /* 한 줄로 말하기: 탭 · 입력 · 버튼 한 줄 알약 */
+  .tb-app .tb-main.home .tb-hh .tb-search.talk {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: 80px;
+    align-items: center;
+  }
+  .tb-app .tb-main.home .tb-hh .tb-search.talk > .tb-search-tabs {
+    grid-row: 1;
+    display: flex;
+    gap: 4px;
+    margin-left: 10px;
+  }
+  .tb-app .tb-main.home .tb-hh .tb-search.talk > .tb-talk-in {
+    grid-row: 1;
+    border-left: 1px solid var(--tb-line);
+  }
+  .tb-app .tb-main.home .tb-hh .tb-search.talk > .tb-cta {
+    grid-row: 1;
+    grid-column: auto;
+  }
+  .tb-app .tb-main.home .tb-places.r43 button,
+  .tb-app .tb-main.home .tb-places.r43 button:hover {
+    width: auto;
+  }
+  .tb-app .tb-main.home .tb-places.r43 img {
+    aspect-ratio: 4 / 3;
+  }
+  .tb-app .tb-main.home .tb-places .tb-place-price {
+    color: var(--tb-price);
+  }
+  .tb-app .tb-main.home .tb-places .tb-place-price i {
+    color: var(--tb-save);
+  }
+}
+@media (max-width: 640px) {
+  .tb-app .tb-search.talk > .tb-cta {
+    width: 100%;
+    min-height: 48px;
+  }
+}
+/* 세 모드 탭: 휴대폰·태블릿은 3칸 한 줄 */
+.tb-app .tb-hh .tb-search-tabs {
+  grid-template-columns: repeat(3, 1fr);
+}
+.tb-app .tb-hh .tb-search-tabs button {
+  font-size: 14px;
+}
+.tb-app .tb-search.talk .tb-talk-in {
+  align-items: flex-start;
+  text-align: left;
+}
+.tb-app .tb-search.talk .tb-talk-in:focus-within {
+  outline: none;
+  box-shadow: none;
+}
+@media (max-width: 767px) {
+  .tb-app .tb-talk-chips {
+    flex-wrap: nowrap;
+    margin: 0 -20px;
+    padding: 0 20px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tb-app .tb-talk-chips .tb-chip {
+    flex: none;
+  }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .tb-app .tb-main.home .tb-hh .tb-search:not(.fixed) > .tb-search-tabs {
+    width: auto;
+  }
+}
+@media (min-width: 1024px) {
+  .tb-app .tb-main.home .tb-hh .tb-search.talk > .tb-search-tabs {
+    grid-column: 1;
+  }
+  .tb-app .tb-main.home .tb-hh .tb-search.talk > .tb-talk-in {
+    grid-column: 2;
+    height: 56px;
+    justify-content: center;
+    padding: 0 24px;
+    border: 0;
+    border-left: 1px solid var(--tb-line);
+    border-radius: 0;
+    background: none;
+  }
+  .tb-app .tb-main.home .tb-hh .tb-search.talk > .tb-cta {
+    grid-column: 3;
+  }
+}
