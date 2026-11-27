@@ -7,7 +7,7 @@ import { verifiedRow } from "./price-history-rows";
 import { recordPrices } from "./price-history";
 import { cached, cacheKey, normalizeText } from "./search-cache";
 import { searchOnce } from "./serpapi";
-import { stayCacheSec } from "./stay-cache";
+import { priceCacheSec } from "./stay-cache";
 import { rpc, sb } from "./supabase-server";
 
 // 가격 지킴이 서버 쪽: 예약 행 읽기·쓰기, 예약처 가격 받기(하루 상한), 결과 반영
@@ -94,7 +94,10 @@ export async function stayPricesFor(s: StayKey, timeoutMs: number): Promise<Hote
     gl: "kr",
     property_token: s.property_token,
   };
-  const { data } = await cached<HotelPrices>(cacheKey("travel", params, null), stayCacheSec(s.check_in), async () => {
+  // 저장 키는 화면(/api/hotels/prices)과 같이 숙소 이름(q) 없이 만든다 → 화면에서 본 가격을 크론이 다시 사지 않는다
+  const { q: _name, ...keyParams } = params;
+  void _name;
+  const { data } = await cached<HotelPrices>(cacheKey("travel", keyParams, null), priceCacheSec(s.check_in), async () => {
     const used = await rpc<number>("increment_daily_api_usage", { target_date: kstDate(Date.now()), delta: 1 });
     if (typeof used !== "number" || used > MAX_DAILY_PRICE_CHECKS) throw new CapReached();
     return shapePrices(await searchOnce(params, timeoutMs));

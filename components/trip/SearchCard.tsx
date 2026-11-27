@@ -26,6 +26,7 @@ type Props = {
   fixed?: boolean; // 홈 입력 시트 안: 숙소/항공 전환 탭 없이 한 가지만
   cta?: string; // 아래 주 버튼 글자 (기본 '검색')
   children?: React.ReactNode; // 주 버튼 위에 넣는 칸 (예산·빠른 조건·한 줄 요청)
+  onTalk?: () => void; // 홈: [숙소 | 항공권 | 한 줄로 말하기] 세 번째 모드로 바꾼다
 };
 
 // 바깥(인기 여행지 칩)에서 검색 버튼과 같은 흐름으로 숙소 검색을 시작할 때 쓴다
@@ -36,7 +37,7 @@ const kd = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8,
 // "12월 5일 – 7일", 달이 바뀌면 "12월 30일 – 1월 2일"
 const dateText = (a: string, b?: string) => (!b ? kd(a) : a.slice(5, 7) === b.slice(5, 7) ? `${kd(a)} – ${Number(b.slice(8, 10))}일` : `${kd(a)} – ${kd(b)}`);
 // v7 04: 홈 검색 카드 (숙소 / 항공권 / 투어). 내가 직접 조건을 넣고 찾는 게 기본
-export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref, fixed, cta = "검색", children }: Props) {
+export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref, fixed, cta = "검색", children, onTalk }: Props) {
   const [a, b] = defaultDates();
   const t = localToday();
   const [s, setS] = useState<StayQuery>({ place: "", checkIn: a, checkOut: b, adults: 2, budget: 0, taste: "" });
@@ -142,6 +143,11 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref, 
         <button type="button" role="tab" aria-selected={kind === "flight"} onClick={() => onKind("flight")}>
           <IconPlane size={20} /> 항공권
         </button>
+        {onTalk && (
+          <button type="button" role="tab" aria-selected={false} onClick={onTalk}>
+            한 줄로 말하기
+          </button>
+        )}
       </div>
       )}
 
