@@ -10,3 +10,9 @@ export function stayCacheSec(checkIn: string, now = Date.now()): number {
   const days = (Date.parse(`${checkIn}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000;
   return Number.isFinite(days) && days > NEAR_DAYS ? STAY_CACHE_SEC : STAY_CACHE_NEAR_SEC;
 }
+
+// 숙소 한 곳의 예약처별 가격: 12시간 (체크인 7일 이내는 60분). 서버 캐시와 이 탭의 캐시가 같이 쓴다
+export const PRICE_CACHE_SEC = 12 * 60 * 60;
+export function priceCacheSec(checkIn: string, now = Date.now()): number {
+  return stayCacheSec(checkIn, now) === STAY_CACHE_NEAR_SEC ? STAY_CACHE_NEAR_SEC : PRICE_CACHE_SEC;
+}

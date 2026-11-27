@@ -120,9 +120,13 @@ export function HomeSearch({ kind, onKind, stay, flight, onStay, onFlight }: { k
       onStay={(q) => onStay({ ...q, budget, taste: taste(q.taste, stayTasteOf(opts)) }, opts)}
       onFlight={(q) => onFlight({ ...q, taste: taste(q.taste, "") }, opts)}
     >
-      <button type="button" className="tb-hs-more" aria-expanded={more} onClick={() => setMore((v) => !v)}>
-        {more ? "조건 접기" : `조건 더하기 (${kind === "stay" ? "예산·" : ""}빠른 조건·한 줄 요청)${picked ? ` · ${picked}개 선택` : ""}`}
-      </button>
+      {/* 검색 알약 아래 한 줄: 왼쪽 비교 예약처 안내(PC), 오른쪽 '조건 더하기' */}
+      <div className="tb-hs-row">
+        {kind === "stay" && <p className="tb-hs-sellers">부킹닷컴 · 아고다 · 익스피디아 · 호텔스닷컴 · 트립닷컴 총액을 한 화면에 나란히 보여 드려요</p>}
+        <button type="button" className="tb-hs-more" aria-expanded={more} onClick={() => setMore((v) => !v)}>
+          {more ? "조건 접기" : `조건 더하기 (${kind === "stay" ? "예산·" : ""}빠른 조건·한 줄 요청)${picked ? ` · ${picked}개 선택` : ""}`}
+        </button>
+      </div>
       {more && (
         <>
           {kind === "stay" && (

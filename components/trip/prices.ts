@@ -10,7 +10,7 @@ import { savingsOf } from "@/lib/savings";
 // 카드 금액 ↔ 예약처 시트 1위 총액 맞추기.
 // 시트(또는 미리 조회)에서 허용 예약처 가격을 받으면 그 1위 총액을 여기 적어 두고, 목록 카드는 이 값을 먼저 쓴다.
 // 같은 탭에서는 sessionStorage에 30분 남겨 새로고침해도 맞춘 금액이 유지된다
-export type Verified = { total: number | null; count: number; at: number; seller?: HotelSellerKey; fc?: boolean; save?: number }; // save: 가장 비싼 예약처보다 아끼는 금액 (확인한 세금 포함 총액끼리, lib/savings.ts) // total null: 비교할 수 있는 예약처 0곳, seller: 1위 예약처, fc: 무료 취소라고 온 예약처가 있음
+export type Verified = { total: number | null; count: number; at: number; seller?: HotelSellerKey; fc?: boolean; save?: number; top?: { key: HotelSellerKey; cost: number; fc?: boolean }[] }; // top: 낮은 예약처 2곳 (PC 목록 행 안에 보여 준다) // save: 가장 비싼 예약처보다 아끼는 금액 (확인한 세금 포함 총액끼리, lib/savings.ts) // total null: 비교할 수 있는 예약처 0곳, seller: 1위 예약처, fc: 무료 취소라고 온 예약처가 있음
 
 const KEEP_MS = 30 * 60 * 1000;
 const PREFIX = "tb-verified-v2:";
@@ -40,9 +40,9 @@ export function setVerified(token: string, q: Pick<StayQuery, "checkIn" | "check
   const k = keyOf(token, q);
   // fresh false: 예약처 조회에 실패해 검색 목록에 같이 온 값으로 맞출 때 → 아낀 금액은 보여 주지 않는다
   const save = fresh ? savingsOf(rows)?.amount : undefined;
-  const v: Verified = { total: rows[0]?.cost ?? null, count: rows.length, at: Date.now(), seller: rows[0]?.key, ...(rows.some((r) => r.freeCancel) ? { fc: true } : {}), ...(save ? { save } : {}) };
+  const v: Verified = { total: rows[0]?.cost ?? null, count: rows.length, at: Date.now(), seller: rows[0]?.key, ...(rows.some((r) => r.freeCancel) ? { fc: true } : {}), ...(save ? { save } : {}), ...(fresh && rows.length > 1 ? { top: rows.slice(0, 2).map((r) => ({ key: r.key, cost: r.cost, ...(r.freeCancel ? { fc: true } : {}) })) } : {}) };
   const old = mem.get(k);
-  if (old && old.total === v.total && old.count === v.count && old.seller === v.seller && old.fc === v.fc && old.save === v.save) return;
+  if (old && old.total === v.total && old.count === v.count && old.seller === v.seller && old.fc === v.fc && old.save === v.save && JSON.stringify(old.top) === JSON.stringify(v.top)) return;
   mem.set(k, v);
   try {
     sessionStorage.setItem(PREFIX + k, JSON.stringify(v));

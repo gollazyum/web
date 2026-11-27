@@ -1,0 +1,133 @@
+"use client";
+
+import { useCallback, useMemo, useState } from "react";
+import type { HotelInfo, HotelOption } from "@/lib/hotels";
+import { guestText, nightsOf, type StayQuery } from "@/lib/trip";
+import { pinText } from "@/lib/map-pins";
+import { priceBrief, walkMin, type PricedSpot } from "@/lib/map-decide";
+import { cityNear } from "@/data/neighborhoodVibes";
+import type { Peer } from "@/lib/usual-price";
+import { SellerBody } from "./SellerSheet";
+import { DetailMap } from "./DetailMap";
+import type { NearStation } from "./StayMap";
+import { getVerified, usePriceVersion } from "./prices";
+import { IconBack } from "./icons";
+
+// 전용 숙소 상세 페이지 (/hotels/[propertyToken]).
+// 위: 머리 줄(숙소명·성급·평점·공유) + 사진(왼쪽 대표 1장 + 오른쪽 4칸). 아래: 왼쪽 60% 검증 · 오른쪽 40% 고정 가격 결정 (SellerBody page).
+// 예약처별 총액은 이 페이지에 들어왔을 때만 한 번 받는다 (서버 12시간 저장분 우선)
+type Props = {
+  hotel: HotelOption | null; // 목록·이 기기 미리 보기·서버 기본 정보로 먼저 그린다 (없으면 가격 조회에 같이 온 정보로)
+  token: string;
+  query: StayQuery;
+  saved: boolean;
+  onSave: (h: HotelOption) => void;
+  onBack: () => void;
+  backLabel: string;
+  onGo: (text: string) => void;
+  onToast: (text: string) => void;
+  reason?: string;
+  peers?: Peer[];
+  spots?: PricedSpot[]; // 같은 검색 결과(확인 총액만) — '동네 대비 가격' 한 줄용. 새 탭에서는 없다
+};
+
+const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
+
+function blank(token: string): HotelOption {
+  return { token, name: "", image: "", images: [], kind: "", amenities: [], deal: "", gps: null, stars: null, rating: null, reviews: null, perNight: null, total: null, priceSource: null, sources: [], near: null, freeCancel: false };
+}
+
+// 조회에 같이 온 정보로 빈 칸만 채운다 (이미 아는 값은 그대로)
+function fill(h: HotelOption, info: HotelInfo | null): HotelOption {
+  if (!info) return h;
+  return {
+    ...h,
+    name: h.name || info.name,
+    images: h.images.length >= 3 ? h.images : [...new Set([...h.images, ...info.images])].slice(0, 8),
+    image: h.image || info.images[0] || "",
+    gps: h.gps ?? info.gps,
+    stars: h.stars ?? info.stars,
+    rating: h.rating ?? info.rating,
+    reviews: h.reviews ?? info.reviews,
+    kind: h.kind || info.kind,
+    amenities: h.amenities.length ? h.amenities : info.amenities,
+  };
+}
+
+export function HotelPage({ hotel: base, token, query, saved, onSave, onBack, backLabel, onGo, onToast, reason, peers, spots }: Props) {
+  usePriceVersion();
+  const [info, setInfo] = useState<HotelInfo | null>(null);
+  const hotel = useMemo(() => fill(base ?? blank(token), info), [base, token, info]);
+  const nights = nightsOf(query);
+  const [station, setStation] = useState<NearStation>(null);
+  const onInfo = useCallback((i: HotelInfo) => setInfo(i), []);
+  const photos = (hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : []).slice(0, 5);
+  const v = getVerified(hotel.token, query);
+  const low = v?.total ?? null;
+  const brief = useMemo(() => {
+    if (!hotel.gps || !spots?.length) return null;
+    const me = spots.find((s) => s.token === hotel.token) ?? (low ? { token: hotel.token, gps: hotel.gps, price: low } : null);
+    return priceBrief(cityNear([hotel.gps[1], hotel.gps[0]]), me, spots);
+  }, [hotel.gps, hotel.token, spots, low]);
+
+  async function share() {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: hotel.name || "숙소", url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      onToast("링크를 복사했어요");
+    } catch {
+      // 공유 창을 닫은 경우 등은 조용히 넘어간다
+    }
+  }
+
+  const location = hotel.gps ? (
+    <>
+      <DetailMap gps={hotel.gps} name={hotel.name} label={low ? pinText(low) : "숙소"} onStation={setStation} />
+      {station && (
+        <p className="tb-hp-station">
+          🚇 가장 가까운 역 <b>{station.name}</b> · 도보 약 {walkMin(station.m)}분 <small>({Math.round(station.m)}m)</small>
+        </p>
+      )}
+      {brief && <p className="tb-hp-brief">{brief}</p>}
+      <small className="tb-mute">점선 원은 숙소에서 도보 약 5분(400m)·10분(800m)이에요. 직선거리 기준이라 실제 도보 시간은 길에 따라 달라요.</small>
+    </>
+  ) : null;
+
+  return (
+    <main className="tb-hp">
+      <div className="tb-hp-top">
+        <button type="button" className="tb-hp-back" onClick={onBack}>
+          <IconBack size={18} /> {backLabel}
+        </button>
+      </div>
+      <header className="tb-hp-head">
+        <div>
+          <h1>{hotel.name || <span className="tb-hp-skel" aria-label="숙소 이름을 불러오는 중" />}</h1>
+          <p>
+            {[hotel.stars ? `${hotel.stars}성급` : hotel.kind, hotel.rating ? `후기 ${hotel.rating.toFixed(1)}${hotel.reviews ? ` (${hotel.reviews.toLocaleString("ko-KR")})` : ""}` : "", query.place].filter(Boolean).join(" · ")}
+          </p>
+          <p className="tb-hp-sub">
+            {md(query.checkIn)} – {md(query.checkOut)} · {nights}박 · {guestText(query)}
+          </p>
+        </div>
+        <button type="button" className="tb-hp-share" onClick={share}>
+          공유
+        </button>
+      </header>
+      <div className={`tb-hp-gallery n${Math.min(photos.length, 5)}`}>
+        {photos.length ? (
+          photos.map((src, i) => <img key={src + i} src={src} alt={i === 0 ? `${hotel.name} 대표 사진` : ""} loading={i === 0 ? "eager" : "lazy"} onError={(e) => (e.currentTarget.style.visibility = "hidden")} />)
+        ) : (
+          <div className="tb-hp-nophoto">
+            <small>사진을 불러오는 중이에요</small>
+          </div>
+        )}
+      </div>
+      <SellerBody page hotel={hotel} query={query} saved={saved} onSave={() => onSave(hotel)} onGo={onGo} reason={reason} peers={peers} location={location} onInfo={onInfo} />
+    </main>
+  );
+}

@@ -1,14 +1,15 @@
 import { lowestNightly, type HotelOption, type NearPlace, type HotelPrices, type HotelResults } from "@/lib/hotels";
-import { DATE, serpSearch, today } from "@/lib/serpapi";
+import { DATE, DETAIL_DAILY_CAP, serpSearch, today } from "@/lib/serpapi";
 import { normalizeText } from "@/lib/search-cache";
 import { amenityKo, dealKo, kindKo } from "@/lib/hotelText";
 import { cleanSources, shapePrices, type SerpPrice } from "@/lib/hotel-prices";
 import { after } from "next/server";
 import { priceHistoryOn, recordPrices } from "@/lib/price-history";
 import { listRows, verifiedRow } from "@/lib/price-history-rows";
-import { stayCacheSec, STAY_CACHE_NEAR_SEC } from "@/lib/stay-cache";
+import { priceCacheSec, stayCacheSec, STAY_CACHE_NEAR_SEC } from "@/lib/stay-cache";
 import { POPULAR_CACHE_SEC, popularCity } from "@/lib/popular-stay-cities";
 import { recordMaster } from "@/lib/hotels-master";
+import { recordSnapshot } from "@/lib/seller-snapshot";
 import { supabaseOn } from "@/lib/supabase-server";
 
 // 실시간 호텔 가격. SerpApi의 Google Hotels 결과를 받아 화면용으로 줄인다.
@@ -25,7 +26,7 @@ const STARS = /^[2-5](,[2-5]){0,3}$/;
 
 function parseQuery(body: unknown) {
   if (!body || typeof body !== "object") return null;
-  const { q, checkIn, checkOut, adults, token, page, stars, childAges, fresh } = body as Record<string, unknown>;
+  const { q, checkIn, checkOut, adults, token, page, stars, childAges, fresh, detail, place } = body as Record<string, unknown>;
   // P1-4: 아동 나이 (0~17세, 최대 6명)
   if (childAges !== undefined && (!Array.isArray(childAges) || childAges.length > 6 || !childAges.every((a) => Number.isInteger(a) && a >= 0 && a <= 17))) return null;
   if (typeof q !== "string" || !q.trim() || q.length > 100) return null;
@@ -36,7 +37,7 @@ function parseQuery(body: unknown) {
   if (page !== undefined && (typeof page !== "string" || !page || page.length > 500)) return null;
   // stars: 성급만 다시 찾을 때 "4" 또는 "4,5" (검색이 2~5성만 받는다)
   if (stars !== undefined && (typeof stars !== "string" || !STARS.test(stars))) return null;
-  return { q: normalizeText(q), checkIn, checkOut, adults, childAges: (childAges as number[] | undefined) ?? [], token: token as string | undefined, page: page as string | undefined, stars: stars as string | undefined, fresh: fresh === true };
+  return { q: normalizeText(q), checkIn, checkOut, adults, childAges: (childAges as number[] | undefined) ?? [], token: token as string | undefined, page: page as string | undefined, stars: stars as string | undefined, fresh: fresh === true, detail: detail === true, place: typeof place === "string" && place.trim() ? normalizeText(place).slice(0, 100) : null };
 }
 
 type Rate = { extracted_lowest?: number };
@@ -213,11 +214,21 @@ export async function POST(req: Request) {
     params.property_token = q.token;
     const token = q.token;
     // 새로 받은 예약처 가격은 응답을 보낸 뒤 가격 기록에 남긴다 (q는 숙소 이름)
+    // 예약처 3곳 이상이면 홈 '실제 검색 예시' 카드용 스냅샷도 남긴다 (place: 그 검색의 도시, 검색 조건에는 넣지 않는다)
     const onFresh = (d: HotelPrices) => {
       const row = verifiedRow(token, q.q, d.sources, q);
-      if (row) after(() => recordPrices([row]));
+      after(async () => {
+        await Promise.all([row ? recordPrices([row]) : null, recordSnapshot(token, q.q, q.place, q, d.sources)]);
+      });
     };
-    return serpSearch(req, params, shapePrices, undefined, { fresh: q.fresh, ttlSec, ...(priceHistoryOn() ? { onFresh } : {}) }); // fresh: 다시 확인할 때는 저장된 가격을 쓰지 않는다
+    // 예약처별 가격은 12시간 저장해 두고 같이 쓴다 (체크인 7일 안은 60분). 목록 행·상세 페이지가 같은 저장분을 쓴다.
+    // 상세 페이지(detail)에서 새로 부를 때만 한 접속 주소당 하루 70번까지 (저장된 가격은 무제한)
+    return serpSearch(req, params, shapePrices, undefined, {
+      fresh: q.fresh,
+      ttlSec: priceCacheSec(q.checkIn),
+      ...(q.detail ? { dailyCap: { scope: "detail", max: DETAIL_DAILY_CAP } } : {}),
+      ...(supabaseOn() ? { onFresh } : {}),
+    }); // fresh: 다시 확인할 때는 저장된 가격을 쓰지 않는다
   }
   // 성급 필터를 누른 사람만: 그 성급만 한 번 찾는다 (검색 1번 요금). 다음 쪽도 같은 성급
   if (q.stars) params.hotel_class = q.stars;

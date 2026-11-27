@@ -12,7 +12,7 @@ import { useCheckpoints } from "./useCheckpoints";
 import { activeCount, applyFilter, countFilters, EMPTY_FILTER, hasFreeCancel, type StayFilter } from "@/lib/stay-filters";
 import { guestText, isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
 import { SIMILAR_EVENT, takeSimilar } from "./similar";
-import { shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
+import { getVerified, shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
 import { changeText, savedBaseFor } from "./saved-price";
 import { savedDiff, useWatch } from "./PriceWatch";
 import { AiSortInfo } from "./AiSortInfo";
@@ -43,6 +43,12 @@ type Props = {
   initFilter?: StayFilter; // 홈 입력 시트에서 고른 빠른 조건 (처음 한 번만)
   onMap?: () => void; // [리스트 | 지도] 전환: 가격 핀 지도 열기 (지도는 이때만 불러온다)
   onTop?: (h: HotelOption) => void; // PC: 새 검색·정렬·필터로 목록 맨 위 숙소가 정해지면 오른쪽 패널도 그 숙소를 연다
+  // PC 목록+큰 지도: 지금 목록(정렬·필터 적용)을 지도에 넘기고, 행에 마우스를 올리면 그 핀을 강조한다
+  onShown?: (list: HotelOption[]) => void;
+  onHover?: (token: string | null) => void;
+  only?: Set<string> | null; // 지도 [이 지역에서 다시 검색]: 지도 범위 안 숙소만 (검색은 다시 하지 않는다)
+  onAllArea?: () => void;
+  viewSwitch?: React.ReactNode; // PC [목록 | 목록+지도 | 지도만]
 };
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
@@ -52,7 +58,7 @@ const ratingWord = (r: number) => (r >= 4.5 ? "최고" : r >= 4.2 ? "아주 좋�
 
 // v7 05: 숙소 결과 목록. AI가 먼저 본 3곳에 이유를 한 줄씩, 지도는 두지 않는다.
 // 필터: 휴대폰·좁은 PC는 위쪽 3버튼(조건 검색/요금/정렬 기준), 넓은 PC(1280px 이상)는 같은 항목을 왼쪽에 늘 보이게
-export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars, notice, aiOff, onAiRetry, initFilter, onMap, onTop }: Props) {
+export function StayList({ query, options, picks, aiPending, saved, onSave, onOpen, onBack, active, bare, more = "end", onMore, onStars, notice, aiOff, onAiRetry, initFilter, onMap, onTop, onShown, onHover, only, onAllArea, viewSwitch }: Props) {
   // 목록 끝이 화면에 가까워지면 다음 쪽을 부른다 (필터로 목록이 짧아져도 같은 기준)
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -144,6 +150,14 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
     prevOrder.current = { key, order: list.map((h) => h.token) };
     return list;
   }, [options, f, sort, searchKey, pv]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 지도에 넘길 목록 (지도 범위로 거르기 전: 지도 범위 밖 핀도 그대로 보여야 다시 넓혀 볼 수 있다)
+  const shownSig = shown.map((h) => h.token).join();
+  const shownRef = useRef(onShown);
+  shownRef.current = onShown;
+  useEffect(() => {
+    shownRef.current?.(shown);
+  }, [shownSig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rowsShown = only ? shown.filter((h) => only.has(h.token)) : shown;
 
   // PC 오른쪽 패널 = 지금 목록 맨 위 숙소 (첫 진입, 정렬·필터를 바꿀 때). 같은 조건 안에서 사람이 누른 숙소는 그대로 둔다
   const topKey = `${searchKey}|${sort}|${JSON.stringify(f)}`;
@@ -176,7 +190,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
               {md(query.checkIn)} – {md(query.checkOut)} · {guestText(query)}
             </span>
           </button>
-          {onMap && <ViewSwitch onMap={onMap} />}
+          {viewSwitch ?? (onMap && <ViewSwitch onMap={onMap} />)}
         </div>
       )}
       {notice && (
@@ -185,7 +199,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
         </p>
       )}
       <div className={side ? "tb-fbar-wrap has-side" : "tb-fbar-wrap"}>
-        <FilterBar c={counts} f={f} set={setF} sort={sort} setSort={setSort} nights={nights} onMap={onMap} />
+        <FilterBar c={counts} f={f} set={setF} sort={sort} setSort={setSort} nights={nights} onMap={viewSwitch ? undefined : onMap} />
       </div>
       </div>
       <div className={side ? "tb-results-body" : undefined}>
@@ -212,17 +226,28 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
         <div className={side ? "tb-results-main" : undefined}>
           {!bare && aiOff && !aiPending && <AiOffNote onRetry={onAiRetry} />}
           {!bare && <AiTop3 hotels={top3} reasons={reasons} pending={aiPending} off={aiOff} query={query} onOpen={onOpen} />}
+          {only && (
+            <p className="tb-area-note" role="status">
+              지도 범위 안 숙소 {rowsShown.length}곳만 보고 있어요
+              {onAllArea && (
+                <button type="button" className="tb-link" onClick={onAllArea}>
+                  전체 {shown.length}곳 보기
+                </button>
+              )}
+            </p>
+          )}
           <p className="tb-results-note">
-            숙소 {shown.length}곳 · <span className="tb-pc-only">{aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : aiOff ? `확인한 낮은 가격 ${Math.min(3, picks.length)}곳을 위에 모았어요` : `AI 추천 ${Math.min(3, picks.length)}곳에 표시했어요`} · </span>
+            숙소 {rowsShown.length}곳 · <span className="tb-pc-only">{aiPending ? "AI가 취향에 맞는 곳을 살펴보는 중이에요" : aiOff ? `확인한 낮은 가격 ${Math.min(3, picks.length)}곳을 위에 모았어요` : `AI 추천 ${Math.min(3, picks.length)}곳에 표시했어요`} · </span>
             {nights}박 총액
           </p>
           <span className="tb-pc-only">
             {!aiOff && <AiSortInfo kind="stay" />}
           </span>
           <div className="tb-rlist">
-            {shown.map((h) => (
+            {rowsShown.map((h) => (
               <StayRow
                 key={h.token}
+                onHover={onHover}
                 h={h}
                 query={query}
                 reason={reasons.get(h.token)}
@@ -300,6 +325,9 @@ function AiTop3({ hotels, reasons, pending, off, query, onOpen }: { hotels: Hote
               const why = reasons.get(h.token);
               return (
                 <button key={h.token} type="button" className="tb-top3-card" onClick={() => onOpen(h)}>
+                  <span className="tb-top3-ph" aria-hidden>
+                    {h.image ? <img src={h.image} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : null}
+                  </span>
                   <span className="tb-top3-rank">{i + 1}위</span>
                   <strong>{h.name}</strong>
                   <span className="tb-top3-price">
@@ -308,7 +336,7 @@ function AiTop3({ hotels, reasons, pending, off, query, onOpen }: { hotels: Hote
                     ) : p.value !== null ? (
                       <>
                         {!p.verified && <em className="tb-est">예상</em>}
-                        <b>{won(p.value)}</b>
+                        <b className={p.verified ? "ok" : "est"}>{won(p.value)}</b>
                         <small> · {nights}박</small>
                       </>
                     ) : (
@@ -324,7 +352,7 @@ function AiTop3({ hotels, reasons, pending, off, query, onOpen }: { hotels: Hote
   );
 }
 
-export function StayRow({ h, query, reason, note, check, cheapest, saved, active, onSave, onOpen }: { h: HotelOption; query: StayQuery; reason?: string; note?: RankNote; check?: Checkpoints; cheapest?: boolean; saved: boolean; active?: boolean; onSave?: () => void; onOpen: () => void }) {
+export function StayRow({ h, query, reason, note, check, cheapest, saved, active, onSave, onOpen, onHover }: { h: HotelOption; query: StayQuery; reason?: string; note?: RankNote; check?: Checkpoints; cheapest?: boolean; saved: boolean; active?: boolean; onSave?: () => void; onOpen: () => void; onHover?: (token: string | null) => void }) {
   usePriceVersion();
   const nights = nightsOf(query);
   const t = shownPrice(h, query);
@@ -333,7 +361,7 @@ export function StayRow({ h, query, reason, note, check, cheapest, saved, active
   // 담아 둔 숙소면 담을 때 금액과 '최신 확인 총액'을 견준다 (내 여행 맨 위 요약과 같은 함수 · 같은 기준)
   const diff = saved ? savedDiff(h.token, query, savedBaseFor(h.token, query), watch) : null;
   return (
-    <article ref={ref} className={`tb-srow${active ? " on" : ""}`} aria-current={active ? "true" : undefined}>
+    <article ref={ref} className={`tb-srow${active ? " on" : ""}`} aria-current={active ? "true" : undefined} onMouseEnter={onHover ? () => onHover(h.token) : undefined} onMouseLeave={onHover ? () => onHover(null) : undefined}>
       <div className="tb-srow-img">
         <PhotoStrip images={h.images.length ? h.images : h.image ? [h.image] : []} name={h.name} onOpen={onOpen} />
         {onSave && (
@@ -376,6 +404,7 @@ export function StayRow({ h, query, reason, note, check, cheapest, saved, active
         <CheckLine c={check} fc={hasFreeCancel(h) || !!t.fc} />
         <PriceBlock p={t} nights={nights} />
         {diff !== null && <PriceChange diff={diff} />}
+        <RowSellers h={h} query={query} />
       </button>
     </article>
   );
@@ -511,7 +540,7 @@ export function PriceBlock({ p, nights }: { p: ReturnType<typeof shownPrice>; ni
             <i aria-hidden /> 예약처 가격을 확인하는 중
           </em>
         ) : (
-          <em className="tb-cmp">예약처별 가격 보기 &gt;</em>
+          <em className="tb-cmp">가격 비교 · 상세 보기 ↗</em>
         )}
       </span>
     );
@@ -524,7 +553,23 @@ export function PriceBlock({ p, nights }: { p: ReturnType<typeof shownPrice>; ni
       </small>
       {p.save ? <small className="tb-save-chip">가장 비싼 곳보다 {won(p.save)} 아껴요</small> : null}
       {p.was !== undefined && p.value !== null && <EstNote est={p.was} cost={p.value} at={p.at ?? 0} />}
-      <em className="tb-cmp">{p.count ? `예약처 ${p.count}곳 비교` : "예약처별 가격 보기"} &gt;</em>
+      <em className="tb-cmp">{p.count ? `예약처 ${p.count}곳 비교 · 상세 보기` : "가격 비교 · 상세 보기"} ↗</em>
+    </span>
+  );
+}
+
+// PC 목록 행 안: 이미 확인한 예약처 총액 2곳 (새로 부르지 않는다. 화면에 머문 행의 가격 확인 결과만)
+function RowSellers({ h, query }: { h: HotelOption; query: StayQuery }) {
+  const v = getVerified(h.token, query);
+  if (!v?.top || v.top.length < 2) return null;
+  return (
+    <span className="tb-rsel">
+      {v.top.map((r, i) => (
+        <span key={r.key + i} className={i === 0 ? "best" : undefined}>
+          <small>{sellerDef(r.key).ko}{r.fc ? " · 무료 취소" : ""}</small>
+          <b>{won(r.cost)}</b>
+        </span>
+      ))}
     </span>
   );
 }

@@ -2,6 +2,7 @@ import { TripApp } from "@/components/trip/TripApp";
 import { brandCssVars } from "@/lib/brand";
 import { FONT_BOOT } from "@/lib/ui-prefs";
 import "./trip.css";
+import "./v8.css";
 
 // 홈(/)·AI 추천(/chat)·내 여행(/trips)·마이(/my)는 한 앱의 탭이다. 예전 /explore·/now 는 /chat 으로 보낸다.
 // 앱은 이 레이아웃에 한 번만 두고, 탭 주소를 옮겨 다녀도 대화·검색 결과가 그대로 남는다 (각 page.tsx는 제목·설명만 정한다)

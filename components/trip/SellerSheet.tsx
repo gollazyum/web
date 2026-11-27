@@ -2,8 +2,8 @@
 
 import { VibeTag } from "./VibeTag";
 import { freeCancelGap, savingsOf } from "@/lib/savings";
-import { useEffect, useState } from "react";
-import { sellerRows, type HotelOption, type ReviewTopic, type SellerRow } from "@/lib/hotels";
+import { useEffect, useRef, useState } from "react";
+import { sellerRows, type HotelInfo, type HotelOption, type ReviewTopic, type SellerRow } from "@/lib/hotels";
 import { distText, nearby } from "@/lib/landmarks";
 import { TRAVEL_NOTE, travelText } from "@/lib/map-decide";
 import { positivePct } from "@/lib/prefs";
@@ -67,6 +67,8 @@ const BADGE: Record<string, string> = {
   official: "공식",
 };
 
+const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
+
 const hm = (at: number) => {
   const d = new Date(at);
   return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -107,7 +109,13 @@ function factsOf(h: HotelOption, q: StayQuery, nights: number, rows: SellerRow[]
 // 담아 둔 숙소: 지금 예약처 1위 총액과 담을 때 금액의 차이 (확인 총액끼리만)
 const sellerDiff = (token: string, q: StayQuery, cost: number) => priceChange(savedBaseFor(token, q), { value: cost, verified: true, none: false });
 
-export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimilar, peers = [], onBigMap }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption }) {
+// page: 전용 숙소 상세 페이지 (/hotels/[propertyToken]) 본문. location: 그 페이지의 위치 지도 칸 (지도·가까운 역·편의시설)
+// onInfo: 가격 조회에 같이 온 숙소 기본 정보 (공유 링크로 들어와 이름·사진을 모를 때 채운다)
+export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimilar, peers = [], onBigMap, page, location, onInfo }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption; page?: boolean; location?: React.ReactNode; onInfo?: (info: HotelInfo) => void }) {
+  const hotelRef = useRef(hotel);
+  hotelRef.current = hotel;
+  const infoRef = useRef(onInfo);
+  infoRef.current = onInfo;
   const [state, setState] = useState<{ token: string; rows: SellerRow[] | null; status: number | null | "ok"; at: number; topics?: ReviewTopic[] | null } | null>(null);
   const [qa, setQa] = useState<{ token: string; list: { q: string; a: string | null }[] }>({ token: hotel.token, list: [] });
   const [ask, setAsk] = useState("");
@@ -117,13 +125,15 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
 
   useEffect(() => {
     let live = true;
+    const hotel = hotelRef.current;
     const hq = { q: query.place, checkIn: query.checkIn, checkOut: query.checkOut, adults: query.adults, rooms: query.rooms, childAges: query.childAges };
     setState({ token: hotel.token, rows: null, status: "ok", at: 0 });
     setChecking(hotel.token, query, true);
-    stayPrices(hotel.token, query, hotel.name, again > 0).then((r) => {
+    stayPrices(hotel.token, query, hotel.name || query.place, again > 0, !!page).then((r) => {
       setChecking(hotel.token, query, false);
+      if (r.ok && r.data.info) infoRef.current?.(r.data.info);
       if (r.ok) {
-        const rows = sellerRows(r.data.sources, nights, hotel.name, hq);
+        const rows = sellerRows(r.data.sources, nights, hotel.name || r.data.info?.name || query.place, hq);
         setVerified(hotel.token, query, rows); // 목록 카드 금액도 이 1위 총액으로 맞춘다 (패널을 닫아도)
         if (live) setState({ token: hotel.token, rows, status: "ok", at: r.at ?? Date.now(), topics: r.data.topics });
         return;
@@ -137,11 +147,12 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
       live = false;
       setChecking(hotel.token, query, false);
     };
-  }, [hotel, query, nights, again]);
+  }, [hotel.token, query, nights, again, page]);
 
   const rows = state?.token === hotel.token ? state?.rows : null;
   const topics = state?.token === hotel.token ? topTopics(state.topics ?? null) : [];
   const failed = state && state.status !== "ok";
+  const capped = state?.status === 429 && !!page && !rows?.length; // 상세 페이지 새 조회 하루 상한
   const list = qa.token === hotel.token ? qa.list : [];
   const waiting = list.some((x) => x.a === null);
   // 솔직 체크포인트: 예약처 가격 확인이 끝난 뒤(후기 주제·무료 취소까지 받은 뒤) 한 번 만든다
@@ -163,6 +174,255 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
     const r = await askHotel(factsOf(hotel, query, nights, rows ?? null, state?.topics ?? null, near, reason), q);
     const a = r.ok && r.data.answer ? r.data.answer : r.ok ? "그 질문에는 여기 있는 정보로 답하기 어려워요. 예약 사이트 숙소 소개에서 확인해 주세요." : r.status === 429 ? "질문이 많아서 잠시 쉬어야 해요. 조금 뒤에 다시 물어봐 주세요." : "지금은 답을 드리기 어려워요. 잠시 뒤에 다시 물어봐 주세요.";
     setQa((s) => (s.token === token ? { token, list: s.list.map((x) => (x.q === q && x.a === null ? { q, a } : x)) } : s));
+  }
+
+  // ---------- 부분들 (시트·PC 패널은 한 줄로, 상세 페이지는 왼쪽 검증 60% · 오른쪽 가격 40%로 놓는다) ----------
+  const reasonBox = reason && !isPlainReason(reason) && (
+    <p className="tb-detail-why">
+      <IconSpark size={16} />
+      <span>
+        <b>AI가 먼저 보여 드린 이유</b>
+        {reason}
+      </span>
+    </p>
+  );
+  const checkBox = loaded ? <CheckBox c={check ?? null} fc={!!input?.freeCancel} /> : null;
+  const priceTitle = (
+    <div className="tb-seller-title">
+      <h3>예약처별 결제 총액</h3>
+      {state?.at ? <span>{hm(state.at)} 확인</span> : null}
+    </div>
+  );
+  const saveLine = (() => {
+    // 아낀 금액: 예약처에서 확인한 세금 포함 총액끼리만 (검색 목록의 예상 금액·가격을 못 받은 경우는 보여 주지 않는다)
+    const save = rows?.length && state?.status === "ok" ? savingsOf(rows) : null;
+    return save ? (
+      <p className="tb-save-line" role="note">
+        가장 비싼 곳보다 <b>{won(save.amount)}</b> 아껴요
+        <small>확인한 예약처 {save.count}곳 · {nights}박 세금 포함 총액</small>
+      </p>
+    ) : null;
+  })();
+  const fcLine = (() => {
+    // 1위 요금이 무료 취소가 아니면, 무료 취소 요금 중 가장 낮은 곳과의 차액을 한 줄로 (예약처마다 가장 싼 요금 하나만 받는다)
+    const fc = rows?.length ? freeCancelGap(rows) : null;
+    return fc ? (
+      <p className="tb-fc-note">
+        <b>+{won(fc.gap)}</b>이면 무료 취소 <small>· {sellerDef(fc.row.key).ko} {won(fc.row.cost)}</small>
+      </p>
+    ) : null;
+  })();
+  const infoList = (
+    <ul className="tb-seller-info">
+      <li>세금·수수료를 포함한 {nights}박 총액이에요. 현지에서 내는 숙박세는 포함되지 않아 따로 낼 수 있어요.</li>
+      <li>결제는 이동한 예약 사이트에서 진행돼요.</li>
+    </ul>
+  );
+  const rowList = rows?.length ? (
+    <div className="tb-rows">
+      {rows.map((s, i) => {
+        const ko = sellerDef(s.key).ko;
+        return (
+          <div key={`${s.key}:${s.name}`} className="tb-row">
+            <span className="tb-seller-badge" style={{ background: TONE[s.key] }} aria-hidden>
+              {BADGE[s.key] ?? ko.slice(0, 1)}
+            </span>
+            <div className="tb-row-name">
+              <strong>{ko}</strong>
+              {s.approx && <small>1박 요금 × {nights}박</small>}
+              {s.freeCancel ? <small className="tb-free">무료 취소 가능</small> : i === 0 ? <small>환불 조건은 결제 화면에서 확인</small> : null}
+            </div>
+            <div className={`tb-row-price${i === 0 ? " best" : ""}`}>
+              {i === 0 && rows.length > 1 && <em className="tb-low">가장 낮아요</em>}
+              <strong>{won(s.cost)}</strong>
+            </div>
+            <a className={`tb-book${i === 0 ? " dark" : ""}`} href={s.href} target="_blank" rel={linkRel(s.key)} aria-label={`${ko}에서 보기`} onClick={() => onGo?.(`${withRo(ko)} 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요`)}>
+              보기 <IconOut />
+            </a>
+          </div>
+        );
+      })}
+    </div>
+  ) : null;
+  const loadingRows = (
+    <div className="tb-rows" aria-busy="true">
+      <p className="tb-checking" role="status">
+        <i aria-hidden /> 예약처 가격을 확인하는 중
+      </p>
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="tb-row skel" />
+      ))}
+    </div>
+  );
+  const noneBox = (
+    <div className="tb-seller-none">
+      <p>{capped ? "오늘은 새 가격 확인을 많이 하셨어요. 잠시 뒤에 다시 열어 주세요" : "지금 비교할 수 있는 예약처 가격이 없어요"}</p>
+      <a className="tb-cta small" href={sellerSearchUrl("agoda", hotel.name, query)} target="_blank" rel={linkRel("agoda")} onClick={() => onGo?.("아고다로 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요")}>
+        아고다에서 이 숙소 찾아보기 ↗
+      </a>
+      {onSimilar && (
+        <button type="button" className="tb-btn" onClick={onSimilar}>
+          비슷한 숙소 보기(같은 지역·성급)
+        </button>
+      )}
+      {!capped && (
+        <button type="button" className="tb-link" onClick={() => setAgain((n) => n + 1)}>
+          다시 검색
+        </button>
+      )}
+    </div>
+  );
+  const usual = rows?.length && state?.status === "ok" ? <UsualPrice token={hotel.token} stars={hotel.stars} adults={query.adults} checkIn={query.checkIn} nights={nights} current={rows[0].cost} peers={peers} kids={(query.childAges?.length ?? 0) > 0 || (query.rooms ?? 1) > 1} /> : null;
+  const watch = rows?.length && state?.status === "ok" ? <BookedWatch hotel={hotel} query={query} rows={rows} /> : null;
+  const failNote = failed && rows?.length ? <p className="tb-note">{searchErrorMessage(state.status === "ok" ? null : state.status)}</p> : null;
+  const priceNote = (
+    <p className="tb-note">
+      가격은 확인한 시각 기준이라 바뀔 수 있어요. 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요.
+      {agodaAffiliateOn() ? " 일부 예약처에서 제휴 수수료를 받을 수 있지만, 내는 금액은 같아요." : ""}
+    </p>
+  );
+  const topicSec = topics.length > 0 && (
+    <section className="tb-detail-sec">
+      <h3>후기에서 많이 나온 이야기</h3>
+      <ul className="tb-topics">
+        {topics.map((t) => (
+          <li key={t.name}>
+            <span>{topicKo(t.name)}</span>
+            <i aria-hidden>
+              <b style={{ width: `${positivePct(t)}%` }} />
+            </i>
+            <small>
+              좋아요 {positivePct(t)}% · {t.total.toLocaleString("ko-KR")}건
+            </small>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+  const nearList = near.length > 0 && (
+    <>
+      <ul className="tb-near">
+        {near.map((n) => {
+          const t = travelText(n.name, n.km);
+          return (
+            <li key={n.name}>
+              <span>{n.name}</span>
+              <b>
+                {t.time} <small>({t.sub})</small>
+              </b>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="tb-note">{TRAVEL_NOTE}</p>
+    </>
+  );
+  const nearSec = near.length > 0 && (
+    <section className="tb-detail-sec">
+      <h3>주요 장소까지 예상 시간</h3>
+      {nearList}
+    </section>
+  );
+  const askSec = (
+    <section className="tb-detail-sec">
+      <h3>이 숙소, AI에게 물어보기</h3>
+      {list.length === 0 ? (
+        <div className="tb-chips">
+          {QUICK.map((q) => (
+            <button key={q} type="button" className="tb-chip" onClick={() => send(q)}>
+              {q}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="tb-qa" aria-live="polite">
+          {list.map((x, i) => (
+            <div key={i}>
+              <p className="tb-qa-q">{x.q}</p>
+              <p className="tb-qa-a">{x.a ?? "숙소 정보를 살펴보고 있어요…"}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      <form
+        className="tb-composer tb-detail-ask"
+        onSubmit={(e) => {
+          e.preventDefault();
+          send(ask);
+        }}
+      >
+        <input value={ask} maxLength={200} onChange={(e) => setAsk(e.target.value)} placeholder="예: 수영장 있어요?" aria-label="이 숙소에 대해 AI에게 묻기" enterKeyHint="send" />
+        <button type="submit" className="tb-send" disabled={!ask.trim() || waiting} aria-label="보내기">
+          <IconUp size={20} />
+        </button>
+      </form>
+      <p className="tb-note">화면에 보이는 숙소 정보만으로 답해요. 정확한 내용은 예약 사이트에서 확인해 주세요.</p>
+    </section>
+  );
+
+  // ---------- 전용 상세 페이지: 왼쪽 검증 60% · 오른쪽 고정 가격 결정 40% ----------
+  if (page) {
+    const best = rows?.length ? rows[0] : null;
+    const bestKo = best ? sellerDef(best.key).ko : "";
+    return (
+      <div className="tb-hp-body">
+        <div className="tb-hp-left">
+          {reasonBox}
+          {loaded ? <section className="tb-hp-sec">{checkBox}</section> : null}
+          {topicSec}
+          {location ? (
+            <section className="tb-detail-sec tb-hp-loc">
+              <h3>위치 · 도보 5/10분 원</h3>
+              {location}
+              <VibeTag gps={hotel.gps} detail />
+              {nearList}
+            </section>
+          ) : (
+            nearSec
+          )}
+          {usual ? <section className="tb-detail-sec tb-hp-usual">{usual}</section> : null}
+          {askSec}
+        </div>
+        <aside className="tb-hp-right" aria-label="예약처별 총액">
+          <div className="tb-hp-box">
+            <p className="tb-hp-when">
+              {md(query.checkIn)} – {md(query.checkOut)} · {nights}박 · {guestText(query)}
+            </p>
+            {priceTitle}
+            {!rows ? loadingRows : rows.length ? (
+              <>
+                {saveLine}
+                {fcLine}
+                {rowList}
+              </>
+            ) : (
+              noneBox
+            )}
+            {saved && best && state?.status === "ok" && sellerDiff(hotel.token, query, best.cost) !== null ? <PriceChange diff={sellerDiff(hotel.token, query, best.cost)!} /> : null}
+            {failNote}
+            {best ? (
+              <div className="tb-hp-go">
+                <a className="tb-hp-main" href={best.href} target="_blank" rel={linkRel(best.key)} onClick={() => onGo?.(`${withRo(bestKo)} 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요`)}>
+                  {bestKo}에서 {won(best.cost)}으로 보기 <IconOut />
+                </a>
+                <button type="button" className={`tb-hp-love${saved ? " on" : ""}`} onClick={onSave} aria-pressed={saved} aria-label={saved ? "찜 빼기" : "찜하기"}>
+                  <IconHeart size={18} on={saved} /> 찜
+                </button>
+              </div>
+            ) : rows ? (
+              <div className="tb-hp-go">
+                <button type="button" className={`tb-hp-love wide${saved ? " on" : ""}`} onClick={onSave} aria-pressed={saved}>
+                  <IconHeart size={18} on={saved} /> {saved ? "찜했어요" : "찜하기"}
+                </button>
+              </div>
+            ) : null}
+            {watch}
+            {infoList}
+            {priceNote}
+          </div>
+        </aside>
+      </div>
+    );
   }
 
   return (
@@ -200,179 +460,32 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
         )
       ) : null}
       <VibeTag gps={hotel.gps} detail />
-      {reason && !isPlainReason(reason) && (
-        <p className="tb-detail-why">
-          <IconSpark size={16} />
-          <span>
-            <b>AI가 먼저 보여 드린 이유</b>
-            {reason}
-          </span>
-        </p>
-      )}
-      {loaded ? <CheckBox c={check ?? null} fc={!!input?.freeCancel} /> : null}
-      <div className="tb-seller-title">
-        <h3>예약처별 결제 총액</h3>
-        {state?.at ? <span>{hm(state.at)} 확인</span> : null}
-      </div>
+      {reasonBox}
+      {checkBox}
+      {priceTitle}
       {rows?.length && state?.status === "ok" ? <EstNote est={stayTotal(hotel, nights)?.value ?? null} cost={rows[0].cost} at={state.at} /> : null}
       {saved && rows?.length && state?.status === "ok" && sellerDiff(hotel.token, query, rows[0].cost) !== null ? (
         <PriceChange diff={sellerDiff(hotel.token, query, rows[0].cost)!} />
       ) : null}
-      <ul className="tb-seller-info">
-        <li>세금·수수료를 포함한 {nights}박 총액이에요. 현지에서 내는 숙박세는 포함되지 않아 따로 낼 수 있어요.</li>
-        <li>결제는 이동한 예약 사이트에서 진행돼요.</li>
-      </ul>
+      {infoList}
       {!rows ? (
-        <div className="tb-rows" aria-busy="true">
-          <p className="tb-checking" role="status">
-            <i aria-hidden /> 예약처 가격을 확인하는 중
-          </p>
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="tb-row skel" />
-          ))}
-        </div>
+        loadingRows
       ) : rows.length ? (
         <>
-        {(() => {
-          // 아낀 금액: 예약처에서 확인한 세금 포함 총액끼리만 (검색 목록의 예상 금액·가격을 못 받은 경우는 보여 주지 않는다)
-          const save = state?.status === "ok" ? savingsOf(rows) : null;
-          return save ? (
-            <p className="tb-save-line" role="note">
-              가장 비싼 예약처보다 <b>{won(save.amount)}</b> 아껴요
-              <small>확인한 예약처 {save.count}곳 · {nights}박 세금 포함 총액</small>
-            </p>
-          ) : null;
-        })()}
-        {(() => {
-          // 1위 요금이 무료 취소가 아니면, 무료 취소 요금 중 가장 낮은 곳과의 차액을 한 줄로 (예약처마다 가장 싼 요금 하나만 받는다)
-          const fc = freeCancelGap(rows);
-          return fc ? (
-            <p className="tb-fc-note">
-              <b>+{won(fc.gap)}</b>이면 무료 취소 <small>· {sellerDef(fc.row.key).ko} {won(fc.row.cost)}</small>
-            </p>
-          ) : null;
-        })()}
-        <div className="tb-rows">
-          {rows.map((s, i) => {
-            const ko = sellerDef(s.key).ko;
-            return (
-              <div key={`${s.key}:${s.name}`} className="tb-row">
-                <span className="tb-seller-badge" style={{ background: TONE[s.key] }} aria-hidden>
-                  {BADGE[s.key] ?? ko.slice(0, 1)}
-                </span>
-                <div className="tb-row-name">
-                  <strong>{ko}</strong>
-                  {s.approx && <small>1박 요금 × {nights}박</small>}
-                  {s.freeCancel ? <small className="tb-free">무료 취소 가능</small> : i === 0 ? <small>환불 조건은 결제 화면에서 확인</small> : null}
-                </div>
-                <div className={`tb-row-price${i === 0 ? " best" : ""}`}>
-                  {i === 0 && rows.length > 1 && <em className="tb-low">가장 낮아요</em>}
-                  <strong>{won(s.cost)}</strong>
-                </div>
-                <a className={`tb-book${i === 0 ? " dark" : ""}`} href={s.href} target="_blank" rel={linkRel(s.key)} aria-label={`${ko}에서 보기`} onClick={() => onGo?.(`${withRo(ko)} 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요`)}>
-                  보기 <IconOut />
-                </a>
-              </div>
-            );
-          })}
-        </div>
-        {state?.status === "ok" && (
-          <UsualPrice token={hotel.token} stars={hotel.stars} adults={query.adults} checkIn={query.checkIn} nights={nights} current={rows[0].cost} peers={peers} kids={(query.childAges?.length ?? 0) > 0 || (query.rooms ?? 1) > 1} />
-        )}
-        {state?.status === "ok" && <BookedWatch hotel={hotel} query={query} rows={rows} />}
+          {saveLine}
+          {fcLine}
+          {rowList}
+          {usual}
+          {watch}
         </>
       ) : (
-        <div className="tb-seller-none">
-          <p>지금 비교할 수 있는 예약처 가격이 없어요</p>
-          <a className="tb-cta small" href={sellerSearchUrl("agoda", hotel.name, query)} target="_blank" rel={linkRel("agoda")} onClick={() => onGo?.("아고다로 이동해요 · 최종 금액은 결제 화면에서 확인해 주세요")}>
-            아고다에서 이 숙소 찾아보기 ↗
-          </a>
-          {onSimilar && (
-            <button type="button" className="tb-btn" onClick={onSimilar}>
-              비슷한 숙소 보기(같은 지역·성급)
-            </button>
-          )}
-          <button type="button" className="tb-link" onClick={() => setAgain((n) => n + 1)}>
-            다시 검색
-          </button>
-        </div>
+        noneBox
       )}
-      {failed && rows?.length ? <p className="tb-note">{searchErrorMessage(state.status === "ok" ? null : state.status)}</p> : null}
-      <p className="tb-note">
-        가격은 확인한 시각 기준이라 바뀔 수 있어요. 최종 금액은 예약 사이트 결제 화면에서 꼭 확인해 주세요.
-        {agodaAffiliateOn() ? " 일부 예약처에서 제휴 수수료를 받을 수 있지만, 내는 금액은 같아요." : ""}
-      </p>
-      {topics.length > 0 && (
-        <section className="tb-detail-sec">
-          <h3>후기에서 많이 나온 이야기</h3>
-          <ul className="tb-topics">
-            {topics.map((t) => (
-              <li key={t.name}>
-                <span>{topicKo(t.name)}</span>
-                <i aria-hidden>
-                  <b style={{ width: `${positivePct(t)}%` }} />
-                </i>
-                <small>
-                  좋아요 {positivePct(t)}% · {t.total.toLocaleString("ko-KR")}건
-                </small>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {near.length > 0 && (
-        <section className="tb-detail-sec">
-          <h3>주요 장소까지 예상 시간</h3>
-          <ul className="tb-near">
-            {near.map((n) => {
-              const t = travelText(n.name, n.km);
-              return (
-                <li key={n.name}>
-                  <span>{n.name}</span>
-                  <b>
-                    {t.time} <small>({t.sub})</small>
-                  </b>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="tb-note">{TRAVEL_NOTE}</p>
-        </section>
-      )}
-      <section className="tb-detail-sec">
-        <h3>이 숙소, AI에게 물어보기</h3>
-        {list.length === 0 ? (
-          <div className="tb-chips">
-            {QUICK.map((q) => (
-              <button key={q} type="button" className="tb-chip" onClick={() => send(q)}>
-                {q}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="tb-qa" aria-live="polite">
-            {list.map((x, i) => (
-              <div key={i}>
-                <p className="tb-qa-q">{x.q}</p>
-                <p className="tb-qa-a">{x.a ?? "숙소 정보를 살펴보고 있어요…"}</p>
-              </div>
-            ))}
-          </div>
-        )}
-        <form
-          className="tb-composer tb-detail-ask"
-          onSubmit={(e) => {
-            e.preventDefault();
-            send(ask);
-          }}
-        >
-          <input value={ask} maxLength={200} onChange={(e) => setAsk(e.target.value)} placeholder="예: 수영장 있어요?" aria-label="이 숙소에 대해 AI에게 묻기" enterKeyHint="send" />
-          <button type="submit" className="tb-send" disabled={!ask.trim() || waiting} aria-label="보내기">
-            <IconUp size={20} />
-          </button>
-        </form>
-        <p className="tb-note">화면에 보이는 숙소 정보만으로 답해요. 정확한 내용은 예약 사이트에서 확인해 주세요.</p>
-      </section>
+      {failNote}
+      {priceNote}
+      {topicSec}
+      {nearSec}
+      {askSec}
       {/* 아래 고정: 예약처 총액을 받으면 ♡ + 가장 낮은 총액 + 예약 버튼, 그 전에는 '내 여행에 담기'만 */}
       <div className="tb-save-bar">
         {rows?.length ? (

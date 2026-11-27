@@ -26,11 +26,28 @@ const FAIL_TEXT: Record<string, string> = {
 };
 
 // modal: PC 넓은 지도 창 (왼쪽 지도 72% + 오른쪽 선택 숙소·동네 분위기·거리). initial: 처음 골라 둘 숙소
-type Props = { query: StayQuery; options: HotelOption[]; onOpen: (h: HotelOption) => void; onList: () => void; panel?: boolean; modal?: boolean; initial?: string | null };
+// side: PC 결과 오른쪽 큰 지도 (목록+지도 · 지도만). 목록에서 거른 숙소를 그대로 받고, 핀을 누르면 작은 요약 카드만 띄운다 (유료 조회 0회).
+// hover: 목록 행에 마우스를 올린 숙소 (그 핀을 강조). fitKey: 바뀌면(새 검색) 같은 지도에서 핀 전체를 다시 맞춘다.
+// onArea: [이 지역에서 다시 검색] → 지금 지도 범위 안 숙소 token 목록 (검색은 다시 하지 않는다)
+type Props = {
+  query: StayQuery;
+  options: HotelOption[];
+  onOpen: (h: HotelOption) => void;
+  onList: () => void;
+  panel?: boolean;
+  modal?: boolean;
+  initial?: string | null;
+  side?: boolean;
+  hover?: string | null;
+  fitKey?: string;
+  onArea?: (tokens: string[]) => void;
+  saved?: Set<string>;
+  onSave?: (h: HotelOption) => void;
+};
 
 const NO_MATCH = "이번 검색 결과 중 이 동네 구역 안에 있는 숙소는 없어요";
 
-export function MapPanel({ query, options, onOpen, onList, panel, modal, initial = null }: Props) {
+export function MapPanel({ query, options, onOpen, onList, panel, modal, initial = null, side, hover = null, fitKey, onArea, saved, onSave }: Props) {
   usePriceVersion(); // 예약처에서 확인한 금액이 오면 핀 글자를 맞춘다
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim() ?? "";
   // 지도를 못 여는 까닭 (null이면 지도). 안내 아래에 한 줄로 보여 줘서 설정 문제인지 기기 문제인지 바로 알 수 있게 한다
@@ -92,8 +109,9 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
   }, [noMatch, city?.id, vibePick]); // eslint-disable-line react-hooks/exhaustive-deps
   const pins = useMemo(
     // 핀 금액 = 목록 카드·오른쪽 상세와 같은 값(shownPrice: 허용 예약처 1위 N박 총액). 아직 확인 전이면 '예상'을 붙여 회색으로
-    () => shown.map((x) => ({ token: x.token, lat: x.gps![0], lng: x.gps![1], label: x.price !== null && !x.verified ? `예상 ${pinText(x.price)}` : pinText(x.price), est: x.price !== null && !x.verified, low: x.token === low, on: x.token === sel, name: x.h.name, dim: dimOn && !inPick(x.gps!) })),
-    [shown.map((x) => `${x.token}:${x.price}:${x.verified}`).join(), low, sel, dimOn, vibePick, city?.id], // eslint-disable-line react-hooks/exhaustive-deps
+    // 예약처 확인 전 금액은 '예상' 글자 없이 물결(~)만 붙인 회색 숫자 (오른쪽 아래 범례로 설명)
+    () => shown.map((x) => ({ token: x.token, lat: x.gps![0], lng: x.gps![1], label: x.price !== null && !x.verified ? `~${pinText(x.price)}` : pinText(x.price), est: x.price !== null && !x.verified, low: x.token === low, on: x.token === sel || x.token === hover, name: x.h.name, dim: dimOn && !inPick(x.gps!) })),
+    [shown.map((x) => `${x.token}:${x.price}:${x.verified}`).join(), low, sel, hover, dimOn, vibePick, city?.id], // eslint-disable-line react-hooks/exhaustive-deps
   );
   // 동네별 가격 수준: 이번 검색에서 예약처로 확인한 총액만 (예상 금액은 넣지 않는다). 구역 안 2곳 이상일 때만 평균
   const spots = items.map((x) => ({ token: x.token, gps: x.gps, price: x.verified ? x.price : null }));
@@ -109,6 +127,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
   const [station, setStation] = useState<NearStation>(null);
   const stationLine = ring && station ? `🚇 가장 가까운 역: ${station.name} · 도보 약 ${walkMin(station.m)}분 (${Math.round(station.m)}m)` : null;
   const flip = (k: "freeCancel" | "rating45" | "stars4") => setChips((c) => ({ ...c, [k]: !c[k] }));
+  const boundsRef = useRef<[number, number, number, number] | null>(null);
 
   const chipRow = (
     <div className="tb-map-chips" role="group" aria-label="지도 조건">
@@ -159,8 +178,10 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
         <span className="tb-map-card-price">
           {pick.price !== null ? (
             <>
-              {!pick.verified && <em className="tb-est">예상</em>}
-              <b className={pick.token === low && pick.verified ? "low" : undefined}>{won(pick.price)}</b>
+              <b className={pick.token === low && pick.verified ? "low" : pick.verified ? undefined : "est"}>
+                {pick.verified ? "" : "~"}
+                {won(pick.price)}
+              </b>
               <small>
                 {" "}
                 · {nights}박 {pick.verified ? "세금 포함" : "예약처 확인 전"}
@@ -172,7 +193,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
         </span>
         {brief && <small className="tb-map-brief">{brief}</small>}
         {stationLine && <small className="tb-map-station">{stationLine}</small>}
-        <em className="tb-cmp">예약처별 총액 보기 &gt;</em>
+        <em className="tb-cmp">예약처 비교 · 상세 보기 ↗</em>
       </button>
     </div>
   );
@@ -183,7 +204,10 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
       ring={ring}
       vibe={vibe}
       focus={focus}
-      fit={modal ? { padding: 64, maxZoom: 14.5 } : undefined}
+      fit={modal || side ? { padding: 64, maxZoom: 14.5 } : undefined}
+      fitKey={fitKey}
+      onBounds={side ? (b) => (boundsRef.current = b) : undefined}
+      onBlank={side ? () => setSel(null) : undefined}
       tip={modal && pick?.gps ? { token: pick.token, lat: pick.gps[0], lng: pick.gps[1], title: pick.h.name, line: pick.price !== null ? `${pick.verified ? "" : "예상 "}${won(pick.price)} · ${nights}박 ${pick.verified ? "세금 포함" : "예약처 확인 전"}` : "예약처별 가격 보기" } : null}
       onTip={() => pick && onOpen(pick.h)}
       onPick={setSel}
@@ -192,6 +216,95 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
       onStation={setStation}
     />
   );
+
+  if (side) {
+    const area = () => {
+      const b = boundsRef.current;
+      if (!b || !onArea) return;
+      const [w, so, e, n] = b;
+      onArea(shown.filter((x) => x.gps![0] >= so && x.gps![0] <= n && x.gps![1] >= w && x.gps![1] <= e).map((x) => x.token));
+    };
+    const on = pick ? !!saved?.has(pick.token) : false;
+    const ph = pick ? pick.h.image || pick.h.images[0] || "" : "";
+    return (
+      <section className="tb-bigmap-in" aria-label={`${query.place} 숙소 지도`}>
+        {failed ? (
+          offBox
+        ) : (
+          <div className="tb-map-body">
+            {map}
+            {city && (
+              <div className="tb-bigmap-vibe">
+                <button type="button" className="tb-vibe-toggle" aria-pressed={vibeOn} onClick={() => setVibeOn((o) => !o)}>
+                  🎨 동네 분위기 {vibeOn ? "켜짐" : "꺼짐"}
+                </button>
+                {vibeOn &&
+                  VIBE_KEYS.filter((k) => city.zones.some((z) => z.vibe === k)).map((k) => (
+                    <button key={k} type="button" className="tb-vibe-chip" style={{ ["--vc" as string]: VIBES[k].color }} aria-pressed={vibePick === k} onClick={() => pickVibe(k)}>
+                      {VIBES[k].emoji} {VIBES[k].label}
+                    </button>
+                  ))}
+              </div>
+            )}
+            {onArea && (
+              <button type="button" className="tb-bigmap-area" onClick={area}>
+                이 지역에서 다시 검색
+              </button>
+            )}
+            {noMatch && <p className="tb-mapx-nomatch" role="status">{NO_MATCH}</p>}
+            {!shown.length && <p className="tb-map-empty">조건에 맞는 숙소가 지도에 없어요. 필터를 하나 풀어 보세요.</p>}
+            {pick && (
+              <div className="tb-mini">
+                <button type="button" className="tb-mini-x" aria-label="요약 닫기" onClick={() => setSel(null)}>
+                  ✕
+                </button>
+                <div className="tb-mini-top">
+                  {ph ? <img src={ph} alt="" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : <span className="tb-mini-noph" aria-hidden />}
+                  <div>
+                    <strong>{pick.h.name}</strong>
+                    <small>{[pick.h.stars ? `${pick.h.stars}성급` : pick.h.kind, pick.h.rating ? `후기 ${pick.h.rating.toFixed(1)}${pick.h.reviews ? ` (${pick.h.reviews.toLocaleString("ko-KR")})` : ""}` : ""].filter(Boolean).join(" · ")}</small>
+                    <p className="tb-mini-price">
+                      {pick.price !== null ? (
+                        <>
+                          <b className={pick.verified ? "ok" : "est"}>
+                            {pick.verified ? "" : "~"}
+                            {won(pick.price)}
+                          </b>
+                          <small> · {nights}박 {pick.verified ? "세금 포함 최저 총액" : "예약처 확인 전 금액"}</small>
+                        </>
+                      ) : (
+                        <small>가격은 상세에서 확인해요</small>
+                      )}
+                    </p>
+                    {brief && <small className="tb-map-brief">{brief}</small>}
+                  </div>
+                </div>
+                <div className="tb-mini-go">
+                  <button type="button" className="tb-mini-open" onClick={() => onOpen(pick.h)}>
+                    예약처 비교 · 상세 보기 ↗
+                  </button>
+                  {onSave && (
+                    <button type="button" className={`tb-mini-love${on ? " on" : ""}`} aria-pressed={on} onClick={() => onSave(pick.h)}>
+                      ♡ 찜
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            <p className="tb-bigmap-legend">
+              <span>
+                <i className="ok" aria-hidden /> 확인한 총액
+              </span>
+              <span>
+                <i className="est" aria-hidden /> ~예상 총액
+              </span>
+            </p>
+            {city && vibeOn && <small className="tb-bigmap-note">{VIBE_NOTE}</small>}
+          </div>
+        )}
+      </section>
+    );
+  }
 
   if (modal)
     return (

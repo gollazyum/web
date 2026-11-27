@@ -21,14 +21,23 @@ export type NearStation = { name: string; m: number } | null;
 export type MapFocus = { key: string; box: [[number, number], [number, number]] } | null;
 // tip: 고른 핀 위에 띄우는 작은 요약 (넓은 지도 창). 누르면 onTip
 export type MapTip = { token: string; lat: number; lng: number; title: string; line: string } | null;
-type Props = { token: string; pins: MapPin[]; ring: [number, number] | null; vibe: VibeView; focus?: MapFocus; tip?: MapTip; onTip?: () => void; fit?: { padding: number; maxZoom: number }; onPick: (token: string) => void; onVibe?: (k: VibeKey) => void; onFail: (why: "rejected" | "error") => void; onStation?: (s: NearStation) => void };
+// fitKey: 바뀌면 핀 전체를 다시 맞춘다 (새 검색 결과를 같은 지도에 다시 그릴 때. 지도는 새로 만들지 않는다)
+// onBounds: 지도를 움직일 때마다 지금 보이는 범위 [서, 남, 동, 북]. onBlank: 핀이 아닌 빈 곳을 눌렀을 때
+// extras: 상세 페이지 편의시설 작은 핀 (누르면 이름·도보 분)
+export type ExtraPin = { id: string; lat: number; lng: number; kind: string; title: string; sub: string };
+type Props = { token: string; pins: MapPin[]; ring: [number, number] | null; vibe: VibeView; focus?: MapFocus; tip?: MapTip; onTip?: () => void; fit?: { padding: number; maxZoom: number }; fitKey?: string; onPick: (token: string) => void; onVibe?: (k: VibeKey) => void; onFail: (why: "rejected" | "error") => void; onStation?: (s: NearStation) => void; onBounds?: (b: [number, number, number, number]) => void; onBlank?: () => void; extras?: ExtraPin[] };
 
 const RING_SRC = "tb-rings";
 const STATION_SRC = "tb-station-line";
 const WALK_MIN_ZOOM = 13.2; // 도보 5·10분 원은 이 줌부터
 const STATION_MIN_ZOOM = 13;
 
-export default function StayMap({ token, pins, ring, vibe, focus = null, tip = null, onTip, fit, onPick, onVibe, onFail, onStation }: Props) {
+export default function StayMap({ token, pins, ring, vibe, focus = null, tip = null, onTip, fit, fitKey, onPick, onVibe, onFail, onStation, onBounds, onBlank, extras }: Props) {
+  const boundsRef = useRef(onBounds);
+  boundsRef.current = onBounds;
+  const blankRef = useRef(onBlank);
+  blankRef.current = onBlank;
+  const extraMarks = useRef<mapboxgl.Marker[]>([]);
   const ringRef = useRef(ring);
   ringRef.current = ring;
   const stationRef = useRef(onStation);
@@ -123,6 +132,21 @@ export default function StayMap({ token, pins, ring, vibe, focus = null, tip = n
       stationRef.current?.(hit ? { name: hit.name, m: hit.m } : null);
     };
     m.on("idle", findStation);
+    const sendBounds = () => {
+      const b = m.getBounds();
+      if (b) boundsRef.current?.([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
+    };
+    m.on("moveend", sendBounds);
+    m.on("load", sendBounds);
+    m.on("click", () => blankRef.current?.());
+    // 목록·지도 폭을 바꾸면(목록+지도 ↔ 지도만) 지도는 그대로 두고 크기만 다시 잰다
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && box.current) {
+      ro = new ResizeObserver(() => {
+        if (box.current && box.current.offsetWidth > 0) m.resize();
+      });
+      ro.observe(box.current);
+    }
     m.on("zoom", fade);
     m.on("load", settle);
     m.on("moveend", settle);
@@ -130,7 +154,11 @@ export default function StayMap({ token, pins, ring, vibe, focus = null, tip = n
     m.on("resize", settle);
     const ms = markers.current;
     const ts = tags.current;
+    const xs = extraMarks.current;
     return () => {
+      ro?.disconnect();
+      xs.forEach((mk) => mk.remove());
+      xs.length = 0;
       ts.forEach((mk) => mk.remove());
       ts.length = 0;
       ms.forEach((mk) => mk.remove());
@@ -183,6 +211,42 @@ export default function StayMap({ token, pins, ring, vibe, focus = null, tip = n
       m.once("load", () => fitAll(m));
     }
   }, [pins]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 새 검색 결과: 같은 지도에서 핀 전체를 다시 맞춘다
+  const lastFit = useRef(fitKey);
+  useEffect(() => {
+    const m = map.current;
+    if (!m || fitKey === lastFit.current) return;
+    lastFit.current = fitKey;
+    if (pinsRef.current.length) fitAll(m);
+  }, [fitKey, pins.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 편의시설 작은 핀 (상세 페이지 [지도에 표시]를 켰을 때만)
+  useEffect(() => {
+    const m = map.current;
+    extraMarks.current.forEach((mk) => mk.remove());
+    extraMarks.current = [];
+    if (!m || !extras?.length) return;
+    for (const x of extras) {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = `tb-apin ${x.kind}`;
+      el.setAttribute("aria-label", `${x.title} ${x.sub}`);
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        popup.current?.remove();
+        const box = document.createElement("div");
+        box.className = "tb-apin-tip";
+        const t = document.createElement("strong");
+        t.textContent = x.title;
+        const l = document.createElement("small");
+        l.textContent = x.sub;
+        box.append(t, l);
+        popup.current = new mapboxgl.Popup({ offset: 14, closeButton: false, className: "tb-pin-pop", maxWidth: "220px" }).setLngLat([x.lng, x.lat]).setDOMContent(box).addTo(m);
+      });
+      extraMarks.current.push(new mapboxgl.Marker({ element: el, anchor: "center" }).setLngLat([x.lng, x.lat]).addTo(m));
+    }
+  }, [extras]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function fitAll(m: mapboxgl.Map) {
     const ps = pinsRef.current;
