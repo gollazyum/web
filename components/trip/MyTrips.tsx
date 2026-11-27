@@ -6,6 +6,8 @@ import { guestText, nightsOf } from "@/lib/trip";
 import { StayRow } from "./StayList";
 import { IconBed } from "./icons";
 import { TripActions } from "./TripRecheck";
+import { useState } from "react";
+import { isTracked, setTrack, TRACK_MAX, useTracked } from "./PriceWatch";
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
 
@@ -22,6 +24,7 @@ type Props<T extends TripItem> = {
 // ('빠진 건 없나요?' 체크는 2026-11-26 북유럽 정리 때 뺐다)
 export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onMoreStays }: Props<T>) {
   const today = localToday();
+  const tracked = useTracked();
   const trips = groupTrips(saved, today);
 
   if (!trips.length)
@@ -66,6 +69,7 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onM
                 {t.items.map((s) => (
                   <div key={s.hotel.token}>
                     <StayRow h={s.hotel} query={s.query} saved onSave={() => onSave(s)} onOpen={() => onOpen(s)} />
+                    {!t.past && <TrackToggle saved={saved} item={s} on={isTracked(saved, s, tracked)} />}
                     {(s.query.checkIn !== t.checkIn || s.query.checkOut !== t.checkOut || s.query.place !== t.city) && (
                       <p className="tb-saved-q">
                         {s.query.place} · {md(s.query.checkIn)}–{md(s.query.checkOut)} · {guestText(s.query)}
@@ -86,6 +90,33 @@ export function MyTrips<T extends TripItem>({ saved, onOpen, onSave, onHome, onM
         );
       })}
     </>
+  );
+}
+
+// 찜 카드 아래 [가격 추적 켜기/끄기]. 켠 숙소만 하루 한 번 자동으로 다시 확인한다 (최대 TRACK_MAX곳)
+function TrackToggle<T extends TripItem>({ saved, item, on }: { saved: T[]; item: T; on: boolean }) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="tb-track">
+      <button
+        type="button"
+        aria-pressed={on}
+        className={`tb-track-btn${on ? " on" : ""}`}
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          const ok = await setTrack(saved, item);
+          setBusy(false);
+          setNote(ok ? "" : `가격 추적은 ${TRACK_MAX}곳까지 켤 수 있어요. 다른 숙소를 먼저 꺼 주세요`);
+        }}
+      >
+        <i aria-hidden />
+        {busy ? "확인하는 중" : on ? "가격 추적 끄기" : "가격 추적 켜기"}
+      </button>
+      <small>{on ? "추적 중 · 하루 한 번 가격을 다시 확인해요" : "켜면 찜할 때보다 내려갔는지 알려 드려요"}</small>
+      {note && <p className="tb-track-note">{note}</p>}
+    </div>
   );
 }
 

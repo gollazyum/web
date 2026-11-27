@@ -11,9 +11,9 @@ import { HOTEL_SELLERS_LIVE, HOTEL_SELLERS_PENDING, sellerDef, sellerSearchUrl }
 import type { HotelOption } from "@/lib/hotels";
 import { criteriaWeights, EMPTY_PROFILE, profileLines, readSaved, TASTE_KEY, withProfile, type TasteProfile, type TasteSaved, type TasteStatus } from "@/lib/taste";
 import { site } from "@/lib/site";
-import { HOME_PLACES, photoUrl } from "@/lib/home-places";
+import { HOME_HERO_PHOTO, HOME_PLACES, photoUrl } from "@/lib/home-places";
 import { hotelFromPreview, hotelFromSeed, hotelHref, hotelQueryOf, hotelTokenOf, readPreview, savePreview, type HotelSeed } from "@/lib/hotel-link";
-import { HomeWatchCard } from "./HomeWatchCard";
+import { HomeExampleCard } from "./HomeWatchCard";
 import { HomeGuard } from "./HomeGuard";
 import type { CityLow } from "@/lib/home-cities";
 
@@ -107,7 +107,7 @@ function warmChunks() {
 }
 import { IconBack, IconBed, IconChatStar, IconClose, IconCompass, IconHeart, IconHome, IconOut, IconPlane, IconPlus, IconSpark, IconUp, IconUser } from "./icons";
 import { PriceWatchBox, useDrops } from "./PriceWatch";
-import { BookingWatchBox, RegisterHint } from "./BookingWatch";
+import { BookingWatchBox } from "./BookingWatch";
 import { MySettings } from "./MySettings";
 import { bumpAiCount } from "@/lib/ui-prefs";
 
@@ -1086,19 +1086,15 @@ export function TripApp() {
                   {brand.tentative && <em className="tb-provisional">가칭</em>}
                 </span>
               </header>
-              {/* 2026-11-27 PR 2/3: 히어로 2단. PC(768px+) 왼쪽 헤드라인·설명 / 오른쪽 가격 지킴이 카드, 아래 검색 바.
-                  휴대폰은 헤드라인 → 검색 바(예시 칩·신뢰 문구) → 카드 순서로 첫 화면에서 바로 검색한다. 홈에 들어올 때 유료 검색 0회 */}
-              <section className="tb-hh">
-                <div className="tb-hh-copy">
-                  <h1 className="tb-hh-title">예약하고 끝나지 않아요</h1>
-                  <p className="tb-hh-sub">주요 예약처의 세금 포함 총액을 한 번에 비교하고, 예약한 뒤에도 체크인 날까지 가격을 지켜봐요. 더 싸지면 무료 취소 기한 안에 알려드려요.</p>
+              {/* 2026-11-27 B안: 첫 화면은 '총액 비교 & 예약' 하나만. 여행 사진 위 헤드라인·설명, 바로 아래 통합 검색 바(총액으로 찾기·예시 칩·안내).
+                  가격 지킴이 카드는 아래 '예약하고 끝나지 않아요' 고정 예시로 옮겼다. 홈에 들어올 때 유료 검색 0회 */}
+              <section className="tb-hh hero-b">
+                <div className="tb-hh-copy tb-hh-photo" style={{ backgroundImage: `url(${photoUrl(HOME_HERO_PHOTO, 1600, 700)})` }}>
+                  <h1 className="tb-hh-title">사이트마다 다른 숙소 총액, 한 화면에서 비교해 보세요</h1>
+                  <p className="tb-hh-sub">예약처별 세금 포함 총액을 비교해 가장 유리한 곳을 찾고, 예약 후 가격 변동까지 이어서 지켜봐요.</p>
                 </div>
                 <div className="tb-hh-search" ref={homeSearchRef}>
-                  <RegisterHint />
                   <HomeSearch kind={kind} onKind={setKind} stay={prefStay} flight={prefFlight} onStay={homeStay} onFlight={homeFlight} onTalk={(t) => send(t)} />
-                </div>
-                <div className="tb-hh-card">
-                  <HomeWatchCard onGo={(href) => router.push(href)} onTrips={() => setTab("trips")} onExampleCity={() => placeStay("도쿄")} />
                 </div>
               </section>
               <HomeGuard
@@ -1175,24 +1171,25 @@ export function TripApp() {
                   ))}
                 </div>
               </section>
-              {/* 3단계 가격 방어: 상자 없이 먹색 1px 선 + 3열 글자. 아래 숫자는 설명용 예시라 캡션을 꼭 붙인다 */}
-              <section className="tb-sec tb-steps" aria-label="가격을 지키는 3단계">
-                <h2>단 한 번의 검색으로 끝내고, 체크인까지 지키는 가격</h2>
-                <ol>
-                  {HOME_STEPS.map((st) => (
-                    <li key={st.n}>
-                      <span className="tb-steps-n">{st.n}</span>
-                      <strong>{st.title}</strong>
-                      <p>{st.text}</p>
-                    </li>
-                  ))}
-                </ol>
-                <p className="tb-steps-ex">
-                  <span>
-                    예약 당시 총액 <b>342,000원</b> → 다시 확인한 최저가 <b>298,000원</b> · <b>44,000원</b> 절약 가능
-                  </span>
-                  <small>이해를 돕기 위한 예시 화면이에요</small>
-                </p>
+              {/* 예약하고 끝나지 않아요: 3단계 설명 + 기능 이해용 고정 예시 그래프 (실시간 연동·유료 호출 없음, 예시라고 꼭 밝힌다) */}
+              <section className="tb-sec tb-after" aria-labelledby="tb-after-h">
+                <div className="tb-after-copy">
+                  <h2 id="tb-after-h">예약하고 끝나지 않아요</h2>
+                  <p className="tb-after-sub">무료 취소로 예약한 숙소를 등록하면 체크인 전까지 가격을 다시 확인하고, 더 싸지면 취소 기한 안에 알려 드려요.</p>
+                  <ol className="tb-steps-ol">
+                    {HOME_STEPS.map((st) => (
+                      <li key={st.n}>
+                        <span className="tb-steps-n">{st.n}</span>
+                        <strong>{st.title}</strong>
+                        <p>{st.text}</p>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                <figure className="tb-after-ex">
+                  <HomeExampleCard onTrips={() => setTab("trips")} onExampleCity={() => placeStay("도쿄")} />
+                  <figcaption className="tb-ex-cap">이해를 돕기 위한 예시 화면이에요</figcaption>
+                </figure>
               </section>
               <ul className="tb-trust" aria-label="이용 안내">
                 {HOME_TRUST.map((t) => (
@@ -1296,7 +1293,7 @@ export function TripApp() {
           </main>
         )}
 
-        {tab === "trips" && <MyTripsTab onRegister={() => prefill("stay", {})} saved={saved} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => goHome("/")} onFlight={tripFlight} onMoreStays={(t) => goHome(stayHref({ place: t.city, checkIn: t.checkIn, checkOut: t.checkOut, adults: t.adults, budget: 0, taste: "" }))} />}
+        {tab === "trips" && <MyTripsTab saved={saved} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => goHome("/")} onFlight={tripFlight} onMoreStays={(t) => goHome(stayHref({ place: t.city, checkIn: t.checkIn, checkOut: t.checkOut, adults: t.adults, budget: 0, taste: "" }))} />}
         {tab === "my" && <My profile={taste.profile} onTaste={() => setOnb(true)} onTrips={() => setTab("trips")} />}
         {tab === "hotel" && hotelToken && hotelQ && (
           <HotelPage
@@ -2123,7 +2120,7 @@ function FlightResult({ m, onAll, onRefine, onRetry, onAiRetry, onPrefill }: Msg
 
 // ---------- 내 여행 · 마이 ----------
 // 내 여행: 맨 위에 예약 내역 캡처 입구(곧 열려요), 그 아래 공유받은 여행과 담아 둔 숙소
-function MyTripsTab({ saved, onOpen, onSave, onHome, onFlight, onMoreStays, onRegister }: { onRegister: () => void; saved: Saved[]; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void; onFlight: (t: Trip) => void; onMoreStays: (t: Trip) => void }) {
+function MyTripsTab({ saved, onOpen, onSave, onHome, onFlight, onMoreStays }: { saved: Saved[]; onOpen: (s: Saved) => void; onSave: (s: Saved) => void; onHome: () => void; onFlight: (t: Trip) => void; onMoreStays: (t: Trip) => void }) {
   const [shared, setShared] = useState<string | null>(null);
   useEffect(() => setShared(new URLSearchParams(window.location.search).get("trip")), []);
   // 내 여행 탭: 맨 위에 찜한 숙소 가격 변화(하루 한 번 다시 확인), 그 아래 여행별 찜 목록.
@@ -2131,7 +2128,7 @@ function MyTripsTab({ saved, onOpen, onSave, onHome, onFlight, onMoreStays, onRe
   return (
     <main className="tb-page">
       <h1>내 여행</h1>
-      <BookingWatchBox onRegister={onRegister} />
+      <BookingWatchBox saved={saved} />
       <PriceWatchBox saved={saved} onOpen={onOpen} />
       <SharedTripView code={shared} />
       <MyTrips saved={saved} onOpen={onOpen} onSave={onSave} onHome={onHome} onFlight={onFlight} onMoreStays={onMoreStays} />
