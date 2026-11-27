@@ -85,8 +85,12 @@ async function fetchOverpass(lat: number, lng: number): Promise<{ data: Amenitie
 }
 
 // 저장분 먼저, 없으면 Overpass 한 번. 실패는 null (0곳으로 저장하지 않는다)
+// 저장 키에 스키마 버전을 붙인다 (2026-11-27 v2): 예전 버그 때 0곳으로 잘못 저장됐을 수 있는 행은 다시 읽지 않고 새로 한 번 받는다
+export const CACHE_VERSION = "v2";
+export const amenityCacheKey = (lat: number, lng: number) => `${CACHE_VERSION}:${gridKey(lat, lng)}`;
+
 export async function nearbyAmenities(lat: number, lng: number): Promise<{ data: Amenities | null; hit: boolean; why?: string }> {
-  const key = gridKey(lat, lng);
+  const key = amenityCacheKey(lat, lng);
   if (supabaseOn()) {
     const c = await readCache(key).catch(() => null);
     if (c) return { data: c, hit: true };

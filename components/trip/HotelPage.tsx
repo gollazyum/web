@@ -13,6 +13,7 @@ import type { ExtraPin, NearStation } from "./StayMap";
 import { AMENITY_KO, amenityLine, gridKey, type Amenities } from "@/lib/amenity-shape";
 import { getVerified, usePriceVersion } from "./prices";
 import { IconBack } from "./icons";
+import { hotelNameKo } from "@/lib/hotelText";
 
 // 전용 숙소 상세 페이지 (/hotels/[propertyToken]).
 // 위: 머리 줄(숙소명·성급·평점·공유) + 사진(왼쪽 대표 1장 + 오른쪽 4칸). 아래: 왼쪽 60% 검증 · 오른쪽 40% 고정 가격 결정 (SellerBody page).
@@ -62,6 +63,8 @@ export function HotelPage({ hotel: base, token, query, saved, onSave, onBack, ba
   const nights = nightsOf(query);
   const [station, setStation] = useState<NearStation>(null);
   const onInfo = useCallback((i: HotelInfo) => setInfo(i), []);
+  // 한글 이름: 알려진 체인 이름을 한글로 바꿀 수 있을 때만 영문 이름 아래에 함께 (모르면 영문만)
+  const koName = hotel.name && hotelNameKo(hotel.name) !== hotel.name ? hotelNameKo(hotel.name) : null;
   const photos = (hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : []).slice(0, 5);
   const v = getVerified(hotel.token, query);
   const low = v?.total ?? null;
@@ -143,6 +146,7 @@ export function HotelPage({ hotel: base, token, query, saved, onSave, onBack, ba
       <header className="tb-hp-head">
         <div>
           <h1>{hotel.name || <span className="tb-hp-skel" aria-label="숙소 이름을 불러오는 중" />}</h1>
+          {koName && <p className="tb-hp-ko" lang="ko">{koName}</p>}
           <p>
             {[hotel.stars ? `${hotel.stars}성급` : hotel.kind, hotel.rating ? `후기 ${hotel.rating.toFixed(1)}${hotel.reviews ? ` (${hotel.reviews.toLocaleString("ko-KR")})` : ""}` : "", query.place].filter(Boolean).join(" · ")}
           </p>
@@ -156,7 +160,7 @@ export function HotelPage({ hotel: base, token, query, saved, onSave, onBack, ba
       </header>
       <div className={`tb-hp-gallery n${Math.min(photos.length, 5)}`}>
         {photos.length ? (
-          photos.map((src, i) => <img key={src + i} src={src} alt={i === 0 ? `${hotel.name} 대표 사진` : ""} loading={i === 0 ? "eager" : "lazy"} onError={(e) => (e.currentTarget.style.visibility = "hidden")} />)
+          photos.map((src, i) => <img key={src + i} src={src} alt={hotel.name ? `${hotel.name} 사진 ${i + 1}` : ""} loading={i === 0 ? "eager" : "lazy"} onError={(e) => (e.currentTarget.style.visibility = "hidden")} />)
         ) : (
           <div className="tb-hp-nophoto">
             <small>사진을 불러오는 중이에요</small>
