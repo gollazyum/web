@@ -14,6 +14,8 @@ import { AMENITY_KO, amenityLine, gridKey, type Amenities } from "@/lib/amenity-
 import { getVerified, usePriceVersion } from "./prices";
 import { IconBack } from "./icons";
 import { hotelNameKo } from "@/lib/hotelText";
+import { HotelGallery } from "./HotelGallery";
+import { HotelFacts, SimilarHotels } from "./HotelExtras";
 
 // 전용 숙소 상세 페이지 (/hotels/[propertyToken]).
 // 위: 머리 줄(숙소명·성급·평점·공유) + 사진(왼쪽 대표 1장 + 오른쪽 4칸). 아래: 왼쪽 60% 검증 · 오른쪽 40% 고정 가격 결정 (SellerBody page).
@@ -31,6 +33,7 @@ type Props = {
   reason?: string;
   peers?: Peer[];
   spots?: PricedSpot[]; // 같은 검색 결과(확인 총액만) — '동네 대비 가격' 한 줄용. 새 탭에서는 없다
+  pool?: HotelOption[]; // 같은 검색 결과 숙소 — '비슷한 후보 숙소'용 (유료 호출 0회). 새 탭에서는 없다
 };
 
 const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
@@ -56,7 +59,7 @@ function fill(h: HotelOption, info: HotelInfo | null): HotelOption {
   };
 }
 
-export function HotelPage({ hotel: base, token, query, saved, onSave, onBack, backLabel, onGo, onToast, reason, peers, spots }: Props) {
+export function HotelPage({ hotel: base, token, query, saved, onSave, onBack, backLabel, onGo, onToast, reason, peers, spots, pool }: Props) {
   usePriceVersion();
   const [info, setInfo] = useState<HotelInfo | null>(null);
   const hotel = useMemo(() => fill(base ?? blank(token), info), [base, token, info]);
@@ -65,7 +68,9 @@ export function HotelPage({ hotel: base, token, query, saved, onSave, onBack, ba
   const onInfo = useCallback((i: HotelInfo) => setInfo(i), []);
   // 한글 이름: 알려진 체인 이름을 한글로 바꿀 수 있을 때만 영문 이름 아래에 함께 (모르면 영문만)
   const koName = hotel.name && hotelNameKo(hotel.name) !== hotel.name ? hotelNameKo(hotel.name) : null;
-  const photos = (hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : []).slice(0, 5);
+  // 사진: 숙소 응답에 온 사진(최대 30장, 큰 사진 포함)이 목록 사진보다 많으면 그것으로
+  const listPhotos = (hotel.images.length ? hotel.images : hotel.image ? [hotel.image] : []).map((u) => ({ s: u, l: u }));
+  const photos = info?.photos && info.photos.length >= listPhotos.length ? info.photos : listPhotos;
   const v = getVerified(hotel.token, query);
   const low = v?.total ?? null;
   const brief = useMemo(() => {
@@ -158,16 +163,9 @@ export function HotelPage({ hotel: base, token, query, saved, onSave, onBack, ba
           공유
         </button>
       </header>
-      <div className={`tb-hp-gallery n${Math.min(photos.length, 5)}`}>
-        {photos.length ? (
-          photos.map((src, i) => <img key={src + i} src={src} alt={hotel.name ? `${hotel.name} 사진 ${i + 1}` : ""} loading={i === 0 ? "eager" : "lazy"} onError={(e) => (e.currentTarget.style.visibility = "hidden")} />)
-        ) : (
-          <div className="tb-hp-nophoto">
-            <small>사진을 불러오는 중이에요</small>
-          </div>
-        )}
-      </div>
-      <SellerBody page hotel={hotel} query={query} saved={saved} onSave={() => onSave(hotel)} onGo={onGo} reason={reason} peers={peers} location={location} onInfo={onInfo} />
+      <HotelGallery photos={photos} name={hotel.name} />
+      <SellerBody page hotel={hotel} query={query} saved={saved} onSave={() => onSave(hotel)} onGo={onGo} reason={reason} peers={peers} location={location} onInfo={onInfo} facts={<HotelFacts hotel={hotel} info={info} />} />
+      {hotel.name && <SimilarHotels hotel={hotel} query={query} pool={pool} />}
     </main>
   );
 }

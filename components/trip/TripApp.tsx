@@ -1310,6 +1310,7 @@ export function TripApp() {
             reason={hotelReason}
             peers={hotelPeers}
             spots={hotelSpots}
+            pool={hotelFrom?.options}
           />
         )}
 

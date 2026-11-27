@@ -1,5 +1,6 @@
 "use client";
 
+import type { CityView } from "@/lib/city-view";
 import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl from "mapbox-gl";
 import { useEffect, useRef } from "react";
@@ -25,14 +26,16 @@ export type MapTip = { token: string; lat: number; lng: number; title: string; l
 // onBounds: 지도를 움직일 때마다 지금 보이는 범위 [서, 남, 동, 북]. onBlank: 핀이 아닌 빈 곳을 눌렀을 때
 // extras: 상세 페이지 편의시설 작은 핀 (누르면 이름·도보 분)
 export type ExtraPin = { id: string; lat: number; lng: number; kind: string; title: string; sub: string };
-type Props = { token: string; pins: MapPin[]; ring: [number, number] | null; vibe: VibeView; focus?: MapFocus; tip?: MapTip; onTip?: () => void; fit?: { padding: number; maxZoom: number }; fitKey?: string; onPick: (token: string) => void; onVibe?: (k: VibeKey) => void; onFail: (why: "rejected" | "error") => void; onStation?: (s: NearStation) => void; onBounds?: (b: [number, number, number, number]) => void; onBlank?: () => void; extras?: ExtraPin[] };
+type Props = { token: string; pins: MapPin[]; ring: [number, number] | null; vibe: VibeView; focus?: MapFocus; tip?: MapTip; onTip?: () => void; fit?: { padding: number; maxZoom: number }; fitKey?: string; onPick: (token: string) => void; onVibe?: (k: VibeKey) => void; onFail: (why: "rejected" | "error") => void; onStation?: (s: NearStation) => void; onBounds?: (b: [number, number, number, number]) => void; onBlank?: () => void; extras?: ExtraPin[]; start?: CityView | null };
 
 const RING_SRC = "tb-rings";
 const STATION_SRC = "tb-station-line";
 const WALK_MIN_ZOOM = 13.2; // 도보 5·10분 원은 이 줌부터
 const STATION_MIN_ZOOM = 13;
 
-export default function StayMap({ token, pins, ring, vibe, focus = null, tip = null, onTip, fit, fitKey, onPick, onVibe, onFail, onStation, onBounds, onBlank, extras }: Props) {
+export default function StayMap({ token, pins, ring, vibe, focus = null, tip = null, onTip, fit, fitKey, onPick, onVibe, onFail, onStation, onBounds, onBlank, extras, start = null }: Props) {
+  const startRef = useRef(start);
+  startRef.current = start;
   const boundsRef = useRef(onBounds);
   boundsRef.current = onBounds;
   const blankRef = useRef(onBlank);
@@ -69,8 +72,8 @@ export default function StayMap({ token, pins, ring, vibe, focus = null, tip = n
         container: box.current,
         style: "mapbox://styles/mapbox/streets-v12",
         pitch: 0,
-        center: [pins[0]?.lng ?? 135.5, pins[0]?.lat ?? 34.68],
-        zoom: 13,
+        center: start ? [start.lng, start.lat] : [pins[0]?.lng ?? 135.5, pins[0]?.lat ?? 34.68],
+        zoom: start ? start.zoom : 13,
         attributionControl: true,
         cooperativeGestures: false,
         language: "ko",
@@ -251,6 +254,14 @@ export default function StayMap({ token, pins, ring, vibe, focus = null, tip = n
   function fitAll(m: mapboxgl.Map) {
     const ps = pinsRef.current;
     if (!ps.length) return;
+    // 도시 이름으로 찾은 결과: 교외 핀까지 다 넣지 않고 도심 중심·도심 줌으로 (휴대폰처럼 좁은 화면은 조금 더 넓게)
+    const cv = startRef.current;
+    if (cv) {
+      m.resize();
+      const narrow = (box.current?.clientWidth ?? 800) < 600;
+      m.jumpTo({ center: [cv.lng, cv.lat], zoom: cv.zoom - (narrow ? 0.6 : 0) });
+      return;
+    }
     const b = new mapboxgl.LngLatBounds();
     ps.forEach((p) => b.extend([p.lng, p.lat]));
     m.resize();

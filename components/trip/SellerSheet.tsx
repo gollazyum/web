@@ -88,7 +88,7 @@ const sellerDiff = (token: string, q: StayQuery, cost: number) => priceChange(sa
 
 // page: 전용 숙소 상세 페이지 (/hotels/[propertyToken]) 본문. location: 그 페이지의 위치 지도 칸 (지도·가까운 역·편의시설)
 // onInfo: 가격 조회에 같이 온 숙소 기본 정보 (공유 링크로 들어와 이름·사진을 모를 때 채운다)
-export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimilar, peers = [], onBigMap, page, location, onInfo }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption; page?: boolean; location?: React.ReactNode; onInfo?: (info: HotelInfo) => void }) {
+export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimilar, peers = [], onBigMap, page, location, onInfo, facts }: Omit<Props, "hotel" | "onClose"> & { hotel: HotelOption; page?: boolean; location?: React.ReactNode; onInfo?: (info: HotelInfo) => void; facts?: React.ReactNode }) {
   const hotelRef = useRef(hotel);
   hotelRef.current = hotel;
   const infoRef = useRef(onInfo);
@@ -381,6 +381,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
       <div className="tb-hp-body">
         <div className="tb-hp-left">
           {reasonBox}
+          {facts}
           {loaded ? <section className="tb-hp-sec">{checkBox}</section> : null}
           {topicSec}
           {location ? (
@@ -388,6 +389,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
               <h3>걸어서 5분·10분 거리</h3>
               {location}
               <VibeTag gps={hotel.gps} detail />
+              {nearList && <h4 className="tb-hp-near-h">주요 장소까지 거리·예상 시간</h4>}
               {nearList}
             </section>
           ) : (

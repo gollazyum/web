@@ -1,5 +1,6 @@
 "use client";
 
+import { cityViewOf } from "@/lib/city-view";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HotelOption } from "@/lib/hotels";
@@ -208,6 +209,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
       focus={focus}
       fit={modal || side ? { padding: 64, maxZoom: 14.5 } : undefined}
       fitKey={fitKey}
+      start={initial ? null : cityViewOf(query.place)}
       onBounds={side ? (b) => (boundsRef.current = b) : undefined}
       onBlank={side ? () => setSel(null) : undefined}
       tip={modal && pick?.gps ? { token: pick.token, lat: pick.gps[0], lng: pick.gps[1], title: pick.h.name, line: pick.price !== null ? `${pick.verified ? "" : "예상 "}${won(pick.price)} · ${nights}박 ${pick.verified ? "세금 포함" : "예약처 확인 전"}` : "예약처별 가격 보기" } : null}
