@@ -27,6 +27,23 @@ function rateLimited(ip: string): boolean {
   return entry.count > LIMIT_PER_WINDOW;
 }
 
+// 전용 숙소 상세 페이지의 새 가격 조회(저장된 가격이 없을 때만 센다): 한 접속 주소당 하루 70번 (비정상 봇 방어용).
+// 저장된 가격을 다시 쓰는 건 세지 않는다. 횟수는 서버 인스턴스마다 따로 센다
+export const DETAIL_DAILY_CAP = 70;
+const daily = new Map<string, { count: number; day: string }>();
+
+function dailyCapped(key: string, max: number): boolean {
+  const day = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10); // 한국 날짜
+  const e = daily.get(key);
+  if (!e || e.day !== day) {
+    if (daily.size > 20_000) daily.clear();
+    daily.set(key, { count: 1, day });
+    return false;
+  }
+  e.count += 1;
+  return e.count > max;
+}
+
 export function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -131,7 +148,8 @@ export async function serpSearch<T>(
   shape: (json: Record<string, unknown>, extra: Record<string, unknown> | null, follow: Record<string, unknown> | null) => T,
   extra?: Record<string, string> | ((json: Record<string, unknown>) => Record<string, string> | null),
   // follow: 첫 결과를 받은 뒤 다음 쪽을 한 번 더 이어서 받는다 (인기 도시 숙소 40곳). 다음 쪽이 없으면 부르지 않는다
-  opts: { fresh?: boolean; onFresh?: (data: T) => void; ttlSec?: number; follow?: (json: Record<string, unknown>) => Record<string, string> | null } = {},
+  // dailyCap: 새로 검색할 때만 세는 하루 상한 (상세 페이지 가격 조회)
+  opts: { fresh?: boolean; onFresh?: (data: T) => void; ttlSec?: number; follow?: (json: Record<string, unknown>) => Record<string, string> | null; dailyCap?: { scope: string; max: number } } = {},
 ): Promise<Response> {
   const key = process.env.SERPAPI_API_KEY;
   if (!key) return Response.json({ error: "not_configured" }, { status: 503 });
@@ -142,6 +160,7 @@ export async function serpSearch<T>(
   try {
     const load = async (): Promise<T | NoStore<T>> => {
       if (rateLimited(ip)) throw new SearchFail("rate_limited");
+      if (opts.dailyCap && dailyCapped(`${opts.dailyCap.scope}:${ip}`, opts.dailyCap.max)) throw new SearchFail("rate_limited");
       const json = await call(params, key);
       let more: Record<string, unknown> | null = null;
       let partial = false;

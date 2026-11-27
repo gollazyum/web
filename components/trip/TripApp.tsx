@@ -12,6 +12,8 @@ import type { HotelOption } from "@/lib/hotels";
 import { criteriaWeights, EMPTY_PROFILE, profileLines, readSaved, TASTE_KEY, withProfile, type TasteProfile, type TasteSaved, type TasteStatus } from "@/lib/taste";
 import { site } from "@/lib/site";
 import { HOME_PLACES, photoUrl } from "@/lib/home-places";
+import { hotelFromPreview, hotelFromSeed, hotelHref, hotelQueryOf, hotelTokenOf, readPreview, savePreview, type HotelSeed } from "@/lib/hotel-link";
+import { HomeHeroCard } from "./HomeHeroCard";
 
 // PC 홈 대표 사진: 인기 여행지 카드와 같은 도쿄 사진
 const HOME_HERO_TOKYO = HOME_PLACES.find((p) => p.name === "도쿄")?.photo ?? HOME_PLACES[0].photo;
@@ -92,6 +94,7 @@ const SharedTripView = lazy(() => import("./TripRecheck").then((m) => m.SharedTr
 const MapPanel = lazy(() => import("./MapPanel").then((m) => m.MapPanel));
 const MyTrips = lazy(() => import("./MyTrips").then((m) => m.MyTrips));
 const ClearHistory = lazy(() => import("./ClearHistory").then((m) => m.ClearHistory));
+const HotelPage = lazy(() => import("./HotelPage").then((m) => m.HotelPage));
 let warmed = false;
 function warmChunks() {
   if (warmed) return;
@@ -303,6 +306,14 @@ export function TripApp() {
   // 가격 핀 지도를 연 결과 (null이면 닫힘). 휴대폰은 전체 화면, PC는 오른쪽 패널. 지도는 이때만 불러온다 (Mapbox 지도 로드 과금)
   const [mapFor, setMapFor] = useState<string | null>(null);
   const [mapSel, setMapSel] = useState<string | null>(null); // 지도를 열 때 골라 둘 숙소 (상세의 [크게 보기])
+  // PC 홈 숙소 결과: [목록 | 목록+지도 | 지도만]. 기본은 목록+지도. 큰 지도는 처음 보일 때 한 번만 만들고, 목록만 볼 때는 숨겨 둔다 (Mapbox 지도 로드 1번)
+  const [rview, setRview] = useState<"list" | "split" | "map">("split");
+  const [bigMapOn, setBigMapOn] = useState(false);
+  const [shownList, setShownList] = useState<HotelOption[] | null>(null); // 목록에서 정렬·필터를 거친 숙소 (지도 핀)
+  const [hoverTok, setHoverTok] = useState<string | null>(null);
+  const [areaOnly, setAreaOnly] = useState<Set<string> | null>(null); // [이 지역에서 다시 검색]: 지도 범위 안 숙소만
+  // 상세 페이지에 앱 안에서 들어왔는지 (휴대폰: 뒤로 가기로 목록·지도와 스크롤 위치를 그대로 되돌린다)
+  const inAppHotel = useRef(false);
   const { saved, toggle, upgrade } = useSaved();
   const drops = useDrops(saved); // 찜한 숙소 중 가격이 내려간 곳 (내 여행 탭에서 하루 한 번 확인한 결과)
   setSavedList(saved); // 카드·상세가 담을 때 금액을 찾아볼 수 있게
@@ -386,7 +397,7 @@ export function TripApp() {
   }, [lastDone, tab]);
 
   // 화면(탭·홈 결과)마다 스크롤 위치를 기억해 두고, 돌아오면 그 자리로 되돌린다
-  const view = `${tab}:${homeId ?? ""}`;
+  const view = tab === "hotel" ? `hotel:${pathname}` : `${tab}:${homeId ?? ""}`;
   const viewRef = useRef(view);
   const scrolls = useRef<Record<string, number>>({});
   useEffect(() => {
@@ -866,8 +877,89 @@ export function TripApp() {
   }, [homeMsg, priceVersion]);
   const homeOpts = homeMsg ? (optsRef.current.get(homeHrefOf(homeMsg)) ?? []) : [];
   const homeHref = homeMsg ? homeHrefOf(homeMsg) + optsParam(homeOpts) : "/";
+
+  // ---------- 전용 숙소 상세 페이지 (/hotels/[propertyToken]) ----------
+  // 목록 행·지도 요약 카드·AI 추천에서 숙소를 고르면: PC는 새 탭(지금 탭의 지도·필터·스크롤은 그대로), 휴대폰은 이 창에서 이동.
+  // 새 탭은 이 탭의 화면 상태를 못 쓰므로 이 기기 localStorage에 미리 보기를 남겨 사진·제목을 바로 그린다
+  const openHotel = useCallback(
+    (h: HotelOption, q: StayQuery) => {
+      const p = shownPrice(h, q);
+      savePreview(h, p.none ? null : p.value);
+      const href = hotelHref(h.token, q);
+      if (wide) {
+        const w = window.open(href, "_blank", "noopener,noreferrer");
+        if (w) w.opener = null;
+        return;
+      }
+      inAppHotel.current = true;
+      router.push(href, { scroll: false });
+    },
+    [wide, router],
+  );
+  const hotelToken = tab === "hotel" ? hotelTokenOf(pathname) : null;
+  // 상세 주소의 날짜·인원 (없거나 틀리면 3주 뒤 2박)
+  const [hotelQ, setHotelQ] = useState<StayQuery | null>(null);
+  const [seed, setSeed] = useState<HotelSeed | null>(null);
+  useEffect(() => {
+    if (!hotelToken) return;
+    const q = hotelQueryOf(window.location.search);
+    if (q) setHotelQ(q);
+    else {
+      const [a, b] = defaultDates();
+      setHotelQ({ place: new URLSearchParams(window.location.search).get("q")?.slice(0, 100) ?? "", checkIn: a, checkOut: b, adults: 2, budget: 0, taste: "" });
+    }
+    // 공유 링크로 바로 들어오면 서버가 넣어 둔 기본 정보 (hotels_master, 유료 검색 0회)
+    try {
+      const el = document.getElementById("tb-hotel-seed");
+      const v = el?.textContent ? (JSON.parse(el.textContent) as HotelSeed) : null;
+      setSeed(v && v.token === hotelToken ? v : null);
+    } catch {
+      setSeed(null);
+    }
+  }, [hotelToken]);
+  // 이 탭의 검색 결과 → 이 기기 미리 보기 → 서버 기본 정보 순서로 먼저 그릴 숙소
+  const hotelBase = (() => {
+    if (!hotelToken) return null;
+    for (const m of [...msgs].reverse()) if (m.t === "stay") {
+      const h = m.options?.find((o) => o.token === hotelToken);
+      if (h) return h;
+    }
+    const pv = readPreview(hotelToken);
+    if (pv) return hotelFromPreview(pv);
+    return seed ? hotelFromSeed(seed) : null;
+  })();
+  // 같은 조건 검색 결과가 이 탭에 있으면 '평소 가격과 비교'·'동네 대비 가격'에 같이 쓴다 (검색은 새로 하지 않는다)
+  const hotelFrom = hotelToken && hotelQ ? [...msgs].reverse().find((x): x is StayMsg => x.t === "stay" && !!x.options?.some((h) => h.token === hotelToken) && x.query.checkIn === hotelQ.checkIn && x.query.checkOut === hotelQ.checkOut && x.query.adults === hotelQ.adults) : undefined;
+  const hotelPeers: Peer[] = (hotelFrom?.options ?? []).map((h) => {
+    const p = shownPrice(h, hotelFrom!.query);
+    return { token: h.token, stars: h.stars, total: p.none ? null : p.value, verified: p.verified };
+  });
+  const hotelSpots = (hotelFrom?.options ?? []).map((h) => {
+    const p = shownPrice(h, hotelFrom!.query);
+    return { token: h.token, gps: h.gps, price: p.verified && !p.none ? p.value : null };
+  });
+  const hotelReason = hotelToken ? [...msgs].reverse().flatMap((m) => (m.t === "stay" && !m.aiOff && !m.aiPending ? (m.picks ?? []) : [])).find((p) => p.token === hotelToken)?.reason : undefined;
+  const hotelBack = () => {
+    if (inAppHotel.current && window.history.length > 1) {
+      inAppHotel.current = false;
+      return router.back();
+    }
+    if (hotelQ?.place) return goHome(stayHref(hotelQ));
+    goHome("/");
+  };
+  // 새 검색 결과가 오면 지도 범위 거르기는 푼다
+  useEffect(() => {
+    setAreaOnly(null);
+    setShownList(null);
+  }, [homeId]);
+  const bigMapNow = wide && tab === "home" && homeMsg?.t === "stay" && homeMsg.status === "done" && !!homeMsg.options?.length && rview !== "list";
+  useEffect(() => {
+    if (bigMapNow) setBigMapOn(true);
+  }, [bigMapNow]);
+  const mapview = wide && tab === "home" && homeMsg?.t === "stay" && homeMsg.status === "done" && !!homeMsg.options?.length;
   // PC 2열: 홈 숙소 결과와 AI 채팅은 왼쪽 목록 + 오른쪽 예약처 패널
-  const split = wide && ((tab === "home" && homeMsg?.t === "stay") || tab === "chat");
+  // PC 2열: AI 채팅만 (왼쪽 대화 · 오른쪽 AI 추천 3곳). 홈 숙소 결과는 목록 + 큰 지도 (mapview)
+  const split = wide && tab === "chat";
   const activeToken = seller?.hotel.token;
   // 열려 있는 숙소가 AI 추천 3곳 중 하나면 그 이유를 상세에도 보여 준다 (가장 최근 결과 기준)
   // 예약처 0곳 숙소의 '비슷한 숙소 보기': 같은 검색(같은 지역) 목록에서 같은 성급만 보여 준다. 목록이 없는 탭이면 그 지역 검색을 연다
@@ -892,8 +984,11 @@ export function TripApp() {
   const sellerReason = seller ? [...msgs].reverse().flatMap((m) => (m.t === "stay" && !m.aiOff && m.query.place === seller.query.place ? (m.picks ?? []) : [])).find((p) => p.token === seller.hotel.token)?.reason : undefined;
   // PC AI 추천 탭: 결과가 있으면 오른쪽 패널이 비지 않게 AI 추천 1위를 먼저 열어 둔다 (홈 결과는 StayList onTop이 목록 맨 위 숙소를 연다)
   const panelMsg = (tab === "home" ? homeMsg : [...chatMsgs].reverse().find((x) => x.t === "stay")) as StayMsg | FlightMsg | undefined;
+  // PC AI 추천 탭 오른쪽: 가장 최근 숙소 답의 추천 3곳 (답이 다 나온 뒤에만)
+  const chatStay = tab === "chat" && panelMsg?.t === "stay" && panelMsg.status === "done" && !!panelMsg.options?.length && !!panelMsg.picks?.length ? panelMsg : undefined;
   // AI 답이 온 뒤에 추천 1번을 연다 (그 전에 규칙으로 정한 곳을 열었다가 바뀌지 않게)
-  const firstStay = split && tab === "chat" && panelMsg?.t === "stay" && panelMsg.status === "done" && !panelMsg.aiPending && panelMsg.options?.length ? (panelMsg.options.find((o) => o.token === panelMsg.picks?.[0]?.token) ?? panelMsg.options[0]) : null;
+  // (2026-11-27) PC 오른쪽 상세 패널은 없어졌다: 숙소는 전용 상세 페이지에서 본다
+  const firstStay: HotelOption | null = null;
   // 새 검색 결과가 오면(아동·객실이 다른 조건 포함) 이전 검색에서 열어 둔 숙소 대신 새 결과의 1번을 연다 (패널 머리 인원이 결과 머리와 같게).
   // 같은 결과 안에서 사람이 연 숙소는 그대로 둔다
   const panelFor = useRef<string | null>(null);
@@ -923,7 +1018,7 @@ export function TripApp() {
 
   return (
     <div className="tb-app">
-      <div className={`tb-main${split ? " split" : ""}${split && tab === "chat" ? " aichat" : ""}${split && tab === "chat" && !seller ? " nopanel" : ""}${tab === "home" && !homeMsg ? " home" : ""}${tab === "home" && homeMsg?.t === "flight" ? " flight" : ""}`}>
+      <div className={`tb-main${split ? " split aichat ai3" : ""}${split && !chatStay ? " nopanel" : ""}${tab === "home" && !homeMsg ? " home" : ""}${tab === "home" && homeMsg?.t === "flight" ? " flight" : ""}${mapview ? ` mapview v-${rview}` : ""}${tab === "hotel" ? " hotelpage" : ""}`}>
         {tab === "home" &&
           (homeMsg ? (
             <HomeResult
@@ -933,7 +1028,7 @@ export function TripApp() {
               saved={savedSet}
               onBack={() => goHome("/")}
               onSave={(h) => homeMsg.t === "stay" && save(h, homeMsg.query)}
-              onOpen={(h) => homeMsg.t === "stay" && setSeller({ hotel: h, query: homeMsg.query })}
+              onOpen={(h) => homeMsg.t === "stay" && openHotel(h, homeMsg.query)}
               active={activeToken}
               onRetry={() => (homeMsg.t === "stay" ? runStay(homeMsg.query, { home: true }) : runFlight(homeMsg.query, { home: true }))}
               onAiRetry={() => retryAi(homeMsg.id)}
@@ -947,7 +1042,11 @@ export function TripApp() {
               onMore={() => loadMore(homeMsg.id)}
               onStars={(s) => byStars(homeMsg.id, s)}
               onMap={() => setMapFor(homeMsg.id)}
-              onTop={split && homeMsg.t === "stay" ? (h) => setSeller({ hotel: h, query: homeMsg.query }) : undefined}
+              onShown={mapview ? setShownList : undefined}
+              onHover={mapview && rview === "split" ? setHoverTok : undefined}
+              only={mapview && rview === "split" ? areaOnly : null}
+              onAllArea={() => setAreaOnly(null)}
+              viewSwitch={mapview ? <ViewSwitch3 v={rview} set={setRview} /> : undefined}
             />
           ) : (
             <main className="tb-home">
@@ -965,15 +1064,16 @@ export function TripApp() {
                   <span className="tb-home-title-main">
                     <span>예약하고</span> <span>끝나지 않아요</span>
                   </span>
-                  <small>체크인 날까지 가격을 지켜보고, 내려가면 화면에서 알려 드려요</small>
+                  <small>예약처마다 다른 세금 포함 총액을 한 화면에 모으고, 체크인 날까지 가격을 지켜보다 내려가면 알려 드려요</small>
                 </h1>
                 {/* PC 대표 사진 (도쿄). 휴대폰은 1px 빈 그림만 받아 사진을 내려받지 않는다 */}
-                <figure className="tb-home-photo" aria-hidden>
+                <figure className="tb-home-photo">
                   <picture>
                     <source media="(min-width: 1024px)" srcSet={photoUrl(HOME_HERO_TOKYO, 1600, 520)} />
                     <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="" onError={(e) => (e.currentTarget.style.visibility = "hidden")} />
                   </picture>
                   <figcaption>도쿄 · 일본</figcaption>
+                  <HomeHeroCard />
                 </figure>
                 <RegisterHint />
                 <HomeSearch kind={kind} onKind={setKind} stay={prefStay} flight={prefFlight} onStay={homeStay} onFlight={homeFlight} />
@@ -1121,7 +1221,7 @@ export function TripApp() {
                     saved={savedSet}
                     onAnswer={(i, a) => m.t === "ask" && patch(m.id, { answers: { ...m.answers, [i]: a } })}
                     onApply={(edit) => m.t === "ask" && applyAsk(m, edit)}
-                    onOpenHotel={(hotel) => m.t === "stay" && setSeller({ hotel, query: m.query })}
+                    onOpenHotel={(hotel) => m.t === "stay" && openHotel(hotel, m.query)}
                     active={activeToken}
                     onSave={(hotel) => m.t === "stay" && save(hotel, m.query)}
                     onAll={() => setListId(m.id)}
@@ -1131,6 +1231,7 @@ export function TripApp() {
                     onSay={send}
                     onPrefill={prefill}
                     onMap={() => setMapFor(m.id)}
+                    side={split && m.id === chatStay?.id}
                   />
                   {i === firstReply && !chatHasResult && tasteCard}
                   </Fragment>
@@ -1159,20 +1260,46 @@ export function TripApp() {
 
         {tab === "trips" && <MyTripsTab onRegister={() => prefill("stay", {})} saved={saved} onOpen={(s) => setSeller(s)} onSave={(s) => save(s.hotel, s.query)} onHome={() => goHome("/")} onFlight={tripFlight} onMoreStays={(t) => goHome(stayHref({ place: t.city, checkIn: t.checkIn, checkOut: t.checkOut, adults: t.adults, budget: 0, taste: "" }))} />}
         {tab === "my" && <My profile={taste.profile} onTaste={() => setOnb(true)} onTrips={() => setTab("trips")} />}
+        {tab === "hotel" && hotelToken && hotelQ && (
+          <HotelPage
+            key={`${hotelToken}:${stayHref(hotelQ)}`}
+            token={hotelToken}
+            hotel={hotelBase}
+            query={hotelQ}
+            saved={savedSet.has(hotelToken)}
+            onSave={(h) => save(h, hotelQ)}
+            onBack={hotelBack}
+            backLabel={hotelQ.place ? "목록·지도로 돌아가기" : "홈으로"}
+            onGo={(text) => setToast({ text, go: true })}
+            onToast={(text) => setToast({ text, go: true })}
+            reason={hotelReason}
+            peers={hotelPeers}
+            spots={hotelSpots}
+          />
+        )}
 
-        {split && (
-          <aside className="tb-panel" aria-label="숙소 상세">
-            {seller ? (
-              <>
-                <SellerBody hotel={seller.hotel} query={seller.query} reason={sellerReason} peers={sellerPeers} onSimilar={similar} saved={savedSet.has(seller.hotel.token)} onSave={() => save(seller.hotel, seller.query)} onGo={(text) => setToast({ text, go: true })} onBigMap={bigMap} />
-              </>
-            ) : (
-              <div className="tb-panel-empty">
-                <IconBed size={28} />
-                <strong>숙소를 누르면 여기에 예약처별 총액이 보여요</strong>
-                <p>세금·수수료까지 더한 금액을 예약처마다 나란히 보여드려요.</p>
-              </div>
-            )}
+        {split && chatStay && <ChatPicks m={chatStay} saved={savedSet} onSave={(h) => save(h, chatStay.query)} onOpen={(h) => openHotel(h, chatStay.query)} />}
+
+        {/* PC 홈 숙소 결과 오른쪽 큰 지도 (목록+지도 52% · 지도만). 한 번 만든 지도는 목록만 볼 때도 숨겨 두고 다시 쓴다 */}
+        {wide && bigMapOn && (
+          <aside className="tb-bigmap" hidden={!bigMapNow} aria-label="숙소 지도">
+            {homeMsg?.t === "stay" && homeMsg.options?.length ? (
+              <MapPanel
+                side
+                query={homeMsg.query}
+                options={shownList ?? homeMsg.options}
+                fitKey={homeMsg.id}
+                hover={hoverTok}
+                saved={savedSet}
+                onSave={(h) => save(h, homeMsg.query)}
+                onOpen={(h) => openHotel(h, homeMsg.query)}
+                onList={() => setRview("list")}
+                onArea={(tokens) => {
+                  setAreaOnly(new Set(tokens));
+                  if (rview === "map") setRview("split");
+                }}
+              />
+            ) : null}
           </aside>
         )}
 
@@ -1251,7 +1378,7 @@ export function TripApp() {
 
       {!wide && mapMsg && (
         <div className="tb-map-wrap">
-          <MapPanel key={mapMsg.id} query={mapMsg.query} options={mapMsg.options ?? []} initial={mapSel} onOpen={(h) => setSeller({ hotel: h, query: mapMsg.query })} onList={closeMap} />
+          <MapPanel key={mapMsg.id} query={mapMsg.query} options={mapMsg.options ?? []} initial={mapSel} onOpen={(h) => openHotel(h, mapMsg.query)} onList={closeMap} />
         </div>
       )}
       {/* PC: [지도로 보기]·패널 [크게 보기] 모두 넓은 지도 창 (94vw × 90vh, 최대 1360px) */}
@@ -1262,10 +1389,7 @@ export function TripApp() {
           query={mapMsg.query}
           options={mapMsg.options ?? []}
           initial={mapSel ?? (seller && stayHref(seller.query) === stayHref(mapMsg.query) ? seller.hotel.token : null)}
-          onOpen={(h) => {
-            setSeller({ hotel: h, query: mapMsg.query });
-            closeMap();
-          }}
+          onOpen={(h) => openHotel(h, mapMsg.query)}
           onList={closeMap}
         />
       )}
@@ -1278,7 +1402,7 @@ export function TripApp() {
         m={msgs.find((x) => x.id === listId) as StayMsg | FlightMsg | undefined}
         saved={savedSet}
         onSave={(h, q) => save(h, q)}
-        onOpen={(h, q) => setSeller({ hotel: h, query: q })}
+        onOpen={(h, q) => openHotel(h, q)}
         onClose={() => setListId(null)}
         onMore={(id) => loadMore(id)}
         onStars={byStars}
@@ -1299,6 +1423,126 @@ export function TripApp() {
         onBigMap={bigMap}
       />
     </div>
+  );
+}
+
+// PC 홈 숙소 결과 [목록 | 목록+지도 | 지도만]. 바꿔도 지도는 새로 만들지 않는다 (크기만 다시 잰다)
+function ViewSwitch3({ v, set }: { v: "list" | "split" | "map"; set: (v: "list" | "split" | "map") => void }) {
+  const items = [
+    { id: "list", label: "목록" },
+    { id: "split", label: "목록+지도" },
+    { id: "map", label: "지도만" },
+  ] as const;
+  return (
+    <div className="tb-viewsw3" role="group" aria-label="보기 방식">
+      {items.map((it) => (
+        <button key={it.id} type="button" aria-pressed={v === it.id} onClick={() => set(it.id)}>
+          {it.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// PC AI 추천 탭 오른쪽: 'AI 추천 3곳' 목록(기본) 또는 지도. 숙소를 누르면 전용 상세 페이지 (PC 새 탭).
+// 지도는 [지도]를 눌렀을 때만 만든다 (Mapbox 지도 로드)
+function ChatPicks({ m, saved, onSave, onOpen }: { m: StayMsg; saved: Set<string>; onSave: (h: HotelOption) => void; onOpen: (h: HotelOption) => void }) {
+  usePriceVersion();
+  const [v, setV] = useState<"list" | "map">("list");
+  const q = m.query;
+  const nights = nightsOf(q);
+  const options = m.options ?? [];
+  const picks = (m.picks ?? []).map((p) => ({ ...p, h: options.find((o) => o.token === p.token)! })).filter((p) => p.h).slice(0, 3);
+  if (m.aiPending)
+    return (
+      <aside className="tb-ai3" aria-label="AI 추천 3곳" aria-busy>
+        <div className="tb-ai3-head">
+          <h2>AI 추천 3곳</h2>
+        </div>
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="tb-ai3-row skel" aria-hidden />
+        ))}
+      </aside>
+    );
+  return (
+    <aside className="tb-ai3" aria-label={m.aiOff ? "확인한 낮은 가격 3곳" : "AI 추천 3곳"}>
+      <div className="tb-ai3-head">
+        <h2>{m.aiOff ? "확인한 낮은 가격 3곳" : "AI 추천 3곳"}</h2>
+        <small>
+          {md(q.checkIn)}–{md(q.checkOut)} {q.place} {nights}박 · {guestText(q)} · {nights}박 세금 포함 총액
+        </small>
+        <div className="tb-viewsw3 sm" role="group" aria-label="보기 방식">
+          <button type="button" aria-pressed={v === "list"} onClick={() => setV("list")}>
+            목록
+          </button>
+          <button type="button" aria-pressed={v === "map"} onClick={() => setV("map")}>
+            지도
+          </button>
+        </div>
+      </div>
+      {v === "map" ? (
+        <div className="tb-ai3-map">
+          <MapPanel side query={q} options={picks.map((p) => p.h)} saved={saved} onSave={onSave} onOpen={onOpen} onList={() => setV("list")} />
+        </div>
+      ) : (
+        <ol className="tb-ai3-list">
+          {picks.map((p, i) => (
+            <ChatPickRow key={p.token} i={i} h={p.h} reason={m.aiOff ? "" : p.reason} q={q} saved={saved.has(p.token)} onSave={() => onSave(p.h)} onOpen={() => onOpen(p.h)} />
+          ))}
+        </ol>
+      )}
+    </aside>
+  );
+}
+
+function ChatPickRow({ i, h, reason, q, saved: on, onSave, onOpen }: { i: number; h: HotelOption; reason: string; q: StayQuery; saved: boolean; onSave: () => void; onOpen: () => void }) {
+  const ref = useLazyPrice<HTMLLIElement>(h, q, true);
+  const t = shownPrice(h, q);
+  const nights = nightsOf(q);
+  const v = getVerified(h.token, q);
+  return (
+    <li ref={ref} className="tb-ai3-row">
+      <span className="tb-ai3-n">{i + 1}</span>
+      <button type="button" className="tb-ai3-ph" onClick={onOpen} aria-label={`${h.name} 상세 보기`}>
+        {h.image ? <img src={h.image} alt="" loading="lazy" onError={(e) => (e.currentTarget.style.visibility = "hidden")} /> : null}
+      </button>
+      <div className="tb-ai3-body">
+        <button type="button" className="tb-ai3-name" onClick={onOpen}>
+          {h.name}
+        </button>
+        <small className="tb-ai3-meta">{[h.stars ? `${h.stars}성급` : h.kind, h.rating ? `후기 ${h.rating.toFixed(1)}${h.reviews ? ` (${h.reviews.toLocaleString("ko-KR")})` : ""}` : "", hasFreeCancel(h) || t.fc ? "무료 취소 요금 있음" : ""].filter(Boolean).join(" · ")}</small>
+        {reason && !isPlainReason(reason) && (
+          <p className="tb-ai3-why">
+            <small>추천 이유</small>
+            {reason}
+          </p>
+        )}
+        <div className="tb-ai3-go">
+          <button type="button" className="tb-ai3-open" onClick={onOpen}>
+            {v?.count ? `예약처 ${v.count}곳 비교 · 상세 보기` : "가격 비교 · 상세 보기"} ↗
+          </button>
+          <button type="button" className={`tb-ai3-love${on ? " on" : ""}`} aria-pressed={on} onClick={onSave}>
+            ♡ 찜
+          </button>
+        </div>
+      </div>
+      <div className="tb-ai3-price">
+        {t.none ? (
+          <small>확인한 예약처 가격 없음</small>
+        ) : t.value !== null ? (
+          <>
+            <small>{t.verified ? `확인한 최저가${t.seller ? ` · ${sellerDef(t.seller).ko}` : ""}` : "예약처 확인 전"}</small>
+            <b className={t.verified ? "ok" : "est"}>
+              {t.verified ? "" : "~"}
+              {won(t.value)}
+            </b>
+            {nights > 1 && <small>1박 약 {won(Math.round(t.value / nights / 100) * 100)}</small>}
+          </>
+        ) : (
+          <small>가격 확인</small>
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -1397,7 +1641,7 @@ const EMPTY_QUERY: StayQuery = { place: "", checkIn: "2000-01-01", checkOut: "20
 // 목록 끝 상태: 더 불러올 수 있음 / 불러오는 중 / 실패 / 끝
 const moreOf = (m: StayMsg): "more" | "loading" | "error" | "end" => (m.more === "loading" ? "loading" : m.more === "error" ? "error" : m.next && (m.pages ?? 0) < MORE_PAGES ? "more" : "end");
 
-function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onAiRetry, onPlace, onMore, onStars, active, fixNote, opts, onMap, onTop }: { onTop?: (h: HotelOption) => void; onMap: () => void; opts: string[]; fixNote?: string; onAiRetry: () => void; m: StayMsg | FlightMsg; saved: Set<string>; onBack: () => void; onSave: (h: HotelOption) => void; onOpen: (h: HotelOption) => void; onRetry: () => void; onPlace: (name: string) => void; onMore: () => void; onStars: (s: number[]) => void; active?: string }) {
+function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onAiRetry, onPlace, onMore, onStars, active, fixNote, opts, onMap, onShown, onHover, only, onAllArea, viewSwitch }: { onShown?: (l: HotelOption[]) => void; onHover?: (t: string | null) => void; only?: Set<string> | null; onAllArea?: () => void; viewSwitch?: React.ReactNode; onMap: () => void; opts: string[]; fixNote?: string; onAiRetry: () => void; m: StayMsg | FlightMsg; saved: Set<string>; onBack: () => void; onSave: (h: HotelOption) => void; onOpen: (h: HotelOption) => void; onRetry: () => void; onPlace: (name: string) => void; onMore: () => void; onStars: (s: number[]) => void; active?: string }) {
   const title = m.t === "stay" ? m.query.place : `${cityOf(m.query.fromLabel || m.query.from)} → ${cityOf(m.query.toLabel || m.query.to)}`;
   if (m.status !== "done" || !m.options?.length)
     return (
@@ -1444,7 +1688,7 @@ function HomeResult({ m, saved, onBack, onSave, onOpen, onRetry, onAiRetry, onPl
   if (m.t === "stay")
     return (
       <main>
-        <StayList query={m.query} options={m.options} picks={m.picks ?? []} aiPending={!!m.aiPending} aiOff={m.aiOff} onAiRetry={onAiRetry} saved={saved} onSave={onSave} onOpen={onOpen} onBack={onBack} active={active} more={moreOf(m)} onMore={onMore} onStars={onStars} notice={fixNote} initFilter={opts.length ? stayFilterOf(opts) : undefined} onMap={onMap} onTop={onTop} />
+        <StayList query={m.query} options={m.options} picks={m.picks ?? []} aiPending={!!m.aiPending} aiOff={m.aiOff} onAiRetry={onAiRetry} saved={saved} onSave={onSave} onOpen={onOpen} onBack={onBack} active={active} more={moreOf(m)} onMore={onMore} onStars={onStars} notice={fixNote} initFilter={opts.length ? stayFilterOf(opts) : undefined} onMap={onMap} onShown={onShown} onHover={onHover} only={only} onAllArea={onAllArea} viewSwitch={viewSwitch} />
       </main>
     );
   return (
@@ -1494,6 +1738,7 @@ type MsgProps = {
   onPrefill: (k: SearchKind, q: Partial<StayQuery> | Partial<FlightQuery>) => void;
   onMap: () => void; // 숙소 결과를 가격 핀 지도로
   active?: string; // PC 패널에 열려 있는 숙소
+  side?: boolean; // PC: 이 답의 추천 3곳 카드는 오른쪽 'AI 추천 3곳'에 보여 주므로 대화 안에서는 비교표만
 };
 
 function MsgView(props: MsgProps) {
@@ -1645,7 +1890,7 @@ function PickCard({ p, i, of, off, note, check, t, isLow, q, nights, saved: on, 
   );
 }
 
-function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, onAiRetry, onPrefill, onMap, active }: MsgProps & { m: StayMsg }) {
+function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, onAiRetry, onPrefill, onMap, active, side }: MsgProps & { m: StayMsg }) {
   usePriceVersion(); // 예약처 시트·미리 조회로 맞춘 금액이 오면 다시 그린다
   const q = m.query;
   if (m.status === "loading") return <Searching text={`${q.place} 숙소를 찾고 있어요`} />;
@@ -1699,7 +1944,7 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
           {m.note ? ` ${m.note}` : ""}
         </AiSay>
       )}
-      <div className="tb-hcards">
+      <div className="tb-hcards" hidden={side}>
         <PickChecks hotels={picks.map((p) => p.h)} q={q} off={!!m.aiOff}>
           {(checks) =>
             picks.map((p, i) => (
@@ -1712,7 +1957,7 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
         <table className="tb-compare">
           <thead>
             <tr>
-              <th>한눈에 보기</th>
+              <th>한눈에 비교</th>
               {picks.map((p) => (
                 <th key={p.token}>{short(p.h.name)}</th>
               ))}
@@ -1727,6 +1972,14 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
                 </td>
               ))}
             </tr>
+            {picks.some((p) => p.h.near && /역/.test(p.h.near.name)) && (
+              <tr>
+                <td>역까지</td>
+                {picks.map((p) => (
+                  <td key={p.token}>{p.h.near && /역/.test(p.h.near.name) ? `${p.h.near.how} ${p.h.near.mins}분` : "–"}</td>
+                ))}
+              </tr>
+            )}
             <tr>
               <td>평점</td>
               {picks.map((p) => (

@@ -40,7 +40,9 @@ export type HotelOption = {
 export type HotelResults = { options: HotelOption[]; next: string | null }; // next: 다음 쪽을 부를 때 쓰는 값
 // Google이 후기를 주제별로 센 값 (reviews_breakdown). 후기 글은 받지도 저장하지도 않는다
 export type ReviewTopic = { name: string; total: number; positive: number; negative: number };
-export type HotelPrices = { sources: HotelSource[]; topics: ReviewTopic[] | null }; // topics: null이면 이 호텔은 주제 데이터가 없다
+// info: 같이 온 숙소 기본 정보 (예전에 저장된 응답에는 없다)
+export type HotelInfo = { name: string; images: string[]; gps: [number, number] | null; stars: number | null; rating: number | null; reviews: number | null; kind: string; amenities: string[] };
+export type HotelPrices = { sources: HotelSource[]; topics: ReviewTopic[] | null; info?: HotelInfo | null }; // topics: null이면 이 호텔은 주제 데이터가 없다
 
 export type HotelQuery = { q: string; checkIn: string; checkOut: string; adults: number };
 

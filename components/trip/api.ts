@@ -7,7 +7,7 @@ import type { FlightQuery, ParseResult, PickResult, StayQuery } from "@/lib/trip
 import { airportsFor } from "@/lib/airports";
 import { distText, nearby } from "@/lib/landmarks";
 import { hhmm } from "@/lib/trip";
-import { stayCacheSec } from "@/lib/stay-cache";
+import { priceCacheSec, stayCacheSec } from "@/lib/stay-cache";
 import type { FlightOption } from "@/lib/flights";
 import type { HotelOption } from "@/lib/hotels";
 
@@ -91,9 +91,10 @@ const kids = (q: { childAges?: number[] }) => (q.childAges?.length ? { childAges
 const pax = (q: { children?: number; cabin?: string }) => ({ ...(q.children ? { children: q.children } : {}), ...(q.cabin && q.cabin !== "y" ? { cabin: q.cabin } : {}) });
 
 // fresh: '다시 검색'·'가격 다시 보기'를 눌렀을 때만 이 탭과 서버의 저장된 가격을 건너뛴다
-export const stayPrices = (token: string, q: StayQuery, name: string, fresh = false) => {
-  const body = { q: name.slice(0, 100), checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...kids(q), token, ...(fresh ? { fresh: true } : {}) };
-  return cached(`price:${token}:${q.checkIn}:${q.checkOut}:${q.adults}:${(q.childAges ?? []).join(".")}`, () => post<HotelPrices>("/api/hotels/prices", body), fresh, stayCacheSec(q.checkIn) * 1000);
+// detail: 전용 숙소 상세 페이지에서 부를 때 (서버가 새 조회만 하루 상한을 센다)
+export const stayPrices = (token: string, q: StayQuery, name: string, fresh = false, detail = false) => {
+  const body = { q: name.slice(0, 100), checkIn: q.checkIn, checkOut: q.checkOut, adults: q.adults, ...kids(q), token, ...(q.place ? { place: q.place.slice(0, 100) } : {}), ...(fresh ? { fresh: true } : {}), ...(detail ? { detail: true } : {}) };
+  return cached(`price:${token}:${q.checkIn}:${q.checkOut}:${q.adults}:${(q.childAges ?? []).join(".")}`, () => post<HotelPrices>("/api/hotels/prices", body), fresh, priceCacheSec(q.checkIn) * 1000);
 };
 
 export async function searchFlights(q: FlightQuery) {
