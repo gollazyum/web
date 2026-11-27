@@ -22,6 +22,8 @@ import { AiOffNote } from "./AiOffNote";
 import { SortInfo } from "./SortInfo";
 import { FilterBar, FilterPanel, SORTS, type Sort } from "./StayFilters";
 import { IconBack, IconHeart, IconSpark } from "./icons";
+import { TasteRepick } from "./TasteRepick";
+import { repickStays, type TasteChoice } from "@/lib/taste-repick";
 
 export type StayPick = { token: string; reason: string };
 
@@ -91,9 +93,13 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
     onStars?.(starKey ? starKey.split(",").map(Number) : []);
   }, [starKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // AI 응답 전에는 어떤 카드에도 'AI 추천'·순위·이유를 달지 않는다 (임시로 달았다 옮겨 가며 화면이 흔들리지 않게)
-  const aiPicks = aiPending ? [] : picks;
+  // [내 취향 바꾸기]로 다시 고른 3곳 (받은 목록 안에서만, 유료 호출 0회). 새 검색이면 처음 추천으로 돌아간다
+  const [mine, setMine] = useState<{ choice: TasteChoice; picks: { token: string; reason: string }[] } | null>(null);
+  const qKey = `${query.place}|${query.checkIn}|${query.checkOut}|${query.adults}|${options[0]?.token ?? ""}`;
+  useEffect(() => setMine(null), [qKey]);
+  const aiPicks = mine ? mine.picks : aiPending ? [] : picks;
   // AI가 실패해 가격 기준으로 둔 3곳에는 'AI 추천' 칩·이유를 달지 않는다
-  const reasons = useMemo(() => new Map(aiOff ? [] : aiPicks.map((p) => [p.token, p.reason])), [aiPicks, aiOff]);
+  const reasons = useMemo(() => new Map(aiOff && !mine ? [] : aiPicks.map((p) => [p.token, p.reason])), [aiPicks, aiOff, mine]);
   const pv = usePriceVersion(); // 예약처 시트·미리 조회로 맞춘 금액이 오면 다시 계산
   // 정렬·요금 필터·'최저가' 배지는 예약처에서 확인한 금액만 쓴다 (확인 전 예상 금액은 쓰지 않는다)
   const cost = (h: HotelOption) => verifiedCost(h, query);
@@ -227,7 +233,25 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
         )}
         <div className={side ? "tb-results-main" : undefined}>
           {!bare && aiOff && !aiPending && <AiOffNote onRetry={onAiRetry} />}
-          {!bare && <AiTop3 hotels={top3} reasons={reasons} pending={aiPending} off={aiOff} query={query} onOpen={onOpen} />}
+          {!bare && (
+            <AiTop3
+              hotels={top3}
+              reasons={reasons}
+              pending={aiPending && !mine}
+              off={aiOff && !mine}
+              query={query}
+              onOpen={onOpen}
+              taste={
+                options.length > 3 && (!aiPending || mine) ? (
+                  <TasteRepick
+                    choice={mine?.choice ?? null}
+                    onApply={(choice) => setMine({ choice, picks: repickStays(options, query, choice) })}
+                    onReset={() => setMine(null)}
+                  />
+                ) : null
+              }
+            />
+          )}
           {only && (
             <p className="tb-area-note" role="status">
               지도 범위 안 숙소 {rowsShown.length}곳만 보고 있어요
@@ -317,7 +341,7 @@ const dealPct = (h: HotelOption) => h.deal.match(/(?:평소보다|가격 대비)
 const DEAL_TIP = "검색할 때 함께 받은 이 숙소의 평소 요금과 지금 요금을 견준 비율이에요. 같은 날짜·인원 기준이고, 예약처 최종 총액과는 다를 수 있어요";
 
 // 휴대폰: 결과 맨 위 높이 고정 'AI 추천 3곳' 가로 띠. AI 응답 전에는 같은 높이의 회색 자리만 (화면이 밀리지 않게)
-function AiTop3({ hotels, reasons, pending, off, query, onOpen }: { hotels: HotelOption[]; reasons: Map<string, string>; pending: boolean; off?: boolean; query: StayQuery; onOpen: (h: HotelOption) => void }) {
+function AiTop3({ hotels, reasons, pending, off, query, onOpen, taste }: { hotels: HotelOption[]; reasons: Map<string, string>; pending: boolean; off?: boolean; query: StayQuery; onOpen: (h: HotelOption) => void; taste?: React.ReactNode }) {
   usePriceVersion();
   const nights = nightsOf(query);
   const fit = partyFitText(query.adults, roomsOf(query)); // 이 인원으로 검색해 가격이 나온 곳이라 객실이 있다
@@ -327,6 +351,7 @@ function AiTop3({ hotels, reasons, pending, off, query, onOpen }: { hotels: Hote
       <div className="tb-top3-head">
         <h2>{off ? "확인한 낮은 가격 3곳" : "AI 추천 3곳"}</h2>
         {!off && <AiSortInfo kind="stay" />}
+        {taste}
       </div>
       <div className="tb-top3-row">
         {pending

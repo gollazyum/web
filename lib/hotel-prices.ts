@@ -53,10 +53,18 @@ function shapeInfo(raw: Record<string, unknown>): HotelInfo | null {
   if (!name) return null;
   const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
   const gps = raw.gps_coordinates as { latitude?: number; longitude?: number } | undefined;
-  const images = ((raw.images as { thumbnail?: string; original_image?: string }[] | undefined) ?? [])
+  const rawImages = (raw.images as { thumbnail?: string; original_image?: string }[] | undefined) ?? [];
+  const images = rawImages
     .map((i) => i.thumbnail ?? "")
     .filter((u) => /^https:\/\//.test(u))
     .slice(0, 8);
+  const https = (u: unknown) => (typeof u === "string" && /^https:\/\//.test(u) ? u : "");
+  const photos = rawImages
+    .map((i) => ({ s: https(i.thumbnail), l: https(i.original_image) || https(i.thumbnail) }))
+    .filter((x) => x.s)
+    .slice(0, 30);
+  const time = (v: unknown) => (typeof v === "string" && v.trim() && v.length <= 20 ? v.trim() : null);
+  const amenitiesAll = [...new Set(((raw.amenities as unknown[] | undefined) ?? []).filter((a): a is string => typeof a === "string").map((a) => amenityKo(a.normalize("NFC"))))].slice(0, 80);
   return {
     name: name.slice(0, 300),
     images,
@@ -65,7 +73,11 @@ function shapeInfo(raw: Record<string, unknown>): HotelInfo | null {
     rating: num(raw.overall_rating),
     reviews: num(raw.reviews),
     kind: kindKo(typeof raw.type === "string" ? raw.type : undefined),
-    amenities: [...new Set(((raw.amenities as unknown[] | undefined) ?? []).filter((a): a is string => typeof a === "string").map((a) => amenityKo(a.normalize("NFC"))))].slice(0, 20),
+    amenities: amenitiesAll.slice(0, 20),
+    photos,
+    amenitiesAll,
+    checkInTime: time(raw.check_in_time),
+    checkOutTime: time(raw.check_out_time),
   };
 }
 
