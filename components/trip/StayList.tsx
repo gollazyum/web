@@ -14,7 +14,7 @@ import { guestText, isPlainReason, nightsOf, won, type StayQuery } from "@/lib/t
 import { SIMILAR_EVENT, takeSimilar } from "./similar";
 import { getVerified, shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
 import { changeText, savedBaseFor } from "./saved-price";
-import { savedDiff, useWatch } from "./PriceWatch";
+import { savedDiff, useWatch, useWatchBusy } from "./PriceWatch";
 import { AiSortInfo } from "./AiSortInfo";
 import { AiOffNote } from "./AiOffNote";
 import { SortInfo } from "./SortInfo";
@@ -335,7 +335,7 @@ function AiTop3({ hotels, reasons, pending, off, query, onOpen }: { hotels: Hote
                       <small>예약처 가격 없음</small>
                     ) : p.value !== null ? (
                       <>
-                        {!p.verified && <em className="tb-est">예상</em>}
+                        {!p.verified && <><em className="tb-est">예상</em>{" "}</>}
                         <b className={p.verified ? "ok" : "est"}>{won(p.value)}</b>
                         <small> · {nights}박</small>
                       </>
@@ -359,7 +359,10 @@ export function StayRow({ h, query, reason, note, check, cheapest, saved, active
   const ref = useLazyPrice<HTMLElement>(h, query, true); // 화면에 잠깐 머문 카드부터 예약처 가격을 받아 금액을 맞춘다
   const watch = useWatch();
   // 담아 둔 숙소면 담을 때 금액과 '최신 확인 총액'을 견준다 (내 여행 맨 위 요약과 같은 함수 · 같은 기준)
-  const diff = saved ? savedDiff(h.token, query, savedBaseFor(h.token, query), watch) : null;
+  const watchBusy = useWatchBusy();
+  // 확인하는 중에는 오르내림을 먼저 보이지 않는다 (올랐어요 → 내려갔어요로 뒤집히던 문제)
+  const pending = saved && (watchBusy || !!t.checking);
+  const diff = saved && !pending ? savedDiff(h.token, query, savedBaseFor(h.token, query), watch) : null;
   return (
     <article ref={ref} className={`tb-srow${active ? " on" : ""}`} aria-current={active ? "true" : undefined} onMouseEnter={onHover ? () => onHover(h.token) : undefined} onMouseLeave={onHover ? () => onHover(null) : undefined}>
       <div className="tb-srow-img">
@@ -403,7 +406,7 @@ export function StayRow({ h, query, reason, note, check, cheapest, saved, active
         {note && <RankLines note={note} />}
         <CheckLine c={check} fc={hasFreeCancel(h) || !!t.fc} />
         <PriceBlock p={t} nights={nights} />
-        {diff !== null && <PriceChange diff={diff} />}
+        {pending ? <span className="tb-pchg wait">최신 가격 확인 중...</span> : diff !== null && <PriceChange diff={diff} />}
         <RowSellers h={h} query={query} />
       </button>
     </article>
@@ -531,7 +534,7 @@ export function PriceBlock({ p, nights }: { p: ReturnType<typeof shownPrice>; ni
     return (
       <span className="tb-srow-price est">
         <span className="tb-price-line">
-          {p.value !== null && <em className="tb-est">예상</em>}
+          {p.value !== null && <><em className="tb-est">예상</em>{" "}</>}
           <strong>{p.value !== null ? won(p.value) : "가격 확인"}</strong>
         </span>
         <small>{nights}박 · 예약처 확인 전 금액</small>

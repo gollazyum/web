@@ -19,7 +19,7 @@ export const runtime = "nodejs";
 export const maxDuration = 30;
 
 const MAX_OPTIONS = 20;
-const MAX_POPULAR = 40; // 인기 도시: 첫 쪽 20곳 + 다음 쪽 (겹치는 숙소 빼고)
+const MAX_POPULAR = 60; // 인기 도시: 첫 쪽 20곳 + 다음 두 쪽 (겹치는 숙소 빼고)
 const MAX_IMAGES = 5;
 const MAX_AMENITIES = 20;
 const STARS = /^[2-5](,[2-5]){0,3}$/;
@@ -177,18 +177,16 @@ function mixClasses(base: HotelOption[], upper: HotelOption[]): HotelOption[] {
 
 const nextOf = (raw: Record<string, unknown>) => (raw.serpapi_pagination as { next_page_token?: string } | undefined)?.next_page_token ?? null;
 
-// page2Raw: 인기 도시에서 이어 받은 다음 쪽. 첫 쪽 20곳 뒤에 겹치지 않는 숙소를 붙이고(최대 40곳), 다음 쪽 값은 그 뒤 쪽으로
-function shapeList(raw: Record<string, unknown>, upperRaw: Record<string, unknown> | null, page2Raw: Record<string, unknown> | null = null): HotelResults {
+// pagesRaw: 인기 도시에서 이어 받은 다음 쪽들. 첫 쪽 20곳 뒤에 겹치지 않는 숙소를 붙이고(최대 60곳), 다음 쪽 값은 마지막 쪽 뒤로
+function shapeList(raw: Record<string, unknown>, upperRaw: Record<string, unknown> | null, pagesRaw: Record<string, unknown>[] = []): HotelResults {
   const { props, single } = propsOf(raw);
   const base = optionsOf(props);
   const first = single || !upperRaw ? base.slice(0, MAX_OPTIONS) : mixClasses(base, optionsOf(propsOf(upperRaw).props));
-  if (single || !page2Raw) return { options: first, next: nextOf(raw) };
+  if (single || !pagesRaw.length) return { options: first, next: nextOf(raw) };
   const have = new Set(first.map((o) => o.token));
-  const add = optionsOf(propsOf(page2Raw).props).filter((o) => !have.has(o.token) && have.add(o.token));
-  return { options: [...first, ...add].slice(0, MAX_POPULAR), next: nextOf(page2Raw) };
+  const add = pagesRaw.flatMap((p) => optionsOf(propsOf(p).props)).filter((o) => !have.has(o.token) && have.add(o.token));
+  return { options: [...first, ...add].slice(0, MAX_POPULAR), next: nextOf(pagesRaw[pagesRaw.length - 1]) };
 }
-
-
 
 export async function POST(req: Request) {
   const q = parseQuery(await req.json().catch(() => null));
@@ -247,7 +245,7 @@ export async function POST(req: Request) {
   }
   if (q.stars) return serpSearch(req, params, shapeList, undefined, opts);
   // 첫 쪽은 4·5성만 한 번 더 불러 같이 놓고 추천순 비율로 고른다 (검색 2번 요금).
-  // 인기 도시(서울·부산·제주 제외)는 다음 쪽까지 한 번 이어 받아 최대 40곳을 6시간 저장한다 (검색 3번 요금, 저장된 동안은 0번).
+  // 해외 인기 12개 도시는 다음 두 쪽까지 이어 받아 최대 60곳을 12시간 저장한다 (검색 4번 요금, 저장된 동안은 0번).
   // 체크인이 7일 안이면 가격이 자주 바뀌어 저장 시간은 원래대로 60분
   if (city) {
     const follow = (json: Record<string, unknown>) => {
@@ -255,7 +253,7 @@ export async function POST(req: Request) {
       return next ? { ...params, next_page_token: next } : null;
     };
     const popTtl = ttlSec === STAY_CACHE_NEAR_SEC ? ttlSec : POPULAR_CACHE_SEC;
-    return serpSearch(req, params, shapeList, { ...params, hotel_class: "4,5" }, { ...opts, ttlSec: popTtl, follow });
+    return serpSearch(req, params, shapeList, { ...params, hotel_class: "4,5" }, { ...opts, ttlSec: popTtl, follow, followPages: 2 });
   }
   return serpSearch(req, params, shapeList, { ...params, hotel_class: "4,5" }, opts);
 }

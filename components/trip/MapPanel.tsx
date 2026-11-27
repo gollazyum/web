@@ -336,7 +336,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
                   <small>{[pick.h.stars ? `${pick.h.stars}성급` : pick.h.kind, pick.h.rating ? `후기 ${pick.h.rating.toFixed(1)}` : "", pick.fc ? "무료 취소 확인" : ""].filter(Boolean).join(" · ")}</small>
                   {pick.price !== null ? (
                     <p className="tb-mapx-price">
-                      {!pick.verified && <em className="tb-est">예상</em>}
+                      {!pick.verified && <><em className="tb-est">예상</em>{" "}</>}
                       <b className={pick.token === low && pick.verified ? "low" : undefined}>{won(pick.price)}</b>
                       <small> · {nights}박 {pick.verified ? "세금 포함" : "예약처 확인 전"}</small>
                     </p>

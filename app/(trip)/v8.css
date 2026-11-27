@@ -1042,3 +1042,36 @@
 .tb-hp-usual:empty {
   display: none;
 }
+
+/* 상세 페이지 · 도보 5분 내 편의시설 요약 + [지도에 표시] */
+.tb-app .tb-hp-amen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 6px 0 0;
+  font-size: var(--fs-small);
+  color: var(--tb-ink);
+}
+.tb-app .tb-hp-amen-tg {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--tb-line) !important;
+  border-radius: var(--r-pill);
+  background: var(--tb-card) !important;
+  color: var(--tb-ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tb-app .tb-hp-amen-tg[aria-pressed="true"] {
+  background: var(--tb-ink) !important;
+  border-color: var(--tb-ink) !important;
+  color: #fff;
+}
+
+/* 내 여행 · 확인하는 동안 오르내림 대신 */
+.tb-app .tb-pchg.wait {
+  color: var(--tb-sub);
+  font-weight: 500;
+}
