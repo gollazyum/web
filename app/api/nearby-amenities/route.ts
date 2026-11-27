@@ -3,6 +3,7 @@ import { nearbyAmenities } from "@/lib/nearby-amenities";
 // 숙소 상세 페이지에 들어왔을 때 그 숙소 1곳만 부른다 (목록 미리 부르기 없음).
 // 30일 저장분이 있으면 외부 호출 0번. 실패하면 { amenities: null } → 화면은 요약 줄을 숨긴다
 export const runtime = "nodejs";
+export const maxDuration = 15;
 
 const WINDOW_MS = 10 * 60 * 1000;
 const LIMIT = 40;
@@ -29,9 +30,9 @@ export async function GET(req: Request) {
     return Response.json({ error: "bad_request" }, { status: 400 });
   }
   if (limited(req)) return Response.json({ amenities: null }, { status: 429 });
-  const { data, hit } = await nearbyAmenities(lat, lng);
+  const { data, hit, why } = await nearbyAmenities(lat, lng);
   return Response.json(
-    { amenities: data },
+    { amenities: data, ...(why ? { why } : {}) },
     { headers: { "Cache-Control": data ? "public, s-maxage=86400, stale-while-revalidate=86400" : "no-store", "x-cache": hit ? "HIT" : "MISS" } },
   );
 }
