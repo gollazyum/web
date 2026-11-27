@@ -12,6 +12,7 @@ import { useCheckpoints } from "./useCheckpoints";
 import { activeCount, applyFilter, countFilters, EMPTY_FILTER, hasFreeCancel, type StayFilter } from "@/lib/stay-filters";
 import { guestText, isPlainReason, nightsOf, won, type StayQuery } from "@/lib/trip";
 import { SIMILAR_EVENT, takeSimilar } from "./similar";
+import { checkedText } from "@/lib/checked-at";
 import { getVerified, shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
 import { changeText, savedBaseFor } from "./saved-price";
 import { savedDiff, useWatch, useWatchBusy } from "./PriceWatch";
@@ -510,13 +511,12 @@ export function PriceChange({ diff }: { diff: number }) {
 // 확인 후: 예약처 시트 1위 총액과 같은 금액 + '확인한 최저가 · 아고다' 칩
 
 // 모바일: '예상' 금액과 예약처에서 확인한 금액이 다르면 차분한 주황 바탕으로 작게 알린다 (PC는 회색 '검색 때' 줄)
-export function EstNote({ est, cost, at }: { est: number | null; cost: number; at: number }) {
+export function EstNote({ est, cost, at, noTime }: { est: number | null; cost: number; at: number; noTime?: boolean }) {
   if (est === null || Math.abs(est - cost) < 100) return null;
-  const d = new Date(at || Date.now());
-  const hm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   return (
     <small className="tb-estnote">
-      예상보다 {won(Math.abs(cost - est))} {cost > est ? "높아요" : "낮아요"} · {hm} 확인
+      예상보다 {won(Math.abs(cost - est))} {cost > est ? "높아요" : "낮아요"}
+      {noTime ? null : ` · ${checkedText(at || Date.now())}`}
     </small>
   );
 }
@@ -554,8 +554,9 @@ export function PriceBlock({ p, nights }: { p: ReturnType<typeof shownPrice>; ni
       <small className="tb-price-sub">
         {nights}박 · 세금 포함 {perNight}
       </small>
-      {p.save ? <small className="tb-save-chip">가장 비싼 곳보다 {won(p.save)} 아껴요</small> : null}
-      {p.was !== undefined && p.value !== null && <EstNote est={p.was} cost={p.value} at={p.at ?? 0} />}
+      {p.save ? <small className="tb-save-chip">두 번째로 싼 곳보다 <b>{won(p.save)}</b> 저렴해요</small> : null}
+      {p.at ? <small className="tb-checked">{checkedText(p.at)}</small> : null}
+      {p.was !== undefined && p.value !== null && <EstNote est={p.was} cost={p.value} at={p.at ?? 0} noTime />}
       <em className="tb-cmp">{p.count ? `예약처 ${p.count}곳 비교 · 상세 보기` : "가격 비교 · 상세 보기"} ↗</em>
     </span>
   );

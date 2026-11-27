@@ -1,5 +1,5 @@
-import { AGODA_CID, agodaAffiliateOn } from "./affiliate";
-import { agodaSearch, allowedSellers, hotelSellerKey, isGoogleLink, sellerSearchUrl, type HotelSellerKey } from "./hotel-sellers";
+import { buildPartnerBookingUrl } from "./affiliateLinks";
+import { agodaSearch, allowedSellers, hasSellerSearch, hotelSellerKey, isGoogleLink, sellerSearchUrl, type HotelSellerKey } from "./hotel-sellers";
 import { stayLimits } from "./hotelText";
 
 // 호텔 검색 결과 모양과 링크. 서버(app/api/hotels)와 화면(HotelSearch)이 같이 쓴다.
@@ -42,7 +42,7 @@ export type HotelResults = { options: HotelOption[]; next: string | null }; // n
 export type ReviewTopic = { name: string; total: number; positive: number; negative: number };
 // info: 같이 온 숙소 기본 정보 (예전에 저장된 응답에는 없다)
 export type HotelInfo = { name: string; images: string[]; gps: [number, number] | null; stars: number | null; rating: number | null; reviews: number | null; kind: string; amenities: string[] };
-export type HotelPrices = { sources: HotelSource[]; topics: ReviewTopic[] | null; info?: HotelInfo | null }; // topics: null이면 이 호텔은 주제 데이터가 없다
+export type HotelPrices = { sources: HotelSource[]; topics: ReviewTopic[] | null; info?: HotelInfo | null; checkedAt?: number }; // checkedAt: 서버가 예약처 가격을 실제로 받은 시각 (Unix ms). 저장분을 다시 써도 그대로다 // topics: null이면 이 호텔은 주제 데이터가 없다
 
 export type HotelQuery = { q: string; checkIn: string; checkOut: string; adults: number };
 
@@ -120,46 +120,11 @@ export function roboReason(sources: HotelSource[], pick: string): string {
 export function bookingLink(s: HotelSource, hotelName: string, query: HotelQuery): string {
   const key = hotelSellerKey(s.name, s.official, s.link);
   if (!key) return "";
-  // 공식 사이트는 날짜를 넣어 열 검색 주소가 없으니 직링크가 없으면 보여 주지 않는다
-  if (key === "official" && (!s.link || isGoogleLink(s.link))) return "";
-  if (!s.link || isGoogleLink(s.link)) return sellerSearchUrl(key, hotelName, query);
-  let url: URL;
-  try {
-    url = new URL(s.link);
-  } catch {
-    return sellerSearchUrl(key, hotelName, query);
-  }
-  if (url.protocol !== "https:" && url.protocol !== "http:") return sellerSearchUrl(key, hotelName, query);
-  const host = url.hostname.toLowerCase();
-  const on = (domain: string) => host === domain || host.endsWith(`.${domain}`);
-  const p = url.searchParams;
-  if (p.has("userCountry")) p.set("userCountry", "KR");
-  // 주소 맨 앞의 언어 칸(/en-us/, /en/ …)을 바꾼다
-  const relocale = (to: string) => {
-    const parts = url.pathname.split("/");
-    if (/^[a-z]{2}(-[a-z]{2,4})?$/i.test(parts[1] ?? "")) parts[1] = to;
-    url.pathname = parts.join("/");
-  };
-  if (on("agoda.com")) {
-    relocale("ko-kr");
-    p.delete("tag");
-    // 제휴 설정이 꺼져 있으면 cid를 붙이지 않는다 (원래 붙어 온 값도 뺀다)
-    if (agodaAffiliateOn()) p.set("cid", AGODA_CID);
-    else p.delete("cid");
-    p.set("currencyCode", "KRW");
-  } else if (on("trip.com")) {
-    // 트립닷컴은 주소의 locale보다 사이트 주소(www·us…)를 따른다. 한국 사이트로 보낸다
-    url.hostname = "kr.trip.com";
-    p.set("locale", "ko-KR");
-    p.set("curr", "KRW");
-  } else if (on("booking.com")) {
-    p.set("lang", "ko");
-    p.set("selected_currency", "KRW");
-  } else if (on("hotels.com")) {
-    p.set("locale", "ko_KR");
-    p.set("currency", "KRW");
-  }
-  return url.toString();
+  const direct = s.link && !isGoogleLink(s.link) ? buildPartnerBookingUrl(key, s.link, query) : "";
+  if (direct) return direct;
+  // 공식 사이트·검색 주소를 모르는 예약처(라쿠텐·클룩)는 직링크가 없으면 보여 주지 않는다
+  if (key === "official" || !hasSellerSearch(key)) return "";
+  return sellerSearchUrl(key, hotelName, query);
 }
 
 // 예약 사이트가 많으면 처음엔 5곳만: 최저가 1위, 로보티 추천, 큰 예약 사이트 순서로 채우고 남은 자리는 싼 순서.

@@ -7,6 +7,7 @@ import { EMPTY_CHIPS, filterPins, lowestToken, MAP_BUDGETS, pinText, webglOk, ty
 import { hasFreeCancel } from "@/lib/stay-filters";
 import { nightsOf, won, type StayQuery } from "@/lib/trip";
 import { shownPrice, usePriceVersion } from "./prices";
+import { checkedText } from "@/lib/checked-at";
 import { IconBack } from "./icons";
 import { nearby } from "@/lib/landmarks";
 import { manText, priceBrief, TRAVEL_NOTE, travelText, walkMin, zoneAverages } from "@/lib/map-decide";
@@ -78,7 +79,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
 
   const items = options.map((h) => {
     const p = shownPrice(h, query);
-    return { h, token: h.token, gps: h.gps, rating: h.rating, stars: h.stars, fc: hasFreeCancel(h) || !!p.fc, price: p.none ? null : p.value, verified: p.verified };
+    return { h, token: h.token, gps: h.gps, rating: h.rating, stars: h.stars, fc: hasFreeCancel(h) || !!p.fc, price: p.none ? null : p.value, verified: p.verified, at: p.at };
   });
   const shown = filterPins(items, chips);
   // '가장 낮은 핀'은 예약처에서 확인한 총액끼리만 견준다 (예상 금액과 섞지 않는다)
@@ -185,6 +186,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
               <small>
                 {" "}
                 · {nights}박 {pick.verified ? "세금 포함" : "예약처 확인 전"}
+                {pick.verified && pick.at ? ` · ${checkedText(pick.at)}` : ""}
               </small>
             </>
           ) : (
@@ -339,6 +341,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
                       {!pick.verified && <><em className="tb-est">예상</em>{" "}</>}
                       <b className={pick.token === low && pick.verified ? "low" : undefined}>{won(pick.price)}</b>
                       <small> · {nights}박 {pick.verified ? "세금 포함" : "예약처 확인 전"}</small>
+                      {pick.verified && pick.at ? <small className="tb-checked"> · {checkedText(pick.at)}</small> : null}
                     </p>
                   ) : null}
                   {brief && <p className="tb-map-brief">{brief}</p>}

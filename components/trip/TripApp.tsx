@@ -1054,7 +1054,7 @@ export function TripApp() {
                 <span className="tb-logo">
                   <Orb size={30} />
                   <strong>{BRAND_NAME}</strong>
-                  {brand.tentative && <em>가칭</em>}
+                  {brand.tentative && <em className="tb-provisional">가칭</em>}
                 </span>
               </header>
               {/* 2026-11-25 3차: 바다 사진 배너와 타일 2개를 걷어내고, 첫 화면에 바로 검색 칸을 펼친다 */}
@@ -1307,7 +1307,7 @@ export function TripApp() {
           {/* PC 머리글 왼쪽 글자 로고 (구슬은 파비콘·앱 아이콘에만) */}
           <span className="tb-logo tb-tabbar-logo">
             <strong>{BRAND_NAME}</strong>
-            {brand.tentative && <em>가칭</em>}
+            {brand.tentative && <em className="tb-provisional">가칭</em>}
           </span>
           {/* 4탭 (2026-11-25 돈 아끼는 예약에 집중): 홈 · AI 추천 · 내 여행 · 마이. 모두 같은 크기. PC에서는 위쪽 머리글 메뉴가 된다 */}
           {(
@@ -1322,7 +1322,8 @@ export function TripApp() {
               key={it.id}
               href={it.id === "home" ? (tab === "home" ? "/" : homeHref) : TAB_PATH[it.id]}
               scroll={false}
-              className="tb-tab"
+              /* away: 검색 결과(/hotels, /?q=)·숙소 상세(/hotels/[token])는 홈 첫 화면이 아니라 PC 머리글의 '홈' 밑줄을 그리지 않는다 (휴대폰 아래 탭은 홈 그대로) */
+              className={`tb-tab${it.id === "home" && (tab === "hotel" || (tab === "home" && !!homeMsg)) ? " away" : ""}`}
               aria-current={tab === it.id || (tab === "hotel" && it.id === "home") ? "page" : undefined}
               onClick={(e) => {
                 // 홈에서 홈을 누르면 검색 화면으로 (화면을 다시 받지 않고 주소만 바꾼다)
@@ -1616,7 +1617,9 @@ function TripFooter({ short }: { short?: boolean }) {
       <p>
         상호 {site.business.name} · 대표자 {site.business.ceo}
         <br />
-        사업자등록번호 {site.business.registrationNo}
+        사업자등록번호 {site.business.registrationNo} · 통신판매업 {site.business.mailOrderNo}
+        <br />
+        주소 {site.business.address}
         <br />
         문의 <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
       </p>

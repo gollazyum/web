@@ -1,4 +1,4 @@
-import { cached, cacheKey, NoStore } from "./search-cache";
+import { cached, cacheKey, NoStore, put } from "./search-cache";
 
 // 검색 API 공통 호출. 서버에서만 쓴다. API 키는 Vercel 환경변수 SERPAPI_API_KEY 에만 둔다.
 // 검색 1번마다 요금이 나가서 같은 조건의 성공 응답은 서버 캐시(lib/search-cache.ts)에 저장해 두고 다시 쓰고,
@@ -149,12 +149,13 @@ export async function serpSearch<T>(
   extra?: Record<string, string> | ((json: Record<string, unknown>) => Record<string, string> | null),
   // follow: 받은 쪽에서 다음 쪽 조건을 만들어 followPages쪽(기본 1)까지 이어서 받는다 (인기 도시 숙소 60곳). 다음 쪽이 없으면 멈춘다
   // dailyCap: 새로 검색할 때만 세는 하루 상한 (상세 페이지 가격 조회)
-  opts: { fresh?: boolean; onFresh?: (data: T) => void; ttlSec?: number; follow?: (json: Record<string, unknown>) => Record<string, string> | null; followPages?: number; dailyCap?: { scope: string; max: number } } = {},
+  // keyParams: 저장 키를 만들 조건 (없으면 params). 숙소 한 곳 가격은 숙소 이름(q) 없이 token·날짜·인원만으로 저장해 목록·상세가 같은 저장분을 쓴다
+  opts: { fresh?: boolean; onFresh?: (data: T) => void; ttlSec?: number; follow?: (json: Record<string, unknown>) => Record<string, string> | null; followPages?: number; dailyCap?: { scope: string; max: number }; keyParams?: Record<string, string> } = {},
 ): Promise<Response> {
   const key = process.env.SERPAPI_API_KEY;
   if (!key) return Response.json({ error: "not_configured" }, { status: 503 });
 
-  const ck = cacheKey("travel", params, typeof extra === "function" ? "chain" : (extra ?? null), ...(opts.follow ? [`p${(opts.followPages ?? 1) + 1}`] : []));
+  const ck = cacheKey("travel", opts.keyParams ?? params, typeof extra === "function" ? "chain" : (extra ?? null), ...(opts.follow ? [`p${(opts.followPages ?? 1) + 1}`] : []));
   // 요청 헤더는 캐시 함수 밖에서 읽는다 (Next 캐시 안에서는 요청 데이터를 못 쓴다)
   const ip = ipOf(req);
   try {
@@ -194,6 +195,8 @@ export async function serpSearch<T>(
     if (opts.fresh) {
       const out = await load();
       const data = out instanceof NoStore ? out.data : out;
+      // 다시 확인한 값으로 공용 저장분도 바꿔 둔다 (다른 화면·다른 기기가 옛 가격을 읽지 않게)
+      if (!(out instanceof NoStore)) await put(ck, data, opts.ttlSec ?? TRAVEL_CACHE_SEC);
       fresh(opts.onFresh, data);
       return Response.json(data, { headers: { "x-cache": "BYPASS" } });
     }

@@ -116,7 +116,7 @@ export function HomeSearch({ kind, onKind, stay, flight, onStay, onFlight }: { k
       onKind={onKind}
       stay={stay}
       flight={flight}
-      cta={kind === "stay" ? "세금 포함 총액으로 찾기" : "세금 포함 총액으로 항공권 찾기"}
+      cta="총액으로 찾기"
       onStay={(q) => onStay({ ...q, budget, taste: taste(q.taste, stayTasteOf(opts)) }, opts)}
       onFlight={(q) => onFlight({ ...q, taste: taste(q.taste, "") }, opts)}
     >

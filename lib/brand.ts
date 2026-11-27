@@ -3,11 +3,14 @@
 // - legalName: 약관·개인정보처리방침·사업자 정보·검색 노출에 쓰는 운영 이름. 상표·도메인이 바뀔 때 같이 바꾼다
 // - colors: 앱 화면(components/trip, app/trip.css)의 색. CSS 변수(--tb-*)로 내려간다
 
+import { siteConfig } from "@/config/siteConfig";
+
+// 이름·사업자 정보는 config/siteConfig.ts 한 곳에서 바꾼다 (여기서는 읽기만)
 export const brand = {
-  appName: "여행비서",
-  tentative: true,
-  aiName: "여행비서 AI",
-  legalName: "Gollazyum",
+  appName: siteConfig.brandName,
+  tentative: siteConfig.showProvisionalBadge,
+  aiName: siteConfig.aiName,
+  legalName: siteConfig.legalName,
   // 2026-11-26 PC 디자인 고급화(북유럽식): 미색 바탕 · 먹색 글자(본문/보조/각주 3단계) · 옅은 베이지 회색 선.
   // 강조색은 깊은 남색(price) 하나 — 확인한 최저가 숫자·'평소보다 N%↓' 배지·지도 최저가 핀에만 쓴다. 버튼·배너·아이콘에는 쓰지 않는다
   colors: {
@@ -24,6 +27,8 @@ export const brand = {
     accentSoft: "#F2EFE9",
     price: "#1E3A5F", // 깊은 남색: 확인한 최저가 숫자 전용 (예전 주황 #FF5A1F 대체)
     priceSoft: "#EEF1F5", // 남색 강조의 아주 옅은 바탕 (내림 표시)
+    save: "#2F7A55", // 절약·하락 전용 초록 (두 번째로 싼 곳보다 저렴한 금액, 가격 내려감). 다른 곳에는 쓰지 않는다
+    saveSoft: "#E5F0E9",
     good: "#0E9F6E",
     goodSoft: "#E3F7EE",
     warn: "#E5484D",

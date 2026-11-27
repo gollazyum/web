@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   },
   description: site.description,
   keywords: [
-    "Gollazyum",
+    site.name,
     "숙소 총액",
     "호텔 가격 정보",
     "항공권 운임",

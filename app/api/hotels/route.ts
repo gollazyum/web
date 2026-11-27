@@ -221,8 +221,12 @@ export async function POST(req: Request) {
     };
     // 예약처별 가격은 12시간 저장해 두고 같이 쓴다 (체크인 7일 안은 60분). 목록 행·상세 페이지가 같은 저장분을 쓴다.
     // 상세 페이지(detail)에서 새로 부를 때만 한 접속 주소당 하루 70번까지 (저장된 가격은 무제한)
+    // 저장 키는 숙소 이름(q) 없이: 목록 행(숙소 이름)과 상세 페이지(새 탭에서 이름을 모를 때 도시명)가 같은 저장분을 본다
+    const { q: _name, ...keyParams } = params;
+    void _name;
     return serpSearch(req, params, shapePrices, undefined, {
       fresh: q.fresh,
+      keyParams,
       ttlSec: priceCacheSec(q.checkIn),
       ...(q.detail ? { dailyCap: { scope: "detail", max: DETAIL_DAILY_CAP } } : {}),
       ...(supabaseOn() ? { onFresh } : {}),
