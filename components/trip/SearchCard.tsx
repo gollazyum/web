@@ -5,7 +5,7 @@ import { AirportInput } from "@/components/AirportInput";
 import { PlaceInput } from "@/components/PlaceInput";
 import { addDays, daysBetween, today as localToday } from "@/lib/dates";
 import { DateRangePicker } from "@/components/DateRangePicker";
-import type { FlightQuery, StayQuery } from "@/lib/trip";
+import { cityKo, type FlightQuery, type StayQuery } from "@/lib/trip";
 import { HOME_PLACES } from "@/lib/home-places";
 import { HOME_ROUTES } from "@/lib/home-info";
 import { addRecent, readRecent, recentLabel, RECENT_MAX, type Recent } from "@/lib/recent-search";
@@ -89,7 +89,7 @@ export function SearchCard({ kind, onKind, stay, flight, onStay, onFlight, ref, 
     if (q.childAges?.some((a) => a < 0)) return setErr("아동 나이를 알려 주세요. 인원 칸을 누르면 넣을 수 있어요.");
     if (q.checkIn < t) return setErr("체크인 날짜가 지났어요. 오늘 이후 날짜로 바꿔 주세요.");
     if (q.checkOut <= q.checkIn) return setErr("체크아웃은 체크인 다음 날 이후여야 해요.");
-    go.stay({ ...q, place: q.place.trim() });
+    go.stay({ ...q, place: cityKo(q.place) });
   }
 
   useImperativeHandle(ref, () => ({

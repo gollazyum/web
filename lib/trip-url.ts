@@ -1,5 +1,5 @@
 import { addDays, daysBetween } from "./dates";
-import type { FlightQuery, StayQuery } from "./trip";
+import { cityKo, type FlightQuery, type StayQuery } from "./trip";
 
 // 탭 주소와 홈 검색 주소.
 // 홈 검색 결과는 주소에 조건을 담아(/?q=오사카&checkin=…) 그대로 공유하고, 뒤로 가기로 검색 화면에 돌아올 수 있다.
@@ -109,7 +109,7 @@ export function parseHomeSearch(search: string, today?: string): HomeSearch {
     }
     return { kind: "flight", query: { from, to, depart: d, ret: r, adults, taste, ...childOk, ...cabinOk }, ...(fixed ? { fixed } : {}) };
   }
-  const place = one("q");
+  const place = cityKo(one("q"));
   const checkIn = one("checkin");
   const checkOut = one("checkout");
   const adults = Number(one("adults") || 2);

@@ -145,16 +145,16 @@ export function searchOnce(params: Record<string, string>, timeoutMs = 25_000): 
 export async function serpSearch<T>(
   req: Request,
   params: Record<string, string>,
-  shape: (json: Record<string, unknown>, extra: Record<string, unknown> | null, follow: Record<string, unknown> | null) => T,
+  shape: (json: Record<string, unknown>, extra: Record<string, unknown> | null, follow: Record<string, unknown>[]) => T,
   extra?: Record<string, string> | ((json: Record<string, unknown>) => Record<string, string> | null),
-  // follow: 첫 결과를 받은 뒤 다음 쪽을 한 번 더 이어서 받는다 (인기 도시 숙소 40곳). 다음 쪽이 없으면 부르지 않는다
+  // follow: 받은 쪽에서 다음 쪽 조건을 만들어 followPages쪽(기본 1)까지 이어서 받는다 (인기 도시 숙소 60곳). 다음 쪽이 없으면 멈춘다
   // dailyCap: 새로 검색할 때만 세는 하루 상한 (상세 페이지 가격 조회)
-  opts: { fresh?: boolean; onFresh?: (data: T) => void; ttlSec?: number; follow?: (json: Record<string, unknown>) => Record<string, string> | null; dailyCap?: { scope: string; max: number } } = {},
+  opts: { fresh?: boolean; onFresh?: (data: T) => void; ttlSec?: number; follow?: (json: Record<string, unknown>) => Record<string, string> | null; followPages?: number; dailyCap?: { scope: string; max: number } } = {},
 ): Promise<Response> {
   const key = process.env.SERPAPI_API_KEY;
   if (!key) return Response.json({ error: "not_configured" }, { status: 503 });
 
-  const ck = cacheKey("travel", params, typeof extra === "function" ? "chain" : (extra ?? null), ...(opts.follow ? ["p2"] : []));
+  const ck = cacheKey("travel", params, typeof extra === "function" ? "chain" : (extra ?? null), ...(opts.follow ? [`p${(opts.followPages ?? 1) + 1}`] : []));
   // 요청 헤더는 캐시 함수 밖에서 읽는다 (Next 캐시 안에서는 요청 데이터를 못 쓴다)
   const ip = ipOf(req);
   try {
@@ -172,13 +172,19 @@ export async function serpSearch<T>(
           partial = true;
         }
       }
-      let after: Record<string, unknown> | null = null;
-      const nextPage = opts.follow?.(json) ?? null;
-      if (nextPage) {
-        try {
-          after = await call(nextPage, key);
-        } catch {
-          partial = true; // 다음 쪽이 실패하면 첫 쪽만 보여 주고 저장하지 않는다
+      const after: Record<string, unknown>[] = [];
+      if (opts.follow) {
+        let last = json;
+        for (let i = 0; i < (opts.followPages ?? 1); i++) {
+          const nextPage = opts.follow(last);
+          if (!nextPage) break;
+          try {
+            last = await call(nextPage, key);
+            after.push(last);
+          } catch {
+            partial = true; // 다음 쪽이 실패하면 받은 쪽까지만 보여 주고 저장하지 않는다
+            break;
+          }
         }
       }
       const data = shape(json, more, after);

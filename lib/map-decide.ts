@@ -57,10 +57,10 @@ export function priceBrief(city: City | null, pick: PricedSpot | null, spots: Pr
   return `인기 번화가 평균(${won(a)})보다 약 ${pct}% 낮은 실속 위치예요`;
 }
 
-// 주요 장소까지 예상 이동 시간 (직선거리 km 기반 대략값, 길찾기 API 없음)
+// 주요 장소까지 예상 이동 시간 (직선거리 km 기반 대략값, 길찾기 API 없음). 공항은 이름에 이미 "공항"이 있어 "약 N분"만
 const round5 = (m: number) => Math.max(5, Math.round(m / 5) * 5);
 export function travelText(name: string, d: number): { time: string; sub: string } {
-  if (/공항/.test(name)) return { time: `공항 약 ${round5(((d * 1.25) / 42) * 60 + 12)}분`, sub: `직선 ${d.toFixed(1)}km` };
+  if (/공항/.test(name)) return { time: `약 ${round5(((d * 1.25) / 42) * 60 + 12)}분`, sub: `직선 ${d.toFixed(1)}km` };
   if (d <= 1.2) return { time: `도보 약 ${Math.max(2, Math.round(((d * 1.25) / 4.8) * 60))}분`, sub: `${Math.round(d * 1000)}m` };
   return { time: `약 ${round5(((d * 1.3) / 26) * 60 + 7)}분`, sub: `직선 ${d.toFixed(1)}km` };
 }

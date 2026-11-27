@@ -49,7 +49,7 @@ describe("예상 이동 시간", () => {
     expect(travelText("난바역", 0.4)).toEqual({ time: "도보 약 6분", sub: "400m" });
     expect(travelText("난바역", 0.05)).toEqual({ time: "도보 약 2분", sub: "50m" });
     expect(travelText("오사카성", 3.1)).toEqual({ time: "약 15분", sub: "직선 3.1km" });
-    expect(travelText("간사이국제공항", 35)).toEqual({ time: "공항 약 75분", sub: "직선 35.0km" });
+    expect(travelText("간사이국제공항", 35)).toEqual({ time: "약 75분", sub: "직선 35.0km" });
     expect(walkMin(320)).toBe(5);
     expect(walkMin(10)).toBe(1);
   });

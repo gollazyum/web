@@ -1323,7 +1323,7 @@ export function TripApp() {
               href={it.id === "home" ? (tab === "home" ? "/" : homeHref) : TAB_PATH[it.id]}
               scroll={false}
               className="tb-tab"
-              aria-current={tab === it.id ? "page" : undefined}
+              aria-current={tab === it.id || (tab === "hotel" && it.id === "home") ? "page" : undefined}
               onClick={(e) => {
                 // 홈에서 홈을 누르면 검색 화면으로 (화면을 다시 받지 않고 주소만 바꾼다)
                 if (it.id === "home" && tab === "home") {

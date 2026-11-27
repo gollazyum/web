@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { HotelInfo, HotelOption } from "@/lib/hotels";
 import { guestText, nightsOf, type StayQuery } from "@/lib/trip";
 import { pinText } from "@/lib/map-pins";
@@ -9,7 +9,8 @@ import { cityNear } from "@/data/neighborhoodVibes";
 import type { Peer } from "@/lib/usual-price";
 import { SellerBody } from "./SellerSheet";
 import { DetailMap } from "./DetailMap";
-import type { NearStation } from "./StayMap";
+import type { ExtraPin, NearStation } from "./StayMap";
+import { AMENITY_KO, amenityLine, gridKey, type Amenities } from "@/lib/amenity-shape";
 import { getVerified, usePriceVersion } from "./prices";
 import { IconBack } from "./icons";
 
@@ -70,6 +71,31 @@ export function HotelPage({ hotel: base, token, query, saved, onSave, onBack, ba
     return priceBrief(cityNear([hotel.gps[1], hotel.gps[0]]), me, spots);
   }, [hotel.gps, hotel.token, spots, low]);
 
+  // 도보 5분 내 편의점·약국·병원: 이 숙소 1곳만, 위치를 알게 되면 한 번 (서버 30일 저장분 우선). 실패하면 줄을 숨긴다
+  const grid = hotel.gps ? gridKey(hotel.gps[0], hotel.gps[1]) : null;
+  const [amen, setAmen] = useState<{ grid: string; data: Amenities } | null>(null);
+  const [amenOn, setAmenOn] = useState(false);
+  useEffect(() => {
+    if (!grid || !hotel.gps) return;
+    const [lat, lng] = hotel.gps;
+    const ctl = new AbortController();
+    fetch(`/api/nearby-amenities?lat=${lat}&lng=${lng}`, { signal: ctl.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { amenities?: Amenities | null } | null) => {
+        if (j?.amenities) setAmen({ grid, data: j.amenities });
+      })
+      .catch(() => undefined);
+    return () => ctl.abort();
+  }, [grid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const amenData = amen && amen.grid === grid ? amen.data : null;
+  const extras = useMemo<ExtraPin[] | undefined>(
+    () =>
+      amenOn && amenData
+        ? amenData.items.map((x, i) => ({ id: `${x.kind}${i}`, lat: x.lat, lng: x.lng, kind: x.kind, title: x.name, sub: `${AMENITY_KO[x.kind]} · 도보 약 ${walkMin(x.m)}분` }))
+        : undefined,
+    [amenOn, amenData],
+  );
+
   async function share() {
     const url = window.location.href;
     try {
@@ -86,10 +112,20 @@ export function HotelPage({ hotel: base, token, query, saved, onSave, onBack, ba
 
   const location = hotel.gps ? (
     <>
-      <DetailMap gps={hotel.gps} name={hotel.name} label={low ? pinText(low) : "숙소"} onStation={setStation} />
+      <DetailMap gps={hotel.gps} name={hotel.name} label={low ? pinText(low) : "숙소"} onStation={setStation} extras={extras} />
       {station && (
         <p className="tb-hp-station">
           🚇 가장 가까운 역 <b>{station.name}</b> · 도보 약 {walkMin(station.m)}분 <small>({Math.round(station.m)}m)</small>
+        </p>
+      )}
+      {amenData && (
+        <p className="tb-hp-amen">
+          <span>🏪 {amenityLine(amenData)}</span>
+          {amenData.items.length > 0 && (
+            <button type="button" className="tb-hp-amen-tg" aria-pressed={amenOn} onClick={() => setAmenOn((x) => !x)}>
+              {amenOn ? "지도에서 숨기기" : "지도에 표시"}
+            </button>
+          )}
         </p>
       )}
       {brief && <p className="tb-hp-brief">{brief}</p>}

@@ -17,6 +17,21 @@ export type StayQuery = {
   childAges?: number[]; // 아동 나이 (0~17). 길이 = 아동 수
 };
 
+// 도시 이름 맞추기: 행정 구역 접미사가 붙은 이름을 흔히 쓰는 이름으로 ("도쿄도 신주쿠" → "도쿄 신주쿠").
+// 최근 검색·검색 요약에서 같은 도시가 두 번 저장되지 않게 한다
+const CITY_ALIASES: [RegExp, string][] = [
+  [/(^|\s)도쿄도(?=\s|,|$)/g, "$1도쿄"],
+  [/(^|\s)오사카부(?=\s|,|$)/g, "$1오사카"],
+  [/(^|\s)교토부(?=\s|,|$)/g, "$1교토"],
+  [/(^|\s)후쿠오카현(?=\s|,|$)/g, "$1후쿠오카"],
+  [/(^|\s)오키나와현(?=\s|,|$)/g, "$1오키나와"],
+];
+export function cityKo(place: string): string {
+  let out = place.normalize("NFC");
+  for (const [re, to] of CITY_ALIASES) out = out.replace(re, to);
+  return out.replace(/\s+/g, " ").trim();
+}
+
 export type FlightQuery = {
   from: string; // 공항·도시 코드 (ICN, SEL)
   fromLabel: string;

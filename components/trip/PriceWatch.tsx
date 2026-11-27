@@ -31,6 +31,23 @@ function write(v: WatchState) {
   }
   subs.forEach((f) => f());
 }
+// 다시 확인하는 동안에는 위 요약·아래 카드 모두 '최신 가격 확인 중...'만 보이고, 끝난 뒤에만 오르내림을 같은 기준으로 보인다
+let running = false;
+function setRunning(on: boolean) {
+  running = on;
+  subs.forEach((f) => f());
+}
+export function useWatchBusy(): boolean {
+  return useSyncExternalStore(
+    (f) => {
+      subs.add(f);
+      return () => subs.delete(f);
+    },
+    () => running,
+    () => false,
+  );
+}
+
 export function useWatch(): WatchState | null {
   return useSyncExternalStore(
     (f) => {
@@ -90,6 +107,15 @@ export function useDrops(saved: SavedLike[]): Drop[] {
 async function runWatch(saved: SavedLike[]) {
   const list = pickWatch(saved, localToday());
   if (!list.length) return;
+  setRunning(true);
+  try {
+    await runLines(list);
+  } finally {
+    setRunning(false);
+  }
+}
+
+async function runLines(list: SavedLike[]) {
   const lines = await Promise.all(
     list.map(async (s): Promise<WatchLine> => {
       const rows = await recheck(s.hotel.token, s.hotel.name, s.query);
@@ -129,14 +155,15 @@ export function PriceWatchBox<T extends SavedLike>({ saved, onOpen }: { saved: T
     if (isDue(read(), Date.now()) && pickWatch(saved, localToday()).length) void go();
   }, [saved]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const drops = dropsFrom(saved, state);
-  if (!pickWatch(saved, localToday()).length && !drops.length) return null;
+  const busyAny = useWatchBusy() || busy;
+  const drops = busyAny ? [] : dropsFrom(saved, state);
+  if (!busyAny && !pickWatch(saved, localToday()).length && !drops.length) return null;
   const find = (l: WatchLine) => saved.find((s) => s.hotel.token === l.token && s.query.checkIn === l.q.checkIn && s.query.checkOut === l.q.checkOut && s.query.adults === l.q.adults);
   return (
     <section className={`tb-watch${drops.length ? " down" : ""}`} aria-label="찜한 숙소 가격 변화">
       <div className="tb-watch-head">
-        <strong>{busy ? "찜한 숙소 가격을 다시 확인하는 중" : drops.length ? `찜한 뒤 가격이 내려간 숙소가 ${drops.length}곳 있어요` : state ? "찜한 뒤 내려간 숙소는 아직 없어요" : "찜한 숙소 가격 변화"}</strong>
-        <small>{busy ? "예약처 가격을 받고 있어요" : state ? `${ago(state.at)} 확인 · 최근 찜한 숙소 최대 5곳, 하루 한 번` : "최근 찜한 숙소 최대 5곳을 하루 한 번 확인해요"}</small>
+        <strong>{busyAny ? "최신 가격 확인 중..." : drops.length ? `찜한 뒤 가격이 내려간 숙소가 ${drops.length}곳 있어요` : state ? "찜한 뒤 내려간 숙소는 아직 없어요" : "찜한 숙소 가격 변화"}</strong>
+        <small>{busyAny ? "예약처 가격을 받고 있어요" : state ? `${ago(state.at)} 확인 · 최근 찜한 숙소 최대 5곳, 하루 한 번` : "최근 찜한 숙소 최대 5곳을 하루 한 번 확인해요"}</small>
       </div>
       {drops.length > 0 && (
         <ul className="tb-watch-list">
@@ -161,7 +188,7 @@ export function PriceWatchBox<T extends SavedLike>({ saved, onOpen }: { saved: T
           })}
         </ul>
       )}
-      {!busy && state && (
+      {!busyAny && state && (
         <button type="button" className="tb-link" onClick={go}>
           지금 다시 확인
         </button>
