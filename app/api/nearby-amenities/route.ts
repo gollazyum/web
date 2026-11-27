@@ -3,7 +3,7 @@ import { nearbyAmenities } from "@/lib/nearby-amenities";
 // 숙소 상세 페이지에 들어왔을 때 그 숙소 1곳만 부른다 (목록 미리 부르기 없음).
 // 30일 저장분이 있으면 외부 호출 0번. 실패하면 { amenities: null } → 화면은 요약 줄을 숨긴다
 export const runtime = "nodejs";
-export const maxDuration = 15;
+export const maxDuration = 20;
 
 const WINDOW_MS = 10 * 60 * 1000;
 const LIMIT = 40;

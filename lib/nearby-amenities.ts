@@ -6,9 +6,10 @@ import { type AmenityKind, type Amenities, type AmenityItem, gridKey, parseOverp
 // nearby_amenities_cache에 30일 저장한다 (약 100m 격자 단위). 오류일 때는 저장하지 않고 null (화면은 줄을 숨김)
 
 export const AMENITY_CACHE_DAYS = 30;
+const CACHE_VALID_FROM = "2026-11-27T09:00:00Z";
 const RADIUS_M = 400;
-// Overpass 공개 서버는 붐비면 몇 초 걸린다. 화면은 이 줄을 기다리지 않으므로 넉넉히 7초 (2026-11-27: 4초로는 실서버에서 모두 실패)
-const TIMEOUT_MS = 7_000;
+// Overpass 공개 서버는 붐비면 몇 초 걸린다. 화면은 이 줄을 기다리지 않으므로 넉넉히 12초 (2026-11-27: 4초·7초로는 도심에서 실패)
+const TIMEOUT_MS = 12_000;
 const ENDPOINTS = [
   "https://overpass.private.coffee/api/interpreter",
   "https://overpass-api.de/api/interpreter",
@@ -19,17 +20,16 @@ const DEFAULT_UA = "Gollazyum/1.0 (+https://www.gollazyum.com; mailto:gollazyum@
 
 type Row = { grid_key: string; mart_count: number; pharmacy_count: number; hospital_count: number; items: AmenityItem[]; fetched_at: string };
 
+// 한 번의 조회로 shop·amenity 값만 거른다 (예전 4번 나눠 묻기는 도심에서 7초 안에 끝나지 않았음, 2026-11-27).
+// 종류 나누기는 parseOverpass가 태그로 다시 한다 (식당·술집 값은 넣지 않음)
+const VALUES = "convenience|supermarket|grocery|chemist|pharmacy|hospital|clinic|doctors";
 export function overpassQuery(lat: number, lng: number): string {
-  const a = `(around:${RADIUS_M},${lat},${lng})`;
-  return `[out:json][timeout:7];(` +
-    `nwr["shop"~"^(convenience|supermarket|grocery)$"]${a};` +
-    `nwr["amenity"="pharmacy"]${a};nwr["shop"="chemist"]${a};` +
-    `nwr["amenity"~"^(hospital|clinic|doctors)$"]${a};` +
-    `);out center 40;`;
+  return `[out:json][timeout:12];nwr[~"^(shop|amenity)$"~"^(${VALUES})$"](around:${RADIUS_M},${lat},${lng});out center 150;`;
 }
 
 async function readCache(key: string): Promise<Amenities | null> {
-  const since = new Date(Date.now() - AMENITY_CACHE_DAYS * 86_400_000).toISOString();
+  // 2026-11-27 첫 배포분은 결과 40개 제한으로 개수가 잘렸을 수 있어 그 뒤 저장분만 쓴다 (덮어쓰기로 갱신)
+  const since = new Date(Math.max(Date.now() - AMENITY_CACHE_DAYS * 86_400_000, Date.parse(CACHE_VALID_FROM))).toISOString();
   const rows = await sb<Row[]>(`nearby_amenities_cache?grid_key=eq.${encodeURIComponent(key)}&fetched_at=gte.${encodeURIComponent(since)}&select=*&limit=1`);
   const r = rows?.[0];
   if (!r) return null;
@@ -41,7 +41,7 @@ async function writeCache(key: string, a: Amenities) {
   await sb("nearby_amenities_cache?on_conflict=grid_key", { method: "POST", body: [row], prefer: "resolution=merge-duplicates,return=minimal" });
 }
 
-// 여러 공개 서버에 동시에 묻고 먼저 온 올바른 응답을 쓴다 (한쪽이 느리거나 막혀도 7초 안에 끝남).
+// 여러 공개 서버에 동시에 묻고 먼저 온 올바른 응답을 쓴다 (한쪽이 느리거나 막혀도 12초 안에 끝남).
 // 실패하면 이유를 남긴다 (Vercel 로그 · 응답 why)
 async function askOne(url: string, body: string, ua: string, lat: number, lng: number): Promise<{ data: Amenities } | { why: string }> {
   try {
