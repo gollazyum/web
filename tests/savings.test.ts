@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { freeCancelGap, savingsOf } from "@/lib/savings";
+import { freeCancelGap, maxGapOf, savingsOf } from "@/lib/savings";
 
 describe("아낀 금액", () => {
-  it("세금 포함 총액끼리 가장 비싼 곳 − 가장 낮은 곳", () => {
-    expect(savingsOf([{ cost: 312000 }, { cost: 318000 }, { cost: 353000 }])).toEqual({ amount: 41000, count: 3 });
+  it("세금 포함 총액끼리 두 번째로 싼 곳 − 가장 낮은 곳 (가장 비싼 곳과의 차이는 maxGap)", () => {
+    expect(savingsOf([{ cost: 312000 }, { cost: 318000 }, { cost: 353000 }])).toEqual({ amount: 6000, count: 3, maxGap: 41000 });
+    expect(savingsOf([{ cost: 353000 }, { cost: 312000 }, { cost: 318000 }])?.amount).toBe(6000);
   });
   it("어림한 줄은 빼고 견준다", () => {
-    expect(savingsOf([{ cost: 300000 }, { cost: 305000 }, { cost: 900000, approx: true }])).toEqual({ amount: 5000, count: 2 });
+    expect(savingsOf([{ cost: 300000 }, { cost: 305000 }, { cost: 900000, approx: true }])).toEqual({ amount: 5000, count: 2, maxGap: 5000 });
+  });
+  it("1·2위 금액이 같으면 숨긴다 (비교표 아래 최고가 차이는 남는다)", () => {
+    expect(savingsOf([{ cost: 300000 }, { cost: 300000 }, { cost: 340000 }])).toBeNull();
+    expect(maxGapOf([{ cost: 300000 }, { cost: 300000 }, { cost: 340000 }])).toBe(40000);
   });
   it("1위가 어림한 금액이면 보여 주지 않는다", () => {
     expect(savingsOf([{ cost: 290000, approx: true }, { cost: 300000 }, { cost: 320000 }])).toBeNull();

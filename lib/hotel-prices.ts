@@ -72,5 +72,5 @@ function shapeInfo(raw: Record<string, unknown>): HotelInfo | null {
 export function shapePrices(raw: Record<string, unknown>): HotelPrices {
   const featured = (raw.featured_prices as SerpPrice[] | undefined) ?? [];
   const prices = (raw.prices as SerpPrice[] | undefined) ?? [];
-  return { sources: cleanSources([...featured, ...prices]), topics: shapeTopics(raw.reviews_breakdown), info: shapeInfo(raw) };
+  return { sources: cleanSources([...featured, ...prices]), topics: shapeTopics(raw.reviews_breakdown), info: shapeInfo(raw), checkedAt: Date.now() };
 }

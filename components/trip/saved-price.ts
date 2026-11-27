@@ -40,5 +40,6 @@ export function priceChange(base: SavedBase | undefined, now: Pick<ShownPrice, "
 
 export function changeText(diff: number): string {
   const n = Math.abs(Math.round(diff)).toLocaleString("ko-KR");
-  return diff < 0 ? `담을 때보다 ${n}원 내려갔어요` : `담을 때보다 ${n}원 올랐어요`;
+  // 내 여행(PriceWatch)·상세·목록이 같은 글자: "담을 때보다 ○원↓"
+  return diff < 0 ? `담을 때보다 ${n}원↓` : `담을 때보다 ${n}원↑`;
 }

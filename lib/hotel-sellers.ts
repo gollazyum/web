@@ -2,7 +2,7 @@
 // 목록에 없는 판매처(Bluepillow, 한국어를 지원하지 않는 해외 메타 사이트 등)는 결과에서 뺀다.
 // 같은 판매처가 "Hoteles.com", "Expedia.co.kr", "부킹닷컴"처럼 여러 이름으로 오므로 이름을 정규화해서 맞춘다.
 
-import { AGODA_CID, agodaAffiliateOn } from "./affiliate";
+import { buildPartnerBookingUrl, isGoogleHost, partnerOn } from "./affiliateLinks";
 
 export type HotelSellerKey =
   | "agoda"
@@ -14,6 +14,8 @@ export type HotelSellerKey =
   | "yeogi"
   | "interpark"
   | "myrealtrip"
+  | "rakuten"
+  | "klook"
   | "official";
 
 // rooms·childAges는 P1-4 (없으면 객실 1, 아동 0)
@@ -110,6 +112,21 @@ export const HOTEL_SELLER_ALLOWLIST: readonly SellerDef[] = [
     hosts: ["myrealtrip.com"],
     search: (hotel) => `https://www.myrealtrip.com/search?${qs({ q: hotel })}`,
   },
+  // 라쿠텐 트래블·클룩: 정해진 호텔 검색 주소를 확인하지 못해 직링크가 올 때만 보여 준다 (주소를 짐작하지 않는다)
+  {
+    key: "rakuten",
+    label: "Rakuten Travel",
+    ko: "라쿠텐 트래블",
+    aliases: ["rakutentravel", "라쿠텐트래블", "라쿠텐", "楽天トラベル"], // "Rakuten Oyado" 같은 다른 라쿠텐 사이트는 넣지 않는다
+    hosts: ["travel.rakuten.co.jp", "travel.rakuten.com"],
+  },
+  {
+    key: "klook",
+    label: "Klook",
+    ko: "클룩",
+    aliases: ["klook", "클룩"],
+    hosts: ["klook.com"],
+  },
   // 호텔 공식 사이트: 응답의 official 플래그나 이름의 Official/공식 키워드로 판별한다. 정해진 검색 주소가 없다
   { key: "official", label: "호텔 공식 사이트", ko: "호텔 공식 사이트", aliases: [], hosts: [] },
 ];
@@ -131,17 +148,19 @@ const onHost = (host: string, domain: string) => host === domain || host.endsWit
 
 // Google을 거쳐 가는 주소(google.com, google.co.kr …)인지
 export function isGoogleLink(link: string | null | undefined): boolean {
-  return /(^|\.)google\.[a-z.]+$/.test(hostOf(link));
+  return isGoogleHost(hostOf(link));
 }
 
 const OFFICIAL_WORD = /official|공식/i;
 
-// 지금 화면에 보여 주는 판매처. 2026-11-17 초록 지시서: 아래 7곳만 (트립비토즈·모두투어는 같은 날 빼기로 함) (서버 /api/hotels 에서 이 목록 밖은 걸러 낸다).
-// 인터파크·마이리얼트립·호텔 공식 사이트는 정의만 남기고 보여 주지 않는다
-export const HOTEL_SELLERS_SHOWN: readonly HotelSellerKey[] = ["booking", "agoda", "yeogi", "yanolja", "hotels", "expedia", "trip"];
+// 지금 화면에 보여 주는 판매처: 한국 12대 허용 판매처 (2026-11-27 초록 지시서).
+// 글로벌 5곳(부킹닷컴·아고다·트립닷컴·익스피디아·호텔스닷컴) + 국내 4곳(여기어때·마이리얼트립·야놀자·인터파크/NOL)
+// + 호텔 공식 사이트 + 라쿠텐 트래블 + 클룩. 서버 /api/hotels 에서 이 목록 밖은 걸러 낸다
+export const HOTEL_SELLERS_SHOWN: readonly HotelSellerKey[] = ["booking", "agoda", "trip", "expedia", "hotels", "yeogi", "myrealtrip", "yanolja", "interpark", "official", "rakuten", "klook"];
 
-// 허용 목록 중 지금 검색 결과에 가격이 실제로 들어오지 않는 국내 예약처 (들어오면 여기서 빼면 홈 안내에도 바로 보인다)
-export const HOTEL_SELLERS_PENDING: readonly HotelSellerKey[] = ["yeogi", "yanolja"];
+// 허용 목록 중 지금 검색 결과에 가격이 들어오는 것을 아직 확인하지 못한 곳 (확인되면 여기서 빼면 홈 안내에도 바로 보인다).
+// 가격이 오면 결과에는 그대로 보인다. 홈 '비교하는 예약처' 문구에만 이름을 올리지 않는다 (지어내지 않는다)
+export const HOTEL_SELLERS_PENDING: readonly HotelSellerKey[] = ["yeogi", "myrealtrip", "yanolja", "interpark", "rakuten", "klook"];
 
 // 홈 '비교하는 예약처'에 쓰는 목록: 결과 패널에 실제로 가격이 오는 곳만 (허용 목록 - 준비 중)
 export const HOTEL_SELLERS_LIVE: readonly HotelSellerKey[] = HOTEL_SELLERS_SHOWN.filter((k) => !HOTEL_SELLERS_PENDING.includes(k));
@@ -212,20 +231,25 @@ export function agodaSearch(hotel: string, q: SearchQuery): string {
     ...(agesQ(q).length ? { childages: agesQ(q).join(",") } : {}),
     currencyCode: "KRW",
   };
-  if (agodaAffiliateOn()) p.cid = AGODA_CID;
-  return `https://www.agoda.com/ko-kr/search?${qs(p)}`;
+  return buildPartnerBookingUrl("agoda", `https://www.agoda.com/ko-kr/search?${qs(p)}`, q) || `https://www.agoda.com/ko-kr/search?${qs(p)}`;
 }
+
+// 정해진 검색 주소가 있는 예약처인지 (없으면 직링크가 올 때만 보여 준다)
+export const hasSellerSearch = (key: HotelSellerKey) => !!sellerDef(key).search;
 
 // 직링크가 없을 때 갈 주소. 공식 사이트는 정해진 검색 주소가 없어 호텔 이름으로 네이버 검색을 연다
 export function sellerSearchUrl(key: HotelSellerKey, hotel: string, q: SearchQuery): string {
   const def = sellerDef(key);
-  if (def.search) return def.search(hotel, q);
+  if (def.search) {
+    const raw = def.search(hotel, q);
+    return buildPartnerBookingUrl(key, raw, q) || raw;
+  }
   return `https://search.naver.com/search.naver?${qs({ query: `${hotel} 공식 홈페이지` })}`;
 }
 
-// 외부 링크 rel. 제휴 설정이 켜진 아고다 링크에만 sponsored를 붙인다
+// 외부 링크 rel. 제휴 코드가 붙는 예약처 링크에만 sponsored를 붙인다
 export function linkRel(key: HotelSellerKey | null): string {
-  return key === "agoda" && agodaAffiliateOn() ? "noopener noreferrer sponsored" : "noopener noreferrer";
+  return partnerOn(key) ? "noopener noreferrer sponsored" : "noopener noreferrer";
 }
 
 // "아고다로", "트립닷컴으로"처럼 받침에 맞춰 (으)로를 붙인다. 영문은 끝 글자 소리로 짐작한다

@@ -95,6 +95,13 @@ export function memoryHit<T>(key: string): T | undefined {
   return undefined;
 }
 
+// 새로 받은 값으로 저장분을 바꾼다 ('다시 확인'). 메모리·KV는 바로 바뀐다.
+// KV가 없을 때 쓰는 Next 데이터 캐시는 한 항목만 바꿀 수 없어, 같은 인스턴스 메모리에만 먼저 넣어 둔다 (메모리를 먼저 읽는다)
+export async function put<T>(key: string, data: T, ttlSec: number): Promise<void> {
+  remember(key, data, ttlSec);
+  if (kvConfig()) await kvCommand(["SET", key, JSON.stringify(data), "EX", ttlSec]).catch((e) => console.error("[search-cache] kv put", e instanceof Error ? e.message : e));
+}
+
 // key로 저장된 성공 응답을 돌려주고, 없으면 loader를 불러 저장한다.
 // loader가 던진 오류는 그대로 다시 던진다 (저장하지 않음)
 // 같은 인스턴스에 같은 조건이 동시에 들어오면(두 탭·빠른 두 번 누름) 유료 검색은 한 번만 하고 결과를 나눠 쓴다

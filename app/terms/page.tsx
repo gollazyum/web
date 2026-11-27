@@ -7,7 +7,7 @@ import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "이용약관",
-  description: "Gollazyum 서비스의 이용 조건과 외부 예약 사이트 연결에 관한 안내입니다.",
+  description: `${site.name} 서비스의 이용 조건과 외부 예약 사이트 연결에 관한 안내입니다.`,
   alternates: { canonical: "/terms" },
 };
 
@@ -20,21 +20,21 @@ export default function Terms() {
 
         <h2>제1조 (목적)</h2>
         <p>
-          이 약관은 {site.business.name}(이하 “회사”)가 운영하는 Gollazyum(이하 “서비스”)을 이용하는 데 필요한
+          이 약관은 {site.business.name}(이하 “회사”)가 운영하는 {site.name}(이하 “서비스”)을 이용하는 데 필요한
           회사와 이용자의 권리, 의무 및 책임 사항을 정합니다.
         </p>
 
         <h2>제2조 (서비스의 성격)</h2>
         <ol>
           <li>
-            Gollazyum은 여러 예약 사이트(이하 “제휴 사이트”)의 숙소·항공권 가격과 정보를 모아 한 화면에 보여 주는 여행 데이터(메타서치)
+            {site.name}은 여러 예약 사이트(이하 “제휴 사이트”)의 숙소·항공권 가격과 정보를 모아 한 화면에 보여 주는 여행 데이터(메타서치)
             서비스입니다.
           </li>
           <li>
             회사는 숙박·항공 상품을 직접 판매하거나 예약을 중개하는 당사자가 아니며, 예약·결제 계약은 이용자와 각 제휴 사이트
             사이에 체결됩니다.
           </li>
-          <li>Gollazyum이 제공하는 AI 도우미의 답변은 참고용 정보이며, 최종 판단은 이용자에게 있습니다.</li>
+          <li>{site.name}이 제공하는 AI 도우미의 답변은 참고용 정보이며, 최종 판단은 이용자에게 있습니다.</li>
         </ol>
 
         <h2>제3조 (약관의 효력과 변경)</h2>

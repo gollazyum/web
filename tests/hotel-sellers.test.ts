@@ -29,14 +29,16 @@ describe("숙소 판매처 허용 목록", () => {
     expect(hotelSellerKey("부킹닷컴")).toBe("booking");
   });
 
-  it("2026-11-17 지시서: 7곳만 보여 주고 인터파크·마이리얼트립·트립비토즈·모두투어·공식 사이트는 뺀다", () => {
-    expect([...HOTEL_SELLERS_SHOWN].sort()).toEqual(["agoda", "booking", "expedia", "hotels", "trip", "yanolja", "yeogi"]);
-    expect(hotelSellerKey("NOL 인터파크")).toBeNull();
+  it("2026-11-27 지시서: 12대 허용 판매처만 보여 주고 트립비토즈·모두투어는 뺀다", () => {
+    expect([...HOTEL_SELLERS_SHOWN].sort()).toEqual(["agoda", "booking", "expedia", "hotels", "interpark", "klook", "myrealtrip", "official", "rakuten", "trip", "yanolja", "yeogi"]);
+    expect(hotelSellerKey("NOL 인터파크")).toBe("interpark");
+    expect(hotelSellerKey("Rakuten Travel")).toBe("rakuten");
+    expect(hotelSellerKey("클룩")).toBe("klook");
     expect(hotelSellerKey("트립비토즈")).toBeNull();
     expect(hotelSellerKey("모두투어")).toBeNull();
-    expect(hotelSellerKey("MyRealTrip")).toBeNull();
-    expect(hotelSellerKey("Hilton Official Site")).toBeNull();
-    expect(hotelSellerKey("HOTEL MYSTAYS Asakusabashi", true)).toBeNull();
+    expect(hotelSellerKey("MyRealTrip")).toBe("myrealtrip");
+    expect(hotelSellerKey("Hilton Official Site")).toBe("official");
+    expect(hotelSellerKey("HOTEL MYSTAYS Asakusabashi", true)).toBe("official");
   });
 
   it("공식 사이트는 플래그나 키워드로 판별한다", () => {

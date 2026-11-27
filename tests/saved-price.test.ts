@@ -30,7 +30,7 @@ describe("가벼운 가격 알림", () => {
   });
 
   it("문구", () => {
-    expect(changeText(-20000)).toBe("담을 때보다 20,000원 내려갔어요");
-    expect(changeText(5000)).toBe("담을 때보다 5,000원 올랐어요");
+    expect(changeText(-20000)).toBe("담을 때보다 20,000원↓");
+    expect(changeText(5000)).toBe("담을 때보다 5,000원↑");
   });
 });

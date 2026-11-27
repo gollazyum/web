@@ -9453,3 +9453,157 @@ button.tb-maplink {
 .tb-mapx-dist b {
   white-space: nowrap;
 }
+
+/* ===== 2026-11-27 PR 1/3: 숫자 고정폭 · 절약 초록 · '총액으로 찾기' 버튼 · 토글 초점 ===== */
+/* 모든 가격 숫자는 자리 폭이 같은 숫자로 (줄이 바뀌어도 금액이 흔들리지 않게) */
+.tb-app,
+.tb-app .mapboxgl-marker,
+.pg-shell {
+  font-variant-numeric: tabular-nums;
+}
+/* '예상'과 금액 사이 띄어쓰기: flex 줄에서는 공백 글자가 사라져 '예상239,522원'처럼 붙어 보였다 */
+.tb-app .tb-est {
+  margin-right: 0.3em;
+}
+/* 절약·하락 전용 초록 (--tb-save / --tb-save-soft). 다른 강조에는 쓰지 않는다.
+   "두 번째로 싼 곳보다 ○원 저렴해요": 금액만 초록 굵게, 나머지는 차분한 회색 */
+.tb-app .tb-save-line b,
+.tb-app .tb-panel .tb-save-line b,
+.tb-app .tb-save-chip b,
+.tb-app .tb-hero-card-save b {
+  color: var(--tb-save) !important;
+  font-weight: 700;
+}
+.tb-app .tb-save-chip,
+.tb-app .tb-srow-price .tb-save-chip {
+  display: inline-block;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 2px 8px !important;
+  border-radius: 999px;
+  background: var(--tb-save-soft) !important;
+  color: var(--tb-save) !important;
+  font-size: 12px;
+  font-weight: 500;
+}
+.tb-app .tb-save-line,
+.tb-app .tb-panel .tb-save-line {
+  margin: 0 0 8px;
+  padding: 8px 12px !important;
+  border-radius: var(--r-box, 8px) !important;
+  background: var(--tb-save-soft) !important;
+  color: var(--tb-save) !important;
+}
+.tb-app .tb-save-line small {
+  display: block;
+  color: var(--tb-sub);
+}
+/* 예약처 비교표 아래 보조 정보: 가장 비싼 곳과의 차이 */
+.tb-app .tb-save-max {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--tb-mute);
+}
+/* 확인 시각 한 줄 ("3분 전 확인" / "11월 27일 16:47 확인") */
+.tb-app .tb-checked {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tb-mute);
+}
+/* 상세를 보는 중 다시 확인해 값이 바뀌었을 때 */
+.tb-app .tb-rechecked {
+  margin: 6px 0;
+  padding: 8px 12px;
+  border-radius: var(--r-box, 8px);
+  background: var(--tb-soft);
+  font-size: 13px;
+  color: var(--tb-ink);
+}
+.tb-app .tb-rechecked.down {
+  background: var(--tb-save-soft);
+  color: var(--tb-save);
+}
+.tb-app .tb-recheck-btn {
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--tb-sub);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.tb-app .tb-pchg.down {
+  color: var(--tb-save);
+}
+/* 가칭 배지: 회색 */
+.tb-app .tb-provisional,
+.pg-logo em {
+  color: var(--tb-mute, #6e6c66);
+}
+/* [숙소|항공권] 토글: 마우스로 누를 때는 테두리를 남기지 않고, 키보드로 옮길 때만 그린다 */
+.tb-app .tb-search-tabs button:focus,
+.tb-app .tb-search-tabs button:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+.tb-app .tb-search-tabs button:focus-visible {
+  outline: 2px solid var(--tb-ink);
+  outline-offset: 2px;
+}
+/* 홈 검색 바 오른쪽: 돋보기 원 → 글자 버튼 '총액으로 찾기' (먹색, 높이 44px 이상) */
+@media (min-width: 1024px) {
+  .tb-app .tb-main.home .tb-search:not(.fixed) {
+    grid-template-columns: auto minmax(0, 1.2fr) minmax(0, 1.3fr) minmax(0, 1.1fr) auto;
+  }
+  .tb-app .tb-main.home .tb-search.flight:not(.fixed) {
+    grid-template-columns: auto auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 0.9fr) auto;
+  }
+  .tb-app .tb-main.home .tb-search:not(.fixed) > .tb-cta {
+    width: auto;
+    height: 52px;
+    min-height: 44px;
+    margin: 0 12px 0 8px;
+    padding: 0 22px;
+    border-radius: 999px;
+    background: #1a1a18 !important;
+    color: #fff !important;
+    font-size: 15px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: visible;
+  }
+  .tb-app .tb-main.home .tb-search:not(.fixed) > .tb-cta::before {
+    content: none;
+    display: none;
+  }
+}
+.tb-app .tb-main.home .tb-search:not(.fixed) > .tb-cta {
+  min-height: 44px;
+  background: #1a1a18 !important;
+  color: #fff !important;
+}
+@media (max-width: 640px) {
+  .tb-app .tb-main.home .tb-search:not(.fixed) > .tb-cta {
+    grid-column: 1 / -1;
+    width: 100%;
+    height: auto;
+    min-height: 48px;
+    margin: 8px 0 0;
+    border-radius: var(--r-box, 10px);
+    font-size: 16px;
+  }
+}
+/* PC 머리글: 검색 결과·숙소 상세에서는 '홈' 밑줄을 그리지 않는다 */
+@media (min-width: 1024px) {
+  .tb-app .tb-tabbar .tb-tab.away[aria-current="page"] {
+    color: var(--tb-sub) !important;
+    font-weight: 500;
+  }
+  .tb-app .tb-tabbar .tb-tab.away[aria-current="page"]::after {
+    content: none;
+    display: none;
+  }
+}

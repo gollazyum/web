@@ -33,7 +33,9 @@ export function PageFooter() {
           {site.footerIntro} {site.footerAffiliate}
         </p>
         <p>
-          상호 {site.business.name} · 대표자 {site.business.ceo} · 사업자등록번호 {site.business.registrationNo}
+          상호 {site.business.name} · 대표자 {site.business.ceo} · 사업자등록번호 {site.business.registrationNo} · 통신판매업 {site.business.mailOrderNo}
+          <br />
+          주소 {site.business.address}
           <br />
           문의 <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
         </p>

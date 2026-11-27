@@ -41,8 +41,10 @@ export function SiteFooter({ variant = "travel" }: { variant?: "travel" | "shop"
           <span>상호 {site.business.name}</span>
           <span>대표자 {site.business.ceo}</span>
           <span>사업자등록번호 {site.business.registrationNo}</span>
+          <span>통신판매업 {site.business.mailOrderNo}</span>
+          <span>주소 {site.business.address}</span>
         </p>
-        <p className="copy">© {new Date().getFullYear()} Gollazyum. All rights reserved.</p>
+        <p className="copy">© {new Date().getFullYear()} {site.name}. All rights reserved.</p>
       </div>
     </footer>
   );

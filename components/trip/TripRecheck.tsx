@@ -8,7 +8,7 @@ import { decodeTrip, sharePath, type SharedTrip as Shared } from "@/lib/trip-sha
 import { guestText, nightsOf, won, type StayQuery } from "@/lib/trip";
 import type { TripItem } from "@/lib/trips";
 import { stayPrices } from "./api";
-import { setVerified, shownPrice } from "./prices";
+import { checkedAtOf, setVerified, shownPrice } from "./prices";
 import { changeText, MIN_DIFF, savedBaseFor } from "./saved-price";
 import { IconOut } from "./icons";
 
@@ -21,7 +21,7 @@ export async function recheck(token: string, name: string, q: StayQuery): Promis
   const r = await stayPrices(token, q, name, true);
   if (!r.ok) return null;
   const rows = sellerRows(r.data.sources, nightsOf(q), name, hq(q));
-  setVerified(token, q, rows); // 마이 카드 금액도 맞춘다
+  setVerified(token, q, rows, true, checkedAtOf(r)); // 마이 카드·목록·상세 금액도 같은 값으로 맞춘다
   return rows;
 }
 
