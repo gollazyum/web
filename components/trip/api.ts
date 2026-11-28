@@ -6,6 +6,7 @@ import type { HotelPrices, HotelResults } from "@/lib/hotels";
 import type { FlightQuery, ParseResult, PickResult, StayQuery } from "@/lib/trip";
 import { airportsFor } from "@/lib/airports";
 import { distText, nearby } from "@/lib/landmarks";
+import { KID_AMENITY, stationText } from "@/lib/stay-reason";
 import { hhmm } from "@/lib/trip";
 import { priceCacheSec, stayCacheSec } from "@/lib/stay-cache";
 import type { FlightOption } from "@/lib/flights";
@@ -130,18 +131,21 @@ const pickCached = (body: Record<string, unknown>) => {
 };
 
 // AI가 실패하면(사용량 초과·설정 없음·잘못된 요청 제외) 한 번만 다시 부른다. 그래도 실패하면 화면이 확인한 가격 기준 3곳으로 바꾼다
-export async function pickStays(list: HotelOption[], taste: string, budget: number) {
-  const first = await pickStaysOnce(list, taste, budget);
+// party: 인원 구성 (아동이 없으면 어린이 시설은 AI에게 보내지 않는다 → 이유·태그에 나오지 않는다)
+type Party = { adults: number; kids: number };
+export async function pickStays(list: HotelOption[], taste: string, budget: number, party: Party = { adults: 0, kids: 0 }) {
+  const first = await pickStaysOnce(list, taste, budget, party);
   if (first.ok || first.status === 429 || first.status === 503 || first.status === 400) return first;
-  return pickStaysOnce(list, taste, budget);
+  return pickStaysOnce(list, taste, budget, party);
 }
 
-const pickStaysOnce = (list: HotelOption[], taste: string, budget: number) =>
+const pickStaysOnce = (list: HotelOption[], taste: string, budget: number, party: Party) =>
   pickCached({
     mode: "pick",
     kind: "stay",
     taste,
     budget,
+    ...(party.adults ? { adults: party.adults, kids: party.kids } : {}),
     items: list.map((h) => ({
       name: h.name,
       kind: h.kind,
@@ -150,9 +154,11 @@ const pickStaysOnce = (list: HotelOption[], taste: string, budget: number) =>
       reviews: h.reviews ?? 0,
       total: h.total ?? 0,
       perNight: h.perNight ?? 0,
-      amenities: h.amenities.slice(0, 12).join(", "),
+      amenities: h.amenities.filter((a) => party.kids || !KID_AMENITY.test(a)).slice(0, 12).join(", "),
       deal: h.deal,
-      // 패널에 보이는 거리 정보도 같이 넘긴다 (가까운 역·장소 소요 시간 + 주요 장소까지 직선거리)
+      // 패널에 보이는 거리 정보도 같이 넘긴다 (가까운 역·장소 소요 시간 + 주요 장소까지 직선거리). 고를 때만 쓰고 이유 문장에는 쓰지 않는다
+      // station: 비교표 '역까지' 칸과 같은 값 (lib/stay-reason.ts)
+      station: stationText(h),
       distance: [h.near ? `${h.near.name} ${h.near.how} ${h.near.mins}분` : "", ...nearby(h.gps).slice(0, 2).map((n) => `${n.name} 직선 ${distText(n.km)}`)].filter(Boolean).join(", "),
     })),
   });

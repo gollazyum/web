@@ -5,6 +5,7 @@ import { flightLink, type FlightOption } from "@/lib/flights";
 import { hhmm, paxOf, paxText, won, type FlightQuery } from "@/lib/trip";
 import { cityForCode, loadAirports } from "@/lib/airports";
 import { applyFlightFilter, EMPTY_FLIGHT_FILTER, flightFacets, flightFilterCount, type Facet, type FlightFacets, type FlightFilter } from "@/lib/flight-filters";
+import { flightLow } from "@/lib/flight-reason";
 import { dayShift, durText, legDate, perPerson, stopText, waitLines, waits } from "@/lib/flight-legs";
 import { searchFlightReturns } from "./api";
 import { IconBack, IconOut } from "./icons";
@@ -146,7 +147,8 @@ export function FlightCard({ o, q, reason, rank, tag, eager }: { o: FlightOption
           ))}
         <span className="tb-fcard-foot">
           <span className="tb-fmore">상세 보기</span>
-          <PriceLines o={back ?? o} q={q} />
+          {/* 카드 금액은 이번 검색 응답의 왕복 총액 (가격 흐름·필터 '…원부터'·AI 추천 카드와 같은 값). 오는 편 조회 금액은 상세의 후보마다 따로 보여 준다 */}
+          <PriceLines o={o} q={q} />
         </span>
       </button>
       <div className="tb-fbook-row">
@@ -253,7 +255,7 @@ export function FlightDetail({ open, o, q, onClose }: { open: boolean; o: Flight
       </div>
       <div className="tb-save-bar">
         <div className="tb-book-bar tb-fd-bar">
-          <PriceLines o={backs[0] ?? o} q={q} />
+          <PriceLines o={o} q={q} />
           <a className="tb-book-bar-go" href={flightLink(q)} target="_blank" rel="noopener noreferrer">
             트립닷컴에서 보기 <IconOut />
           </a>
@@ -376,7 +378,8 @@ export function FlightBrowser({ data, aiPending, aiOff, onAiRetry, onBack, bare,
     if (sort === "ai") return list; // 관련도순: 받은 순서 그대로라 AI 결과가 와도 자리가 바뀌지 않는다
     return [...list].sort((a, b) => a.price - b.price);
   }, [options, f, sort]);
-  const low = Math.min(...options.map((o) => o.price));
+  // 가격 흐름·'가장 낮아요' 꼬리표·필터 '…원부터'·AI 추천 카드·목록 카드가 모두 이번 검색 응답의 o.price(왕복 합산 총액, 같은 인원)를 쓴다
+  const low = flightLow(options);
   const n = flightFilterCount(f);
 
   return (

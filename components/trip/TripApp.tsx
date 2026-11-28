@@ -37,6 +37,7 @@ import {
   paxText,
   mergePicks,
   nightsOf,
+  MAX_QUESTIONS,
   refineFlights,
   refineStays,
   STAY_REFINES,
@@ -71,7 +72,11 @@ import { hasFreeCancel } from "@/lib/stay-filters";
 import { CheckLine } from "./CheckBox";
 import { useCheckpoints } from "./useCheckpoints";
 import { rankNotes, stayFactLine, type RankNote } from "@/lib/stay-facts";
-import { getVerified, prefetchPrices, shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
+import { getVerified, prefetchPrices, shownCost, shownPrice, useLazyPrice, usePriceVersion, verifiedCost } from "./prices";
+import { cityFirst } from "@/lib/city-bounds";
+import { budgetQuestion, fixAskCount, readBudget, totalBudget } from "@/lib/budget-read";
+import { checkFlightReason } from "@/lib/flight-reason";
+import { budgetFit, conditionLine, facilityTags, KID_AMENITY, partyReason, stationText } from "@/lib/stay-reason";
 import { setSavedList, type SavedBase } from "./saved-price";
 import type { Trip } from "@/lib/trips";
 import { flightLink } from "@/lib/flights";
@@ -471,11 +476,12 @@ export function TripApp() {
       if (!options.length) return patch(id, { status: "done", options: [], picks: [] });
       patch(id, { next, pages: 0 });
       const nights = nightsOf(query);
-      const { list: pool, over } = withinBudget(options, query.budget, nights);
+      // 검색 도시 경계 안 숙소가 3곳 이상이면 그 안에서만 3곳을 정한다 (lib/city-bounds.ts). 예산은 확인한 총액이 있으면 그 값으로 본다
+      const { list: pool, over } = withinBudget(cityFirst(options, query.place), query.budget, nights, (h) => shownCost(h, query));
       // 성인 2명 이상이면 캡슐·도미토리는 AI 추천 후보에서 뺀다 (목록에는 남는다). 모두 빠지면 원래 목록 그대로
       const fit = pool.filter((h) => fitsParty(h, query.adults));
       const head = (fit.length ? fit : pool).slice(0, 40);
-      const toPicks = (ps: { n: number; reason: string }[]) => ps.map((p) => ({ token: head[p.n - 1].token, reason: p.reason }));
+      const toPicks = (ps: { n: number; reason: string; tags?: string[] }[]) => ps.map((p) => ({ token: head[p.n - 1].token, reason: p.reason, ...(p.tags?.length ? { tags: p.tags } : {}) }));
       const want = withProfile(query.taste, profileRef.current, "stay"); // 그때 적은 말 + 온보딩 취향
       const fb = o.sorted ? head.slice(0, 3).map((h, i) => ({ n: i + 1, reason: stayFactReason(h, want) })) : fallbackStayPicks(head, want, query.budget, nights, criteriaWeights(profileRef.current));
       const overNote = over ? `예산(${Math.round(query.budget / 10000)}만 원) 안의 숙소가 없어서 가장 가까운 곳을 보여 드려요.` : "";
@@ -484,14 +490,14 @@ export function TripApp() {
       if (o.local) return; // 받은 목록 안에서 다시 거른 결과는 예약처 가격도 새로 부르지 않는다 (이미 받은 금액만 씀)
       // 같은 조건(도시·날짜·인원·취향·예산)이면 저장해 둔 AI 결과를 그대로 써서 다시 열어도 순위가 바뀌지 않게 한다
       const memo = readPickMemo(query, want);
-      const memoPicks = memo?.picks.map((p) => ({ n: head.findIndex((h) => h.token === p.token) + 1, reason: p.reason })).filter((p) => p.n > 0);
+      const memoPicks = memo?.picks.map((p) => ({ n: head.findIndex((h) => h.token === p.token) + 1, reason: p.reason, tags: p.tags })).filter((p) => p.n > 0);
       if (memo && memoPicks && memoPicks.length === memo.picks.length) {
         patch(id, { picks: toPicks(memoPicks), aiPending: false, note: [overNote, memo.note].filter(Boolean).join(" ") });
         prefetchPrices(memoPicks.slice(0, 1).map((p) => head[p.n - 1]), query);
         return;
       }
       const askAi = async () => {
-        const ai = await pickStays(head, want, query.budget); // 실패하면 api 쪽에서 한 번 다시 부른다
+        const ai = await pickStays(head, want, query.budget, { adults: query.adults, kids: (query.childAges ?? []).length }); // 실패하면 api 쪽에서 한 번 다시 부른다
         if (!ai.ok) {
           // 그래도 실패: AI 없이 검색 때 받은 총액이 낮은 3곳 (총액이 없는 곳은 뒤로). '다시 시도'는 AI만 다시 부른다
           const cheap = head.map((h, i) => ({ i, v: h.total && h.total > 0 ? h.total : Infinity })).sort((a, b) => a.v - b.v).slice(0, 3);
@@ -592,7 +598,10 @@ export function TripApp() {
         return patch(id, { picks: cheap.map((i) => ({ n: i + 1, reason: flightFactReason(list[i], want) })), aiPending: false, aiOff: true, note: "" });
       }
       aiRetry.current.delete(id);
-      const aiPicks = ai.data.picks.map((p) => ({ ...p, n: Number.isInteger(p.n) && p.n >= 1 && p.n <= idx.length ? idx[p.n - 1] + 1 : 0 }));
+      // 이유의 '가장 짧은/가장 싼'·비행시간·금액은 이번 검색 목록 전체로 맞는지 보고, 틀리면 사실 한 줄로 바꾼다 (lib/flight-reason.ts)
+      const aiPicks = ai.data.picks
+        .map((p) => ({ ...p, n: Number.isInteger(p.n) && p.n >= 1 && p.n <= idx.length ? idx[p.n - 1] + 1 : 0 }))
+        .map((p) => (p.n ? { ...p, reason: checkFlightReason(p.reason, list[p.n - 1], list) } : p));
       // AI 이유 끝에 경유 대기 시간을 붙인다 (이미 말했으면 그대로)
       const picks = mergePicks(aiPicks, fb, list.length, (n) => flightFactReason(list[n - 1], want)).map((p) => {
         const w = maxWait(list[p.n - 1]);
@@ -727,10 +736,19 @@ export function TripApp() {
       const local = b ? {} : keep(localStay(said));
       const stay: Partial<StayQuery> = { ...(b ? b.query : {}), ...local, ...parsed, taste: b && !parsed.place ? joinTaste(b.query.taste, parsed.taste ?? "") : (parsed.taste ?? local.taste ?? "") };
       if (!stay.adults) stay.adults = 2;
-      // 도시·날짜가 다 있으면 되묻지 않고 바로 찾는다 (취향·예산 질문은 결과를 본 뒤 칩으로 다듬을 수 있다)
+      // 예산: "N박, X원 안에서/이하/까지"는 숙박 총액, "1박에 X원"만 1박 기준 (lib/budget-read.ts. AI 해석보다 먼저).
+      // 둘 중 어느 쪽인지 애매하면 "X원은 N박 총액인가요, 1박 기준인가요?"를 질문 칸 맨 앞에 넣는다
+      const br = readBudget(said);
+      const nts = stay.checkIn && stay.checkOut ? nightsOf(stay as StayQuery) : (br?.nights ?? null);
+      const total = br ? totalBudget(br, nts) : null;
+      const budgetAsk = br && !total ? budgetQuestion(br, nts) : null;
+      if (total) stay.budget = total;
+      else if (budgetAsk) stay.budget = 0;
+      // 도시·날짜가 다 있으면 되묻지 않고 바로 찾는다 (취향·예산 질문은 결과를 본 뒤 칩으로 다듬을 수 있다). 예산이 애매하면 그것만은 묻는다
       const ready = stayReady(stay, localToday());
-      const questions = p.questions.filter((q) => !(q.slot === "place" && stay.place) && !(q.slot === "dates" && stay.checkIn && stay.checkOut) && !(q.slot === "adults" && stay.adults));
-      if (questions.length && !ready) return push({ id: uid(), t: "ask", kind: "stay", reply: p.reply, stay, flight: {}, questions, answers: {}, done: false });
+      const asked = p.questions.filter((q) => !(q.slot === "place" && stay.place) && !(q.slot === "dates" && stay.checkIn && stay.checkOut) && !(q.slot === "adults" && stay.adults) && !(q.slot === "budget" && (total || budgetAsk)));
+      const questions = budgetAsk ? [budgetAsk, ...(ready ? [] : asked)].slice(0, MAX_QUESTIONS) : asked;
+      if (budgetAsk || (questions.length && !ready)) return push({ id: uid(), t: "ask", kind: "stay", reply: budgetAsk ? fixAskCount(p.reply, questions.length) : p.reply, stay, flight: {}, questions, answers: {}, done: false });
       if (p.reply) push({ id: uid(), t: "ai", text: p.reply });
       return goStay(stay, b);
     }
@@ -1504,7 +1522,20 @@ function ChatPicks({ m, saved, onSave, onOpen }: { m: StayMsg; saved: Set<string
   const q = m.query;
   const nights = nightsOf(q);
   const options = m.options ?? [];
-  const picks = (m.picks ?? []).map((p) => ({ ...p, h: options.find((o) => o.token === p.token)! })).filter((p) => p.h).slice(0, 3);
+  // 대화 안 카드와 같은 규칙: 예산이 있으면 확인한 총액이 예산 안인 곳 → 확인 전 → 예산보다 높은 곳. 이유 첫 문장은 질문 조건(역 거리·예산)
+  const kids = (q.childAges ?? []).length;
+  const GROUP = { fit: 0, maybe: 1, over: 2 } as const;
+  const picks = (m.picks ?? [])
+    .map((p) => ({ ...p, h: options.find((o) => o.token === p.token)! }))
+    .filter((p) => p.h)
+    .slice(0, 3)
+    .map((p) => {
+      const fit = budgetFit(shownPrice(p.h, q), q.budget);
+      const why = partyReason(p.reason, kids);
+      const cond = conditionLine(p.h, q.taste ?? "", fit, nights);
+      return { ...p, fit, reason: [cond ? `${cond}.` : "", isPlainReason(why) ? "" : why].filter(Boolean).join(" ") };
+    })
+    .sort((a, b) => (a.fit && b.fit ? GROUP[a.fit.kind] - GROUP[b.fit.kind] : 0));
   if (m.aiPending)
     return (
       <aside className="tb-ai3" aria-label="AI 추천 3곳" aria-busy>
@@ -1898,7 +1929,7 @@ function PickChecks({ hotels, q, off, children }: { hotels: HotelOption[]; q: St
   return <>{children(checks)}</>;
 }
 
-function PickCard({ p, i, of, off, note, check, t, isLow, q, nights, saved: on, active, onSave, onOpenHotel, tags = [] }: { tags?: string[]; p: { token: string; reason: string; h: HotelOption }; i: number; of: number; off?: boolean; note?: RankNote; check?: Checkpoints; t: ReturnType<typeof shownPrice>; isLow: boolean; q: StayQuery; nights: number; saved: boolean; active: boolean; onSave: (h: HotelOption) => void; onOpenHotel: (h: HotelOption) => void }) {
+function PickCard({ p, i, of, off, note, check, t, isLow, q, nights, saved: on, active, onSave, onOpenHotel, tags = [], cond = "" }: { tags?: string[]; cond?: string; p: { token: string; reason: string; h: HotelOption }; i: number; of: number; off?: boolean; note?: RankNote; check?: Checkpoints; t: ReturnType<typeof shownPrice>; isLow: boolean; q: StayQuery; nights: number; saved: boolean; active: boolean; onSave: (h: HotelOption) => void; onOpenHotel: (h: HotelOption) => void }) {
   const ref = useLazyPrice<HTMLElement>(p.h, q, true);
   return (
     <article ref={ref} className={`tb-hcard${active ? " on" : ""}`}>
@@ -1930,10 +1961,15 @@ function PickCard({ p, i, of, off, note, check, t, isLow, q, nights, saved: on, 
             ))}
           </span>
         )}
-        {stayFactLine(p.h, t.fc) && <span className="tb-fact">{stayFactLine(p.h, t.fc)}</span>}
-        {!off && !isPlainReason(p.reason) && (
+        {/* 역 시간이 이유 첫 문장에 이미 있으면 사실 줄에서는 빼고 무료 취소만 */}
+        {(() => {
+          const fact = cond && p.h.near && cond.includes(p.h.near.name) ? stayFactLine({ ...p.h, near: null }, t.fc) : stayFactLine(p.h, t.fc);
+          return fact ? <span className="tb-fact">{fact}</span> : null;
+        })()}
+        {/* 이유 첫 문장은 질문 조건(역 거리·예산), 그다음 AI 이유. 시설은 위 태그로 따로 */}
+        {!off && (cond || !isPlainReason(p.reason)) && (
           <span className="tb-why">
-            <IconSpark size={14} /> {p.reason}
+            <IconSpark size={14} /> {[cond ? `${cond}.` : "", isPlainReason(p.reason) ? "" : p.reason].filter(Boolean).join(" ")}
           </span>
         )}
         {note && <RankLines note={note} />}
@@ -1953,7 +1989,15 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
   const nights = nightsOf(q);
   if (m.unknown) return <AiSay>찾는 도시를 몰라요. “오사카”, “후쿠오카”, “도쿄”, “다낭”처럼 도시 이름으로 다시 물어봐 주세요.</AiSay>;
   if (!options.length) return <AiSay>이 조건으로는 숙소를 찾지 못했어요. 지역 이름을 조금 넓게(예: “오사카”) 적거나 날짜를 바꿔 보세요.</AiSay>;
-  const picks = (m.picks ?? []).map((p) => ({ ...p, h: options.find((o) => o.token === p.token)! })).filter((p) => p.h);
+  const kids = (q.childAges ?? []).length;
+  // 예산이 있으면: 확인한 총액이 예산 이하인 곳만 '조건에 맞는' 곳, 확인 전은 '예산 안일 가능성', 넘으면 '예산보다 N원 높아요' (순위 순서는 묶음 안에서 그대로)
+  const ranked = (m.picks ?? [])
+    .map((p) => ({ ...p, reason: partyReason(p.reason, kids), h: options.find((o) => o.token === p.token)! }))
+    .filter((p) => p.h)
+    .map((p) => ({ ...p, fit: budgetFit(shownPrice(p.h, q), q.budget) }));
+  const GROUP = { fit: 0, maybe: 1, over: 2 } as const;
+  const picks = q.budget ? [...ranked].sort((a, b) => GROUP[a.fit!.kind] - GROUP[b.fit!.kind]) : ranked;
+  const fitCount = q.budget ? picks.filter((p) => p.fit?.kind === "fit").length : picks.length;
   const prices = picks.map((p) => shownPrice(p.h, q));
   // 비교표·'최저가'는 예약처에서 확인한 금액만 (확인 전 예상 금액은 넣지 않는다)
   const totals = prices.map((p) => (p.verified && p.value !== null ? p.value : Infinity));
@@ -1968,8 +2012,11 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
     const out: string[] = [];
     if (lowOnce && totals[i] === low) out.push(q.budget && low <= q.budget ? "예산 안 최저" : "3곳 중 최저 총액");
     if (h.rating && h.rating >= 4.3 && h.rating === bestRating && picks.filter((x) => x.h.rating === bestRating).length === 1) out.push("평점 가장 높음");
-    return out;
+    // 시설 태그: AI가 준 것(그 숙소 편의시설로 확인된 것만), 없으면 편의시설에서. 아동이 없으면 어린이 시설은 뺀다
+    const fac = picks[i].tags?.length ? picks[i].tags!.filter((x) => kids || !KID_AMENITY.test(x)) : facilityTags(h.amenities, kids);
+    return [...out, ...fac];
   };
+  const condOf = (i: number) => conditionLine(picks[i].h, q.taste ?? "", picks[i].fit, nights);
   // AI 응답 전에는 임시 순위를 보여 주지 않고 같은 자리에 회색 카드만 (응답 뒤 다른 숙소로 바뀌며 흔들리지 않게)
   if (m.aiPending)
     return (
@@ -1994,7 +2041,13 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
         </>
       ) : (
         <AiSay>
-          {options.length}곳 중에 말씀하신 조건에 맞는 <b>{picks.length}곳</b>을 먼저 보여드릴게요.
+          {fitCount > 0 ? (
+            <>
+              {options.length}곳 중에 말씀하신 조건에 맞는 <b>{fitCount}곳</b>을 먼저 보여드릴게요.
+            </>
+          ) : (
+            <>{options.length}곳 중 예약처에서 확인한 총액이 예산 안인 곳은 아직 없어요.</>
+          )}
           {m.note ? ` ${m.note}` : ""}
         </AiSay>
       )}
@@ -2002,7 +2055,12 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
         <PickChecks hotels={picks.map((p) => p.h)} q={q} off={!!m.aiOff}>
           {(checks) =>
             picks.map((p, i) => (
-              <PickCard key={p.token} tags={tagsOf(i)} p={p} i={i} of={picks.length} off={m.aiOff} note={m.aiOff ? undefined : notes[i]} check={checks.get(p.token)} t={prices[i]} isLow={lowOnce && totals[i] === low} q={q} nights={nights} saved={saved.has(p.token)} active={active === p.token} onSave={onSave} onOpenHotel={onOpenHotel} />
+              <Fragment key={p.token}>
+                {q.budget > 0 && p.fit && p.fit.kind !== "fit" && picks[i - 1]?.fit?.kind !== p.fit.kind && (
+                  <p className="tb-pick-group">{p.fit.kind === "maybe" ? "예산 안일 가능성이 있어요 · 예약처 총액 확인 전" : "예산보다 높은 곳"}</p>
+                )}
+                <PickCard tags={tagsOf(i)} cond={condOf(i)} p={p} i={i} of={picks.length} off={m.aiOff} note={m.aiOff ? undefined : notes[i]} check={checks.get(p.token)} t={prices[i]} isLow={lowOnce && totals[i] === low} q={q} nights={nights} saved={saved.has(p.token)} active={active === p.token} onSave={onSave} onOpenHotel={onOpenHotel} />
+              </Fragment>
             ))
           }
         </PickChecks>
@@ -2026,11 +2084,12 @@ function StayResult({ m, saved, onOpenHotel, onSave, onAll, onRefine, onRetry, o
                 </td>
               ))}
             </tr>
-            {picks.some((p) => p.h.near && /역/.test(p.h.near.name)) && (
+            {/* 이유 첫 문장과 같은 값·같은 글자 (lib/stay-reason.ts stationText). 역 시간·직선거리 둘 다 없을 때만 – */}
+            {picks.some((p) => stationText(p.h)) && (
               <tr>
                 <td>역까지</td>
                 {picks.map((p) => (
-                  <td key={p.token}>{p.h.near && /역/.test(p.h.near.name) ? `${p.h.near.how} ${p.h.near.mins}분` : "–"}</td>
+                  <td key={p.token}>{stationText(p.h) || "–"}</td>
                 ))}
               </tr>
             )}

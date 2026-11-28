@@ -1,6 +1,7 @@
 import { jsonError, jsonReply, rateLimited } from "@/lib/claudeChat";
 import { brand } from "@/lib/brand";
 import { checkFacts, readCheckInput, shapeCheck } from "@/lib/checkpoints";
+import { checkTags, partyReason } from "@/lib/stay-reason";
 import { ASK_SLOTS, cleanCopy, isDate, pickNote, stayReason, MAX_QUESTIONS, TOP_PICKS, type AskQuestion, type ParseResult, type Pick, type PickResult } from "@/lib/trip";
 
 // 탐색 탭 AI. 두 가지 일을 한다.
@@ -166,7 +167,11 @@ ${RULES}
 - picks: 목록 번호 n과 이유 reason. 정확히 ${TOP_PICKS}개(목록이 더 적으면 전부). 같은 번호를 두 번 쓰지 마.
 - reason은 25자 안팎 한 문장. 목록에 있는 사실(후기 점수, 성급, 편의시설, 총액, 시간, 직항 여부)만 근거로 써. 위치·역 거리·방 크기·조용함처럼 목록에 없는 건 지어내지 마. 와이파이처럼 거의 모든 숙소에 있는 시설은 이유로 쓰지 마.
 - 숙소 카드 윗줄에 후기 점수·리뷰 수·성급 숫자가 이미 보여. reason에서 그 숫자를 그대로 되풀이하지 말고, 편의시설·취향 조건·"후기 만족도가 높아요"처럼 말로 풀어 써.
-- 숙소 reason에는 금액(원)과 "예산 안" 같은 가격 판단을 쓰지 마. 카드 금액은 예약처 가격을 확인한 뒤 바뀌어서 이유와 어긋나. 숙소는 후기·성급·편의시설로 써. 항공편은 금액을 써도 돼.
+- 숙소 reason에는 금액(원)과 "예산 안" 같은 가격 판단을 쓰지 마. 카드 금액은 예약처 가격을 확인한 뒤 바뀌어서 이유와 어긋나. 항공편은 금액을 써도 돼.
+- 숙소 reason에는 역 거리·이동 시간도 쓰지 마. 역 거리와 예산은 화면이 이유 첫 문장으로 같은 값을 따로 보여 줘. 숙소 reason은 후기 만족도·성급·취향 조건처럼 그 밖의 근거로 써.
+- 숙소 편의시설은 reason 문장에 넣지 말고 tags에 짧은 이름으로 최대 3개 (예: ["대욕장", "장애인 편의시설"]). 목록 amenities에 있는 것만. 항공편이면 tags는 [].
+- [인원]에 아동이 없으면 어린이·키즈·가족 시설은 reason과 tags 모두에 쓰지 마.
+- 항공편 비행시간은 "2시간 20분"처럼 시간·분으로 써 ("140분" 말고). "가장 짧은", "가장 싼" 같은 말은 [목록] 전체에서 정말 그 편일 때만 쓰고, 아니면 "직항 2시간 20분"처럼 사실만 써.
 - 예산이 있으면 예산 안의 곳을 먼저. 예산 안에 없으면 가장 가까운 곳을 쓰고 note에 짧게 알려.
 - 취향 조건이 목록 정보로 확인되지 않으면 note에 "역 거리는 예약 사이트에서 확인해 주세요"처럼 한 문장으로 알려. 이 앱에는 지도가 없으니 "지도"라는 말은 쓰지 마. 따로 할 말이 없으면 note는 "".`;
 
@@ -180,8 +185,8 @@ const PICK_SCHEMA = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["n", "reason"],
-        properties: { n: { type: "integer" }, reason: { type: "string" } },
+        required: ["n", "reason", "tags"],
+        properties: { n: { type: "integer" }, reason: { type: "string" }, tags: { type: "array", items: { type: "string" } } },
       },
     },
     note: { type: "string" },
@@ -253,8 +258,11 @@ function pickInput(body: Record<string, unknown>): string | null {
   });
   const taste = str(body.taste, 300);
   const budget = int(body.budget, 0, 100_000_000);
+  const kids = int(body.kids, 0, 6);
+  const adults = int(body.adults, 0, 9);
   const head = kind === "stay" ? `숙소 ${items.length}곳 (총액은 숙박 전체 예상 총액, 원)` : `항공편 ${items.length}편 (가격은 전체 인원 예상 총액, 원)`;
-  return `[취향] ${taste || "따로 없음"}${budget ? `\n[예산] 숙박 총액 ${budget.toLocaleString("ko-KR")}원 이하` : ""}\n\n[목록] ${head}\n${items.join("\n")}`;
+  const party = kind === "stay" && adults ? `\n[인원] 성인 ${adults}명${kids ? ` · 아동 ${kids}명` : " · 아동 없음"}` : "";
+  return `[취향] ${taste || "따로 없음"}${party}${budget ? `\n[예산] 숙박 총액 ${budget.toLocaleString("ko-KR")}원 이하` : ""}\n\n[목록] ${head}\n${items.join("\n")}`;
 }
 
 // 상태 확인: 브라우저로 /api/trip-ai 를 열면 AI 연결이 되는지 짧게 알려 준다 (아주 작은 요청 1번. 키 값·요청 내용은 보이지 않는다)
@@ -292,11 +300,19 @@ export async function POST(req: Request) {
     const input = pickInput(body);
     if (!input) return jsonError(400, "bad_request");
     let why = "";
-    const raw = await jsonReply<{ picks: Pick[]; note: string }>(PICK_SYSTEM, input, PICK_SCHEMA, 4000, (w) => (why = w));
+    const raw = await jsonReply<{ picks: (Pick & { tags?: unknown })[]; note: string }>(PICK_SYSTEM, input, PICK_SCHEMA, 4000, (w) => (why = w));
     // 실패 이유를 응답 머리에 짧게 남긴다 (브라우저 개발자 도구에서 원인을 볼 수 있게)
     if (!raw || !Array.isArray(raw.picks)) return jsonError(502, "ai_failed", why || "bad_shape");
+    // 숙소: 이유에서 역 거리·인원에 맞지 않는 시설 이야기를 거르고, 시설은 그 숙소 편의시설로 확인되는 태그만 따로 내려 준다
+    const kids = int(body.kids, 0, 6);
+    const items = Array.isArray(body.items) ? (body.items as Record<string, unknown>[]) : [];
     const out: PickResult = {
-      picks: raw.picks.slice(0, TOP_PICKS).map((p) => ({ n: Number(p.n), reason: body.kind === "stay" ? stayReason(p.reason) : cleanCopy(p.reason, 80) })),
+      picks: raw.picks.slice(0, TOP_PICKS).map((p) => {
+        const n = Number(p.n);
+        if (body.kind !== "stay") return { n, reason: cleanCopy(p.reason, 80) };
+        const amen = typeof items[n - 1]?.amenities === "string" ? (items[n - 1].amenities as string) : "";
+        return { n, reason: partyReason(stayReason(p.reason), kids), tags: checkTags(p.tags, amen, kids) };
+      }),
       note: pickNote(raw.note),
     };
     return Response.json(out);

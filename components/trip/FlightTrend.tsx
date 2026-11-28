@@ -27,7 +27,10 @@ export function FlightTrend({ insights, low, pax, round }: { insights: FlightIns
   const [hover, setHover] = useState<number | null>(null);
   if (!hasInsights(insights)) return null;
   const { level, typical } = insights;
-  const hist = insights.history && insights.history.length >= 2 ? insights.history : null;
+  // 선 끝점은 이번 검색의 가장 낮은 총액(목록에 실제로 있는 값). 지난 12시간 안의 예전 점은 이번 값으로 바꾼다
+  const nowSec = Math.floor(Date.now() / 1000);
+  const past = (insights.history ?? []).filter((p) => p[0] < nowSec - 12 * 3600);
+  const hist: [number, number][] | null = past.length >= 1 ? [...past, [nowSec, low]] : null;
   const word = level ? LEVEL[level] : null;
 
   // 차트 (가로 320 x 세로 96, 왼쪽에 금액 눈금 자리)

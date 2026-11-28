@@ -10848,3 +10848,25 @@ button.tb-maplink {
     color: var(--tb-mute);
   }
 }
+
+/* 관련도순 목록: 검색 도시 경계 밖 숙소 머리 (2026-11-28) */
+.tb-nearby-head {
+  margin: 12px 0 0;
+  padding: 12px 16px 4px;
+  border-top: 1px solid var(--tb-line, #e5e5e5);
+  font-size: 15px;
+  font-weight: 700;
+}
+.tb-nearby-head small {
+  margin-left: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--tb-sub);
+}
+/* AI 3곳 카드 묶음 머리 (예산 안일 가능성 · 예산보다 높은 곳) */
+.tb-pick-group {
+  margin: 8px 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tb-sub);
+}

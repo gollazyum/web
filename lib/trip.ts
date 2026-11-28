@@ -3,7 +3,7 @@
 
 import { findBannedWords } from "./brand-mode";
 import type { FlightOption } from "./flights";
-import { maxWait, TOO_LONG_WAIT, waitText } from "./flight-legs";
+import { durText, maxWait, TOO_LONG_WAIT, waitText } from "./flight-legs";
 import type { HotelOption } from "./hotels";
 
 export type StayQuery = {
@@ -83,7 +83,7 @@ export type ParseResult = {
   questions: AskQuestion[];
 };
 
-export type Pick = { n: number; reason: string }; // n: 목록 번호(1부터)
+export type Pick = { n: number; reason: string; tags?: string[] }; // n: 목록 번호(1부터). tags: 숙소 시설 태그 (이유 문장과 따로)
 export type PickResult = { picks: Pick[]; note: string };
 
 export const ASK_SLOTS: readonly AskSlot[] = ["place", "dates", "adults", "budget", "from", "to", "taste"];
@@ -189,9 +189,10 @@ export function stayTotal(h: Pick2<HotelOption, "total" | "perNight">, nights: n
 }
 
 // 예산 안의 숙소만. 하나도 없으면 전체를 돌려주고 over=true
-export function withinBudget(list: HotelOption[], budget: number, nights: number): { list: HotelOption[]; over: boolean } {
+// cost: 숙박 총액. 예약처에서 확인한 총액이 있으면 그 값, 없으면 검색 때 받은 예상 총액 (확인 전 숙소도 '예산 안일 가능성'으로 후보에 남는다)
+export function withinBudget(list: HotelOption[], budget: number, nights: number, cost: (h: HotelOption) => number = (h) => stayTotal(h, nights)?.value ?? Infinity): { list: HotelOption[]; over: boolean } {
   if (!budget) return { list, over: false };
-  const ok = list.filter((h) => (stayTotal(h, nights)?.value ?? Infinity) <= budget);
+  const ok = list.filter((h) => cost(h) <= budget);
   return ok.length ? { list: ok, over: false } : { list, over: true };
 }
 
@@ -282,7 +283,7 @@ export function flightFactReason(o: FlightOption, taste: string): string {
   const hits = flightWants(taste).filter((w) => w.test(o));
   if (hits.length) parts.push(hits.map((w) => w.label).join("·"));
   else parts.push(o.stops.length ? `경유 ${o.stops.length}회` : "직항");
-  if (o.minutes) parts.push(`${Math.floor(o.minutes / 60)}시간 ${o.minutes % 60}분`);
+  if (o.minutes) parts.push(durText(o.minutes)); // 카드와 같은 표기 ("2시간 20분", "2시간")
   const w = maxWait(o);
   if (w > 0) parts.push(`대기 ${waitText(w)}`);
   return parts.join(" · ");
@@ -315,7 +316,7 @@ export function mergePicks(ai: Pick[], fallback: Pick[], size: number, factReaso
   for (const p of ai) {
     if (!Number.isInteger(p.n) || p.n < 1 || p.n > size || seen.has(p.n)) continue;
     const reason = cleanCopy(p.reason, 80);
-    out.push({ n: p.n, reason: reason || factReason(p.n) });
+    out.push({ n: p.n, reason: reason || factReason(p.n), ...(p.tags?.length ? { tags: p.tags } : {}) });
     seen.add(p.n);
     if (out.length === TOP_PICKS) return out;
   }
