@@ -612,7 +612,7 @@ export function PriceBlock({ p, nights }: { p: ReturnType<typeof shownPrice>; ni
       {p.seller && <em className="tb-seller-chip">확인한 최저가 · {sellerDef(p.seller).ko}</em>}
       <strong>{p.value !== null ? won(p.value) : "가격 확인"}</strong>
       <small className="tb-price-sub">
-        {nights}박 · 세금 포함 {perNight}
+        {nights}박 총액 {perNight}
       </small>
       {p.save ? <small className="tb-save-chip">두 번째로 싼 곳보다 <b>{won(p.save)}</b> 저렴해요</small> : null}
       {p.at ? <small className="tb-checked">{checkedText(p.at)}</small> : null}

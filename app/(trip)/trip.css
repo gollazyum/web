@@ -5412,6 +5412,22 @@ html.tb-big .tb-app {
   margin: 0;
   text-align: right;
 }
+/* 예약 후 가격 지킴이 카드 (내 여행 탭 예약 상세) */
+.tb-abw {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--tb-line, #e5e5e5);
+  border-radius: var(--r-box);
+  background: #fff;
+}
+.tb-abw-title {
+  font-size: 14px;
+}
+.tb-abw .tb-note {
+  margin: 0;
+}
 .tb-bw-warn {
   margin: 0;
   padding: 10px 12px;
@@ -10813,6 +10829,23 @@ button.tb-maplink {
     grid-auto-flow: row;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     overflow: visible;
+  }
+}
+
+/* 홈 관심 여행지 사진: 4:3 자리를 먼저 잡는다 (2026-11-28) */
+.tb-app .tb-places.r43 img {
+  aspect-ratio: 4 / 3;
+}
+/* 배치로 저장한 가격의 확인 시각 ("오늘 기준" / "오늘 오전 9시 기준") */
+.tb-app .tb-places .tb-place-price .tb-checked {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.78);
+}
+@media (min-width: 768px) {
+  .tb-app .tb-main.home .tb-places .tb-place-price .tb-checked {
+    color: var(--tb-mute);
   }
 }
 

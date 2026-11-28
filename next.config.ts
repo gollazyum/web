@@ -40,6 +40,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // next/image 외부 사진 주소. 홈 여행지 사진은 loader로 Unsplash 주소를 바로 쓰지만, 혹시 loader 없이 쓰여도 에러가 나지 않게 허용해 둔다
+  images: { remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com" }] },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

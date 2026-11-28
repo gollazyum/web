@@ -9,6 +9,7 @@ import { listRows, verifiedRow } from "@/lib/price-history-rows";
 import { priceCacheSec, stayCacheSec, STAY_CACHE_NEAR_SEC } from "@/lib/stay-cache";
 import { POPULAR_CACHE_SEC, popularCity } from "@/lib/popular-stay-cities";
 import { recordMaster } from "@/lib/hotels-master";
+import { cityKey as toCityKey } from "@/lib/city-key";
 import { recordSnapshot } from "@/lib/seller-snapshot";
 import { supabaseOn } from "@/lib/supabase-server";
 
@@ -236,7 +237,7 @@ export async function POST(req: Request) {
   if (q.stars) params.hotel_class = q.stars;
   // 새로 받은 목록 예상가는 응답을 보낸 뒤 가격 기록에 남기고, 숙소 좌표·기본 정보는 hotels_master에 쌓는다 (둘 다 실패해도 응답과 무관)
   const city = popularCity(q.q);
-  const cityKey = city ?? q.q.toLowerCase();
+  const cityKey = city ?? toCityKey(q.q); // 영어 소문자 슬러그 하나로 (lib/city-key.ts)
   const onFresh = (d: HotelResults) =>
     after(async () => {
       await Promise.all([priceHistoryOn() ? recordPrices(listRows(d.options, { ...q, place: q.q })) : null, recordMaster(d.options, cityKey)]);

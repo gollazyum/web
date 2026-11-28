@@ -105,7 +105,7 @@ export function FilterPanel({ c, f, set, nights = 1 }: { c: FilterCounts; f: Sta
         <section>
           <h3 className="tb-h3-row">
             <span>
-              요금 <small>세금 포함</small>
+              요금 <small>예상 총액 기준</small>
             </span>
             <BasisToggle basis={basis} set={setBasis} nights={nights} />
           </h3>
@@ -287,7 +287,7 @@ export function FilterBar({ c, f, set, sort, setSort, nights = 1, onMap }: { c: 
       <Sheet open={open === "price"} onClose={() => setOpen(null)} label="요금">
         <h2 className="tb-fsheet-title tb-h3-row">
           <span>
-            요금 <small>세금 포함</small>
+            요금 <small>예상 총액 기준</small>
           </span>
           <BasisToggle basis={basis} set={setBasis} nights={nights} />
         </h2>

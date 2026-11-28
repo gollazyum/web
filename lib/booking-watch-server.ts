@@ -1,6 +1,6 @@
 import "server-only";
 import { timingSafeEqual } from "node:crypto";
-import { bestForRefundable, kstDate, MAX_DAILY_PRICE_CHECKS, nextCheckAt, shouldAlert } from "./booking-watch";
+import { alertMinWon, bestForRefundable, nextCheckAt, shouldAlert } from "./booking-watch";
 import { shapePrices } from "./hotel-prices";
 import { sellerRows, type HotelPrices } from "./hotels";
 import { verifiedRow } from "./price-history-rows";
@@ -8,7 +8,8 @@ import { recordPrices } from "./price-history";
 import { cached, cacheKey, normalizeText } from "./search-cache";
 import { searchOnce } from "./serpapi";
 import { priceCacheSec } from "./stay-cache";
-import { rpc, sb } from "./supabase-server";
+import { dailyCap, paidCountToday } from "./paid-usage";
+import { sb } from "./supabase-server";
 
 // 가격 지킴이 서버 쪽: 예약 행 읽기·쓰기, 예약처 가격 받기(하루 상한), 결과 반영
 
@@ -81,7 +82,8 @@ export const patchRows = (ids: string[], body: Partial<WatchRow>) =>
 type StayKey = Pick<WatchRow, "property_token" | "hotel_name" | "check_in" | "check_out" | "adults">;
 
 // 숙소 한 곳의 예약처 가격. 화면 검색과 같은 캐시 키를 써서 30분~2시간 안에 본 값은 다시 사지 않는다.
-// 캐시에 없어 실제로 조회해야 할 때만, 조회 직전에 하루 횟수를 먼저 1 올리고 상한을 넘으면 CapReached
+// 캐시에 없어 실제로 조회해야 할 때만, 오늘 유료 호출 횟수(사용자 검색 포함, daily_api_usage)가 상한 이상이면 CapReached.
+// 횟수를 올리는 일은 실제 호출하는 곳(lib/serpapi.ts)이 한다
 export async function stayPricesFor(s: StayKey, timeoutMs: number): Promise<HotelPrices> {
   const params: Record<string, string> = {
     engine: "google_hotels",
@@ -98,8 +100,7 @@ export async function stayPricesFor(s: StayKey, timeoutMs: number): Promise<Hote
   const { q: _name, ...keyParams } = params;
   void _name;
   const { data } = await cached<HotelPrices>(cacheKey("travel", keyParams, null), priceCacheSec(s.check_in), async () => {
-    const used = await rpc<number>("increment_daily_api_usage", { target_date: kstDate(Date.now()), delta: 1 });
-    if (typeof used !== "number" || used > MAX_DAILY_PRICE_CHECKS) throw new CapReached();
+    if ((await paidCountToday()) >= dailyCap()) throw new CapReached();
     return shapePrices(await searchOnce(params, timeoutMs));
   });
   return data;
@@ -113,7 +114,7 @@ export async function applyPrices(rows: WatchRow[], prices: HotelPrices, now: nu
   const best = bestForRefundable(list);
   const out: WatchRow[] = [];
   for (const r of rows) {
-    const alert = shouldAlert(r.booked_price, best?.price ?? null, r.last_alerted_price);
+    const alert = shouldAlert(r.booked_price, best?.price ?? null, r.last_alerted_price, alertMinWon());
     const body: Partial<WatchRow> = {
       latest_lowest_price: best?.price ?? null,
       latest_lowest_vendor: best?.vendor ?? null,

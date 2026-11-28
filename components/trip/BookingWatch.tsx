@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CAP_MESSAGE, DEVICE_MAX, kstLocalToMs, LATE_MESSAGE, tooLate, watchUntil } from "@/lib/booking-watch";
+import { ALERT_MIN_WON, CAP_MESSAGE, DEVICE_MAX, kstLocalToMs, LATE_MESSAGE, tooLate, watchUntil } from "@/lib/booking-watch";
 import { HOTEL_SELLER_ALLOWLIST, linkRel, sellerDef, sellerSearchUrl, type HotelSellerKey } from "@/lib/hotel-sellers";
 import type { SellerRow } from "@/lib/hotels";
 import { won, type StayQuery } from "@/lib/trip";
@@ -150,13 +150,43 @@ async function fetchWatches(force = false): Promise<PublicWatch[]> {
   if (!id) return [];
   if (!force && shared && Date.now() - shared.at < 60_000) return shared.list;
   if (!force && loading) return loading;
-  loading = post<{ watches: PublicWatch[] }>("/api/bookings/list", { device: id }).then((r) => {
+  loading = post<{ watches: PublicWatch[]; alertMinWon?: number }>("/api/bookings/list", { device: id }).then((r) => {
     loading = null;
+    if (r.ok && typeof r.data.alertMinWon === "number" && r.data.alertMinWon > 0) alertMin = r.data.alertMinWon;
     const list = r.ok ? r.data.watches : (shared?.list ?? []);
     shared = { at: Date.now(), list };
     return list;
   });
   return loading;
+}
+
+// 알림 기준 금액 (서버 환경변수 값을 목록 응답으로 받는다. 받기 전에는 기본 5,000원)
+let alertMin = ALERT_MIN_WON;
+
+// ---------- 내 여행 탭 예약 상세: 예약 후 가격 지킴이 카드 ----------
+// 무료 취소 마감 · 마지막 확인 시각 · 알림 안내. 가격은 정해진 때마다 확인하므로 '바로/실시간'이라고 쓰지 않는다
+export function AfterBookingCard({ w }: { w: PublicWatch }) {
+  const min = won(alertMin);
+  return (
+    <div className="tb-abw" role="group" aria-label="예약 후 가격 지킴이">
+      <strong className="tb-abw-title">예약 후 가격 지킴이</strong>
+      <dl>
+        <div>
+          <dt>무료 취소 마감</dt>
+          <dd>{w.freeCancelUntil ? kstText(w.freeCancelUntil) : "입력하지 않았어요"}</dd>
+        </div>
+        <div>
+          <dt>마지막 확인</dt>
+          <dd>{w.checkedAt ? kstText(w.checkedAt) : "아직 확인 전이에요"}</dd>
+        </div>
+      </dl>
+      <p className="tb-note">
+        {w.status === "active"
+          ? `예약한 가격보다 ${min} 이상 내려가면 여기에서 알려 드려요. 알린 뒤에는 그 가격보다 ${min} 이상 더 내려가면 다시 알려 드려요. 가격은 정해진 때마다 확인해서 지금 가격과 조금 다를 수 있어요.`
+          : "지켜보기가 끝난 예약이에요. 더는 가격을 확인하지 않아요."}
+      </p>
+    </div>
+  );
 }
 
 export function useWatches(): [PublicWatch[] | null, (fn: (l: PublicWatch[] | null) => PublicWatch[] | null) => void] {
@@ -181,7 +211,7 @@ export function useWatches(): [PublicWatch[] | null, (fn: (l: PublicWatch[] | nu
   return [list, update];
 }
 
-// 내려간 예약: 지켜보는 중이고, 알림 기준(5,000원·3%)을 넘겨 알린 예약
+// 내려간 예약: 지켜보는 중이고, 알림 기준 금액(기본 5,000원) 이상 내려가 알린 예약
 export const droppedOf = (list: PublicWatch[]) => list.filter((w) => w.status === "active" && w.alerted && w.latest !== null && w.latest < w.bookedPrice);
 
 // ---------- 홈: 내 가격 지킴이 요약 배너 ----------
@@ -390,6 +420,7 @@ export function BookingWatchBox({ saved }: { saved: SavedLike[] }) {
               </button>
               {open === w.id && (
                 <div className="tb-bw-detail">
+                  <AfterBookingCard w={w} />
                   <dl>
                     <div>
                       <dt>예약한 총액</dt>
@@ -401,10 +432,6 @@ export function BookingWatchBox({ saved }: { saved: SavedLike[] }) {
                     <div>
                       <dt>지금 가장 낮은 총액</dt>
                       <dd>{w.latest !== null ? `${won(w.latest)}${w.latestVendor ? ` · ${vendorKo(w.latestVendor)}` : ""} (예상)` : "아직 확인 전"}</dd>
-                    </div>
-                    <div>
-                      <dt>마지막 확인</dt>
-                      <dd>{w.checkedAt ? kstText(w.checkedAt) : "곧 확인해요"}</dd>
                     </div>
                     <div>
                       <dt>지켜보기 끝</dt>

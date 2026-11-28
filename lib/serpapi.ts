@@ -1,3 +1,4 @@
+import { countPaidCall } from "./paid-usage";
 import { cached, cacheKey, NoStore, put } from "./search-cache";
 
 // 검색 API 공통 호출. 서버에서만 쓴다. API 키는 Vercel 환경변수 SERPAPI_API_KEY 에만 둔다.
@@ -83,9 +84,20 @@ export function isQuota(status: number, body: string): boolean {
 // 결과가 없는 검색도 error 문구로 오므로 실패로 보지 않고 그대로 넘겨 빈 결과를 만든다
 const NO_RESULTS = "hasn't returned any results";
 
-// 검색 한 번. 실패하면 SearchFail을 던진다
+// 검색 한 번. 실패하면 SearchFail을 던진다.
+// 외부 유료 검색을 실제로 부르는 곳은 여기 하나뿐이다: 부를 때마다(성공·실패 상관없이 시도 1번) 오늘 유료 호출 횟수를 +1 한다.
+// 저장된 응답을 다시 쓰는 경우(캐시)는 여기까지 오지 않아 세지 않는다. 세는 일은 검색과 동시에 해서 기다리는 시간이 늘지 않는다
 async function call(params: Record<string, string>, key: string, timeoutMs = 25_000): Promise<Record<string, unknown>> {
   const engine = params.engine ?? "";
+  const counted = countPaidCall(engine);
+  try {
+    return await callOnce(params, key, engine, timeoutMs);
+  } finally {
+    await counted;
+  }
+}
+
+async function callOnce(params: Record<string, string>, key: string, engine: string, timeoutMs: number): Promise<Record<string, unknown>> {
   let res: Response;
   let text: string;
   try {

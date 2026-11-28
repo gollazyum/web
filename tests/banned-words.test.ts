@@ -29,7 +29,8 @@ const UI_PATHS = [
 ];
 
 // 2026-11-04 초록 요청으로 예외 문구는 모두 없앴다. 상표 심사 중에는 화면·메타에 '비교'·'최저가'를 쓰지 않는다
-const APPROVED_PHRASES: string[] = [];
+// 2026-11-28 초록 요청: meta·og 설명은 이 문장으로 바꾼다 (요청한 문장 그대로만 예외)
+const APPROVED_PHRASES: string[] = ["예약처별 예상 총액을 한 화면에서 비교하세요"];
 
 function stripApproved(code: string): string {
   return APPROVED_PHRASES.reduce((s, p) => s.split(p).join(""), code);

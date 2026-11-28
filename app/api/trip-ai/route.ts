@@ -260,7 +260,7 @@ function pickInput(body: Record<string, unknown>): string | null {
   const budget = int(body.budget, 0, 100_000_000);
   const kids = int(body.kids, 0, 6);
   const adults = int(body.adults, 0, 9);
-  const head = kind === "stay" ? `숙소 ${items.length}곳 (총액은 숙박 전체, 세금·수수료 포함 원)` : `항공편 ${items.length}편 (가격은 전체 인원 총액, 세금 포함 원)`;
+  const head = kind === "stay" ? `숙소 ${items.length}곳 (총액은 숙박 전체 예상 총액, 원)` : `항공편 ${items.length}편 (가격은 전체 인원 예상 총액, 원)`;
   const party = kind === "stay" && adults ? `\n[인원] 성인 ${adults}명${kids ? ` · 아동 ${kids}명` : " · 아동 없음"}` : "";
   return `[취향] ${taste || "따로 없음"}${party}${budget ? `\n[예산] 숙박 총액 ${budget.toLocaleString("ko-KR")}원 이하` : ""}\n\n[목록] ${head}\n${items.join("\n")}`;
 }

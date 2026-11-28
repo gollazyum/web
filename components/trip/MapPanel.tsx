@@ -186,7 +186,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
               </b>
               <small>
                 {" "}
-                · {nights}박 {pick.verified ? "세금 포함" : "예약처 확인 전"}
+                · {nights}박 {pick.verified ? "총액" : "예약처 확인 전"}
                 {pick.verified && pick.at ? ` · ${checkedText(pick.at)}` : ""}
               </small>
             </>
@@ -212,7 +212,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
       start={initial ? null : cityViewOf(query.place)}
       onBounds={side ? (b) => (boundsRef.current = b) : undefined}
       onBlank={side ? () => setSel(null) : undefined}
-      tip={modal && pick?.gps ? { token: pick.token, lat: pick.gps[0], lng: pick.gps[1], title: pick.h.name, line: pick.price !== null ? `${pick.verified ? "" : "예상 "}${won(pick.price)} · ${nights}박 ${pick.verified ? "세금 포함" : "예약처 확인 전"}` : "예약처별 가격 보기" } : null}
+      tip={modal && pick?.gps ? { token: pick.token, lat: pick.gps[0], lng: pick.gps[1], title: pick.h.name, line: pick.price !== null ? `${pick.verified ? "" : "예상 "}${won(pick.price)} · ${nights}박 ${pick.verified ? "총액" : "예약처 확인 전"}` : "예약처별 가격 보기" } : null}
       onTip={() => pick && onOpen(pick.h)}
       onPick={setSel}
       onVibe={pickVibe}
@@ -274,7 +274,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
                             {pick.verified ? "" : "~"}
                             {won(pick.price)}
                           </b>
-                          <small> · {nights}박 {pick.verified ? "세금 포함 최저 총액" : "예약처 확인 전 금액"}</small>
+                          <small> · {nights}박 {pick.verified ? "예약처에서 확인한 낮은 총액" : "예약처 확인 전 금액"}</small>
                         </>
                       ) : (
                         <small>가격은 상세에서 확인해요</small>
@@ -330,7 +330,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
               ✕ 목록으로 돌아가기
             </button>
             <p className="tb-mapx-count">
-              {query.place} · 지도 {shown.length}곳 · {nights}박 세금 포함 총액
+              {query.place} · 지도 {shown.length}곳 · {nights}박 예상 총액(최종 금액은 결제 화면에서 확인)
             </p>
             <section className="tb-mapx-sec" aria-label="선택한 숙소">
               <h3>선택한 숙소</h3>
@@ -342,7 +342,7 @@ export function MapPanel({ query, options, onOpen, onList, panel, modal, initial
                     <p className="tb-mapx-price">
                       {!pick.verified && <><em className="tb-est">예상</em>{" "}</>}
                       <b className={pick.token === low && pick.verified ? "low" : undefined}>{won(pick.price)}</b>
-                      <small> · {nights}박 {pick.verified ? "세금 포함" : "예약처 확인 전"}</small>
+                      <small> · {nights}박 {pick.verified ? "총액" : "예약처 확인 전"}</small>
                       {pick.verified && pick.at ? <small className="tb-checked"> · {checkedText(pick.at)}</small> : null}
                     </p>
                   ) : null}

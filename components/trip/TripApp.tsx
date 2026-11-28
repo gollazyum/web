@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image, { type ImageLoaderProps } from "next/image";
+import { recordedText } from "@/lib/checked-at";
 import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { labelForCode, loadAirports, searchCities, searchPlaces } from "@/lib/airports";
@@ -1109,7 +1111,7 @@ export function TripApp() {
               <section className="tb-hh hero-b">
                 <div className="tb-hh-copy tb-hh-photo" style={{ backgroundImage: `url(${photoUrl(HOME_HERO_PHOTO, 1600, 700)})` }}>
                   <h1 className="tb-hh-title">사이트마다 다른 숙소 총액, 한 화면에서 비교해 보세요</h1>
-                  <p className="tb-hh-sub">예약처별 세금 포함 총액을 비교해 가장 유리한 곳을 찾고, 예약 후 가격 변동까지 이어서 지켜봐요.</p>
+                  <p className="tb-hh-sub">예약처별 예상 총액을 비교해 가장 유리한 곳을 찾고, 예약 후 가격 변동까지 이어서 지켜봐요.</p>
                 </div>
                 <div className="tb-hh-search" ref={homeSearchRef}>
                   <HomeSearch kind={kind} onKind={setKind} stay={prefStay} flight={prefFlight} onStay={homeStay} onFlight={homeFlight} onTalk={(t) => send(t)} />
@@ -1162,12 +1164,19 @@ export function TripApp() {
               <section className="tb-sec">
                 <h2>지금 많이 찾는 관심 여행지</h2>
                 <div className="tb-places r43">
-                  {HOME_PLACES.map((p) => (
+                  {HOME_PLACES.map((p, i) => (
                     <button key={p.name} type="button" onClick={() => placeStay(p.name)}>
-                      <img
-                        src={photoUrl(p.photo, 480, 360)}
-                        alt=""
-                        loading="lazy"
+                      {/* next/image + Unsplash 크기 조절 주소(loader): 자리(480×360, 4:3)를 먼저 잡아 사진이 늦게 와도 화면이 밀리지 않는다.
+                          첫 화면에 보이는 1~2장만 먼저 받는다(priority) */}
+                      <Image
+                        loader={unsplashLoader}
+                        src={p.photo}
+                        width={480}
+                        height={360}
+                        sizes="(min-width: 768px) 240px, 188px"
+                        alt={`${p.name} 숙소 사진`}
+                        priority={i < 2}
+                        style={{ aspectRatio: "4 / 3" }}
                         // 사진을 못 받으면 깨진 그림 표시 대신 카드 바탕색만 보인다 (화면이 열리기 전에 이미 실패한 경우도)
                         ref={(el) => {
                           if (el && el.complete && !el.naturalWidth) el.style.visibility = "hidden";
@@ -1182,6 +1191,7 @@ export function TripApp() {
                           <em className="tb-place-price">
                             2박 총액 {won(cityLow.get(p.name)!.from)}부터
                             {cityLow.get(p.name)!.pct ? <i> · 지난주보다 {cityLow.get(p.name)!.pct}% ↓</i> : null}
+                            {cityLow.get(p.name)!.at ? <small className="tb-checked">{recordedText(cityLow.get(p.name)!.at)}</small> : null}
                           </em>
                         )}
                       </span>
@@ -1501,6 +1511,11 @@ function ViewSwitch3({ v, set }: { v: "list" | "split" | "map"; set: (v: "list" 
 
 // PC AI 추천 탭 오른쪽: 'AI 추천 3곳' 목록(기본) 또는 지도. 숙소를 누르면 전용 상세 페이지 (PC 새 탭).
 // 지도는 [지도]를 눌렀을 때만 만든다 (Mapbox 지도 로드)
+// 홈 여행지 사진: Unsplash 이미지 서버가 크기를 맞춰 보낸다 (Vercel 이미지 변환을 쓰지 않는다). 4:3 비율 유지
+function unsplashLoader({ src, width }: ImageLoaderProps): string {
+  return photoUrl(src, width, Math.round((width * 3) / 4));
+}
+
 function ChatPicks({ m, saved, onSave, onOpen }: { m: StayMsg; saved: Set<string>; onSave: (h: HotelOption) => void; onOpen: (h: HotelOption) => void }) {
   usePriceVersion();
   const [v, setV] = useState<"list" | "map">("list");
@@ -1537,7 +1552,7 @@ function ChatPicks({ m, saved, onSave, onOpen }: { m: StayMsg; saved: Set<string
       <div className="tb-ai3-head">
         <h2>{m.aiOff ? "확인한 낮은 가격 3곳" : "AI 추천 3곳"}</h2>
         <small>
-          {md(q.checkIn)}–{md(q.checkOut)} {q.place} {nights}박 · {guestText(q)} · {nights}박 세금 포함 총액
+          {md(q.checkIn)}–{md(q.checkOut)} {q.place} {nights}박 · {guestText(q)} · {nights}박 예상 총액(최종 금액은 결제 화면에서 확인)
         </small>
         <div className="tb-viewsw3 sm" role="group" aria-label="보기 방식">
           <button type="button" aria-pressed={v === "list"} onClick={() => setV("list")}>
