@@ -5412,6 +5412,22 @@ html.tb-big .tb-app {
   margin: 0;
   text-align: right;
 }
+/* 예약 후 가격 지킴이 카드 (내 여행 탭 예약 상세) */
+.tb-abw {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--tb-line, #e5e5e5);
+  border-radius: var(--r-box);
+  background: #fff;
+}
+.tb-abw-title {
+  font-size: 14px;
+}
+.tb-abw .tb-note {
+  margin: 0;
+}
 .tb-bw-warn {
   margin: 0;
   padding: 10px 12px;

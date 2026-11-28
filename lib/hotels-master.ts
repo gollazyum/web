@@ -1,5 +1,6 @@
 import "server-only";
 import type { HotelOption } from "./hotels";
+import { cityKey as toCityKey } from "./city-key";
 import { sb, supabaseOn } from "./supabase-server";
 
 // 검색에 나온 숙소의 고정 정보(좌표·이름·성급·평점·사진)를 Supabase hotels_master에 쌓는다. 서버에서만 쓴다.
@@ -26,7 +27,7 @@ export function masterRows(options: HotelOption[], cityKey: string, now = new Da
     .filter((h) => h.token && h.name && h.gps && Number.isFinite(h.gps[0]) && Number.isFinite(h.gps[1]) && !seen.has(h.token) && !!seen.add(h.token))
     .map((h) => ({
       property_token: h.token.slice(0, 500),
-      city_key: cityKey.slice(0, 100),
+      city_key: toCityKey(cityKey).slice(0, 100) || "unknown",
       name: h.name.slice(0, 300),
       lat: h.gps![0],
       lng: h.gps![1],

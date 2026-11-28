@@ -1,4 +1,4 @@
-import { validDevice } from "@/lib/booking-watch";
+import { alertMinWon, validDevice } from "@/lib/booking-watch";
 import { byDevice, publicRow } from "@/lib/booking-watch-server";
 import { supabaseOn } from "@/lib/supabase-server";
 
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   if (!validDevice(body?.device)) return Response.json({ error: "bad_request" }, { status: 400 });
   try {
     const rows = await byDevice(body.device, "&status=neq.stopped");
-    return Response.json({ watches: rows.map(publicRow) }, { headers: { "Cache-Control": "no-store" } });
+    return Response.json({ watches: rows.map(publicRow), alertMinWon: alertMinWon() }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return Response.json({ error: "db" }, { status: 502 });
   }

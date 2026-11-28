@@ -8,10 +8,14 @@ export const START_MIN_MS = 6 * H; // 지켜보기 끝까지 6시간도 안 남�
 export const FAR_DAYS = 30; // 체크인까지 이보다 멀면 3.5일에 한 번, 가까우면 하루 한 번
 export const FAR_EVERY_MS = 84 * H;
 export const NEAR_EVERY_MS = 24 * H;
+// 가격 하락 알림 기준 금액 (원). 서버 환경변수 PRICE_DROP_ALERT_MIN_WON으로 바꿀 수 있다 (화면에는 목록 응답으로 같은 값을 보낸다)
 export const ALERT_MIN_WON = 5000;
-export const ALERT_MIN_RATIO = 0.03;
+export function alertMinWon(): number {
+  const n = Number(process.env.PRICE_DROP_ALERT_MIN_WON);
+  return Number.isInteger(n) && n > 0 ? n : ALERT_MIN_WON;
+}
 export const DEVICE_MAX = 5; // 한 기기에서 함께 지켜보는 예약 수
-export const MAX_DAILY_PRICE_CHECKS = 100; // 하루 유료 가격 조회 상한 (크론 + 다시 확인 버튼)
+// 하루 유료 가격 조회 상한은 lib/paid-usage.ts (dailyCap)
 export const RECHECK_COOLDOWN_MS = 10 * 60_000;
 export const CAP_MESSAGE = "오늘 확인 가능 횟수를 다 썼어요. 내일 다시 확인할게요";
 export const LATE_MESSAGE = "무료취소 마감이 가까워 가격을 지켜보기 어려워요 (마감 6시간 전까지만 등록할 수 있어요)";
@@ -43,12 +47,12 @@ export function nextCheckAt(checkIn: string, now: number): number {
   return now + (days > FAR_DAYS ? FAR_EVERY_MS : NEAR_EVERY_MS);
 }
 
-// 알림: 예약가보다 5,000원 이상 그리고 3% 이상 내렸고, 전에 알렸다면 그때보다 5,000원 이상 더 내렸을 때만
-export function shouldAlert(booked: number, latest: number | null, lastAlerted: number | null): boolean {
+// 알림: '이전 가격 − 현재 가격 ≥ 기준 금액'일 때만 (비율 조건 없음).
+// 이전 가격 = 전에 알렸다면 그때 알린 가격, 아니면 예약한 가격
+export function shouldAlert(booked: number, latest: number | null, lastAlerted: number | null, minWon = ALERT_MIN_WON): boolean {
   if (latest === null || latest <= 0) return false;
-  const drop = booked - latest;
-  if (drop < ALERT_MIN_WON || drop / booked < ALERT_MIN_RATIO) return false;
-  return lastAlerted === null || lastAlerted - latest >= ALERT_MIN_WON;
+  const prev = lastAlerted ?? booked;
+  return prev - latest >= minWon;
 }
 
 // 견줄 가격: 무료 취소로 확인된 요금 중 가장 낮은 것. 없으면 전체 최저 (무료 취소 여부 모름 → null)
