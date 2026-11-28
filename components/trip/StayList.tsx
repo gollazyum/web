@@ -1,7 +1,7 @@
 "use client";
 
 import { VibeTag } from "./VibeTag";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { HotelOption } from "@/lib/hotels";
 import { isShownAmenity } from "@/lib/hotelText";
 import { sellerDef } from "@/lib/hotel-sellers";
@@ -24,8 +24,10 @@ import { FilterBar, FilterPanel, SORTS, type Sort } from "./StayFilters";
 import { IconBack, IconHeart, IconSpark } from "./icons";
 import { TasteRepick } from "./TasteRepick";
 import { repickStays, type TasteChoice } from "@/lib/taste-repick";
+import { cityAreaOf, inCityArea } from "@/lib/city-bounds";
+import { partyReason } from "@/lib/stay-reason";
 
-export type StayPick = { token: string; reason: string };
+export type StayPick = { token: string; reason: string; tags?: string[] }; // tags: AI가 준 시설 태그 (이유 문장과 따로, 인원 구성에 맞는 것만)
 
 type Props = {
   notice?: string; // 검색 칸 아래 한 줄 (예: 주소의 날짜를 고친 이유)
@@ -99,7 +101,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   useEffect(() => setMine(null), [qKey]);
   const aiPicks = mine ? mine.picks : aiPending ? [] : picks;
   // AI가 실패해 가격 기준으로 둔 3곳에는 'AI 추천' 칩·이유를 달지 않는다
-  const reasons = useMemo(() => new Map(aiOff && !mine ? [] : aiPicks.map((p) => [p.token, p.reason])), [aiPicks, aiOff, mine]);
+  const reasons = useMemo(() => new Map(aiOff && !mine ? [] : aiPicks.map((p) => [p.token, partyReason(p.reason, (query.childAges ?? []).length)])), [aiPicks, aiOff, mine, query.childAges]);
   const pv = usePriceVersion(); // 예약처 시트·미리 조회로 맞춘 금액이 오면 다시 계산
   // 정렬·요금 필터·'최저가' 배지는 예약처에서 확인한 금액만 쓴다 (확인 전 예상 금액은 쓰지 않는다)
   const cost = (h: HotelOption) => verifiedCost(h, query);
@@ -131,6 +133,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
   // 순서는 새 검색, 정렬·필터를 바꿀 때, 더 불러온 숙소가 붙을 때(뒤에만 붙는다)에만 바뀐다. 예약처 가격이 와도 자리는 그대로다
   const searchKey = `${query.place}|${query.checkIn}|${query.checkOut}|${guestText(query)}|${(query.childAges ?? []).join(".")}|${query.taste ?? ""}`;
   const prevOrder = useRef<{ key: string; order: string[] }>({ key: "", order: [] });
+  const area = useMemo(() => cityAreaOf(query.place), [query.place]);
 
   const shown = useMemo(() => {
     let list = applyFilter(options, f, cost, nights);
@@ -155,9 +158,18 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
       const pos = new Map(prev.order.map((t, i) => [t, i]));
       list = [...list].sort((a, b) => (pos.get(a.token) ?? 1e6) - (pos.get(b.token) ?? 1e6));
     }
+    // 관련도순: 검색 도시 경계 밖 숙소는 아래 '근처 지역 숙소'로 (각자 받은 순서 그대로). 더 불러온 쪽의 도시 안 숙소도 그 위에 선다
+    if (sort === "ai" && area) list = [...list.filter((h) => inCityArea(area, h.gps)), ...list.filter((h) => !inCityArea(area, h.gps))];
     prevOrder.current = { key, order: list.map((h) => h.token) };
     return list;
   }, [options, f, sort, searchKey, pv]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 관련도순일 때 '근처 지역 숙소' 머리를 붙일 첫 숙소 (도시 안 숙소가 하나도 없으면 붙이지 않는다)
+  const firstNearby = useMemo(() => {
+    if (sort !== "ai" || !area) return null;
+    const rows = only ? shown.filter((h) => only.has(h.token)) : shown;
+    const i = rows.findIndex((h) => !inCityArea(area, h.gps));
+    return i > 0 ? rows[i].token : null;
+  }, [shown, sort, area, only]);
   // 지도에 넘길 목록 (지도 범위로 거르기 전: 지도 범위 밖 핀도 그대로 보여야 다시 넓혀 볼 수 있다)
   const shownSig = shown.map((h) => h.token).join();
   const shownRef = useRef(onShown);
@@ -278,6 +290,12 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
           </span>
           <div className="tb-rlist">
             {rowsShown.map((h) => (
+              <Fragment key={h.token}>
+              {firstNearby === h.token && (
+                <h3 className="tb-nearby-head">
+                  근처 지역 숙소 <small>{query.place} 경계 밖이에요</small>
+                </h3>
+              )}
               <StayRow
                 key={h.token}
                 onHover={onHover}
@@ -292,6 +310,7 @@ export function StayList({ query, options, picks, aiPending, saved, onSave, onOp
                 onSave={() => onSave(h)}
                 onOpen={() => onOpen(h)}
               />
+              </Fragment>
             ))}
             <div ref={endRef} className="tb-more" aria-live="polite">
               {more === "loading" ? (

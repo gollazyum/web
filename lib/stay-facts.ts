@@ -1,6 +1,7 @@
 import type { HotelOption } from "./hotels";
 import { hasBreakfast, hasFreeCancel } from "./stay-filters";
 import { stayWants } from "./trip";
+import { stationOf } from "./stay-reason";
 
 // 카드 한 줄: 가까운 역·장소까지 시간 · 무료 취소. 검색 결과나 예약처 가격 확인에 실제로 온 값만 쓰고, 둘 다 없으면 빈 문자열(화면에서 숨김)
 // sellerFreeCancel: 예약처 가격을 확인했을 때 무료 취소라고 온 예약처가 있었는지 (prices.ts ShownPrice.fc)
@@ -44,7 +45,7 @@ export function rankNotes(picks: HotelOption[], taste: string, prices: Priced[])
     if (n > 1 && Number.isFinite(costs[i]) && costs[i] === minC && unique(costs, minC)) facts.push(prices[i].verified ? `추천 ${n}곳 중 확인한 가격이 가장 낮아요` : `추천 ${n}곳 중 예상 가격이 가장 낮아요`);
     if (!facts.length && h.rating) facts.push(`평점 ${h.rating.toFixed(1)}${h.reviews ? ` · 리뷰 ${h.reviews.toLocaleString("ko-KR")}개` : ""}`);
     const unknown = wants.filter((w) => !wantMet(h, w.label, w.amenity)).map((w) => w.label);
-    if (near && !h.near) unknown.push("역까지 거리");
+    if (near && !stationOf(h)) unknown.push("역까지 거리"); // 비교표 '역까지' 칸과 같은 기준 (역 시간 또는 직선거리)
     return { why: facts.slice(0, 2).join(" · "), unknown }; // 순위 숫자는 붙이지 않는다 (카드에는 'AI 추천' 배지만)
   });
 }
