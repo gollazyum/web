@@ -26,9 +26,11 @@ describe("가격 지킴이 규칙", () => {
 
   it("알림은 5,000원 이상 그리고 3% 이상, 다시 알릴 때는 5,000원 더 내려야", () => {
     expect(shouldAlert(300000, 290000, null)).toBe(true);
-    expect(shouldAlert(300000, 294000, null)).toBe(false); // 6,000원이지만 2%
-    expect(shouldAlert(100000, 96000, null)).toBe(false); // 4%지만 4,000원
-    expect(shouldAlert(1000000, 990000, null)).toBe(false); // 1만 원이지만 1%
+    expect(shouldAlert(300000, 294000, null)).toBe(true); // 6,000원 (비율은 보지 않는다)
+    expect(shouldAlert(100000, 96000, null)).toBe(false); // 4,000원
+    expect(shouldAlert(100000, 95000, null)).toBe(true); // 딱 5,000원
+    expect(shouldAlert(1000000, 990000, null)).toBe(true); // 1만 원 (1%여도 알린다)
+    expect(shouldAlert(300000, 290000, null, 20000)).toBe(false); // 기준 금액을 2만 원으로 바꾸면
     expect(shouldAlert(300000, 286000, 290000)).toBe(false);
     expect(shouldAlert(300000, 285000, 290000)).toBe(true);
     expect(shouldAlert(300000, null, null)).toBe(false);

@@ -10,6 +10,7 @@ import type { PublicWatch } from "@/lib/booking-watch-server";
 import { device, post, vendorKo, watchesChanged } from "./BookingWatch";
 import { Sheet } from "./Sheet";
 import type { SavedLike } from "./saved-price";
+import { cityLabel } from "@/lib/city-key";
 
 // 내 여행 '+ 예약 완료한 숙소 등록하기' 창 (2026-11-27).
 // [직접 입력] 숙소명(검색에 나온 숙소·찜 목록에서 자동완성, 유료 검색 0회)·날짜·인원·총액·예약처·무료 취소 기한
@@ -125,8 +126,7 @@ type Form = {
 };
 const blank = (): Form => ({ name: "", place: "", checkIn: "", checkOut: "", adults: 2, price: "", vendor: "agoda", fcu: "", refundable: true });
 
-const CITY_KO: Record<string, string> = { tokyo: "도쿄", osaka: "오사카", fukuoka: "후쿠오카", kyoto: "교토", sapporo: "삿포로", okinawa: "오키나와", bangkok: "방콕", danang: "다낭", nhatrang: "나트랑", taipei: "타이베이", paris: "파리", london: "런던" };
-const cityKo = (k: string) => CITY_KO[k] ?? k;
+const cityKo = cityLabel; // 도시 슬러그 → 한글 이름 (lib/city-key.ts)
 
 async function findMatches(q: string): Promise<Match[]> {
   try {
