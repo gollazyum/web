@@ -69,7 +69,7 @@ function factsOf(h: HotelOption, q: StayQuery, nights: number, rows: SellerRow[]
     topTopics(topics).length ? `후기 주제: ${topTopics(topics).map((t) => `${topicKo(t.name)} 긍정 ${positivePct(t)}% (${t.total}건)`).join(", ")}` : "",
     near.length ? `주요 장소까지 직선거리: ${near.map((n) => `${n.name} ${distText(n.km)}`).join(", ")}` : "",
     `일정: ${q.place} ${q.checkIn}~${q.checkOut} (${nights}박), ${guestText(q)}`,
-    rows?.length ? `가장 낮은 예약처 총액: ${rows[0].cost.toLocaleString("ko-KR")}원 (세금 포함, 확인 시각 기준)` : "",
+    rows?.length ? `가장 낮은 예약처 총액: ${rows[0].cost.toLocaleString("ko-KR")}원 (예상 총액, 확인 시각 기준. 최종 금액은 결제 화면에서 확인)` : "",
     reason ? `AI가 먼저 보여 준 이유: ${reason}` : "",
   ]
     .filter(Boolean)
@@ -235,7 +235,7 @@ export function SellerBody({ hotel, query, saved, onSave, onGo, reason, onSimila
   // 안내 세 줄(세금·숙박세 / 결제 / 확인 시각)을 한 줄로 (2026-11-27 PR 3/3)
   const infoList = (
     <p className="tb-seller-oneline">
-      {[checkedAt && own?.status === "ok" ? checkedText(checkedAt) : "", `세금 포함 ${nights}박 총액`, "현지 숙박세 별도", "결제는 예약 사이트에서"].filter(Boolean).join(" · ")}
+      {[checkedAt && own?.status === "ok" ? checkedText(checkedAt) : "", `${nights}박 예상 총액(최종 금액은 결제 화면에서 확인)`, "현지 숙박세 별도", "결제는 예약 사이트에서"].filter(Boolean).join(" · ")}
     </p>
   );
   const rowList = rows?.length ? (

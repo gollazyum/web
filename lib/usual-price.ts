@@ -74,7 +74,7 @@ export const isWeekendStay = (checkIn: string) => {
 // 평균보다 LOW_MIN_RATIO 이상 낮은 곳만 고른다 (기록이 모자라면 아무것도 고르지 않는다. 할인율을 지어내지 않는다)
 export const LOW_MIN_RATIO = 0.1;
 export type RecentRow = HistoryRow & { property_token: string; hotel_name: string; place: string | null; stay_date: string };
-export type HomeLow = { token: string; name: string; place: string; stayDate: string; nights: number; total: number; avg: number; pct: number; days: number };
+export type HomeLow = { token: string; name: string; place: string; stayDate: string; nights: number; total: number; avg: number; pct: number; days: number; at?: string };
 
 export function homeLows(recent: RecentRow[], history: (HistoryRow & { property_token: string })[], max = 6): HomeLow[] {
   const hist = new Map<string, HistoryRow[]>();
@@ -93,7 +93,7 @@ export function homeLows(recent: RecentRow[], history: (HistoryRow & { property_
     if (pct < LOW_MIN_RATIO * 100) continue;
     const prev = best.get(r.property_token);
     if (prev && prev.pct >= pct) continue;
-    best.set(r.property_token, { token: r.property_token, name: r.hotel_name, place: r.place, stayDate: r.stay_date, nights: r.nights, total: r.total_krw, avg, pct, days: s.days });
+    best.set(r.property_token, { token: r.property_token, name: r.hotel_name, place: r.place, stayDate: r.stay_date, nights: r.nights, total: r.total_krw, avg, pct, days: s.days, at: r.recorded_at });
   }
   return [...best.values()].sort((a, b) => b.pct - a.pct).slice(0, max);
 }

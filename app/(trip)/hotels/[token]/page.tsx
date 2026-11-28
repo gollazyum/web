@@ -18,8 +18,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const seed = await hotelSeed(decode((await params).token));
   const title = seed ? seed.name : "숙소 상세";
   const description = seed
-    ? `${[seed.stars ? `${seed.stars}성급` : "", seed.rating ? `후기 ${seed.rating.toFixed(1)}점` : ""].filter(Boolean).join(" · ")}${seed.stars || seed.rating ? " · " : ""}예약처별 세금 포함 총액을 한 화면에 나란히 보여 드려요.`
-    : "예약처별 세금 포함 총액을 한 화면에 나란히 보여 드려요.";
+    ? `${[seed.stars ? `${seed.stars}성급` : "", seed.rating ? `후기 ${seed.rating.toFixed(1)}점` : ""].filter(Boolean).join(" · ")}${seed.stars || seed.rating ? " · " : ""}예약처별 예상 총액을 한 화면에서 비교하세요(최종 금액은 결제 화면에서 확인).`
+    : "예약처별 예상 총액을 한 화면에서 비교하세요(최종 금액은 결제 화면에서 확인).";
   return {
     title,
     description,

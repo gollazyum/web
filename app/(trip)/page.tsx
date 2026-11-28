@@ -5,7 +5,7 @@ import { ogBase, ogImage, site } from "@/lib/site";
 // 예전 첫 화면(쇼핑·링크 변환 소개)은 이 화면으로 바뀌었다. 옛 /hotels, /flights 주소는 next.config.ts 에서 이 화면으로 보낸다.
 // 앱 자체는 (trip)/layout.tsx 에 있다
 const HOME_TITLE = `${site.name} | 대화로 찾는 숙소·항공편`;
-const HOME_DESCRIPTION = "가고 싶은 여행을 말하면 AI가 취향에 맞는 숙소와 항공편을 먼저 보여 드려요. 예약처별 세금·수수료 포함 총액을 한 화면에서 확인하세요.";
+const HOME_DESCRIPTION = "가고 싶은 여행을 말하면 AI가 취향에 맞는 숙소와 항공편을 먼저 보여 드려요. 예약처별 예상 총액을 한 화면에서 비교하세요(최종 금액은 결제 화면에서 확인).";
 
 export const metadata: Metadata = {
   title: { absolute: HOME_TITLE },

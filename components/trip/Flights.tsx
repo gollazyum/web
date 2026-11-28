@@ -100,7 +100,7 @@ function PriceLines({ o, q }: { o: FlightOption; q: FlightQuery }) {
   return (
     <span className="tb-fprice">
       <small>
-        {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액 · 세금 포함
+        {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 예상 총액
       </small>
       <strong>{won(o.price)}</strong>
       {avg !== null && <small>1인 평균 {won(avg)}</small>}
@@ -452,7 +452,7 @@ export function FlightBrowser({ data, aiPending, aiOff, onAiRetry, onBack, bare,
         <div className={side ? "tb-results-main" : undefined}>
           <p className="tb-results-note">
             항공편 {shown.length}편 · <span className="tb-pc-only">{aiPending ? "AI가 조건에 맞는 편을 살펴보는 중이에요" : aiOff ? `확인한 낮은 가격 ${Math.min(3, picks.length)}편을 위에 모았어요` : `AI 추천 ${Math.min(3, picks.length)}편에 표시했어요`} · </span>
-            {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 총액, 세금 포함
+            {paxOf(q)}명 {q.ret ? "왕복" : "편도"} 예상 총액(최종 금액은 결제 화면에서 확인)
           </p>
           <span className="tb-pc-only">{!aiOff && <AiSortInfo kind="flight" />}</span>
           {!bare && aiOff && !aiPending && <AiOffNote onRetry={onAiRetry} />}
@@ -466,7 +466,7 @@ export function FlightBrowser({ data, aiPending, aiOff, onAiRetry, onBack, bare,
             {!shown.length && <p className="tb-note">조건에 맞는 항공편이 없어요. 필터를 하나 풀어 보세요.</p>}
             <p className="tb-note">
               {q.ret ? "왕복 총액이에요. 카드를 누르면 오는 편 후보와 경유·편명을 볼 수 있어요. " : ""}
-              가격은 세금과 유류할증료를 포함한 금액이에요. 위탁 수하물·좌석 지정 요금은 항공사와 예약처마다 달라 따로 붙을 수 있어요.
+              가격은 예상 총액이에요. 세금·유류할증료를 포함한 최종 금액은 결제 화면에서 확인해 주세요. 위탁 수하물·좌석 지정 요금은 항공사와 예약처마다 달라 따로 붙을 수 있어요.
             </p>
           </div>
         </div>
