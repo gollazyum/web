@@ -253,7 +253,7 @@ function pickInput(body: Record<string, unknown>): string | null {
   });
   const taste = str(body.taste, 300);
   const budget = int(body.budget, 0, 100_000_000);
-  const head = kind === "stay" ? `숙소 ${items.length}곳 (총액은 숙박 전체, 세금·수수료 포함 원)` : `항공편 ${items.length}편 (가격은 전체 인원 총액, 세금 포함 원)`;
+  const head = kind === "stay" ? `숙소 ${items.length}곳 (총액은 숙박 전체 예상 총액, 원)` : `항공편 ${items.length}편 (가격은 전체 인원 예상 총액, 원)`;
   return `[취향] ${taste || "따로 없음"}${budget ? `\n[예산] 숙박 총액 ${budget.toLocaleString("ko-KR")}원 이하` : ""}\n\n[목록] ${head}\n${items.join("\n")}`;
 }
 

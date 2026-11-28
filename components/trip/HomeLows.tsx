@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { addDays } from "@/lib/dates";
 import { won, type StayQuery } from "@/lib/trip";
 import type { HomeLow } from "@/lib/usual-price";
+import { recordedText } from "@/lib/checked-at";
 
 // 홈 '평소보다 낮은 숙소': 서버에 이미 쌓인 가격 기록만 읽는다 (외부 검색 호출 0회).
 // 같은 숙소 기록이 5일치 이상 쌓이고 그 평균보다 10% 이상 낮은 기록이 있을 때만 보인다. 없으면 이 칸 자체가 없다
@@ -39,6 +40,7 @@ export function HomeLows({ onPick }: { onPick: (q: StayQuery) => void }) {
             <span className="tb-snap-price">
               <b>{won(x.total)}</b>
               <small>기록된 총액 · 예약처에서 다시 확인</small>
+              {x.at ? <small className="tb-checked">{recordedText(x.at)}</small> : null}
             </span>
           </button>
         ))}
